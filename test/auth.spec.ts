@@ -84,17 +84,6 @@ describe('access tokens', () => {
 	});
 });
 
-describe('subject allowlist', () => {
-	beforeEach(() => publishJwks());
-
-	// The pool binds ALLOWED_SUBJECTS as empty, so any authenticated subject is
-	// admitted; the restricted case is covered in allowlist.spec.ts.
-	it('admits any tenant user when no allowlist is configured', async () => {
-		const call = await authedClient({ sub: 'auth0|somebody-else' });
-		expect((await call('/accounts')).status).toBe(200);
-	});
-});
-
 describe('routing', () => {
 	it('returns a JSON 404 for unknown paths', async () => {
 		const response = await request('/nope');

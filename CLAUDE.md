@@ -123,9 +123,8 @@ overtaken between looking and writing. Someone else's row answers `404`, not
 
 **The API holds no auth state.** Auth0 issues the access token; every protected
 route verifies its RS256 signature against the tenant's published keys, plus
-issuer, audience and expiry. A valid token from a subject outside
-`ALLOWED_SUBJECTS` gets `403`, not `401` — the holder is genuine, just not this
-deployment's owner.
+issuer, audience and expiry. Anyone who can sign in to the tenant is a valid
+user of this deployment — restricting who that is happens in Auth0, not here.
 
 **Token verification fails closed.** An unrecognised key id looks like a key
 rotation, so the JWKS is refetched once; if it is still missing, or Auth0 cannot
@@ -185,7 +184,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-260 tests: 200 against the API in `test/`, 60 over the browser helpers as
+251 tests: 191 against the API in `test/`, 60 over the browser helpers as
 `*.spec.ts` beside the code they cover.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the

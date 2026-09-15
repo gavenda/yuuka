@@ -17,7 +17,6 @@ function envWith(overrides: Record<string, string>): Env {
 		CACHE: env.CACHE,
 		AUTH0_DOMAIN: env.AUTH0_DOMAIN,
 		AUTH0_AUDIENCE: env.AUTH0_AUDIENCE,
-		ALLOWED_SUBJECTS: env.ALLOWED_SUBJECTS,
 		...overrides,
 	} as unknown as Env;
 }

@@ -68,20 +68,10 @@ and audience are public by design, and the API holds no auth secret at all — i
 only verifies signatures against Auth0's published keys.
 
 Users are separated from each other automatically — each sees only their own
-books. `ALLOWED_SUBJECTS` in `wrangler.jsonc` is a separate, optional gate on
-_who may use this deployment at all_:
-
-```jsonc
-// Empty: anyone who can sign in to the tenant gets their own books.
-"ALLOWED_SUBJECTS": "",
-// Or restrict it to named people:
-"ALLOWED_SUBJECTS": "auth0|abc123,auth0|def456",
-```
-
-Leave it empty only if you are happy for anyone who can sign in to the tenant to
-register — if your tenant allows public signup, that is the whole internet. A
-valid token from an unlisted subject gets `403`; find yours from
-`GET /api/auth/me`.
+books. Anyone who can sign in to the Auth0 tenant gets an account here, so
+_who may use this deployment at all_ is controlled in Auth0 itself — turn off
+public signup, or restrict the connection to named people — rather than in
+this app.
 
 ### 2. Create the local database
 
@@ -127,9 +117,9 @@ bun run deploy
 ```
 
 There is no auth secret to deploy. Add the production origin to the Auth0
-application, and point `AUTH0_AUDIENCE` and `ALLOWED_SUBJECTS` at the real
-values first. One deployment carries both the site and the API, so there is
-nothing to keep in sync between them.
+application, and point `AUTH0_AUDIENCE` at the real value first. One deployment
+carries both the site and the API, so there is nothing to keep in sync between
+them.
 
 ## API
 

@@ -26,9 +26,6 @@
 		// The Auth0 API identifier this deployment accepts tokens for. Must match
 		// the audience the frontend requests — see VITE_AUTH0_AUDIENCE in .env.
 		"AUTH0_AUDIENCE": "https://api.yuuka.gavenda.dev",
-		// Comma-separated Auth0 `sub` values allowed in. Leave this empty and ANY
-		// user who can sign in to the tenant can read and write your finances.
-		"ALLOWED_SUBJECTS": "",
 		// Sample accounts, transactions and budgets are created on a user's first
 		// sign-in so the dashboard is not empty. Set to "false" to provision only
 		// the default categories.

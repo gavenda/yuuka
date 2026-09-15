@@ -27,7 +27,6 @@ export default defineConfig({
 					// issuer and sign their own tokens, so nothing reaches the network.
 					AUTH0_DOMAIN: 'auth.test.example',
 					AUTH0_AUDIENCE: 'https://api.yuuka.test',
-					ALLOWED_SUBJECTS: '',
 					// Most specs assert on rows they created themselves, so they start
 					// from categories only. `provisioning.spec.ts` turns this back on.
 					SEED_DEMO_DATA: 'false',

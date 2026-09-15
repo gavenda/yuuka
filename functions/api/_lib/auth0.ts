@@ -1,7 +1,7 @@
 import type { HonoJsonWebKey } from 'hono/utils/jwt/jws';
 import type { JWTPayload } from 'hono/utils/jwt/types';
 import { Jwt } from 'hono/utils/jwt';
-import { HttpError, forbidden, unauthorized } from './errors';
+import { HttpError, unauthorized } from './errors';
 
 /**
  * Auth0 signs with RS256. Pinning the list here means a token that asks to be
@@ -17,8 +17,6 @@ export interface Auth0Config {
 	issuer: string;
 	audience: string;
 	jwksUri: string;
-	/** Auth0 `sub` values permitted to use this deployment. Empty means any. */
-	allowedSubjects: string[];
 }
 
 export interface AccessTokenClaims extends JWTPayload {
@@ -44,10 +42,6 @@ export function auth0Config(env: Env): Auth0Config {
 		issuer: `https://${domain}/`,
 		audience,
 		jwksUri: `https://${domain}/.well-known/jwks.json`,
-		allowedSubjects: (env.ALLOWED_SUBJECTS ?? '')
-			.split(',')
-			.map((subject) => subject.trim())
-			.filter(Boolean),
 	};
 }
 
@@ -129,12 +123,6 @@ export async function verifyAccessToken(env: Env, token: string): Promise<Access
 
 	if (typeof payload.sub !== 'string' || !payload.sub) {
 		throw unauthorized('Access token has no subject.');
-	}
-
-	// A token can be perfectly valid and still belong to someone else in the
-	// tenant; this is what keeps a personal deployment personal.
-	if (config.allowedSubjects.length && !config.allowedSubjects.includes(payload.sub)) {
-		throw forbidden('This account is not permitted to use this deployment.');
 	}
 
 	return payload as AccessTokenClaims;
