@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
-const props = defineProps<{ logoUrl: string | null }>();
+const props = withDefaults(defineProps<{ logoUrl: string | null; invertDark?: boolean }>(), { invertDark: false });
 
 /** A remote URL can 404 or not be an image; the card then simply has no mark. */
 const failed = ref(false);
@@ -31,6 +31,7 @@ watch(
 		alt=""
 		aria-hidden="true"
 		class="pointer-events-none inset-y-0 h-5 object-contain object-right select-none"
+		:class="{ 'dark:invert': invertDark }"
 		loading="lazy"
 		decoding="async"
 		referrerpolicy="no-referrer"

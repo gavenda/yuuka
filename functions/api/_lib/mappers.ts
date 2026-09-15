@@ -25,6 +25,7 @@ export interface AccountRow {
 	type_name?: string;
 	currency: string;
 	logo_url: string | null;
+	logo_invert_dark: number;
 	starting_balance: number;
 	archived: number;
 	created_at: string;
@@ -95,6 +96,7 @@ export const toAccount = (row: AccountRow) => ({
 	typeName: row.type_name ?? null,
 	currency: row.currency,
 	logoUrl: row.logo_url,
+	logoInvertDark: row.logo_invert_dark === 1,
 	startingBalance: row.starting_balance,
 	balance: row.balance ?? row.starting_balance,
 	archived: row.archived === 1,

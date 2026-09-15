@@ -23,7 +23,14 @@ const error = ref<string | null>(null);
 const showArchived = ref(false);
 
 const typesOpen = ref(false);
-const form = reactive({ name: '', typeId: '', currency: ledger.displayCurrency, startingBalance: '0.00', logoUrl: '' });
+const form = reactive({
+	name: '',
+	typeId: '',
+	currency: ledger.displayCurrency,
+	startingBalance: '0.00',
+	logoUrl: '',
+	logoInvertDark: false,
+});
 
 const visible = computed(() => ledger.accounts.filter((account) => showArchived.value || !account.archived));
 const archivedCount = computed(() => ledger.accounts.filter((account) => account.archived).length);
@@ -87,6 +94,7 @@ function openCreate(): void {
 		currency: ledger.accounts[0]?.currency ?? ledger.displayCurrency,
 		startingBalance: '0.00',
 		logoUrl: '',
+		logoInvertDark: false,
 	});
 	dialogOpen.value = true;
 }
@@ -100,6 +108,7 @@ function openEdit(account: Account): void {
 		currency: account.currency,
 		startingBalance: toDecimalString(account.startingBalance),
 		logoUrl: account.logoUrl ?? '',
+		logoInvertDark: account.logoInvertDark,
 	});
 	dialogOpen.value = true;
 }
@@ -117,6 +126,7 @@ async function save(): Promise<void> {
 		currency: form.currency,
 		startingBalance,
 		logoUrl: form.logoUrl.trim(),
+		logoInvertDark: form.logoInvertDark,
 	};
 
 	try {
@@ -208,7 +218,7 @@ onMounted(() => ledger.load());
 						</div>
 
 						<div class="flex flex-col items-end gap-4">
-							<AccountWatermark class="flex-0 block" :logo-url="account.logoUrl" />
+							<AccountWatermark class="flex-0 block" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" />
 							<div class="flex-1 row-actions">
 								<ActionIcon icon="edit" :label="`Edit ${account.name}`" @click="openEdit(account)" />
 								<ActionIcon
@@ -264,7 +274,7 @@ onMounted(() => ledger.load());
 				<div>
 					<label class="label" for="account-logo">Logo URL</label>
 					<div class="flex items-center gap-3">
-						<AccountLogo :name="form.name || '?'" :logo-url="form.logoUrl.trim() || null" :size="40" />
+						<AccountLogo :name="form.name || '?'" :logo-url="form.logoUrl.trim() || null" :invert-dark="form.logoInvertDark" :size="40" />
 						<input
 							id="account-logo"
 							v-model="form.logoUrl"
@@ -277,6 +287,14 @@ onMounted(() => ledger.load());
 					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
 						Optional. The image is loaded from wherever it lives — nothing is uploaded or copied. Leave empty for the account's initial.
 					</p>
+					<label v-if="form.logoUrl.trim()" class="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+						<input
+							v-model="form.logoInvertDark"
+							type="checkbox"
+							class="size-4 rounded border-slate-300 accent-emerald-600 dark:border-slate-700"
+						/>
+						Invert colours in dark mode
+					</label>
 				</div>
 
 				<div>

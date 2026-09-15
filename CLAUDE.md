@@ -105,7 +105,10 @@ string. The scheme is restricted to http(s), because the value lands in an
 `<img src>` and anything else invites `data:` payloads and similar surprises. A
 URL that 404s falls back to the account's initial, and the tag carries
 `referrerpolicy="no-referrer"` so browsing does not leak which account is being
-viewed to the image's host.
+viewed to the image's host. Inverting it in dark mode is a per-account opt-in
+(`logoInvertDark`), not a blanket filter — a dark mark on a transparent
+background needs it to stay visible, but a colour logo inverted the same way
+would come out wrong.
 
 ## Security invariants
 
@@ -184,7 +187,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-251 tests: 191 against the API in `test/`, 60 over the browser helpers as
+256 tests: 196 against the API in `test/`, 60 over the browser helpers as
 `*.spec.ts` beside the code they cover.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the

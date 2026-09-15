@@ -5,12 +5,14 @@ const props = withDefaults(
 	defineProps<{
 		name: string;
 		logoUrl?: string | null;
+		/** Inverts the logo's colours in dark mode, for a dark mark that would otherwise disappear. */
+		invertDark?: boolean;
 		/** The logo's height in pixels. Width follows the image's own proportions. */
 		size?: number;
 		/** How far a wide logo may stretch before it is scaled down, as a multiple of the height. */
 		maxAspect?: number;
 	}>(),
-	{ logoUrl: null, size: 40, maxAspect: 2.5 },
+	{ logoUrl: null, invertDark: false, size: 40, maxAspect: 2.5 },
 );
 
 /**
@@ -57,6 +59,7 @@ const fallbackStyle = computed(() => ({ width: `${props.size}px`, height: `${pro
 		:alt="`${name} logo`"
 		:style="imageStyle"
 		class="shrink-0 rounded object-contain"
+		:class="{ 'dark:invert': invertDark }"
 		loading="lazy"
 		decoding="async"
 		referrerpolicy="no-referrer"

@@ -63,6 +63,7 @@ export const accountCreateSchema = z.object({
 	currency: currency.default(DEFAULT_CURRENCY),
 	startingBalance: money.default(0),
 	logoUrl: logoUrl.optional(),
+	logoInvertDark: z.boolean().default(false),
 });
 
 export const accountUpdateSchema = z
@@ -72,6 +73,7 @@ export const accountUpdateSchema = z
 		currency,
 		startingBalance: money,
 		logoUrl,
+		logoInvertDark: z.boolean(),
 		archived: z.boolean(),
 	})
 	.partial()

@@ -32,6 +32,8 @@ export interface Account {
 	currency: string;
 	/** Optional http(s) image URL shown beside the account. */
 	logoUrl: string | null;
+	/** Applies an `invert()` filter to the logo in dark mode, for a dark mark that would otherwise disappear. */
+	logoInvertDark: boolean;
 	startingBalance: number;
 	balance: number;
 	archived: boolean;

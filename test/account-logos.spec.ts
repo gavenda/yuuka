@@ -94,3 +94,48 @@ describe('account logos', () => {
 		expect(accounts.find((account) => account.name === 'Listed')?.logoUrl).toBe('https://example.com/listed.png');
 	});
 });
+
+/**
+ * A dark mark on a transparent background disappears against a dark surface,
+ * so the caller can opt an account's logo into an inverted rendering. It is
+ * per-account rather than global, because a colour logo inverted the same way
+ * would come out wrong.
+ */
+describe('logo inversion in dark mode', () => {
+	const invertOf = async (id: string) =>
+		(await json<{ account: { logoInvertDark: boolean } }>(await call(`/accounts/${id}`))).account.logoInvertDark;
+
+	it('defaults to false', async () => {
+		expect(await invertOf(await makeAccount(call))).toBe(false);
+	});
+
+	it('can be set on create', async () => {
+		const response = await create({ logoUrl: 'https://example.com/logo.png', logoInvertDark: true });
+		const { account } = await json<{ account: { logoInvertDark: boolean } }>(response);
+		expect(account.logoInvertDark).toBe(true);
+	});
+
+	it('can be toggled by a patch', async () => {
+		const id = await makeAccount(call, { logoUrl: 'https://example.com/logo.png' });
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ logoInvertDark: true }) });
+		expect(await invertOf(id)).toBe(true);
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ logoInvertDark: false }) });
+		expect(await invertOf(id)).toBe(false);
+	});
+
+	it('is left alone by a patch that does not mention it', async () => {
+		const id = await makeAccount(call, { logoUrl: 'https://example.com/logo.png', logoInvertDark: true });
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ name: 'Renamed' }) });
+		expect(await invertOf(id)).toBe(true);
+	});
+
+	it('appears on the account listing, not just the detail', async () => {
+		await makeAccount(call, { name: 'Inverted', logoUrl: 'https://example.com/inverted.png', logoInvertDark: true });
+
+		const { accounts } = await json<{ accounts: { name: string; logoInvertDark: boolean }[] }>(await call('/accounts'));
+		expect(accounts.find((account) => account.name === 'Inverted')?.logoInvertDark).toBe(true);
+	});
+});
