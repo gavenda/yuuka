@@ -114,8 +114,28 @@ async function remove(transaction: Transaction): Promise<void> {
 			{{ store.error }}
 		</p>
 
+		<div
+			v-else-if="store.loading && !store.transactions.length"
+			class="card divide-y divide-slate-100 dark:divide-slate-800/60"
+			aria-hidden="true"
+		>
+			<div v-for="group in 3" :key="group" class="animate-pulse">
+				<div class="h-8 bg-slate-50 px-4 py-2 dark:bg-slate-950/40">
+					<div class="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
+				</div>
+				<div v-for="row in 3" :key="row" class="flex items-center gap-3 px-4 py-3">
+					<span class="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800" />
+					<div class="min-w-0 flex-1 space-y-2">
+						<div class="h-3.5 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
+						<div class="h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800/60" />
+					</div>
+					<div class="h-3.5 w-14 shrink-0 rounded bg-slate-200 dark:bg-slate-800" />
+				</div>
+			</div>
+		</div>
+
 		<EmptyState
-			v-else-if="!store.loading && !store.transactions.length"
+			v-else-if="!store.transactions.length"
 			title="No transactions here"
 			description="Nothing matches these filters yet. Add one, or widen the search."
 		>

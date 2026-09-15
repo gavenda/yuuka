@@ -30,6 +30,7 @@ const links = [
 ];
 
 const showShell = computed(() => isAuthenticated.value);
+const appVersion = __APP_VERSION__;
 
 /** Auth0 fills whichever of these the connection provides. */
 const displayName = computed(() => user.value?.name ?? user.value?.nickname ?? user.value?.email ?? null);
@@ -80,12 +81,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 			class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90"
 		>
 			<div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-				<RouterLink to="/" class="flex items-center gap-2 font-semibold tracking-tight text-slate-900 dark:text-white">
-					<span class="grid h-7 w-7 place-items-center rounded-lg bg-emerald-600 text-sm text-white">¥</span>
-					yuuka
-				</RouterLink>
-
-				<nav class="ml-4 hidden gap-1 sm:flex">
+				<nav class="hidden gap-1 sm:flex">
 					<RouterLink
 						v-for="link in links"
 						:key="link.to"
@@ -218,6 +214,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 
 		<main v-else :class="showShell ? 'mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pb-10' : ''">
 			<RouterView />
+
+			<footer v-if="showShell" class="mt-10 text-xs text-slate-400 dark:text-slate-600">
+				<a
+					href="https://github.com/gavenda/yuuka"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="hover:text-slate-600 dark:hover:text-slate-400"
+					>yuuka</a
+				>
+				<span class="text-slate-300 dark:text-slate-700"> v{{ appVersion }}</span>
+			</footer>
 		</main>
 
 		<ModalDialog :open="settingsOpen" title="Settings" @close="settingsOpen = false">

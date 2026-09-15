@@ -2,9 +2,15 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
+import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
 	plugins: [vue(), tailwindcss()],
+	// The footer's version tag reads this rather than duplicating the number
+	// in an env var, so it can never drift from what actually shipped.
+	define: {
+		__APP_VERSION__: JSON.stringify(pkg.version),
+	},
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
