@@ -39,7 +39,7 @@ bun install
 
 ### 1. Configure Auth0
 
-At <https://auth.gavenda.dev>, create two things:
+At Auth0, create two things:
 
 - **An API** — its _Identifier_ is the audience. The API only accepts tokens
   addressed to it, so this value must match on both sides.
@@ -54,7 +54,7 @@ At <https://auth.gavenda.dev>, create two things:
 The browser's half goes in `.env` (`cp .env.example .env`):
 
 ```
-VITE_AUTH0_DOMAIN=auth.gavenda.dev
+VITE_AUTH0_DOMAIN=<the auth0 domain>
 VITE_AUTH0_CLIENT_ID=<the SPA client id>
 VITE_AUTH0_AUDIENCE=<the API identifier>
 ```
