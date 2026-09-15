@@ -9,7 +9,7 @@
 		"dev": "concurrently --kill-others --names api,web --prefix-colors cyan,magenta \"bun run dev:api\" \"bun run dev:web\"",
 		"dev:api": "wrangler pages dev public --port 8788",
 		"dev:web": "vite",
-		"build": "$(command -v npx) vue-tsc -b && vite build",
+		"build": "vite build",
 		"preview": "bun run build && wrangler pages dev dist --port 8788",
 		"deploy": "bun run build && wrangler pages deploy",
 		"test": "bun run test:web && bun run test:server",
