@@ -1,0 +1,52 @@
+/**
+ * Cloudflare Pages configuration for yuuka.
+ *
+ * One project serves both halves of the app: Vite's build output in `dist/` is
+ * the static site, and everything under `functions/` is compiled into the Pages
+ * Function that answers `/api/*`. Because they share an origin, the frontend
+ * calls the API with a relative path and no CORS is involved.
+ *
+ * Authentication is delegated to Auth0; this Worker only verifies the access
+ * tokens the browser presents, so it holds no auth secrets of its own.
+ *
+ * Before the first deploy, create the resources and paste their IDs below:
+ *   wrangler pages project create yuuka
+ *   wrangler d1 create yuuka
+ *   wrangler kv namespace create CACHE
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "yuuka",
+	"compatibility_date": "2026-09-11",
+	"compatibility_flags": ["nodejs_compat"],
+	"pages_build_output_dir": "dist",
+	"vars": {
+		// Auth0 tenant domain. Tokens must carry `https://<domain>/` as their issuer.
+		"AUTH0_DOMAIN": "auth.gavenda.dev",
+		// The Auth0 API identifier this deployment accepts tokens for. Must match
+		// the audience the frontend requests — see VITE_AUTH0_AUDIENCE in .env.
+		"AUTH0_AUDIENCE": "https://api.yuuka.gavenda.dev",
+		// Comma-separated Auth0 `sub` values allowed in. Leave this empty and ANY
+		// user who can sign in to the tenant can read and write your finances.
+		"ALLOWED_SUBJECTS": "",
+		// Sample accounts, transactions and budgets are created on a user's first
+		// sign-in so the dashboard is not empty. Set to "false" to provision only
+		// the default categories.
+		"SEED_DEMO_DATA": "true",
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "yuuka",
+			"database_id": "785ac1f8-779d-421d-ba4b-b58eaea5f004",
+			"migrations_dir": "migrations",
+		},
+	],
+	// One namespace, two jobs: cached monthly summaries and the Auth0 JWKS.
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "5ca26a6d6668422bba8012197c597941",
+		},
+	],
+}
