@@ -142,7 +142,7 @@ async function remove(transaction: Transaction): Promise<void> {
 							aria-hidden="true"
 						/>
 
-						<button type="button" class="min-w-0 flex-1 text-left" @click="openEdit(transaction)">
+						<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(transaction)">
 							<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
 								{{ transaction.payee || transaction.categoryName || 'Uncategorised' }}
 							</p>

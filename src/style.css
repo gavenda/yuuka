@@ -28,7 +28,7 @@
 /* Declared as a utility, not a component class: `@apply btn` in the variants
    below only resolves if `btn` is a real utility. */
 @utility btn {
-	@apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium;
+	@apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium;
 	@apply transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
 	@apply disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-950;
 }

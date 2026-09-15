@@ -7,7 +7,7 @@ import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 const { isAuthenticated, isLoading, user, error, logout } = useAuth0();
@@ -18,6 +18,8 @@ const router = useRouter();
 const { theme, toggle } = useTheme();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
 const settingsOpen = ref(false);
+const userMenuOpen = ref(false);
+const userMenuRoot = ref<HTMLElement | null>(null);
 
 const links = [
 	{ to: '/', label: 'Dashboard', icon: 'M3 10l7-7 7 7v8a1 1 0 01-1 1h-4v-5H8v5H4a1 1 0 01-1-1v-8z' },
@@ -31,8 +33,16 @@ const showShell = computed(() => isAuthenticated.value);
 
 /** Auth0 fills whichever of these the connection provides. */
 const displayName = computed(() => user.value?.name ?? user.value?.nickname ?? user.value?.email ?? null);
+const avatarInitial = computed(() => displayName.value?.trim().charAt(0).toUpperCase() || '?');
+
+function openSettings(): void {
+	userMenuOpen.value = false;
+	settingsOpen.value = true;
+}
 
 async function signOut(): Promise<void> {
+	userMenuOpen.value = false;
+
 	// Clear cached data first: logging out navigates away to Auth0, and the next
 	// sign-in should not briefly show the previous session's books.
 	ledger.reset();
@@ -43,6 +53,14 @@ async function signOut(): Promise<void> {
 	await logout({ logoutParams: { returnTo: window.location.origin } });
 }
 
+function onClickOutsideUserMenu(event: MouseEvent): void {
+	if (userMenuRoot.value && !userMenuRoot.value.contains(event.target as Node)) userMenuOpen.value = false;
+}
+
+function onKeydownUserMenu(event: KeyboardEvent): void {
+	if (event.key === 'Escape') userMenuOpen.value = false;
+}
+
 // A session that expires mid-visit should land on the sign-in screen, not on a
 // wall of failed requests.
 watch(isAuthenticated, (authenticated) => {
@@ -50,6 +68,9 @@ watch(isAuthenticated, (authenticated) => {
 		router.push({ name: 'login' });
 	}
 });
+
+onMounted(() => document.addEventListener('click', onClickOutsideUserMenu));
+onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMenu));
 </script>
 
 <template>
@@ -77,13 +98,6 @@ watch(isAuthenticated, (authenticated) => {
 				</nav>
 
 				<div class="ml-auto flex items-center gap-1">
-					<!-- Whose books these are: worth stating plainly once the app holds
-					     more than one person's data. -->
-					<span v-if="displayName" class="mr-1 hidden items-center gap-2 sm:flex">
-						<img v-if="user?.picture" :src="user.picture" alt="" class="h-6 w-6 rounded-full ring-1 ring-slate-200 dark:ring-slate-700" />
-						<span class="max-w-[10rem] truncate text-sm text-slate-600 dark:text-slate-400">{{ displayName }}</span>
-					</span>
-
 					<button
 						type="button"
 						class="btn-ghost px-2 py-1.5"
@@ -114,17 +128,6 @@ watch(isAuthenticated, (authenticated) => {
 						</svg>
 					</button>
 
-					<button type="button" class="btn-ghost px-2 py-1.5" aria-label="Settings" @click="settingsOpen = true">
-						<svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z"
-							/>
-							<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-						</svg>
-					</button>
-
 					<button
 						type="button"
 						class="btn-ghost px-2 py-1.5"
@@ -145,7 +148,56 @@ watch(isAuthenticated, (authenticated) => {
 						</svg>
 					</button>
 
-					<button type="button" class="btn-ghost px-2 py-1.5 text-sm" @click="signOut">Sign out</button>
+					<div ref="userMenuRoot" class="relative ml-1" @keydown="onKeydownUserMenu">
+						<button
+							type="button"
+							class="flex cursor-pointer items-center rounded-full ring-1 ring-slate-200 transition-shadow hover:ring-slate-300 dark:ring-slate-700 dark:hover:ring-slate-600"
+							aria-haspopup="menu"
+							:aria-expanded="userMenuOpen"
+							aria-label="Account menu"
+							@click="userMenuOpen = !userMenuOpen"
+						>
+							<img v-if="user?.picture" :src="user.picture" alt="" class="h-7 w-7 rounded-full" referrerpolicy="no-referrer" />
+							<span
+								v-else
+								class="grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+								aria-hidden="true"
+							>
+								{{ avatarInitial }}
+							</span>
+						</button>
+
+						<div
+							v-if="userMenuOpen"
+							role="menu"
+							class="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+						>
+							<div v-if="displayName" class="truncate border-b border-slate-100 px-3 py-2 dark:border-slate-800">
+								<span class="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ displayName }}</span>
+								<span v-if="user?.email && user.email !== displayName" class="block truncate text-xs text-slate-500 dark:text-slate-400">{{
+									user.email
+								}}</span>
+							</div>
+
+							<button
+								type="button"
+								role="menuitem"
+								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+								@click="openSettings"
+							>
+								Settings
+							</button>
+
+							<button
+								type="button"
+								role="menuitem"
+								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+								@click="signOut"
+							>
+								Sign out
+							</button>
+						</div>
+					</div>
 				</div>
 			</div>
 		</header>
