@@ -235,6 +235,29 @@ describe('budgets are private', () => {
 	});
 });
 
+describe('income plans are private', () => {
+	beforeEach(async () => {
+		await mine('/income-plan', {
+			method: 'PUT',
+			body: JSON.stringify({ month: '2026-09', amount: 500_000, mode: 'gross', grossAmount: 550_000 }),
+		});
+	});
+
+	it('are not shown to another user', async () => {
+		const { incomePlan } = await json<{ incomePlan: { amount: number; mode: string; grossAmount: number | null } }>(
+			await theirs('/income-plan?month=2026-09'),
+		);
+		expect(incomePlan).toMatchObject({ amount: 0, mode: 'fixed', grossAmount: null });
+	});
+
+	it('setting one does not change another user’s figure', async () => {
+		await theirs('/income-plan', { method: 'PUT', body: JSON.stringify({ month: '2026-09', amount: 999_000 }) });
+
+		const { incomePlan } = await json<{ incomePlan: { amount: number } }>(await mine('/income-plan?month=2026-09'));
+		expect(incomePlan.amount).toBe(500000);
+	});
+});
+
 describe('categories are private', () => {
 	it('cannot be edited or deleted by another user', async () => {
 		const categoryId = await makeCategory(mine, { name: 'Mine Only' });

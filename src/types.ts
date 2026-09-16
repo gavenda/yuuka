@@ -76,8 +76,21 @@ export interface Budget {
 	categoryId: string;
 	month: string;
 	amount: number;
+	/** Whole or fractional percent of the month's planned income (e.g. 12.5), or null for a fixed amount. */
+	percent: number | null;
 	createdAt: string;
 	updatedAt: string;
+}
+
+/** The total income planned for a month, set independently of what actually came in. */
+export interface IncomePlan {
+	month: string;
+	amount: number;
+	/** Whether `amount` was typed directly or is the take-home net of `grossAmount`. */
+	mode: 'gross' | 'fixed';
+	grossAmount: number | null;
+	createdAt: string | null;
+	updatedAt: string | null;
 }
 
 export interface SubcategoryBreakdown {
@@ -95,6 +108,8 @@ export interface CategoryBreakdown {
 	color: string;
 	appliesTo: CategoryScope;
 	planned: number;
+	/** Set when `planned` is a share of the month's planned income rather than a fixed amount. */
+	plannedPercent: number | null;
 	/** Includes everything filed under this category's children. */
 	actual: number;
 	remaining: number;
@@ -106,6 +121,12 @@ export interface Summary {
 	income: number;
 	expenses: number;
 	net: number;
+	/** The planned total for the month, set separately from actual income — what a percent-based budget is a share of. */
+	plannedIncome: number;
+	/** How `plannedIncome` was set, so the Budget page can reopen its editor in the same mode. */
+	plannedIncomeMode: 'gross' | 'fixed';
+	/** The gross figure `plannedIncome` was derived from, when `plannedIncomeMode` is 'gross'. */
+	plannedIncomeGrossAmount: number | null;
 	netWorth: number;
 	/** Money moved into transfer-categorised destinations, e.g. investments. */
 	cashflow: number;

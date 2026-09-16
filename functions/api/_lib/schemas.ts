@@ -139,11 +139,30 @@ export const transferCreateSchema = z
 		path: ['toAccountId'],
 	});
 
-export const budgetUpsertSchema = z.object({
-	categoryId: z.string().min(1),
-	month: monthString,
-	amount: z.number().int().min(0, 'Budgeted amount cannot be negative.'),
-});
+/** A share of the month's planned income, in whole or fractional percent (e.g. 12.5). */
+const percent = z.number().min(0).max(100);
+
+export const budgetUpsertSchema = z
+	.object({
+		categoryId: z.string().min(1),
+		month: monthString,
+		amount: z.number().int().min(0, 'Budgeted amount cannot be negative.').optional(),
+		percent: percent.optional(),
+	})
+	.refine((value) => (value.amount === undefined) !== (value.percent === undefined), 'Provide either an amount or a percent, not both.');
+
+export const incomePlanUpsertSchema = z
+	.object({
+		month: monthString,
+		amount: money.min(0, 'Planned income cannot be negative.'),
+		/** Whether `amount` was typed directly or is the take-home net of `grossAmount`. */
+		mode: z.enum(['gross', 'fixed']).default('fixed'),
+		grossAmount: money.min(0).optional(),
+	})
+	.refine((value) => value.mode !== 'gross' || value.grossAmount !== undefined, {
+		message: 'Gross mode requires a gross amount.',
+		path: ['grossAmount'],
+	});
 
 export const settingsUpdateSchema = z
 	.object({

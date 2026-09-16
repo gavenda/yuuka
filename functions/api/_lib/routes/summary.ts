@@ -20,6 +20,13 @@ interface CategoryTotalRow {
 interface BudgetAmountRow {
 	category_id: string;
 	amount: number;
+	percent_bp: number | null;
+}
+
+interface IncomePlanAmountRow {
+	amount: number;
+	mode: 'gross' | 'fixed';
+	gross_amount: number | null;
 }
 
 interface DailyRow {
@@ -43,6 +50,8 @@ export interface CategoryBreakdown {
 	appliesTo: CategoryScope;
 	/** Planned amount for the month, as a positive number. Budgets live on parents only. */
 	planned: number;
+	/** Set when `planned` is a share of the month's planned income rather than a fixed amount. */
+	plannedPercent: number | null;
 	/** What actually happened, including everything filed under this category's children. */
 	actual: number;
 	/** Planned minus actual; negative means over budget. */
@@ -62,7 +71,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 
 	// Income and spending exclude transfers: moving money between your own
 	// accounts is neither. Transfers are measured separately, below.
-	const [accounts, totals, categories, categoryTotals, budgets, daily] = await c.env.DB.batch([
+	const [accounts, totals, categories, categoryTotals, budgets, incomePlan, daily] = await c.env.DB.batch([
 		c.env.DB.prepare(
 			`SELECT a.id, a.name, a.type_id, ty.name AS type_name, a.currency, a.logo_url, a.starting_balance, a.archived,
 			        a.created_at, a.updated_at,
@@ -98,7 +107,8 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			     OR (c.applies_to = 'transfer' AND t.transfer_id IS NOT NULL))
 			 GROUP BY t.category_id`,
 		).bind(userId, start, end),
-		c.env.DB.prepare('SELECT category_id, amount FROM budgets WHERE user_id = ? AND month = ?').bind(userId, month),
+		c.env.DB.prepare('SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND month = ?').bind(userId, month),
+		c.env.DB.prepare('SELECT amount, mode, gross_amount FROM income_plans WHERE user_id = ? AND month = ?').bind(userId, month),
 		c.env.DB.prepare(
 			`SELECT occurred_on AS date, -SUM(amount) AS spent
 			 FROM transactions
@@ -113,7 +123,17 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 	const monthTotals = (totals.results as TotalsRow[])[0] ?? { income: 0, expenses: 0 };
 
 	const signedByCategory = new Map((categoryTotals.results as CategoryTotalRow[]).map((row) => [row.category_id, row.total]));
-	const plannedByCategory = new Map((budgets.results as BudgetAmountRow[]).map((row) => [row.category_id, row.amount]));
+	const budgetsByCategory = new Map((budgets.results as BudgetAmountRow[]).map((row) => [row.category_id, row]));
+	const incomePlanRow = (incomePlan.results as IncomePlanAmountRow[])[0];
+	const plannedIncome = incomePlanRow?.amount ?? 0;
+
+	/** A percent-based budget is a share of planned income, computed fresh so it never goes stale when income changes. */
+	function plannedFor(categoryId: string): { planned: number; plannedPercent: number | null } {
+		const row = budgetsByCategory.get(categoryId);
+		if (!row) return { planned: 0, plannedPercent: null };
+		if (row.percent_bp === null) return { planned: row.amount, plannedPercent: null };
+		return { planned: Math.round((plannedIncome * row.percent_bp) / 10000), plannedPercent: row.percent_bp / 100 };
+	}
 
 	/**
 	 * Reports every category as a positive magnitude in its own natural
@@ -149,7 +169,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		}));
 
 		const actual = ownActual(parent) + children.reduce((sum, child) => sum + child.actual, 0);
-		const planned = plannedByCategory.get(parent.id) ?? 0;
+		const { planned, plannedPercent } = plannedFor(parent.id);
 
 		return {
 			categoryId: parent.id,
@@ -158,6 +178,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			color: parent.color,
 			appliesTo: parent.applies_to,
 			planned,
+			plannedPercent,
 			actual,
 			remaining: planned - actual,
 			children: children.sort((a, b) => b.actual - a.actual),
@@ -169,6 +190,12 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		income: monthTotals.income,
 		expenses: monthTotals.expenses,
 		net: monthTotals.income - monthTotals.expenses,
+		/** The planned total for the month, set separately from actual income — what a percent-based budget is a share of. */
+		plannedIncome,
+		/** How `plannedIncome` was set, so the Budget page can reopen its editor in the same mode. */
+		plannedIncomeMode: incomePlanRow?.mode ?? 'fixed',
+		/** The gross figure `plannedIncome` was derived from, when `plannedIncomeMode` is 'gross'. */
+		plannedIncomeGrossAmount: incomePlanRow?.gross_amount ?? null,
 		netWorth: accountRows.reduce((sum, row) => sum + (row.balance ?? row.starting_balance), 0),
 		/** Money moved into transfer-categorised destinations, e.g. investments. */
 		cashflow: breakdown.filter((entry) => entry.appliesTo === 'transfer').reduce((sum, entry) => sum + entry.actual, 0),

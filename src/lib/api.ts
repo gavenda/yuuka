@@ -3,6 +3,7 @@ import type {
 	AccountType,
 	Budget,
 	Category,
+	IncomePlan,
 	Payee,
 	Settings,
 	Summary,
@@ -132,9 +133,13 @@ export const api = {
 		}),
 
 	listBudgets: (month: string) => request<{ budgets: Budget[] }>(`/budgets${queryString({ month })}`),
-	setBudget: (input: { categoryId: string; month: string; amount: number }) =>
+	setBudget: (input: { categoryId: string; month: string; amount: number } | { categoryId: string; month: string; percent: number }) =>
 		request<{ budget: Budget }>('/budgets', { method: 'PUT', body: body(input) }),
 	deleteBudget: (id: string) => request<void>(`/budgets/${id}`, { method: 'DELETE' }),
+
+	getIncomePlan: (month: string) => request<{ incomePlan: IncomePlan }>(`/income-plan${queryString({ month })}`),
+	setIncomePlan: (input: { month: string; amount: number; mode?: 'gross' | 'fixed'; grossAmount?: number }) =>
+		request<{ incomePlan: IncomePlan }>('/income-plan', { method: 'PUT', body: body(input) }),
 
 	summary: (month: string) => request<Summary>(`/summary${queryString({ month })}`),
 };

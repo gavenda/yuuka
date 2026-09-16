@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{ entry: CategoryBreakdown; currency?: st
 const status = computed(() => budgetStatus(props.entry.actual, props.entry.planned));
 const fill = computed(() => STATUS[status.value]);
 const percent = computed(() => percentOf(props.entry.actual, props.entry.planned));
-const over = computed(() => props.entry.remaining < 0);
+const over = computed(() => props.entry.planned > 0 && props.entry.remaining < 0);
 
 /** Status is never carried by colour alone — each state ships a word and a glyph. */
 const statusLabel = computed(() => {

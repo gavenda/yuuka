@@ -30,8 +30,8 @@ describe('budgetStatus', () => {
 		expect(budgetStatus(10001, 10000)).toBe('critical');
 	});
 
-	it('flags spending against no budget, but not an untouched category', () => {
-		expect(budgetStatus(500, 0)).toBe('warning');
+	it('does not warn for an unbudgeted category, spent or untouched', () => {
+		expect(budgetStatus(500, 0)).toBe('good');
 		expect(budgetStatus(0, 0)).toBe('good');
 	});
 });

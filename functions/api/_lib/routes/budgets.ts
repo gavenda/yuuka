@@ -24,19 +24,25 @@ export const budgetRoutes = new Hono<AppEnv>()
 		const input = await parseJson(c, budgetUpsertSchema);
 		const userId = c.get('userId');
 
+		// A budget is either a fixed amount or a share of the month's planned
+		// income, never both — whichever the caller sent, the other column is
+		// cleared so a stale value cannot linger and be picked up later.
+		const percentBp = input.percent === undefined ? null : Math.round(input.percent * 100);
+		const amount = input.amount ?? 0;
+
 		// One planned amount per category per month, so setting it twice updates
 		// rather than piling up rows. The insert only lands if the category is the
 		// caller's, which also rules out budgeting against someone else's category.
 		const result = await c.env.DB.prepare(
 			// Budgets live on top-level categories only: a subcategory's activity
 			// rolls up into its parent's plan, so budgeting both would double-count.
-			`INSERT INTO budgets (id, user_id, category_id, month, amount)
-			 SELECT ?, ?, ?, ?, ?
+			`INSERT INTO budgets (id, user_id, category_id, month, amount, percent_bp)
+			 SELECT ?, ?, ?, ?, ?, ?
 			 WHERE EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND parent_id IS NULL)
 			 ON CONFLICT (category_id, month)
-			 DO UPDATE SET amount = excluded.amount, updated_at = ${NOW_SQL}`,
+			 DO UPDATE SET amount = excluded.amount, percent_bp = excluded.percent_bp, updated_at = ${NOW_SQL}`,
 		)
-			.bind(newId('bdg'), userId, input.categoryId, input.month, input.amount, input.categoryId, userId)
+			.bind(newId('bdg'), userId, input.categoryId, input.month, amount, percentBp, input.categoryId, userId)
 			.run();
 
 		if (!result.meta.changes) throw badRequest('Unknown category, or it is a subcategory — budgets are set on the parent.');

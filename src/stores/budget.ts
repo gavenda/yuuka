@@ -24,6 +24,13 @@ export const useBudgetStore = defineStore('budget', () => {
 		(summary.value?.categories ?? []).filter((entry) => entry.appliesTo === 'transfer').sort((a, b) => b.actual - a.actual),
 	);
 
+	/** The planned total for the month — what a percentage-based budget is a share of. */
+	const plannedIncome = computed(() => summary.value?.plannedIncome ?? 0);
+
+	/** Whether `plannedIncome` was typed directly or derived from a gross salary, so the editor can reopen in the same mode. */
+	const plannedIncomeMode = computed(() => summary.value?.plannedIncomeMode ?? 'fixed');
+	const plannedIncomeGrossAmount = computed(() => summary.value?.plannedIncomeGrossAmount ?? null);
+
 	/** Budgeted spend not yet used, floored at zero so overspend does not read as headroom. */
 	const unspent = computed(() => expenseBreakdown.value.reduce((total, entry) => total + Math.max(0, entry.remaining), 0));
 
@@ -55,8 +62,13 @@ export const useBudgetStore = defineStore('budget', () => {
 		await load(true);
 	}
 
-	async function setBudget(categoryId: string, amount: number): Promise<void> {
-		await api.setBudget({ categoryId, month: month.value, amount });
+	async function setBudget(categoryId: string, value: { amount: number } | { percent: number }): Promise<void> {
+		await api.setBudget({ categoryId, month: month.value, ...value });
+		await refresh();
+	}
+
+	async function setIncomePlan(amount: number, mode: 'gross' | 'fixed' = 'fixed', grossAmount?: number): Promise<void> {
+		await api.setIncomePlan({ month: month.value, amount, mode, grossAmount });
 		await refresh();
 	}
 
@@ -73,12 +85,16 @@ export const useBudgetStore = defineStore('budget', () => {
 		expenseBreakdown,
 		incomeBreakdown,
 		cashflowBreakdown,
+		plannedIncome,
+		plannedIncomeMode,
+		plannedIncomeGrossAmount,
 		unspent,
 		overspent,
 		load,
 		setMonth,
 		refresh,
 		setBudget,
+		setIncomePlan,
 		reset,
 	};
 });

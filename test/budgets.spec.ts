@@ -15,6 +15,8 @@ beforeEach(async () => {
 
 const setBudget = (body: Record<string, unknown>) => call('/budgets', { method: 'PUT', body: JSON.stringify(body) });
 
+const setIncomePlan = (body: Record<string, unknown>) => call('/income-plan', { method: 'PUT', body: JSON.stringify(body) });
+
 const addTransaction = (body: Record<string, unknown>) =>
 	call('/transactions', { method: 'POST', body: JSON.stringify({ accountId, ...body }) });
 
@@ -67,6 +69,108 @@ describe('budgets', () => {
 		await call(`/categories/${groceries}`, { method: 'DELETE' });
 
 		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
+	});
+
+	it('rejects a budget that gives neither or both an amount and a percent', async () => {
+		expect((await setBudget({ categoryId: groceries, month: '2026-09' })).status).toBe(400);
+		expect((await setBudget({ categoryId: groceries, month: '2026-09', amount: 100, percent: 10 })).status).toBe(400);
+	});
+});
+
+describe('income plan', () => {
+	it('starts at zero for a month nothing was set for', async () => {
+		const { incomePlan } = await json<{ incomePlan: { month: string; amount: number } }>(await call('/income-plan?month=2026-09'));
+		expect(incomePlan).toMatchObject({ month: '2026-09', amount: 0 });
+	});
+
+	it('sets and updates the planned income for a month', async () => {
+		await setIncomePlan({ month: '2026-09', amount: 500_000 });
+		expect((await json<{ incomePlan: { amount: number } }>(await call('/income-plan?month=2026-09'))).incomePlan.amount).toBe(500000);
+
+		await setIncomePlan({ month: '2026-09', amount: 600_000 });
+		expect((await json<{ incomePlan: { amount: number } }>(await call('/income-plan?month=2026-09'))).incomePlan.amount).toBe(600000);
+	});
+
+	it('keeps months independent', async () => {
+		await setIncomePlan({ month: '2026-09', amount: 500_000 });
+		await setIncomePlan({ month: '2026-10', amount: 700_000 });
+
+		expect((await json<{ incomePlan: { amount: number } }>(await call('/income-plan?month=2026-09'))).incomePlan.amount).toBe(500000);
+		expect((await json<{ incomePlan: { amount: number } }>(await call('/income-plan?month=2026-10'))).incomePlan.amount).toBe(700000);
+	});
+
+	it('rejects a negative amount', async () => {
+		expect((await setIncomePlan({ month: '2026-09', amount: -1 })).status).toBe(400);
+	});
+
+	it('defaults to fixed mode with no gross amount', async () => {
+		await setIncomePlan({ month: '2026-09', amount: 50_000 });
+		const { incomePlan } = await json<{ incomePlan: { mode: string; grossAmount: number | null } }>(
+			await call('/income-plan?month=2026-09'),
+		);
+		expect(incomePlan).toMatchObject({ mode: 'fixed', grossAmount: null });
+	});
+
+	it('remembers the gross salary a net figure was derived from', async () => {
+		await setIncomePlan({ month: '2026-09', amount: 45_000, mode: 'gross', grossAmount: 50_000 });
+		const { incomePlan } = await json<{ incomePlan: { amount: number; mode: string; grossAmount: number | null } }>(
+			await call('/income-plan?month=2026-09'),
+		);
+		expect(incomePlan).toMatchObject({ amount: 45_000, mode: 'gross', grossAmount: 50_000 });
+	});
+
+	it('clears the gross amount when switching back to fixed', async () => {
+		await setIncomePlan({ month: '2026-09', amount: 45_000, mode: 'gross', grossAmount: 50_000 });
+		await setIncomePlan({ month: '2026-09', amount: 60_000, mode: 'fixed' });
+
+		const { incomePlan } = await json<{ incomePlan: { amount: number; mode: string; grossAmount: number | null } }>(
+			await call('/income-plan?month=2026-09'),
+		);
+		expect(incomePlan).toMatchObject({ amount: 60_000, mode: 'fixed', grossAmount: null });
+	});
+
+	it('rejects gross mode without a gross amount', async () => {
+		expect((await setIncomePlan({ month: '2026-09', amount: 45_000, mode: 'gross' })).status).toBe(400);
+	});
+});
+
+describe('percentage-based budgets', () => {
+	beforeEach(async () => {
+		await setIncomePlan({ month: '2026-09', amount: 500_000 });
+	});
+
+	it('derives the planned amount from the month’s planned income', async () => {
+		const { budget } = await json<{ budget: { amount: number; percent: number } }>(
+			await setBudget({ categoryId: groceries, month: '2026-09', percent: 20 }),
+		);
+		expect(budget.percent).toBe(20);
+
+		const { categories } = await json<{ categories: { categoryId: string; planned: number; plannedPercent: number | null }[] }>(
+			await call('/summary?month=2026-09'),
+		);
+		const row = categories.find((entry) => entry.categoryId === groceries)!;
+		expect(row).toMatchObject({ planned: 100_000, plannedPercent: 20 });
+	});
+
+	it('recomputes as planned income changes, without editing the budget again', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', percent: 10 });
+		await setIncomePlan({ month: '2026-09', amount: 1_000_000 });
+
+		const { categories } = await json<{ categories: { categoryId: string; planned: number }[] }>(await call('/summary?month=2026-09'));
+		expect(categories.find((entry) => entry.categoryId === groceries)!.planned).toBe(100_000);
+	});
+
+	it('switches a category back to a fixed amount, clearing the percent', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', percent: 20 });
+		const { budget } = await json<{ budget: { amount: number; percent: number | null } }>(
+			await setBudget({ categoryId: groceries, month: '2026-09', amount: 45_000 }),
+		);
+		expect(budget).toMatchObject({ amount: 45000, percent: null });
+	});
+
+	it('rejects a percent outside 0-100', async () => {
+		expect((await setBudget({ categoryId: groceries, month: '2026-09', percent: -1 })).status).toBe(400);
+		expect((await setBudget({ categoryId: groceries, month: '2026-09', percent: 101 })).status).toBe(400);
 	});
 });
 

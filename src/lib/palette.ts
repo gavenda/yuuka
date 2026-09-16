@@ -53,9 +53,10 @@ export const STATUS = {
 	critical: '#d03b3b',
 } as const;
 
-/** Budget health from the share of a planned amount already spent. */
+/** Budget health from the share of a planned amount already spent. An unbudgeted
+ *  category reads as neutral, not a warning — there is no plan to be off track from. */
 export function budgetStatus(actual: number, planned: number): keyof typeof STATUS {
-	if (planned <= 0) return actual > 0 ? 'warning' : 'good';
+	if (planned <= 0) return 'good';
 	const ratio = actual / planned;
 	if (ratio > 1) return 'critical';
 	if (ratio >= 0.85) return 'warning';

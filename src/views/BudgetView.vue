@@ -1,22 +1,24 @@
 <script setup lang="ts">
+import BudgetAmountEditor from '@/components/BudgetAmountEditor.vue';
 import BudgetMeter from '@/components/BudgetMeter.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
+import PhilippinesIncomeCalculator from '@/components/PhilippinesIncomeCalculator.vue';
 import StatCard from '@/components/StatCard.vue';
 import { parseMoney, toDecimalString } from '@/lib/money';
+import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const budget = useBudgetStore();
 const ledger = useLedgerStore();
 
-const editingId = ref<string | null>(null);
-const draft = ref('');
-const saving = ref(false);
-
 const currency = computed(() => ledger.displayCurrency);
+
+/** PH-specific: what's typed is gross pay, and the take-home net is what actually gets budgeted from. */
+const isPhp = computed(() => currency.value === 'PHP');
 
 const month = computed({
 	get: () => budget.month,
@@ -26,21 +28,72 @@ const month = computed({
 const totalPlanned = computed(() => budget.expenseBreakdown.reduce((sum, entry) => sum + entry.planned, 0));
 const totalActual = computed(() => budget.expenseBreakdown.reduce((sum, entry) => sum + entry.actual, 0));
 
-function startEditing(categoryId: string, planned: number): void {
-	editingId.value = categoryId;
-	draft.value = planned > 0 ? toDecimalString(planned) : '';
+/** Everything with a plan against it, expense or cashflow — what a percentage of income has been put towards. */
+const totalAllocated = computed(() =>
+	[...budget.expenseBreakdown, ...budget.cashflowBreakdown].reduce((sum, entry) => sum + entry.planned, 0),
+);
+const unallocatedIncome = computed(() => budget.plannedIncome - totalAllocated.value);
+
+const editingIncome = ref(false);
+const savingIncome = ref(false);
+const incomeDraft = ref('');
+
+/** PH-only: whether the figure being typed is gross pay to convert, or the budgeted amount itself. */
+const incomeMode = ref<'gross' | 'fixed'>('gross');
+const usingGross = computed(() => isPhp.value && incomeMode.value === 'gross');
+
+/** The gross figure being typed, parsed live so the PH breakdown can update as they type. */
+const grossDraft = computed(() => {
+	if (incomeDraft.value.trim() === '') return 0;
+	const amount = parseMoney(incomeDraft.value);
+	return amount && amount > 0 ? amount : 0;
+});
+
+/** What the closed field should read for the mode currently selected, from what's saved server-side. */
+function syncIncomeDraft(): void {
+	if (usingGross.value) {
+		incomeDraft.value = budget.plannedIncomeGrossAmount ? toDecimalString(budget.plannedIncomeGrossAmount) : '';
+	} else {
+		incomeDraft.value = budget.plannedIncome > 0 ? toDecimalString(budget.plannedIncome) : '';
+	}
 }
 
-async function commit(categoryId: string): Promise<void> {
-	const amount = draft.value.trim() === '' ? 0 : parseMoney(draft.value);
+// The server remembers both the mode and the figure it produced the saved amount from, so
+// there's nothing to persist in the browser: every load or refresh — first mount, switching
+// months, right after saving — picks it back up here.
+watch(
+	() => budget.summary,
+	(summary) => {
+		if (!summary) return;
+		incomeMode.value = summary.plannedIncomeMode;
+		syncIncomeDraft();
+	},
+	{ immediate: true },
+);
+
+// Switching modes locally, before saving, shows what was last saved for that mode.
+watch(incomeMode, () => {
+	if (!isPhp.value) return;
+	editingIncome.value = false;
+	syncIncomeDraft();
+});
+
+function startEditingIncome(): void {
+	editingIncome.value = true;
+}
+
+async function commitIncome(): Promise<void> {
+	const amount = incomeDraft.value.trim() === '' ? 0 : parseMoney(incomeDraft.value);
 	if (amount === null || amount < 0) return;
 
-	saving.value = true;
+	const toSave = usingGross.value && amount > 0 ? computeNetPay(amount).netPay : amount;
+
+	savingIncome.value = true;
 	try {
-		await budget.setBudget(categoryId, amount);
-		editingId.value = null;
+		await budget.setIncomePlan(toSave, usingGross.value ? 'gross' : 'fixed', usingGross.value ? amount : undefined);
+		editingIncome.value = false;
 	} finally {
-		saving.value = false;
+		savingIncome.value = false;
 	}
 }
 
@@ -56,6 +109,76 @@ onMounted(async () => {
 			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Budget</h1>
 			<MonthSwitcher v-model="month" />
 		</header>
+
+		<section class="card p-5">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				<div>
+					<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Planned income</p>
+					<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+						<template v-if="usingGross"> Enter your gross monthly pay — the take-home net is what you budget from. </template>
+						<template v-else>
+							Set what you expect to bring in, then budget a category as a percentage of it instead of a fixed amount.
+						</template>
+					</p>
+				</div>
+
+				<div class="flex shrink-0 items-center gap-2">
+					<!-- Switching modes changes what the same draft means, not what's shown while editing it. -->
+					<div v-if="isPhp" class="flex overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
+						<button
+							type="button"
+							class="px-1.5 py-1 text-xs font-medium"
+							:class="incomeMode === 'gross' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
+							@click="incomeMode = 'gross'"
+						>
+							Gross
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-1 text-xs font-medium"
+							:class="incomeMode === 'fixed' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
+							@click="incomeMode = 'fixed'"
+						>
+							Fixed
+						</button>
+					</div>
+
+					<form v-if="editingIncome" class="flex items-center gap-1" @submit.prevent="commitIncome">
+						<input
+							v-model="incomeDraft"
+							class="input tabular w-32 py-1 text-right"
+							inputmode="decimal"
+							:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
+							autofocus
+							@keydown.esc="editingIncome = false"
+						/>
+						<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="savingIncome">Save</button>
+					</form>
+					<button v-else type="button" class="btn-secondary tabular px-3 py-1 text-sm" @click="startEditingIncome">
+						<template v-if="usingGross">{{ grossDraft > 0 ? displayMoney(grossDraft, 'PHP') : 'Set gross income' }}</template>
+						<template v-else>{{ budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency) : 'Set income' }}</template>
+					</button>
+				</div>
+			</div>
+
+			<div v-if="budget.plannedIncome > 0" class="mt-4 grid gap-4 sm:grid-cols-2">
+				<StatCard
+					label="Allocated"
+					:amount="totalAllocated"
+					:currency="currency"
+					caption="Planned across expense and cashflow categories"
+				/>
+				<StatCard
+					label="Unallocated"
+					:amount="unallocatedIncome"
+					:currency="currency"
+					signed
+					caption="Income not yet put towards a category"
+				/>
+			</div>
+
+			<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
+		</section>
 
 		<div class="grid gap-4 sm:grid-cols-3">
 			<StatCard label="Planned" :amount="totalPlanned" :currency="currency" caption="Across expense categories" />
@@ -97,26 +220,7 @@ onMounted(async () => {
 						</div>
 
 						<div class="shrink-0">
-							<form v-if="editingId === entry.categoryId" class="flex items-center gap-1" @submit.prevent="commit(entry.categoryId)">
-								<input
-									v-model="draft"
-									class="input tabular w-28 py-1 text-right"
-									inputmode="decimal"
-									placeholder="0.00"
-									autofocus
-									@keydown.esc="editingId = null"
-								/>
-								<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="saving">Save</button>
-							</form>
-
-							<button
-								v-else
-								type="button"
-								class="btn-secondary tabular px-3 py-1 text-xs"
-								@click="startEditing(entry.categoryId, entry.planned)"
-							>
-								{{ entry.planned > 0 ? displayMoney(entry.planned, currency) : 'Set budget' }}
-							</button>
+							<BudgetAmountEditor :entry="entry" :currency="currency" />
 						</div>
 					</div>
 				</li>
@@ -138,26 +242,7 @@ onMounted(async () => {
 						</div>
 
 						<div class="shrink-0">
-							<form v-if="editingId === entry.categoryId" class="flex items-center gap-1" @submit.prevent="commit(entry.categoryId)">
-								<input
-									v-model="draft"
-									class="input tabular w-28 py-1 text-right"
-									inputmode="decimal"
-									placeholder="0.00"
-									autofocus
-									@keydown.esc="editingId = null"
-								/>
-								<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="saving">Save</button>
-							</form>
-
-							<button
-								v-else
-								type="button"
-								class="btn-secondary tabular px-3 py-1 text-xs"
-								@click="startEditing(entry.categoryId, entry.planned)"
-							>
-								{{ entry.planned > 0 ? displayMoney(entry.planned, currency) : 'Set budget' }}
-							</button>
+							<BudgetAmountEditor :entry="entry" :currency="currency" />
 						</div>
 					</div>
 				</li>

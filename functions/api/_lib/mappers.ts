@@ -69,6 +69,19 @@ export interface BudgetRow {
 	category_id: string;
 	month: string;
 	amount: number;
+	/** Basis points (1 = 0.01%) of the month's planned income. Takes precedence over `amount` when set. */
+	percent_bp: number | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface IncomePlanRow {
+	id: string;
+	month: string;
+	amount: number;
+	/** Whether `amount` was typed directly or is the take-home net of `gross_amount`. */
+	mode: 'gross' | 'fixed';
+	gross_amount: number | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -138,6 +151,17 @@ export const toBudget = (row: BudgetRow) => ({
 	categoryId: row.category_id,
 	month: row.month,
 	amount: row.amount,
+	/** Whole or fractional percent (e.g. 12.5), null when this budget is a fixed amount. */
+	percent: row.percent_bp === null ? null : row.percent_bp / 100,
+	createdAt: row.created_at,
+	updatedAt: row.updated_at,
+});
+
+export const toIncomePlan = (row: IncomePlanRow) => ({
+	month: row.month,
+	amount: row.amount,
+	mode: row.mode,
+	grossAmount: row.gross_amount,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

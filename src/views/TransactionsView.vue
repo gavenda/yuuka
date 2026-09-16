@@ -222,15 +222,35 @@ async function remove(transaction: Transaction): Promise<void> {
 							/>
 
 							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.leg, row.toAccountId)">
-								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-									{{ row.payee || row.categoryName || 'Transfer' }}
+								<p class="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
+									<span class="min-w-0 truncate">{{ row.payee || row.categoryName || 'Transfer' }}</span>
+									<span
+										v-if="row.payee && row.categoryName"
+										class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
+										:style="{
+											backgroundColor: `color-mix(in srgb, ${row.categoryColor ?? '#898781'} 18%, transparent)`,
+											color: row.categoryColor ?? '#898781',
+										}"
+										>{{ row.categoryName }}</span
+									>
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ row.fromAccountName }} → {{ row.toAccountName }}
-									<template v-if="row.categoryName"> · {{ row.categoryName }}</template>
-									<template v-if="row.notes"> · {{ row.notes }}</template>
-								</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ row.fromAccountName }} → {{ row.toAccountName }}</p>
 							</button>
+
+							<span v-if="row.notes" class="hidden max-w-40 shrink-0 items-center gap-1 text-xs text-slate-500 sm:flex dark:text-slate-400">
+								<svg
+									viewBox="0 0 20 20"
+									class="h-3.5 w-3.5 shrink-0"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									aria-hidden="true"
+								>
+									<rect x="4" y="3.5" width="12" height="13" rx="1.5" />
+									<path d="M6.75 8h6.5M6.75 11h6.5M6.75 14h3.5" stroke-linecap="round" />
+								</svg>
+								<span class="truncate">{{ row.notes }}</span>
+							</span>
 
 							<MoneyText :amount="row.amount" :currency="currency" transfer class="shrink-0 text-sm font-medium" />
 
@@ -245,15 +265,38 @@ async function remove(transaction: Transaction): Promise<void> {
 							/>
 
 							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.transaction)">
-								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-									{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorised' }}
+								<p class="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
+									<span class="min-w-0 truncate">{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorised' }}</span>
+									<span
+										v-if="row.transaction.payee && row.transaction.categoryName"
+										class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
+										:style="{
+											backgroundColor: `color-mix(in srgb, ${row.transaction.categoryColor ?? '#898781'} 18%, transparent)`,
+											color: row.transaction.categoryColor ?? '#898781',
+										}"
+										>{{ row.transaction.categoryName }}</span
+									>
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ row.transaction.accountName }}
-									<template v-if="row.transaction.categoryName"> · {{ row.transaction.categoryName }}</template>
-									<template v-if="row.transaction.notes"> · {{ row.transaction.notes }}</template>
-								</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ row.transaction.accountName }}</p>
 							</button>
+
+							<span
+								v-if="row.transaction.notes"
+								class="hidden max-w-40 shrink-0 items-center gap-1 text-xs text-slate-500 sm:flex dark:text-slate-400"
+							>
+								<svg
+									viewBox="0 0 20 20"
+									class="h-3.5 w-3.5 shrink-0"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									aria-hidden="true"
+								>
+									<rect x="4" y="3.5" width="12" height="13" rx="1.5" />
+									<path d="M6.75 8h6.5M6.75 11h6.5M6.75 14h3.5" stroke-linecap="round" />
+								</svg>
+								<span class="truncate">{{ row.transaction.notes }}</span>
+							</span>
 
 							<MoneyText :amount="row.transaction.amount" :currency="currency" signed explicit class="shrink-0 text-sm font-medium" />
 

@@ -61,6 +61,16 @@ export function parseMoney(input: string): number | null {
 	return sign ? -minor : minor;
 }
 
+/** Parses a percentage input like "12.5" into 0-100, or null if it is not a valid share. */
+export function parsePercent(input: string): number | null {
+	const trimmed = input.trim();
+	if (!trimmed) return null;
+
+	const value = Number(trimmed);
+	if (!Number.isFinite(value) || value < 0 || value > 100) return null;
+	return value;
+}
+
 /** Percentage of `planned` consumed by `actual`, clamped for use as a bar width. */
 export function percentOf(actual: number, planned: number): number {
 	if (planned <= 0) return actual > 0 ? 100 : 0;
