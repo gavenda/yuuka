@@ -6,6 +6,7 @@ export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 export interface SettingsRow {
 	display_currency: string;
 	budget_mode: BudgetMode;
+	default_account_id: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -64,6 +65,8 @@ export interface TransactionRow {
 	account_name?: string;
 	category_name?: string | null;
 	category_color?: string | null;
+	/** The account's own balance immediately after this transaction posted. */
+	running_balance: number;
 }
 
 export interface BudgetRow {
@@ -91,6 +94,7 @@ export interface IncomePlanRow {
 export const toSettings = (row: SettingsRow) => ({
 	displayCurrency: row.display_currency,
 	budgetMode: row.budget_mode,
+	defaultAccountId: row.default_account_id,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });
@@ -145,6 +149,7 @@ export const toTransaction = (row: TransactionRow) => ({
 	payee: row.payee,
 	notes: row.notes,
 	transferId: row.transfer_id,
+	runningBalance: row.running_balance,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

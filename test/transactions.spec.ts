@@ -53,6 +53,18 @@ describe('transactions', () => {
 		expect((await post({ accountId, amount: -100, occurredOn: '2026-13-01' })).status).toBe(400);
 	});
 
+	it('accepts an optional time of day on the date', async () => {
+		const response = await post({ accountId, amount: -100, occurredOn: '2026-09-03T14:30' });
+		expect(response.status).toBe(201);
+		const { transaction } = await json<{ transaction: { occurredOn: string } }>(response);
+		expect(transaction.occurredOn).toBe('2026-09-03T14:30');
+	});
+
+	it('rejects a malformed time of day', async () => {
+		expect((await post({ accountId, amount: -100, occurredOn: '2026-09-03T25:00' })).status).toBe(400);
+		expect((await post({ accountId, amount: -100, occurredOn: '2026-09-03T14:3' })).status).toBe(400);
+	});
+
 	it('rejects an unknown account or category', async () => {
 		expect((await post({ accountId: 'acc_nope', amount: -100, occurredOn: '2026-09-03' })).status).toBe(400);
 		expect((await post({ accountId, categoryId: 'cat_nope', amount: -100, occurredOn: '2026-09-03' })).status).toBe(400);
@@ -111,6 +123,63 @@ describe('transactions', () => {
 
 		it('rejects a malformed month filter', async () => {
 			expect((await call('/transactions?month=2026-99')).status).toBe(400);
+		});
+	});
+
+	describe('running balance', () => {
+		it('accrues from the starting balance in date order, regardless of insert order', async () => {
+			// Posted out of date order, to prove the total follows occurredOn rather
+			// than insertion order.
+			await post({ accountId, amount: -3000, occurredOn: '2026-09-20' });
+			await post({ accountId, amount: -1000, occurredOn: '2026-08-28' });
+			await post({ accountId, amount: 5000, occurredOn: '2026-09-02' });
+
+			const { transactions } = await json<{ transactions: { occurredOn: string; runningBalance: number }[] }>(await call('/transactions'));
+			// Newest first: 0 - 1000 + 5000 - 3000, read backwards from the last leg.
+			expect(transactions.map((entry) => [entry.occurredOn, entry.runningBalance])).toEqual([
+				['2026-09-20', 1000],
+				['2026-09-02', 4000],
+				['2026-08-28', -1000],
+			]);
+		});
+
+		it('does not mix two accounts’ figures', async () => {
+			const other = await makeAccount(call, { name: 'Savings', startingBalance: 10_000 });
+			await post({ accountId, amount: -500, occurredOn: '2026-09-04' });
+			await post({ accountId: other, amount: 2000, occurredOn: '2026-09-04' });
+
+			const { transactions } = await json<{ transactions: { accountId: string; runningBalance: number }[] }>(await call('/transactions'));
+			expect(transactions.find((entry) => entry.accountId === accountId)?.runningBalance).toBe(-500);
+			expect(transactions.find((entry) => entry.accountId === other)?.runningBalance).toBe(12_000);
+		});
+
+		it('still reflects the full account history when a filter narrows the list', async () => {
+			await post({ accountId, categoryId, amount: -1000, occurredOn: '2026-09-01', payee: 'Earlier' });
+			await post({ accountId, amount: -500, occurredOn: '2026-09-05', payee: 'Findable' });
+
+			// The search only surfaces the second row, but its balance must still
+			// account for the first — narrowing the list must not change what "the
+			// balance after this one" means.
+			const { transactions } = await json<{ transactions: { payee: string; runningBalance: number }[] }>(
+				await call('/transactions?search=Findable'),
+			);
+			expect(transactions).toEqual([expect.objectContaining({ payee: 'Findable', runningBalance: -1500 })]);
+		});
+
+		it('reflects both legs of a transfer', async () => {
+			const savingsId = await makeAccount(call, { name: 'Savings', startingBalance: 0 });
+			await post({ accountId, amount: 1000, occurredOn: '2026-09-01' });
+
+			await call('/transactions/transfer', {
+				method: 'POST',
+				body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 400, occurredOn: '2026-09-02' }),
+			});
+
+			const { transactions } = await json<{ transactions: { accountId: string; amount: number; runningBalance: number }[] }>(
+				await call('/transactions'),
+			);
+			expect(transactions.find((entry) => entry.accountId === accountId && entry.amount === -400)?.runningBalance).toBe(600);
+			expect(transactions.find((entry) => entry.accountId === savingsId)?.runningBalance).toBe(400);
 		});
 	});
 

@@ -19,9 +19,12 @@ export const useTransactionStore = defineStore('transactions', () => {
 	const byDate = computed(() => {
 		const groups = new Map<string, Transaction[]>();
 		for (const transaction of transactions.value) {
-			const bucket = groups.get(transaction.occurredOn);
+			// Group by the date part only — a time of day would otherwise split a
+			// single day's transactions into their own one-row sections.
+			const date = transaction.occurredOn.slice(0, 10);
+			const bucket = groups.get(date);
 			if (bucket) bucket.push(transaction);
-			else groups.set(transaction.occurredOn, [transaction]);
+			else groups.set(date, [transaction]);
 		}
 		return [...groups.entries()];
 	});

@@ -27,6 +27,8 @@ export const useLedgerStore = defineStore('ledger', () => {
 	const displayCurrency = computed(() => settings.value?.displayCurrency ?? DEFAULT_CURRENCY);
 	/** Whether a budgeted amount applies to every month or is set per month. Fixed is the default. */
 	const budgetMode = computed(() => settings.value?.budgetMode ?? 'fixed');
+	/** Which account a new transaction should open on. Null falls back to the first active account. */
+	const defaultAccountId = computed(() => settings.value?.defaultAccountId ?? null);
 	/**
 	 * Categories usable on a plain transaction, by direction. Transfer-scope
 	 * categories are excluded: a transaction carries one category, and these two
@@ -96,7 +98,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		categories.value = (await api.listCategories(true)).categories;
 	}
 
-	async function updateSettings(input: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode'>>): Promise<void> {
+	async function updateSettings(input: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
 		settings.value = (await api.updateSettings(input)).settings;
 	}
 
@@ -115,6 +117,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		settings,
 		displayCurrency,
 		budgetMode,
+		defaultAccountId,
 		updateSettings,
 		categories,
 		loaded,

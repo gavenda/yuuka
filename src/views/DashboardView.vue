@@ -4,7 +4,7 @@ import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCard from '@/components/StatCard.vue';
-import { formatDate } from '@/lib/dates';
+import { formatDate, formatTime } from '@/lib/dates';
 import { mergeTransferRows } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -105,7 +105,8 @@ watch(
 									{{ row.payee || `${row.fromAccountName} → ${row.toAccountName}` }}
 								</p>
 								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ formatDate(row.leg.occurredOn) }} · {{ row.fromAccountName }} → {{ row.toAccountName }}
+									{{ [formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)].filter(Boolean).join(' · ') }} ·
+									{{ row.fromAccountName }} → {{ row.toAccountName }}
 								</p>
 							</div>
 							<MoneyText :amount="row.amount" :currency="currency" transfer />
@@ -116,7 +117,8 @@ watch(
 									{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorised' }}
 								</p>
 								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ formatDate(row.transaction.occurredOn) }} · {{ row.transaction.accountName }}
+									{{ [formatDate(row.transaction.occurredOn), formatTime(row.transaction.occurredOn)].filter(Boolean).join(' · ') }} ·
+									{{ row.transaction.accountName }}
 								</p>
 							</div>
 							<MoneyText :amount="row.transaction.amount" :currency="currency" signed />

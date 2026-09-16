@@ -93,6 +93,52 @@ describe('new accounts', () => {
 	});
 });
 
+describe('default account', () => {
+	it('starts unset', async () => {
+		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(await call('/settings'));
+		expect(settings.defaultAccountId).toBeNull();
+	});
+
+	it('can be set to one of the caller’s own accounts', async () => {
+		const id = await makeAccount(call, { name: 'Savings' });
+		const response = await patch({ defaultAccountId: id });
+		expect(response.status).toBe(200);
+
+		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(response);
+		expect(settings.defaultAccountId).toBe(id);
+	});
+
+	it('can be cleared back to unset', async () => {
+		const id = await makeAccount(call, { name: 'Savings' });
+		await patch({ defaultAccountId: id });
+
+		const response = await patch({ defaultAccountId: null });
+		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(response);
+		expect(settings.defaultAccountId).toBeNull();
+	});
+
+	it('rejects an account belonging to another user', async () => {
+		const theirs = await otherClient();
+		const theirAccountId = await makeAccount(theirs, { name: 'Not yours' });
+
+		expect((await patch({ defaultAccountId: theirAccountId })).status).toBe(400);
+	});
+
+	it('rejects an unknown account id', async () => {
+		expect((await patch({ defaultAccountId: 'acc_nope' })).status).toBe(400);
+	});
+
+	it('clears itself when the account is deleted', async () => {
+		const id = await makeAccount(call, { name: 'Savings' });
+		await patch({ defaultAccountId: id });
+
+		await call(`/accounts/${id}`, { method: 'DELETE' });
+
+		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(await call('/settings'));
+		expect(settings.defaultAccountId).toBeNull();
+	});
+});
+
 describe('settings are private', () => {
 	it('one user changing theirs does not touch another’s', async () => {
 		const theirs = await otherClient();

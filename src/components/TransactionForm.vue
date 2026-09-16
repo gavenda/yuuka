@@ -22,6 +22,7 @@ const form = reactive({
 	categoryId: '',
 	amount: '',
 	occurredOn: today(),
+	occurredTime: '',
 	payee: '',
 	notes: '',
 });
@@ -49,13 +50,18 @@ watch(
 		error.value = null;
 
 		if (!transaction) {
+			// The user's chosen default, when it is still an active account;
+			// otherwise whichever active account happens to sort first.
+			const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
+
 			Object.assign(form, {
 				mode: 'expense',
-				accountId: ledger.activeAccounts[0]?.id ?? '',
+				accountId: preferred?.id ?? ledger.activeAccounts[0]?.id ?? '',
 				toAccountId: '',
 				categoryId: '',
 				amount: '',
 				occurredOn: today(),
+				occurredTime: '',
 				payee: '',
 				notes: '',
 			});
@@ -63,6 +69,8 @@ watch(
 		}
 
 		const isTransfer = Boolean(transaction.transferId);
+		// A time of day is an optional `THH:MM` suffix; a bare date has none.
+		const hasTime = transaction.occurredOn.length > 10;
 
 		Object.assign(form, {
 			mode: isTransfer ? 'transfer' : transaction.amount >= 0 ? 'income' : 'expense',
@@ -70,7 +78,8 @@ watch(
 			toAccountId: isTransfer ? (props.transferToAccountId ?? '') : '',
 			categoryId: transaction.categoryId ?? '',
 			amount: toDecimalString(Math.abs(transaction.amount)),
-			occurredOn: transaction.occurredOn,
+			occurredOn: transaction.occurredOn.slice(0, 10),
+			occurredTime: hasTime ? transaction.occurredOn.slice(11, 16) : '',
 			payee: transaction.payee,
 			notes: transaction.notes,
 		});
@@ -125,6 +134,9 @@ async function submit(): Promise<void> {
 	submitting.value = true;
 
 	try {
+		// A time is optional; omitting it leaves the date to stand on its own.
+		const occurredOn = form.occurredTime ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn;
+
 		// Direction lives in the sign, so the form's mode is what decides it.
 		const payload =
 			form.mode === 'transfer'
@@ -133,7 +145,7 @@ async function submit(): Promise<void> {
 						fromAccountId: form.accountId,
 						toAccountId: form.toAccountId,
 						amount: minor,
-						occurredOn: form.occurredOn,
+						occurredOn,
 						notes: form.notes,
 						categoryId: form.categoryId || null,
 						payee: form.payee,
@@ -143,7 +155,7 @@ async function submit(): Promise<void> {
 						accountId: form.accountId,
 						categoryId: form.categoryId || null,
 						amount: form.mode === 'expense' ? -minor : minor,
-						occurredOn: form.occurredOn,
+						occurredOn,
 						payee: form.payee,
 						notes: form.notes,
 					};
@@ -229,9 +241,16 @@ defineExpose({
 			</p>
 		</div>
 
-		<div>
-			<label class="label" for="date">Date</label>
-			<input id="date" v-model="form.occurredOn" type="date" class="input" required />
+		<div class="grid gap-4 sm:grid-cols-2">
+			<div>
+				<label class="label" for="date">Date</label>
+				<input id="date" v-model="form.occurredOn" type="date" class="input" required />
+			</div>
+
+			<div>
+				<label class="label" for="time">Time</label>
+				<input id="time" v-model="form.occurredTime" type="time" class="input" />
+			</div>
 		</div>
 
 		<div>

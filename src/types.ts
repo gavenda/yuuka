@@ -12,6 +12,8 @@ export interface Settings {
 	displayCurrency: string;
 	/** Whether a category's planned amount applies to every month, or is set separately per month. Fixed is the default. */
 	budgetMode: BudgetMode;
+	/** Which account a new transaction opens on. Null falls back to the first active account. */
+	defaultAccountId: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -71,6 +73,8 @@ export interface Transaction {
 	payee: string;
 	notes: string;
 	transferId: string | null;
+	/** This account's own balance immediately after the transaction posted. */
+	runningBalance: number;
 	createdAt: string;
 	updatedAt: string;
 }

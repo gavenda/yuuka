@@ -20,13 +20,21 @@ export function formatMonth(month: string): string {
 	return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(year, monthIndex - 1, 1));
 }
 
-/** `2026-09-15` -> `15 Sep`, rendered from the parts to dodge timezone shifts. */
+/** `2026-09-15[T14:30]` -> `15 Sep`, rendered from the date part to dodge timezone shifts. */
 export function formatDate(date: string): string {
-	const [year, month, day] = date.split('-').map(Number);
+	const [year, month, day] = date.slice(0, 10).split('-').map(Number);
 	return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(new Date(year, month - 1, day));
 }
 
 export function formatLongDate(date: string): string {
-	const [year, month, day] = date.split('-').map(Number);
+	const [year, month, day] = date.slice(0, 10).split('-').map(Number);
 	return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(year, month - 1, day));
+}
+
+/** `2026-09-15T14:30` -> `2:30 PM`; null when the transaction carries no time of day. */
+export function formatTime(date: string): string | null {
+	const time = date.slice(11, 16);
+	if (!/^\d{2}:\d{2}$/.test(time)) return null;
+	const [hours, minutes] = time.split(':').map(Number);
+	return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(2000, 0, 1, hours, minutes));
 }

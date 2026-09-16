@@ -2,6 +2,12 @@
 export const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 /** `YYYY-MM-DD` */
 export const DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+/**
+ * `YYYY-MM-DD`, optionally with a `THH:MM` time of day. A bare date sorts and
+ * range-filters as if it were midnight, since it is a string prefix of any
+ * timed value on the same day.
+ */
+export const DATE_TIME_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(T([01]\d|2[0-3]):[0-5]\d)?$/;
 
 export function isMonth(value: string): boolean {
 	return MONTH_PATTERN.test(value);

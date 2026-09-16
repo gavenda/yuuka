@@ -6,7 +6,8 @@ import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
 import { api, ApiError } from '@/lib/api';
-import { formatLongDate } from '@/lib/dates';
+import { formatLongDate, formatTime } from '@/lib/dates';
+import { displayMoney } from '@/lib/privacy';
 import { mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -28,6 +29,11 @@ const categoryFilter = ref('');
 const month = ref(budget.month);
 
 const currency = computed(() => ledger.displayCurrency);
+
+/** The running balance is the account's own money, shown in what it actually holds. */
+function accountCurrency(accountId: string): string {
+	return ledger.accountsById.get(accountId)?.currency ?? currency.value;
+}
 
 const groupedRows = computed<[string, TransactionRow[]][]>(() => store.byDate.map(([date, group]) => [date, mergeTransferRows(group)]));
 
@@ -181,7 +187,10 @@ async function remove(transaction: Transaction): Promise<void> {
 										>{{ row.categoryName }}</span
 									>
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ row.fromAccountName }} → {{ row.toAccountName }}</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+									{{ row.fromAccountName }} → {{ row.toAccountName
+									}}{{ formatTime(row.leg.occurredOn) ? ` · ${formatTime(row.leg.occurredOn)}` : '' }}
+								</p>
 							</button>
 
 							<span v-if="row.notes" class="hidden max-w-40 shrink-0 items-center gap-1 text-xs text-slate-500 sm:flex dark:text-slate-400">
@@ -199,7 +208,12 @@ async function remove(transaction: Transaction): Promise<void> {
 								<span class="truncate">{{ row.notes }}</span>
 							</span>
 
-							<MoneyText :amount="row.amount" :currency="currency" transfer class="shrink-0 text-sm font-medium" />
+							<div class="flex shrink-0 flex-col items-end gap-0.5">
+								<MoneyText :amount="row.amount" :currency="currency" transfer class="text-sm font-medium" />
+								<span class="tabular text-xs text-slate-400 dark:text-slate-500">
+									{{ displayMoney(row.leg.runningBalance, accountCurrency(row.leg.accountId)) }}
+								</span>
+							</div>
 
 							<ActionIcon icon="delete" :label="`Delete ${row.payee || 'transfer'}`" danger class="row-actions" @click="remove(row.leg)" />
 						</template>
@@ -224,7 +238,10 @@ async function remove(transaction: Transaction): Promise<void> {
 										>{{ row.transaction.categoryName }}</span
 									>
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ row.transaction.accountName }}</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+									{{ row.transaction.accountName
+									}}{{ formatTime(row.transaction.occurredOn) ? ` · ${formatTime(row.transaction.occurredOn)}` : '' }}
+								</p>
 							</button>
 
 							<span
@@ -245,7 +262,12 @@ async function remove(transaction: Transaction): Promise<void> {
 								<span class="truncate">{{ row.transaction.notes }}</span>
 							</span>
 
-							<MoneyText :amount="row.transaction.amount" :currency="currency" signed explicit class="shrink-0 text-sm font-medium" />
+							<div class="flex shrink-0 flex-col items-end gap-0.5">
+								<MoneyText :amount="row.transaction.amount" :currency="currency" signed explicit class="text-sm font-medium" />
+								<span class="tabular text-xs text-slate-400 dark:text-slate-500">
+									{{ displayMoney(row.transaction.runningBalance, accountCurrency(row.transaction.accountId)) }}
+								</span>
+							</div>
 
 							<ActionIcon
 								icon="delete"

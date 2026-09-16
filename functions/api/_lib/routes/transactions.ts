@@ -11,13 +11,33 @@ import { toTransaction, type TransactionRow } from '../mappers';
 import { transactionCreateSchema, transactionQuerySchema, transactionUpdateSchema, transferCreateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
+/**
+ * Each row carries `running_balance`: its own account's balance immediately
+ * after it posted. That total is computed over every one of the user's
+ * transactions for the account, not just whichever ones a search, category or
+ * month filter would leave in the final result — narrowing the list must not
+ * change what "the balance after this one" means. The subquery therefore takes
+ * its own `user_id` parameter rather than reusing the outer query's filters.
+ */
 const SELECT_ENRICHED = `
 	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.payee, t.notes,
 	       t.transfer_id, t.created_at, t.updated_at,
-	       a.name AS account_name, c.name AS category_name, c.color AS category_color
+	       a.name AS account_name, c.name AS category_name, c.color AS category_color,
+	       b.running_balance
 	FROM transactions t
 	JOIN accounts a ON a.id = t.account_id
 	LEFT JOIN categories c ON c.id = t.category_id
+	JOIN (
+		SELECT t2.id,
+		       a2.starting_balance + SUM(t2.amount) OVER (
+		           PARTITION BY t2.account_id
+		           ORDER BY t2.occurred_on ASC, t2.created_at ASC
+		           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+		       ) AS running_balance
+		FROM transactions t2
+		JOIN accounts a2 ON a2.id = t2.account_id
+		WHERE t2.user_id = ?
+	) b ON b.id = t.id
 `;
 
 const MISSING_REFERENCE = 'Unknown account or category.';
@@ -43,17 +63,18 @@ const INSERT_GUARDED = `
 
 /** Re-reads a row with its joined account and category labels. */
 async function loadOne(db: D1Database, userId: string, id: string): Promise<TransactionRow | null> {
-	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(id, userId).first<TransactionRow>();
+	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(userId, id, userId).first<TransactionRow>();
 }
 
 export const transactionRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
 	.get('/', async (c) => {
 		const query = parseQuery(c, transactionQuerySchema);
+		const userId = c.get('userId');
 
 		// Ownership is the first condition on every listing, never an optional filter.
 		const conditions: string[] = ['t.user_id = ?'];
-		const values: unknown[] = [c.get('userId')];
+		const values: unknown[] = [userId];
 
 		if (query.month) {
 			const { start, end } = monthRange(query.month);
@@ -89,7 +110,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 				`${SELECT_ENRICHED} ${where}
 				 ORDER BY t.occurred_on DESC, t.created_at DESC
 				 LIMIT ? OFFSET ?`,
-			).bind(...values, query.limit, query.offset),
+			).bind(userId, ...values, query.limit, query.offset),
 			c.env.DB.prepare(`SELECT COUNT(*) AS total FROM transactions t ${where}`).bind(...values),
 		]);
 
@@ -218,7 +239,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 		}
 
 		const { results } = await c.env.DB.prepare(`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`)
-			.bind(transferId, userId)
+			.bind(userId, transferId, userId)
 			.all<TransactionRow>();
 
 		return c.json({ transferId, transactions: results.map(toTransaction) }, 201);
@@ -323,7 +344,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const { results: updated } = await c.env.DB.prepare(
 			`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`,
 		)
-			.bind(transferId, userId)
+			.bind(userId, transferId, userId)
 			.all<TransactionRow>();
 
 		return c.json({ transferId, transactions: updated.map(toTransaction) });

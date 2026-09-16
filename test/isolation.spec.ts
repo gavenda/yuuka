@@ -267,6 +267,18 @@ describe('categories are private', () => {
 	});
 });
 
+describe('default account setting is private', () => {
+	it('cannot be pointed at another user’s account', async () => {
+		const theirAccountId = await makeAccount(theirs, { name: 'Not yours' });
+
+		const response = await mine('/settings', { method: 'PATCH', body: JSON.stringify({ defaultAccountId: theirAccountId }) });
+		expect(response.status).toBe(400);
+
+		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(await mine('/settings'));
+		expect(settings.defaultAccountId).toBeNull();
+	});
+});
+
 describe('summaries are private', () => {
 	it('never mix two users’ figures, cached or not', async () => {
 		const accountId = await makeAccount(mine, { startingBalance: 100_000 });

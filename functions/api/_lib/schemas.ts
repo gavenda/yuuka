@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BUDGET_MODES } from './budget-mode';
-import { DATE_PATTERN, MONTH_PATTERN } from './dates';
+import { DATE_PATTERN, DATE_TIME_PATTERN, MONTH_PATTERN } from './dates';
 import { DEFAULT_CURRENCY } from './defaults';
 
 export const CATEGORY_KINDS = ['income', 'expense'] as const;
@@ -42,6 +42,8 @@ const logoUrl = z
 	}, 'Must be an http or https URL.');
 
 export const dateString = z.string().regex(DATE_PATTERN, 'Must be a YYYY-MM-DD date.');
+/** When a transaction records what time of day it happened, not just the date. */
+export const dateTimeString = z.string().regex(DATE_TIME_PATTERN, 'Must be a YYYY-MM-DD date, optionally with a THH:MM time.');
 export const monthString = z.string().regex(MONTH_PATTERN, 'Must be a YYYY-MM month.');
 
 export const accountTypeCreateSchema = z.object({
@@ -106,7 +108,7 @@ export const transactionCreateSchema = z.object({
 	accountId: z.string().min(1),
 	categoryId: z.string().min(1).nullable().default(null),
 	amount: money.refine((value) => value !== 0, 'Amount cannot be zero.'),
-	occurredOn: dateString,
+	occurredOn: dateTimeString,
 	payee: z.string().trim().max(120).default(''),
 	notes: z.string().trim().max(500).default(''),
 });
@@ -116,7 +118,7 @@ export const transactionUpdateSchema = z
 		accountId: z.string().min(1),
 		categoryId: z.string().min(1).nullable(),
 		amount: money.refine((value) => value !== 0, 'Amount cannot be zero.'),
-		occurredOn: dateString,
+		occurredOn: dateTimeString,
 		payee: z.string().trim().max(120),
 		notes: z.string().trim().max(500),
 	})
@@ -128,7 +130,7 @@ export const transferCreateSchema = z
 		fromAccountId: z.string().min(1),
 		toAccountId: z.string().min(1),
 		amount: z.number().int().positive('Transfer amount must be positive.'),
-		occurredOn: dateString,
+		occurredOn: dateTimeString,
 		notes: z.string().trim().max(500).default(''),
 		/** Must be a transfer-scope category, e.g. Cashflow or one of its children. */
 		categoryId: z.string().min(1).nullable().default(null),
@@ -170,6 +172,8 @@ export const settingsUpdateSchema = z
 		displayCurrency: currency,
 		/** Whether a category's planned amount applies to every month or is set per month. */
 		budgetMode: z.enum(BUDGET_MODES),
+		/** Which account a new transaction opens on. Null falls back to the first active account. */
+		defaultAccountId: z.string().min(1).nullable(),
 	})
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');

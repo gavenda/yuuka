@@ -16,6 +16,7 @@ const SUGGESTIONS = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'SGD', 'HK
 
 const draft = ref(ledger.displayCurrency);
 const budgetModeDraft = ref(ledger.budgetMode);
+const defaultAccountDraft = ref(ledger.defaultAccountId ?? '');
 const error = ref<string | null>(null);
 const saving = ref(false);
 
@@ -23,7 +24,8 @@ const normalised = computed(() => draft.value.trim().toUpperCase());
 const isValid = computed(() => /^[A-Za-z]{3}$/.test(draft.value.trim()));
 const currencyChanged = computed(() => normalised.value !== ledger.displayCurrency);
 const budgetModeChanged = computed(() => budgetModeDraft.value !== ledger.budgetMode);
-const changed = computed(() => currencyChanged.value || budgetModeChanged.value);
+const defaultAccountChanged = computed(() => (defaultAccountDraft.value || null) !== ledger.defaultAccountId);
+const changed = computed(() => currencyChanged.value || budgetModeChanged.value || defaultAccountChanged.value);
 
 // Reopening should show what is actually saved, not a half-typed attempt.
 watch(
@@ -32,6 +34,7 @@ watch(
 		if (!open) return;
 		draft.value = ledger.displayCurrency;
 		budgetModeDraft.value = ledger.budgetMode;
+		defaultAccountDraft.value = ledger.defaultAccountId ?? '';
 		error.value = null;
 	},
 );
@@ -48,6 +51,7 @@ async function save(): Promise<void> {
 		await ledger.updateSettings({
 			...(currencyChanged.value ? { displayCurrency: normalised.value } : {}),
 			...(budgetModeChanged.value ? { budgetMode: budgetModeDraft.value } : {}),
+			...(defaultAccountChanged.value ? { defaultAccountId: defaultAccountDraft.value || null } : {}),
 		});
 		// The summary carries formatted figures nowhere, but refreshing keeps the
 		// dashboard consistent with anything either setting touched.
@@ -117,6 +121,15 @@ async function save(): Promise<void> {
 				<template v-if="budgetModeDraft === 'fixed'"> A category's planned amount applies to every month, until changed again. </template>
 				<template v-else> Each month keeps its own planned amount, set separately. </template>
 			</p>
+		</div>
+
+		<div>
+			<label class="label" for="default-account">Default account</label>
+			<select id="default-account" v-model="defaultAccountDraft" class="input">
+				<option value="">First active account</option>
+				<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+			</select>
+			<p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Which account a new transaction opens on.</p>
 		</div>
 
 		<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
