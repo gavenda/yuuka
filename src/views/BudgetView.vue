@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import PhilippinesIncomeCalculator from '@/components/PhilippinesIncomeCalculator.vue';
 import StatCard from '@/components/StatCard.vue';
-import { parseMoney, toDecimalString } from '@/lib/money';
+import { parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
@@ -186,7 +186,7 @@ onMounted(async () => {
 				label="Spent"
 				:amount="totalActual"
 				:currency="currency"
-				:caption="`${Math.round((totalActual / (totalPlanned || 1)) * 100)}% of plan`"
+				:caption="totalPlanned > 0 ? `${percentOf(totalActual, totalPlanned)}% of plan` : 'No plan set'"
 			/>
 			<StatCard label="Remaining" :amount="totalPlanned - totalActual" :currency="currency" signed caption="Planned minus spent" />
 		</div>
