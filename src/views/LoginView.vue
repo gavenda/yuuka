@@ -24,7 +24,7 @@ async function signIn(): Promise<void> {
 <template>
 	<div class="flex min-h-dvh items-center justify-center px-4 py-12">
 		<div class="w-full max-w-sm text-center">
-			<span class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-emerald-600 text-xl font-semibold text-white">¥</span>
+			<span class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-xl bg-blue-600 text-xl font-semibold text-white">¥</span>
 			<h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">yuuka</h1>
 			<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Budgeting and financial tracking.</p>
 

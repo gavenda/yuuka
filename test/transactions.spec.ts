@@ -214,5 +214,75 @@ describe('transactions', () => {
 			expect((await call(`/transactions/${created.transactions[1].id}`, { method: 'DELETE' })).status).toBe(204);
 			expect((await json<{ total: number }>(await call('/transactions'))).total).toBe(0);
 		});
+
+		describe('editing', () => {
+			let transferId: string;
+
+			beforeEach(async () => {
+				const created = await json<{ transferId: string }>(
+					await call('/transactions/transfer', {
+						method: 'POST',
+						body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 25_000, occurredOn: '2026-09-05' }),
+					}),
+				);
+				transferId = created.transferId;
+			});
+
+			it('updates both legs together, keeping them linked', async () => {
+				const response = await call(`/transactions/transfer/${transferId}`, {
+					method: 'PATCH',
+					body: JSON.stringify({
+						fromAccountId: accountId,
+						toAccountId: savingsId,
+						amount: 10_000,
+						occurredOn: '2026-09-06',
+						payee: 'Rebalance',
+					}),
+				});
+
+				expect(response.status).toBe(200);
+				const { transactions } = await json<{ transactions: { accountId: string; amount: number; transferId: string; payee: string }[] }>(
+					response,
+				);
+
+				expect(transactions).toHaveLength(2);
+				expect(transactions[0]).toMatchObject({ accountId, amount: -10000, payee: 'Rebalance', transferId });
+				expect(transactions[1]).toMatchObject({ accountId: savingsId, amount: 10000, payee: 'Rebalance', transferId });
+
+				const { accounts } = await json<{ accounts: { id: string; balance: number }[] }>(await call('/accounts'));
+				const balances = Object.fromEntries(accounts.map((entry) => [entry.id, entry.balance]));
+				expect(balances[accountId]).toBe(-10000);
+				expect(balances[savingsId]).toBe(10000);
+			});
+
+			it('can reverse direction between the same two accounts', async () => {
+				const response = await call(`/transactions/transfer/${transferId}`, {
+					method: 'PATCH',
+					body: JSON.stringify({ fromAccountId: savingsId, toAccountId: accountId, amount: 25_000, occurredOn: '2026-09-05' }),
+				});
+
+				expect(response.status).toBe(200);
+				const { accounts } = await json<{ accounts: { id: string; balance: number }[] }>(await call('/accounts'));
+				const balances = Object.fromEntries(accounts.map((entry) => [entry.id, entry.balance]));
+				expect(balances[accountId]).toBe(25000);
+				expect(balances[savingsId]).toBe(-25000);
+			});
+
+			it('rejects a non-positive amount', async () => {
+				const response = await call(`/transactions/transfer/${transferId}`, {
+					method: 'PATCH',
+					body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 0, occurredOn: '2026-09-05' }),
+				});
+				expect(response.status).toBe(400);
+			});
+
+			it('404s for an unknown transfer', async () => {
+				const response = await call('/transactions/transfer/tfr_nope', {
+					method: 'PATCH',
+					body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 100, occurredOn: '2026-09-05' }),
+				});
+				expect(response.status).toBe(404);
+			});
+		});
 	});
 });

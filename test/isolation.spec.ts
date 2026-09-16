@@ -161,6 +161,48 @@ describe('transfers are private', () => {
 		expect(account.balance).toBe(100000);
 		expect((await json<{ total: number }>(await theirs('/transactions'))).total).toBe(0);
 	});
+
+	it('cannot be edited by another user', async () => {
+		const from = await makeAccount(mine, { name: 'From', startingBalance: 50_000 });
+		const to = await makeAccount(mine, { name: 'To' });
+
+		const created = await json<{ transferId: string }>(
+			await mine('/transactions/transfer', {
+				method: 'POST',
+				body: JSON.stringify({ fromAccountId: from, toAccountId: to, amount: 10_000, occurredOn: '2026-09-05' }),
+			}),
+		);
+
+		const response = await theirs(`/transactions/transfer/${created.transferId}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ fromAccountId: from, toAccountId: to, amount: 50_000, occurredOn: '2026-09-05' }),
+		});
+
+		expect(response.status).toBe(404);
+
+		const { account } = await json<{ account: { balance: number } }>(await mine(`/accounts/${from}`));
+		expect(account.balance).toBe(40000);
+	});
+
+	it('cannot be re-pointed onto another user’s account by patching', async () => {
+		const from = await makeAccount(mine, { name: 'From', startingBalance: 50_000 });
+		const to = await makeAccount(mine, { name: 'To' });
+		const theirAccount = await makeAccount(theirs, { name: 'Theirs' });
+
+		const created = await json<{ transferId: string }>(
+			await mine('/transactions/transfer', {
+				method: 'POST',
+				body: JSON.stringify({ fromAccountId: from, toAccountId: to, amount: 10_000, occurredOn: '2026-09-05' }),
+			}),
+		);
+
+		const response = await mine(`/transactions/transfer/${created.transferId}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ fromAccountId: from, toAccountId: theirAccount, amount: 10_000, occurredOn: '2026-09-05' }),
+		});
+
+		expect(response.status).toBe(400);
+	});
 });
 
 describe('budgets are private', () => {

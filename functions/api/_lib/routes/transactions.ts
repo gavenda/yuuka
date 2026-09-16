@@ -223,6 +223,111 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		return c.json({ transferId, transactions: results.map(toTransaction) }, 201);
 	})
+	.patch('/transfer/:transferId', async (c) => {
+		const transferId = c.req.param('transferId');
+		const userId = c.get('userId');
+		const input = await parseJson(c, transferCreateSchema);
+
+		// Both legs, ordered outflow-then-inflow the same way creation leaves them.
+		// Kept in full so a rejected edit can restore them verbatim, not just their id.
+		const { results: existing } = await c.env.DB.prepare(
+			'SELECT id, account_id, category_id, amount, occurred_on, payee, notes FROM transactions WHERE transfer_id = ? AND user_id = ? ORDER BY amount ASC',
+		)
+			.bind(transferId, userId)
+			.all<{
+				id: string;
+				account_id: string;
+				category_id: string | null;
+				amount: number;
+				occurred_on: string;
+				payee: string;
+				notes: string;
+			}>();
+
+		if (existing.length !== 2) throw notFound('Transfer not found.');
+
+		let name = input.payee;
+		if (!name) {
+			const { results } = await c.env.DB.prepare('SELECT id, name FROM accounts WHERE user_id = ? AND id IN (?, ?)')
+				.bind(userId, input.fromAccountId, input.toAccountId)
+				.all<{ id: string; name: string }>();
+
+			const names = new Map(results.map((row) => [row.id, row.name]));
+			const from = names.get(input.fromAccountId);
+			const to = names.get(input.toAccountId);
+			name = from && to ? `${from} → ${to}` : 'Transfer';
+		}
+
+		const [outflow, inflow] = existing;
+		const legs = [
+			{ id: outflow.id, accountId: input.fromAccountId, amount: -input.amount },
+			{ id: inflow.id, accountId: input.toAccountId, amount: input.amount },
+		];
+
+		// Same ownership guard as creation, applied per leg: re-pointing a leg to
+		// an account or category the caller does not hold is rejected in the same
+		// statement that would otherwise write it.
+		const results = await c.env.DB.batch(
+			legs.map((leg) =>
+				c.env.DB.prepare(
+					`UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+					 WHERE id = ? AND user_id = ?
+					   AND EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
+					   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'transfer'))`,
+				).bind(
+					leg.accountId,
+					input.categoryId,
+					leg.amount,
+					input.occurredOn,
+					name,
+					input.notes,
+					leg.id,
+					userId,
+					leg.accountId,
+					userId,
+					input.categoryId,
+					input.categoryId,
+					userId,
+				),
+			),
+		);
+
+		// A batch does not roll back just because a guard matched zero rows, so a
+		// rejected edit could otherwise leave one leg updated and the other not.
+		// Put both back exactly as they were rather than risk a desynced pair.
+		if (!results[0].meta.changes || !results[1].meta.changes) {
+			await c.env.DB.batch(
+				existing.map((leg) =>
+					c.env.DB.prepare(
+						`UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+						 WHERE id = ? AND user_id = ?`,
+					).bind(leg.account_id, leg.category_id, leg.amount, leg.occurred_on, leg.payee, leg.notes, leg.id, userId),
+				),
+			);
+			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
+		}
+
+		await invalidateSummaries(c.env.CACHE, userId, [monthOf(outflow.occurred_on), monthOf(input.occurredOn)]);
+
+		if (input.payee) {
+			await rememberPayee(c.env.DB, userId, {
+				payee: input.payee,
+				kind: 'transfer',
+				accountId: input.fromAccountId,
+				toAccountId: input.toAccountId,
+				categoryId: input.categoryId,
+				notes: input.notes,
+			});
+		}
+
+		const { results: updated } = await c.env.DB.prepare(
+			`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`,
+		)
+			.bind(transferId, userId)
+			.all<TransactionRow>();
+
+		return c.json({ transferId, transactions: updated.map(toTransaction) });
+	})
 	.patch('/:id', async (c) => {
 		const id = c.req.param('id');
 		const userId = c.get('userId');

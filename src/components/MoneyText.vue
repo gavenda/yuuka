@@ -11,8 +11,10 @@ const props = withDefaults(
 		signed?: boolean;
 		/** Always show a leading + or -. */
 		explicit?: boolean;
+		/** Blue, regardless of sign — a transfer is neither an inflow nor an outflow. */
+		transfer?: boolean;
 	}>(),
-	{ currency: DEFAULT_CURRENCY, signed: false, explicit: false },
+	{ currency: DEFAULT_CURRENCY, signed: false, explicit: false, transfer: false },
 );
 
 const formatted = computed(() => {
@@ -22,6 +24,7 @@ const formatted = computed(() => {
 });
 
 const tone = computed(() => {
+	if (props.transfer) return 'text-blue-700 dark:text-blue-400';
 	if (!props.signed) return 'text-slate-900 dark:text-slate-100';
 	if (props.amount > 0) return 'text-emerald-700 dark:text-emerald-400';
 	if (props.amount < 0) return 'text-rose-700 dark:text-rose-400';

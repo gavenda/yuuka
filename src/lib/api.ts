@@ -125,6 +125,11 @@ export const api = {
 	deleteTransaction: (id: string) => request<void>(`/transactions/${id}`, { method: 'DELETE' }),
 	createTransfer: (input: Record<string, unknown>) =>
 		request<{ transferId: string; transactions: Transaction[] }>('/transactions/transfer', { method: 'POST', body: body(input) }),
+	updateTransfer: (transferId: string, input: Record<string, unknown>) =>
+		request<{ transferId: string; transactions: Transaction[] }>(`/transactions/transfer/${transferId}`, {
+			method: 'PATCH',
+			body: body(input),
+		}),
 
 	listBudgets: (month: string) => request<{ budgets: Budget[] }>(`/budgets${queryString({ month })}`),
 	setBudget: (input: { categoryId: string; month: string; amount: number }) =>

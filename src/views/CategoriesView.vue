@@ -84,6 +84,13 @@ const parentOptions = computed(() =>
 
 const archivedCount = computed(() => ledger.categories.filter((category) => category.archived).length);
 
+/** True once the form's colour has strayed from the validated palette onto a hand-picked hex. */
+const isCustomColor = computed(() => !PALETTE.some((slot) => slot.light === form.color));
+
+function pickCustomColor(event: Event): void {
+	form.color = (event.target as HTMLInputElement).value;
+}
+
 function openCreate(section: Section, parentId = ''): void {
 	editing.value = null;
 	error.value = null;
@@ -261,8 +268,10 @@ onMounted(() => ledger.load());
 				<fieldset>
 					<legend class="label">Colour</legend>
 					<!-- The eight slots are a validated set: picking from them keeps
-					     adjacent categories distinguishable, including under CVD. -->
-					<div class="flex flex-wrap gap-2">
+					     adjacent categories distinguishable, including under CVD. A
+					     custom hex opts out of that guarantee, so it stays a deliberate
+					     extra step rather than a ninth slot in the same row. -->
+					<div class="flex flex-wrap items-center gap-2">
 						<button
 							v-for="slot in PALETTE"
 							:key="slot.light"
@@ -273,6 +282,37 @@ onMounted(() => ledger.load());
 							:aria-label="slot.name"
 							:aria-pressed="form.color === slot.light"
 							@click="form.color = slot.light"
+						/>
+
+						<label
+							class="relative grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-400 ring-offset-2 transition-transform hover:scale-110 dark:text-slate-500 dark:ring-offset-slate-900"
+							:class="
+								isCustomColor
+									? 'ring-2 ring-slate-900 dark:ring-white'
+									: 'bg-[repeating-conic-gradient(#cbd5e1_0_25%,transparent_0_50%)] bg-[length:8px_8px] ring-1 ring-slate-300 dark:bg-[repeating-conic-gradient(#475569_0_25%,transparent_0_50%)] dark:ring-slate-600'
+							"
+							:style="isCustomColor ? { backgroundColor: form.color } : {}"
+							title="Custom colour"
+						>
+							<span v-if="!isCustomColor" aria-hidden="true">+</span>
+							<input
+								type="color"
+								class="sr-only"
+								:value="isCustomColor ? form.color : '#64748b'"
+								aria-label="Pick a custom colour"
+								@input="pickCustomColor"
+							/>
+						</label>
+
+						<input
+							v-if="isCustomColor"
+							v-model="form.color"
+							class="input w-28 font-mono text-xs"
+							required
+							pattern="^#[0-9a-fA-F]{6}$"
+							maxlength="7"
+							placeholder="#64748b"
+							aria-label="Custom colour hex value"
 						/>
 					</div>
 				</fieldset>

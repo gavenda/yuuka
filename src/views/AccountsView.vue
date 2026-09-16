@@ -291,7 +291,7 @@ onMounted(() => ledger.load());
 						<input
 							v-model="form.logoInvertDark"
 							type="checkbox"
-							class="size-4 rounded border-slate-300 accent-emerald-600 dark:border-slate-700"
+							class="size-4 rounded border-slate-300 accent-blue-600 dark:border-slate-700"
 						/>
 						Invert colours in dark mode
 					</label>

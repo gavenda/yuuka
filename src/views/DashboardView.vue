@@ -81,7 +81,7 @@ watch(
 			<section class="card p-5">
 				<header class="mb-4 flex items-center justify-between">
 					<h2 class="text-sm font-semibold text-slate-900 dark:text-white">Recent activity</h2>
-					<RouterLink to="/transactions" class="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+					<RouterLink to="/transactions" class="text-sm font-medium text-blue-700 hover:underline dark:text-blue-400">
 						View all
 					</RouterLink>
 				</header>

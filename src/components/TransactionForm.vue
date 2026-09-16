@@ -9,7 +9,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue';
 
 type Mode = 'expense' | 'income' | 'transfer';
 
-const props = defineProps<{ transaction?: Transaction | null }>();
+const props = defineProps<{ transaction?: Transaction | null; transferToAccountId?: string | null }>();
 const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; cancel: [] }>();
 
 const ledger = useLedgerStore();
@@ -62,10 +62,12 @@ watch(
 			return;
 		}
 
+		const isTransfer = Boolean(transaction.transferId);
+
 		Object.assign(form, {
-			mode: transaction.amount >= 0 ? 'income' : 'expense',
+			mode: isTransfer ? 'transfer' : transaction.amount >= 0 ? 'income' : 'expense',
 			accountId: transaction.accountId,
-			toAccountId: '',
+			toAccountId: isTransfer ? (props.transferToAccountId ?? '') : '',
 			categoryId: transaction.categoryId ?? '',
 			amount: toDecimalString(Math.abs(transaction.amount)),
 			occurredOn: transaction.occurredOn,

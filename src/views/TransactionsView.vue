@@ -19,6 +19,7 @@ const budget = useBudgetStore();
 
 const dialogOpen = ref(false);
 const editing = ref<Transaction | null>(null);
+const editingTransferToAccountId = ref<string | null>(null);
 const formRef = ref<InstanceType<typeof TransactionForm> | null>(null);
 const search = ref('');
 const accountFilter = ref('');
@@ -26,6 +27,62 @@ const categoryFilter = ref('');
 const month = ref(budget.month);
 
 const currency = computed(() => ledger.displayCurrency);
+
+/** A transfer is two linked rows; the list shows them as the single movement they represent. */
+interface TransferRow {
+	kind: 'transfer';
+	id: string;
+	payee: string;
+	fromAccountName: string | null;
+	toAccountName: string | null;
+	toAccountId: string;
+	categoryName: string | null;
+	categoryColor: string | null;
+	notes: string;
+	amount: number;
+	leg: Transaction;
+}
+
+type Row = { kind: 'transaction'; transaction: Transaction } | TransferRow;
+
+function rowsFor(group: Transaction[]): Row[] {
+	const rows: Row[] = [];
+	const paired = new Set<string>();
+
+	for (const transaction of group) {
+		if (paired.has(transaction.id)) continue;
+
+		if (transaction.transferId) {
+			const other = group.find((candidate) => candidate.transferId === transaction.transferId && candidate.id !== transaction.id);
+			if (other) {
+				paired.add(transaction.id);
+				paired.add(other.id);
+				const outflow = transaction.amount < 0 ? transaction : other;
+				const inflow = outflow === transaction ? other : transaction;
+				rows.push({
+					kind: 'transfer',
+					id: transaction.transferId,
+					payee: transaction.payee,
+					fromAccountName: outflow.accountName,
+					toAccountName: inflow.accountName,
+					toAccountId: inflow.accountId,
+					categoryName: transaction.categoryName,
+					categoryColor: transaction.categoryColor,
+					notes: transaction.notes,
+					amount: Math.abs(transaction.amount),
+					leg: outflow,
+				});
+				continue;
+			}
+		}
+
+		rows.push({ kind: 'transaction', transaction });
+	}
+
+	return rows;
+}
+
+const groupedRows = computed<[string, Row[]][]>(() => store.byDate.map(([date, group]) => [date, rowsFor(group)]));
 
 const filters = computed(() => ({
 	month: month.value,
@@ -49,14 +106,14 @@ onMounted(async () => {
 
 function openCreate(): void {
 	editing.value = null;
+	editingTransferToAccountId.value = null;
 	dialogOpen.value = true;
 }
 
-function openEdit(transaction: Transaction): void {
-	// A transfer is two linked rows; editing one leg would silently desync the
-	// other, so transfers are delete-and-recreate rather than editable.
-	if (transaction.transferId) return;
+/** A transfer edit seeds the form with the outflow leg plus the inflow's account, so both sides stay linked. */
+function openEdit(transaction: Transaction, transferToAccountId: string | null = null): void {
 	editing.value = transaction;
+	editingTransferToAccountId.value = transferToAccountId;
 	dialogOpen.value = true;
 }
 
@@ -64,7 +121,8 @@ async function save(payload: Record<string, unknown> & { mode: string }): Promis
 	const { mode, ...body } = payload;
 
 	try {
-		if (mode === 'transfer') await api.createTransfer(body);
+		if (mode === 'transfer' && editing.value?.transferId) await api.updateTransfer(editing.value.transferId, body);
+		else if (mode === 'transfer') await api.createTransfer(body);
 		else if (editing.value) await api.updateTransaction(editing.value.id, body);
 		else await api.createTransaction(body);
 
@@ -143,7 +201,7 @@ async function remove(transaction: Transaction): Promise<void> {
 		</EmptyState>
 
 		<div v-else class="card divide-y divide-slate-100 dark:divide-slate-800/60">
-			<section v-for="[date, group] in store.byDate" :key="date">
+			<section v-for="[date, group] in groupedRows" :key="date">
 				<h2
 					class="bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase dark:bg-slate-950/40 dark:text-slate-400"
 				>
@@ -152,37 +210,61 @@ async function remove(transaction: Transaction): Promise<void> {
 
 				<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
 					<li
-						v-for="transaction in group"
-						:key="transaction.id"
+						v-for="row in group"
+						:key="row.kind === 'transfer' ? row.id : row.transaction.id"
 						class="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
 					>
-						<span
-							class="h-2.5 w-2.5 shrink-0 rounded-full"
-							:style="{ backgroundColor: transaction.categoryColor ?? '#898781' }"
-							aria-hidden="true"
-						/>
+						<template v-if="row.kind === 'transfer'">
+							<span
+								class="h-2.5 w-2.5 shrink-0 rounded-full"
+								:style="{ backgroundColor: row.categoryColor ?? '#898781' }"
+								aria-hidden="true"
+							/>
 
-						<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(transaction)">
-							<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-								{{ transaction.payee || transaction.categoryName || 'Uncategorised' }}
-							</p>
-							<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-								{{ transaction.accountName }}
-								<template v-if="transaction.categoryName"> · {{ transaction.categoryName }}</template>
-								<template v-if="transaction.transferId"> · Transfer</template>
-								<template v-if="transaction.notes"> · {{ transaction.notes }}</template>
-							</p>
-						</button>
+							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.leg, row.toAccountId)">
+								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+									{{ row.payee || row.categoryName || 'Transfer' }}
+								</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+									{{ row.fromAccountName }} → {{ row.toAccountName }}
+									<template v-if="row.categoryName"> · {{ row.categoryName }}</template>
+									<template v-if="row.notes"> · {{ row.notes }}</template>
+								</p>
+							</button>
 
-						<MoneyText :amount="transaction.amount" :currency="currency" signed explicit class="shrink-0 text-sm font-medium" />
+							<MoneyText :amount="row.amount" :currency="currency" transfer class="shrink-0 text-sm font-medium" />
 
-						<ActionIcon
-							icon="delete"
-							:label="`Delete ${transaction.payee || 'transaction'}`"
-							danger
-							class="row-actions"
-							@click="remove(transaction)"
-						/>
+							<ActionIcon icon="delete" :label="`Delete ${row.payee || 'transfer'}`" danger class="row-actions" @click="remove(row.leg)" />
+						</template>
+
+						<template v-else>
+							<span
+								class="h-2.5 w-2.5 shrink-0 rounded-full"
+								:style="{ backgroundColor: row.transaction.categoryColor ?? '#898781' }"
+								aria-hidden="true"
+							/>
+
+							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.transaction)">
+								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+									{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorised' }}
+								</p>
+								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+									{{ row.transaction.accountName }}
+									<template v-if="row.transaction.categoryName"> · {{ row.transaction.categoryName }}</template>
+									<template v-if="row.transaction.notes"> · {{ row.transaction.notes }}</template>
+								</p>
+							</button>
+
+							<MoneyText :amount="row.transaction.amount" :currency="currency" signed explicit class="shrink-0 text-sm font-medium" />
+
+							<ActionIcon
+								icon="delete"
+								:label="`Delete ${row.transaction.payee || 'transaction'}`"
+								danger
+								class="row-actions"
+								@click="remove(row.transaction)"
+							/>
+						</template>
 					</li>
 				</ul>
 			</section>
@@ -194,8 +276,18 @@ async function remove(transaction: Transaction): Promise<void> {
 			</div>
 		</div>
 
-		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit transaction' : 'New transaction'" @close="dialogOpen = false">
-			<TransactionForm ref="formRef" :transaction="editing" @submit="save" @cancel="dialogOpen = false" />
+		<ModalDialog
+			:open="dialogOpen"
+			:title="editing?.transferId ? 'Edit transfer' : editing ? 'Edit transaction' : 'New transaction'"
+			@close="dialogOpen = false"
+		>
+			<TransactionForm
+				ref="formRef"
+				:transaction="editing"
+				:transfer-to-account-id="editingTransferToAccountId"
+				@submit="save"
+				@cancel="dialogOpen = false"
+			/>
 		</ModalDialog>
 	</div>
 </template>

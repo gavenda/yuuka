@@ -81,13 +81,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 			class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90"
 		>
 			<div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+				<!-- The bottom tab bar carries navigation on a phone, so the header's
+				     only job there is to say what app this is; sm:hidden hands that
+				     job back to the row of links once there's room for both. -->
+				<RouterLink to="/" class="flex items-center gap-2 font-semibold tracking-tight text-slate-900 sm:hidden dark:text-white">
+					<img src="/yuuka.png" alt="" class="h-7 w-7 rounded-full object-cover" />
+					yuuka
+				</RouterLink>
+
 				<nav class="hidden gap-1 sm:flex">
 					<RouterLink
 						v-for="link in links"
 						:key="link.to"
 						:to="link.to"
 						class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-						active-class="!bg-emerald-50 !text-emerald-700 dark:!bg-emerald-500/10 dark:!text-emerald-400"
+						active-class="!bg-blue-50 !text-blue-700 dark:!bg-blue-500/10 dark:!text-blue-400"
 					>
 						{{ link.label }}
 					</RouterLink>
@@ -215,7 +223,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 		<main v-else :class="showShell ? 'mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pb-10' : ''">
 			<RouterView />
 
-			<footer v-if="showShell" class="mt-10 text-xs text-slate-400 dark:text-slate-600">
+			<!-- The header's mobile logo already says what app this is, so the
+			     footer repeats it only once there's a header row without one. -->
+			<footer v-if="showShell" class="mt-10 hidden text-xs text-slate-400 sm:block dark:text-slate-600">
 				<a
 					href="https://github.com/gavenda/yuuka"
 					target="_blank"
@@ -242,7 +252,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 					:key="link.to"
 					:to="link.to"
 					class="flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium text-slate-500 dark:text-slate-400"
-					active-class="!text-emerald-600 dark:!text-emerald-400"
+					active-class="!text-blue-600 dark:!text-blue-400"
 				>
 					<svg viewBox="0 0 20 20" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
 						<path :d="link.icon" stroke-linecap="round" stroke-linejoin="round" />
