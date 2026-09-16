@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BUDGET_MODES } from './budget-mode';
 import { DATE_PATTERN, MONTH_PATTERN } from './dates';
 import { DEFAULT_CURRENCY } from './defaults';
 
@@ -167,6 +168,8 @@ export const incomePlanUpsertSchema = z
 export const settingsUpdateSchema = z
 	.object({
 		displayCurrency: currency,
+		/** Whether a category's planned amount applies to every month or is set per month. */
+		budgetMode: z.enum(BUDGET_MODES),
 	})
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');

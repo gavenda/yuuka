@@ -1,9 +1,11 @@
+import { FIXED_BUDGET_MONTH, type BudgetMode } from './budget-mode';
 import type { CATEGORY_KINDS } from './schemas';
 
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 export interface SettingsRow {
 	display_currency: string;
+	budget_mode: BudgetMode;
 	created_at: string;
 	updated_at: string;
 }
@@ -88,6 +90,7 @@ export interface IncomePlanRow {
 
 export const toSettings = (row: SettingsRow) => ({
 	displayCurrency: row.display_currency,
+	budgetMode: row.budget_mode,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });
@@ -149,7 +152,8 @@ export const toTransaction = (row: TransactionRow) => ({
 export const toBudget = (row: BudgetRow) => ({
 	id: row.id,
 	categoryId: row.category_id,
-	month: row.month,
+	/** Null when this budget is fixed — it applies to every month rather than the one it happens to be stored under. */
+	month: row.month === FIXED_BUDGET_MONTH ? null : row.month,
 	amount: row.amount,
 	/** Whole or fractional percent (e.g. 12.5), null when this budget is a fixed amount. */
 	percent: row.percent_bp === null ? null : row.percent_bp / 100,

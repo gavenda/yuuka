@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { budgetMonthKey, getBudgetMode } from '../budget-mode';
 import { readSummary, writeSummary } from '../cache';
 import { currentMonth, monthRange } from '../dates';
 import { parseQuery } from '../validate';
@@ -68,6 +69,8 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 	if (cached) return c.json({ ...cached, cached: true });
 
 	const { start, end } = monthRange(month);
+	// Fixed-mode budgets all live under one shared stored month; see `budget-mode.ts`.
+	const budgetMonth = budgetMonthKey(await getBudgetMode(c.env.DB, userId), month);
 
 	// Income and spending exclude transfers: moving money between your own
 	// accounts is neither. Transfers are measured separately, below.
@@ -107,7 +110,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			     OR (c.applies_to = 'transfer' AND t.transfer_id IS NOT NULL))
 			 GROUP BY t.category_id`,
 		).bind(userId, start, end),
-		c.env.DB.prepare('SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND month = ?').bind(userId, month),
+		c.env.DB.prepare('SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND month = ?').bind(userId, budgetMonth),
 		c.env.DB.prepare('SELECT amount, mode, gross_amount FROM income_plans WHERE user_id = ? AND month = ?').bind(userId, month),
 		c.env.DB.prepare(
 			`SELECT occurred_on AS date, -SUM(amount) AS spent

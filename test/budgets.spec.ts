@@ -15,12 +15,105 @@ beforeEach(async () => {
 
 const setBudget = (body: Record<string, unknown>) => call('/budgets', { method: 'PUT', body: JSON.stringify(body) });
 
+const setBudgetMode = (budgetMode: 'fixed' | 'monthly') => call('/settings', { method: 'PATCH', body: JSON.stringify({ budgetMode }) });
+
 const setIncomePlan = (body: Record<string, unknown>) => call('/income-plan', { method: 'PUT', body: JSON.stringify(body) });
 
 const addTransaction = (body: Record<string, unknown>) =>
 	call('/transactions', { method: 'POST', body: JSON.stringify({ accountId, ...body }) });
 
+// Mode-agnostic behaviour: validation and deletion work the same whichever
+// stored row a budget actually lands on.
 describe('budgets', () => {
+	it('rejects a negative amount, an unknown category and a bad month', async () => {
+		expect((await setBudget({ categoryId: groceries, month: '2026-09', amount: -1 })).status).toBe(400);
+		expect((await setBudget({ categoryId: 'cat_nope', month: '2026-09', amount: 100 })).status).toBe(400);
+		expect((await setBudget({ categoryId: groceries, month: 'September', amount: 100 })).status).toBe(400);
+	});
+
+	it('deletes a budget', async () => {
+		const { budget } = await json<{ budget: { id: string } }>(await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 }));
+
+		expect((await call(`/budgets/${budget.id}`, { method: 'DELETE' })).status).toBe(204);
+		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
+		expect((await call(`/budgets/${budget.id}`, { method: 'DELETE' })).status).toBe(404);
+	});
+
+	it('disappears with its category', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
+		await call(`/categories/${groceries}`, { method: 'DELETE' });
+
+		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
+	});
+
+	it('rejects a budget that gives neither or both an amount and a percent', async () => {
+		expect((await setBudget({ categoryId: groceries, month: '2026-09' })).status).toBe(400);
+		expect((await setBudget({ categoryId: groceries, month: '2026-09', amount: 100, percent: 10 })).status).toBe(400);
+	});
+});
+
+describe('budgets in fixed mode (the default)', () => {
+	it('reports no month, since the plan does not belong to just one', async () => {
+		const { budget } = await json<{ budget: { month: string | null } }>(
+			await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 }),
+		);
+		expect(budget.month).toBeNull();
+	});
+
+	it('applies the same planned amount to every month', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
+
+		const september = await json<{ budgets: { amount: number }[] }>(await call('/budgets?month=2026-09'));
+		const november = await json<{ budgets: { amount: number }[] }>(await call('/budgets?month=2026-11'));
+
+		expect(september.budgets[0].amount).toBe(60_000);
+		expect(november.budgets[0].amount).toBe(60_000);
+	});
+
+	it('updates in place rather than creating a second row, whatever month is passed', async () => {
+		const first = await json<{ budget: { id: string } }>(await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 }));
+		const second = await json<{ budget: { id: string; amount: number } }>(
+			await setBudget({ categoryId: groceries, month: '2026-11', amount: 75_000 }),
+		);
+
+		expect(second.budget.id).toBe(first.budget.id);
+		expect(second.budget.amount).toBe(75000);
+
+		const { budgets } = await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'));
+		expect(budgets).toHaveLength(1);
+	});
+
+	it('feeds the same planned figure into every month’s summary', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
+
+		const september = await json<{ categories: { categoryId: string; planned: number }[] }>(await call('/summary?month=2026-09'));
+		const november = await json<{ categories: { categoryId: string; planned: number }[] }>(await call('/summary?month=2026-11'));
+
+		expect(september.categories.find((entry) => entry.categoryId === groceries)!.planned).toBe(60_000);
+		expect(november.categories.find((entry) => entry.categoryId === groceries)!.planned).toBe(60_000);
+	});
+});
+
+describe('switching to monthly mode', () => {
+	it('stops seeing what was budgeted while fixed, and lets each month diverge from there', async () => {
+		await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
+		await setBudgetMode('monthly');
+
+		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
+
+		await setBudget({ categoryId: groceries, month: '2026-09', amount: 45_000 });
+		await setBudget({ categoryId: groceries, month: '2026-10', amount: 30_000 });
+
+		expect((await json<{ budgets: { amount: number }[] }>(await call('/budgets?month=2026-09'))).budgets[0].amount).toBe(45_000);
+		expect((await json<{ budgets: { amount: number }[] }>(await call('/budgets?month=2026-10'))).budgets[0].amount).toBe(30_000);
+	});
+});
+
+describe('budgets in monthly mode', () => {
+	beforeEach(async () => {
+		await setBudgetMode('monthly');
+	});
+
 	it('sets a planned amount for a category and month', async () => {
 		const response = await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
 		expect(response.status).toBe(200);
@@ -48,32 +141,6 @@ describe('budgets', () => {
 
 		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(1);
 		expect((await json<{ budgets: { amount: number }[] }>(await call('/budgets?month=2026-10'))).budgets[0].amount).toBe(40000);
-	});
-
-	it('rejects a negative amount, an unknown category and a bad month', async () => {
-		expect((await setBudget({ categoryId: groceries, month: '2026-09', amount: -1 })).status).toBe(400);
-		expect((await setBudget({ categoryId: 'cat_nope', month: '2026-09', amount: 100 })).status).toBe(400);
-		expect((await setBudget({ categoryId: groceries, month: 'September', amount: 100 })).status).toBe(400);
-	});
-
-	it('deletes a budget', async () => {
-		const { budget } = await json<{ budget: { id: string } }>(await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 }));
-
-		expect((await call(`/budgets/${budget.id}`, { method: 'DELETE' })).status).toBe(204);
-		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
-		expect((await call(`/budgets/${budget.id}`, { method: 'DELETE' })).status).toBe(404);
-	});
-
-	it('disappears with its category', async () => {
-		await setBudget({ categoryId: groceries, month: '2026-09', amount: 60_000 });
-		await call(`/categories/${groceries}`, { method: 'DELETE' });
-
-		expect((await json<{ budgets: unknown[] }>(await call('/budgets?month=2026-09'))).budgets).toHaveLength(0);
-	});
-
-	it('rejects a budget that gives neither or both an amount and a percent', async () => {
-		expect((await setBudget({ categoryId: groceries, month: '2026-09' })).status).toBe(400);
-		expect((await setBudget({ categoryId: groceries, month: '2026-09', amount: 100, percent: 10 })).status).toBe(400);
 	});
 });
 

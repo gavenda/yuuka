@@ -70,6 +70,21 @@ figures — so summing the list cannot double-count. A transaction holds a singl
 category column, which makes "the main or the sub, never both" true by
 construction rather than by validation.
 
+**A budget's month is a per-user mode, not a per-budget choice.** `budget_mode`
+on `users` is `'fixed'` (the default) or `'monthly'`, set from Settings.
+Fixed budgets are stored under one shared sentinel month (`FIXED_BUDGET_MONTH`
+in `budget-mode.ts`) rather than a second table, so the existing
+`(category_id, month)` unique index is still what stops a category from
+carrying two plans at once. `/api/budgets` and `/api/summary` both resolve
+the caller's actual month through `budgetMonthKey()` before touching the
+table, so a fixed budget answers every month's summary with the same planned
+figure; switching modes doesn't move data between the two, it just changes
+which stored row future reads and writes land on. A budget's `month` in API
+responses is `null` when it is fixed, since it no longer belongs to one.
+Changing the mode invalidates every cached summary for that user, not just
+the current month, because it changes what "planned" means everywhere at
+once.
+
 **Cashflow categories belong to transfers.** A category records where it may be
 used — `standard` for spending and income, `transfer` for movements between your
 own accounts — and the two sets never appear in the same picker. Because a
@@ -187,7 +202,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-256 tests: 196 against the API in `test/`, 60 over the browser helpers as
+292 tests: 225 against the API in `test/`, 67 over the browser helpers as
 `*.spec.ts` beside the code they cover.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the

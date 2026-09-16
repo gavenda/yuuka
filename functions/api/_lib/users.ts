@@ -1,3 +1,4 @@
+import { FIXED_BUDGET_MONTH } from './budget-mode';
 import { currentMonth } from './dates';
 import { DEFAULT_ACCOUNT_TYPES, DEFAULT_CATEGORIES, DEMO_ACCOUNTS, DEMO_BUDGETS, DEMO_TRANSACTIONS } from './defaults';
 import { stableId } from './ids';
@@ -118,8 +119,10 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 			})),
 		);
 
+		// Seeded under the fixed sentinel, not the join month: a fresh user starts
+		// in fixed mode, so that's the row `/api/summary` will actually look up.
 		const budgets = await Promise.all(
-			DEMO_BUDGETS.map(async (budget) => ({ ...budget, id: await stableId('bdg', subject, budget.categoryName, month) })),
+			DEMO_BUDGETS.map(async (budget) => ({ ...budget, id: await stableId('bdg', subject, budget.categoryName, FIXED_BUDGET_MONTH) })),
 		);
 
 		statements.push(
@@ -159,7 +162,7 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 			...budgets.map((budget) =>
 				db
 					.prepare('INSERT OR IGNORE INTO budgets (id, user_id, category_id, month, amount) VALUES (?, ?, ?, ?, ?)')
-					.bind(budget.id, subject, categoryIds.get(budget.categoryName)!, month, budget.amount),
+					.bind(budget.id, subject, categoryIds.get(budget.categoryName)!, FIXED_BUDGET_MONTH, budget.amount),
 			),
 		);
 	}

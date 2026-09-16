@@ -210,7 +210,10 @@ onMounted(async () => {
 
 		<section v-else class="card p-5">
 			<h2 class="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Expense</h2>
-			<p class="mb-3 text-sm text-slate-500 dark:text-slate-400">Click a planned amount to change it for {{ month }}.</p>
+			<p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+				<template v-if="ledger.budgetMode === 'fixed'">Click a planned amount to change it — it applies to every month.</template>
+				<template v-else>Click a planned amount to change it for {{ month }}.</template>
+			</p>
 
 			<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
 				<li v-for="entry in budget.expenseBreakdown" :key="entry.categoryId">

@@ -15,12 +15,15 @@ const budget = useBudgetStore();
 const SUGGESTIONS = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'SGD', 'HKD', 'KRW', 'CNY', 'INR'];
 
 const draft = ref(ledger.displayCurrency);
+const budgetModeDraft = ref(ledger.budgetMode);
 const error = ref<string | null>(null);
 const saving = ref(false);
 
 const normalised = computed(() => draft.value.trim().toUpperCase());
 const isValid = computed(() => /^[A-Za-z]{3}$/.test(draft.value.trim()));
-const changed = computed(() => normalised.value !== ledger.displayCurrency);
+const currencyChanged = computed(() => normalised.value !== ledger.displayCurrency);
+const budgetModeChanged = computed(() => budgetModeDraft.value !== ledger.budgetMode);
+const changed = computed(() => currencyChanged.value || budgetModeChanged.value);
 
 // Reopening should show what is actually saved, not a half-typed attempt.
 watch(
@@ -28,6 +31,7 @@ watch(
 	(open) => {
 		if (!open) return;
 		draft.value = ledger.displayCurrency;
+		budgetModeDraft.value = ledger.budgetMode;
 		error.value = null;
 	},
 );
@@ -41,9 +45,12 @@ async function save(): Promise<void> {
 	error.value = null;
 
 	try {
-		await ledger.setDisplayCurrency(normalised.value);
+		await ledger.updateSettings({
+			...(currencyChanged.value ? { displayCurrency: normalised.value } : {}),
+			...(budgetModeChanged.value ? { budgetMode: budgetModeDraft.value } : {}),
+		});
 		// The summary carries formatted figures nowhere, but refreshing keeps the
-		// dashboard consistent with anything else this touched.
+		// dashboard consistent with anything either setting touched.
 		await budget.refresh();
 		emit('close');
 	} catch (caught) {
@@ -84,6 +91,33 @@ async function save(): Promise<void> {
 		<p v-if="draft.trim() && !isValid" class="text-sm text-amber-700 dark:text-amber-400" role="alert">
 			Use a 3-letter currency code, such as PHP.
 		</p>
+
+		<div>
+			<label class="label">Budget mode</label>
+			<div class="flex overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
+				<button
+					type="button"
+					class="flex-1 px-3 py-1.5 text-sm font-medium"
+					:class="budgetModeDraft === 'fixed' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
+					@click="budgetModeDraft = 'fixed'"
+				>
+					Fixed
+				</button>
+				<button
+					type="button"
+					class="flex-1 px-3 py-1.5 text-sm font-medium"
+					:class="budgetModeDraft === 'monthly' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
+					@click="budgetModeDraft = 'monthly'"
+				>
+					Monthly
+				</button>
+			</div>
+
+			<p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+				<template v-if="budgetModeDraft === 'fixed'"> A category's planned amount applies to every month, until changed again. </template>
+				<template v-else> Each month keeps its own planned amount, set separately. </template>
+			</p>
+		</div>
 
 		<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
 			{{ error }}

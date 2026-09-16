@@ -7,6 +7,7 @@ import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate } from '@/lib/dates';
+import { mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
@@ -28,61 +29,7 @@ const month = ref(budget.month);
 
 const currency = computed(() => ledger.displayCurrency);
 
-/** A transfer is two linked rows; the list shows them as the single movement they represent. */
-interface TransferRow {
-	kind: 'transfer';
-	id: string;
-	payee: string;
-	fromAccountName: string | null;
-	toAccountName: string | null;
-	toAccountId: string;
-	categoryName: string | null;
-	categoryColor: string | null;
-	notes: string;
-	amount: number;
-	leg: Transaction;
-}
-
-type Row = { kind: 'transaction'; transaction: Transaction } | TransferRow;
-
-function rowsFor(group: Transaction[]): Row[] {
-	const rows: Row[] = [];
-	const paired = new Set<string>();
-
-	for (const transaction of group) {
-		if (paired.has(transaction.id)) continue;
-
-		if (transaction.transferId) {
-			const other = group.find((candidate) => candidate.transferId === transaction.transferId && candidate.id !== transaction.id);
-			if (other) {
-				paired.add(transaction.id);
-				paired.add(other.id);
-				const outflow = transaction.amount < 0 ? transaction : other;
-				const inflow = outflow === transaction ? other : transaction;
-				rows.push({
-					kind: 'transfer',
-					id: transaction.transferId,
-					payee: transaction.payee,
-					fromAccountName: outflow.accountName,
-					toAccountName: inflow.accountName,
-					toAccountId: inflow.accountId,
-					categoryName: transaction.categoryName,
-					categoryColor: transaction.categoryColor,
-					notes: transaction.notes,
-					amount: Math.abs(transaction.amount),
-					leg: outflow,
-				});
-				continue;
-			}
-		}
-
-		rows.push({ kind: 'transaction', transaction });
-	}
-
-	return rows;
-}
-
-const groupedRows = computed<[string, Row[]][]>(() => store.byDate.map(([date, group]) => [date, rowsFor(group)]));
+const groupedRows = computed<[string, TransactionRow[]][]>(() => store.byDate.map(([date, group]) => [date, mergeTransferRows(group)]));
 
 const filters = computed(() => ({
 	month: month.value,

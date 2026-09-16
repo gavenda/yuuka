@@ -4,10 +4,14 @@ export type CategoryKind = 'income' | 'expense';
 /** Where a category may be used: on spending/income, or on transfers. */
 export type CategoryScope = 'standard' | 'transfer';
 
+export type BudgetMode = 'fixed' | 'monthly';
+
 /** Per-user preferences. */
 export interface Settings {
 	/** The currency every aggregate figure is displayed in. */
 	displayCurrency: string;
+	/** Whether a category's planned amount applies to every month, or is set separately per month. Fixed is the default. */
+	budgetMode: BudgetMode;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -74,7 +78,8 @@ export interface Transaction {
 export interface Budget {
 	id: string;
 	categoryId: string;
-	month: string;
+	/** Null when this budget is fixed — it applies to every month rather than one in particular. */
+	month: string | null;
 	amount: number;
 	/** Whole or fractional percent of the month's planned income (e.g. 12.5), or null for a fixed amount. */
 	percent: number | null;

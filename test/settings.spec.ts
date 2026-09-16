@@ -52,6 +52,29 @@ describe('display currency', () => {
 	});
 });
 
+describe('budget mode', () => {
+	it('starts fixed', async () => {
+		const { settings } = await json<{ settings: { budgetMode: string } }>(await call('/settings'));
+		expect(settings.budgetMode).toBe('fixed');
+	});
+
+	it('can be switched to monthly', async () => {
+		const response = await patch({ budgetMode: 'monthly' });
+		expect(response.status).toBe(200);
+
+		const { settings } = await json<{ settings: { budgetMode: string } }>(response);
+		expect(settings.budgetMode).toBe('monthly');
+
+		// And it sticks.
+		const reread = await json<{ settings: { budgetMode: string } }>(await call('/settings'));
+		expect(reread.settings.budgetMode).toBe('monthly');
+	});
+
+	it('rejects anything other than fixed or monthly', async () => {
+		expect((await patch({ budgetMode: 'yearly' })).status).toBe(400);
+	});
+});
+
 describe('new accounts', () => {
 	it('default to the default currency', async () => {
 		const id = await makeAccount(call, { name: 'No currency given' });
