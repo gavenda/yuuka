@@ -107,13 +107,17 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val bottomNavRoutes = bottomNavDestinations.map { it.route }
     val drawerDestinations = YuukaDestination.entries - bottomNavDestinations.toSet()
 
-    // Shared by the bottom nav items and any programmatic jump to a top-level destination (e.g.
-    // "View all" from the dashboard), so a single-level back stack is preserved either way.
+    // Shared by the bottom nav items, drawer destinations and any programmatic jump to a
+    // top-level destination (e.g. "View all" from the dashboard). This pushes onto the real
+    // back stack instead of collapsing it back to the start destination, so visiting tabs in
+    // order (Dashboard -> Transactions -> Accounts) leaves a genuine [Dashboard, Transactions,
+    // Accounts] stack and back/predictive-back steps through them in that order rather than
+    // jumping straight to Dashboard. popUpTo(route, inclusive = true) still collapses a
+    // *revisited* destination's old position so repeated taps don't pile up duplicate entries.
     val navigateToTopLevel: (String) -> Unit = { route ->
         navController.navigate(route) {
-            popUpTo(navController.graph.startDestinationId) { saveState = true }
             launchSingleTop = true
-            restoreState = true
+            popUpTo(route) { inclusive = true }
         }
     }
 
@@ -160,11 +164,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             icon = { Icon(destination.icon, contentDescription = null) },
                             selected = destination == currentDestination,
                             onClick = {
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navigateToTopLevel(destination.route)
                                 scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
