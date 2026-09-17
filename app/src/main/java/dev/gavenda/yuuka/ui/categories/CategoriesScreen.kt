@@ -74,7 +74,11 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             }
         },
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             if (state.categories.isEmpty()) {
                 item { EmptyState("No categories yet", description = "Categories are how spending gets grouped and budgeted.") }
             }
