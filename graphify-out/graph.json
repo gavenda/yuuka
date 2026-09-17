@@ -24558,7 +24558,7 @@
       "file_type": "code",
       "norm_label": "tabslidedirection()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L316"
+      "source_location": "L326"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_yuukaapp_yuukaapp",
@@ -40622,6 +40622,18 @@
       "type": "external"
     },
     {
+      "id": "properties",
+      "label": "properties",
+      "_origin": "semantic",
+      "community": 33,
+      "community_name": "app/build.gradle.kts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "properties",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "animatedcontenttransitionscope",
       "label": "animatedcontenttransitionscope",
       "_origin": "semantic",
@@ -40834,6 +40846,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "rememberscrollstate",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "save",
+      "label": "save",
+      "_origin": "semantic",
+      "community": 4,
+      "community_name": "YuukaApp.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "save",
       "source_file": "",
       "type": "external"
     },
@@ -42334,28 +42358,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "viewmodelscope",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "properties",
-      "label": "properties",
-      "community": 33,
-      "community_name": "app/build.gradle.kts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "properties",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "save",
-      "label": "save",
-      "community": 4,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "save",
       "source_file": "",
       "type": "external"
     }
@@ -45478,7 +45480,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L288",
+      "source_location": "L298",
       "weight": 1.0
     },
     {
@@ -45490,7 +45492,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L290",
+      "source_location": "L300",
       "weight": 1.0
     },
     {
@@ -45502,7 +45504,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L291",
+      "source_location": "L301",
       "weight": 1.0
     },
     {
@@ -45514,7 +45516,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L292",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -45526,7 +45528,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L293",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -45538,7 +45540,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L295",
+      "source_location": "L305",
       "weight": 1.0
     },
     {
@@ -78304,7 +78306,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L316",
+      "source_location": "L326",
       "weight": 1.0
     },
     {
@@ -107244,5 +107246,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "1f5367a5df001ffb3d22d109b79506f79db2d0aa"
+  "built_at_commit": "2e2ff3d9a5b54785b90f5f7f57793442db268bfa"
 }

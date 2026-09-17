@@ -1,7 +1,7 @@
 # Graph Report - yuuka  (2026-09-18)
 
 ## Corpus Check
-- 200 files · ~159,354 words
+- 200 files · ~159,417 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 30 file(s) not represented in the graph (top: .xml 13, (none) 7, .properties 2)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1f5367a5`
+- Built from commit: `2e2ff3d9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -702,11 +702,11 @@ Nodes (5): isExhausted(), rankPayees(), all, names(), Payee
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `helpers.ts` to `authedClient`, `subcategories.spec.ts`, `chart.ts`, `privacy.ts`, `package.json`, `lib/dates.ts`, `palette.ts`, `test/payees.spec.ts`, `cashflow.spec.ts`, `ref_cloudflare_test`, `schemas.ts`, `philippinesTax.ts`, `defaults.ts`, `index.ts`?**
-  _High betweenness centrality (0.433) - this node is a cross-community bridge._
+  _High betweenness centrality (0.425) - this node is a cross-community bridge._
 - **Why does `scripts` connect `scripts` to `package.json`?**
-  _High betweenness centrality (0.362) - this node is a cross-community bridge._
+  _High betweenness centrality (0.350) - this node is a cross-community bridge._
 - **Why does `YuukaApi` connect `YuukaApi` to `Responses.kt`, `NetworkModule.kt`, `scripts`?**
-  _High betweenness centrality (0.356) - this node is a cross-community bridge._
+  _High betweenness centrality (0.344) - this node is a cross-community bridge._
 - **What connects `Loading`, `Unauthenticated`, `fixed` to the rest of the system?**
   _1313 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ColorWheel.kt` be split into smaller, more focused modules?**
