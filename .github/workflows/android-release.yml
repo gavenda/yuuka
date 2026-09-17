@@ -65,7 +65,7 @@ jobs:
           path: app/build/outputs/apk/release/app-release.apk
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           files: app/build/outputs/apk/release/app-release.apk
