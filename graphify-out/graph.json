@@ -45456,7 +45456,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L131",
+      "source_location": "L135",
       "weight": 1.0
     },
     {
@@ -107246,5 +107246,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2e2ff3d9a5b54785b90f5f7f57793442db268bfa"
+  "built_at_commit": "920b63ead1bebf39fe6492a4a8379eaf0c71b349"
 }
