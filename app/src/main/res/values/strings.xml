@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Yuuka</string>
+    <string name="com_auth0_domain">auth.gavenda.dev</string>
+    <string name="com_auth0_client_id">MQHehw1eggvZqfTy9Znb6Pd5QQHcwDdb</string>
+    <string name="com_auth0_scheme">https</string>
+    <!-- Auth0 API identifier this deployment issues tokens for; must match the API's own AUTH0_AUDIENCE. -->
+    <string name="auth0_audience">https://api.yuuka.gavenda.dev</string>
+    <!-- One Cloudflare Pages project serves both the site and /api, so the API lives at the site's own origin. -->
+    <string name="api_base_url">https://yuuka.gavenda.dev/api/</string>
+</resources>

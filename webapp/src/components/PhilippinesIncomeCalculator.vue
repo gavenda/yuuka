@@ -1,0 +1,23 @@
+<script setup lang="ts">
+import { computeNetPay } from '@/lib/philippinesTax';
+import { displayMoney } from '@/lib/privacy';
+import { computed } from 'vue';
+
+/** Gross monthly pay in centavos — the figure being typed into the planned income field. */
+const props = defineProps<{ gross: number }>();
+
+const breakdown = computed(() => computeNetPay(props.gross));
+const lines = computed(() => [...breakdown.value.contributions, { label: 'Withholding tax', amount: breakdown.value.incomeTax }]);
+</script>
+
+<template>
+	<div class="mt-4">
+		<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Monthly contributions</p>
+		<ul class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+			<li v-for="line in lines" :key="line.label" class="flex items-center justify-between gap-3 py-2 text-sm">
+				<span class="text-slate-500 dark:text-slate-400">{{ line.label }}</span>
+				<span class="tabular text-slate-900 dark:text-slate-100">{{ displayMoney(line.amount, 'PHP') }}</span>
+			</li>
+		</ul>
+	</div>
+</template>

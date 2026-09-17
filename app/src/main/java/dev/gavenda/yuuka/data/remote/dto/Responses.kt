@@ -1,0 +1,55 @@
+package dev.gavenda.yuuka.data.remote.dto
+
+import dev.gavenda.yuuka.data.model.Account
+import dev.gavenda.yuuka.data.model.AccountType
+import dev.gavenda.yuuka.data.model.Budget
+import dev.gavenda.yuuka.data.model.Category
+import dev.gavenda.yuuka.data.model.IncomePlan
+import dev.gavenda.yuuka.data.model.Payee
+import dev.gavenda.yuuka.data.model.Settings
+import dev.gavenda.yuuka.data.model.Transaction
+import kotlinx.serialization.Serializable
+
+/** Envelopes the API wraps its resources in — mirrors the shapes `src/lib/api.ts` unwraps. */
+
+@Serializable
+data class MeResponse(val subject: String, val issuer: String? = null, val expiresAt: Long? = null, val permissions: List<String> = emptyList())
+
+@Serializable
+data class PayeesResponse(val payees: List<Payee>)
+
+@Serializable
+data class SettingsResponse(val settings: Settings)
+
+@Serializable
+data class AccountTypesResponse(val accountTypes: List<AccountType>)
+
+@Serializable
+data class AccountTypeResponse(val accountType: AccountType)
+
+@Serializable
+data class AccountsResponse(val accounts: List<Account>)
+
+@Serializable
+data class AccountResponse(val account: Account)
+
+@Serializable
+data class CategoriesResponse(val categories: List<Category>)
+
+@Serializable
+data class CategoryResponse(val category: Category)
+
+@Serializable
+data class TransactionResponse(val transaction: Transaction)
+
+@Serializable
+data class TransferResponse(val transferId: String, val transactions: List<Transaction>)
+
+@Serializable
+data class BudgetsResponse(val budgets: List<Budget>)
+
+@Serializable
+data class BudgetResponse(val budget: Budget)
+
+@Serializable
+data class IncomePlanResponse(val incomePlan: IncomePlan)
