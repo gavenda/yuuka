@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt": {
-    "mtime": 1789677483.9790902,
-    "seen": 1789677498.0469294,
-    "ast_hash": "063e3af1bb0e12555f0dfeb3fee0be16",
+    "mtime": 1789677686.1091373,
+    "seen": 1789677698.9519334,
+    "ast_hash": "75e0d7ad7866a5df54afc8d8e88abdce",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/accounts/AccountsScreen.kt": {

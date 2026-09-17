@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
@@ -84,6 +85,10 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val ledgerRepository = koinInject<LedgerRepository>()
     var isSyncing by remember { mutableStateOf(false) }
 
+    var settingsSaveEnabled by remember { mutableStateOf(false) }
+    var settingsSaving by remember { mutableStateOf(false) }
+    var settingsSaveAction by remember { mutableStateOf({}) }
+
     val authManager = koinInject<AuthManager>()
     val authState by authManager.authState.collectAsStateWithLifecycle()
     val claims = (authState as? AuthState.Authenticated)?.credentials?.idToken?.let(::decodeIdTokenClaims)
@@ -101,6 +106,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     )
     val bottomNavRoutes = bottomNavDestinations.map { it.route }
     val drawerDestinations = YuukaDestination.entries - bottomNavDestinations.toSet()
+
+    // Shared by the bottom nav items and any programmatic jump to a top-level destination (e.g.
+    // "View all" from the dashboard), so a single-level back stack is preserved either way.
+    val navigateToTopLevel: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.startDestinationId) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     ModalNavigationDrawer(
         modifier = modifier,
@@ -221,6 +236,14 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     contentDescription = if (hidden) "Show amounts" else "Hide amounts",
                                 )
                             }
+                        } else if (currentRoute == SETTINGS_ROUTE) {
+                            IconButton(onClick = settingsSaveAction, enabled = settingsSaveEnabled) {
+                                if (settingsSaving) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Filled.Save, contentDescription = "Save")
+                                }
+                            }
                         }
                     },
                 )
@@ -233,13 +256,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                 label = { Text(destination.label) },
                                 icon = { Icon(destination.icon, contentDescription = null) },
                                 selected = destination == currentDestination,
-                                onClick = {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                onClick = { navigateToTopLevel(destination.route) },
                             )
                         }
                     }
@@ -268,13 +285,21 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 },
             ) {
                 composable(YuukaDestination.DASHBOARD.route) {
-                    DashboardScreen(onViewAllTransactions = { navController.navigate(YuukaDestination.TRANSACTIONS.route) })
+                    DashboardScreen(onViewAllTransactions = { navigateToTopLevel(YuukaDestination.TRANSACTIONS.route) })
                 }
                 composable(YuukaDestination.TRANSACTIONS.route) { TransactionsScreen() }
                 composable(YuukaDestination.BUDGET.route) { BudgetScreen() }
                 composable(YuukaDestination.ACCOUNTS.route) { AccountsScreen() }
                 composable(YuukaDestination.CATEGORIES.route) { CategoriesScreen() }
-                composable(SETTINGS_ROUTE) { SettingsScreen() }
+                composable(SETTINGS_ROUTE) {
+                    SettingsScreen(
+                        onSaveStateChange = { enabled, saving, save ->
+                            settingsSaveEnabled = enabled
+                            settingsSaving = saving
+                            settingsSaveAction = save
+                        },
+                    )
+                }
             }
         }
     }

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,6 +19,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +45,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = koinViewModel(),
     themePreference: ThemePreference = koinInject(),
+    onSaveStateChange: (enabled: Boolean, saving: Boolean, save: () -> Unit) -> Unit = { _, _, _ -> },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -173,28 +174,26 @@ fun SettingsScreen(
         }
 
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
+    }
 
-        Button(
-            enabled = isValid && changed && !saving,
-            onClick = {
-                scope.launch {
-                    saving = true
-                    error = null
-                    try {
-                        viewModel.save(
-                            displayCurrency = normalised.takeIf { it != state.displayCurrency },
-                            budgetMode = budgetModeDraft.takeIf { it != state.budgetMode },
-                            defaultAccountId = defaultAccountDraft,
-                            clearDefaultAccount = defaultAccountDraft == null && state.defaultAccountId != null,
-                        )
-                    } catch (e: ApiError) {
-                        error = e.message ?: "Could not save the setting."
-                    } finally {
-                        saving = false
-                    }
+    SideEffect {
+        onSaveStateChange(isValid && changed && !saving, saving) {
+            scope.launch {
+                saving = true
+                error = null
+                try {
+                    viewModel.save(
+                        displayCurrency = normalised.takeIf { it != state.displayCurrency },
+                        budgetMode = budgetModeDraft.takeIf { it != state.budgetMode },
+                        defaultAccountId = defaultAccountDraft,
+                        clearDefaultAccount = defaultAccountDraft == null && state.defaultAccountId != null,
+                    )
+                } catch (e: ApiError) {
+                    error = e.message ?: "Could not save the setting."
+                } finally {
+                    saving = false
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (saving) "Saving…" else "Save") }
+            }
+        }
     }
 }
