@@ -188,3 +188,5 @@ dist/
 .externalNativeBuild
 .cxx
 local.properties
+/keystore/
+keystore.properties
