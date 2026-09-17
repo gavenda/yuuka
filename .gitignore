@@ -187,6 +187,5 @@ dist/
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 /keystore/
 keystore.properties

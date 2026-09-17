@@ -7,7 +7,7 @@ that must survive a change.
 ## Important
 - When the user says android app, solely focus on the android app. Unless stated otherwise.
 - Even if the user says android app, you can only touch the API part of webapp when making API changes.
-
+- Versions of the android app and web app are synced. So whenever an android only bump is made, both versions will be affected.
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
