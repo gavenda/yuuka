@@ -283,6 +283,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     val direction = tabSlideDirection(bottomNavRoutes) ?: -1
                     slideOutHorizontally { fullWidth -> -direction * fullWidth }
                 },
+                // Without these, the Android 16 predictive back gesture preview falls back to
+                // NavHost's default fade/scale instead of following the same swipe as a completed pop.
+                predictivePopEnterTransition = {
+                    val direction = tabSlideDirection(bottomNavRoutes) ?: -1
+                    slideInHorizontally { fullWidth -> direction * fullWidth }
+                },
+                predictivePopExitTransition = {
+                    val direction = tabSlideDirection(bottomNavRoutes) ?: -1
+                    slideOutHorizontally { fullWidth -> -direction * fullWidth }
+                },
             ) {
                 composable(YuukaDestination.DASHBOARD.route) {
                     DashboardScreen(onViewAllTransactions = { navigateToTopLevel(YuukaDestination.TRANSACTIONS.route) })
