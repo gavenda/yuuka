@@ -4,6 +4,13 @@
 	"private": true,
 	"type": "module",
 	"description": "Personal budgeting and financial tracking, running entirely on Cloudflare.",
+	"author": "Enda <enda@gavenda.dev>",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/gavenda/yuuka.git",
+		"directory": "webapp"
+	},
 	"packageManager": "bun@1.4.2",
 	"scripts": {
 		"dev": "concurrently --kill-others --names api,web --prefix-colors cyan,magenta \"bun run dev:api\" \"bun run dev:web\"",
