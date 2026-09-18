@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -41,16 +43,21 @@ class MainActivity : ComponentActivity() {
             YuukaTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
                 val authState by authManager.authState.collectAsStateWithLifecycle()
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when (authState) {
-                        is AuthState.Loading -> Text("Loading…", modifier = Modifier.align(Alignment.Center))
+                // The window background comes from the (always light) XML theme, so without a Surface
+                // nothing paints the Compose scheme's background or sets a content colour, and a dark
+                // scheme ends up as pale text on a light window.
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (authState) {
+                            is AuthState.Loading -> Text("Loading…", modifier = Modifier.align(Alignment.Center))
 
-                        is AuthState.Unauthenticated -> AuthScreen(
-                            onLogin = { authManager.login(this@MainActivity) },
-                            onSignUp = { authManager.login(this@MainActivity, screenHint = "signup") },
-                        )
+                            is AuthState.Unauthenticated -> AuthScreen(
+                                onLogin = { authManager.login(this@MainActivity) },
+                                onSignUp = { authManager.login(this@MainActivity, screenHint = "signup") },
+                            )
 
-                        is AuthState.Authenticated -> YuukaApp(onSignOut = { authManager.logout(this@MainActivity) })
+                            is AuthState.Authenticated -> YuukaApp(onSignOut = { authManager.logout(this@MainActivity) })
+                        }
                     }
                 }
             }
