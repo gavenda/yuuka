@@ -18,7 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -66,7 +66,13 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         // The outer app bar's Scaffold already insets for system bars — an inset-aware
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-        floatingActionButton = { FloatingActionButton(onClick = viewModel::openCreate) { Icon(Icons.Filled.Add, contentDescription = "Add transaction") } },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = viewModel::openCreate,
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("New transaction") },
+            )
+        },
     ) { padding ->
         val error = (state.status as? ScreenStatus.Error)?.message
         val grouped = remember(state.rows) { groupByDate(state.rows) }
@@ -226,44 +232,62 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
         ) {
-            Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 when (row) {
                     is TransactionRow.Transfer -> {
-                        Column(Modifier.weight(1f)) {
-                            Text(row.payee.ifBlank { row.categoryName ?: "Transfer" }, style = MaterialTheme.typography.bodyMedium)
+                        val accountFlow = "${row.fromAccountName} → ${row.toAccountName}"
+                        val title = if (row.payee.isBlank() || row.payee == accountFlow) "Transfer" else row.payee
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(title, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "${row.fromAccountName} → ${row.toAccountName}" + (formatTime(row.leg.occurredOn)?.let { " · $it" } ?: ""),
+                                accountFlow,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            formatTime(row.leg.occurredOn)?.let { time ->
+                                Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency)
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 visibility.displayMoney(row.leg.runningBalance, currency),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            row.categoryName?.let { name ->
+                                Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
 
                     is TransactionRow.Single -> {
                         val transaction = row.transaction
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(transaction.payee.ifBlank { transaction.categoryName ?: "Uncategorized" }, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                transaction.accountName.orEmpty() + (formatTime(transaction.occurredOn)?.let { " · $it" } ?: ""),
+                                transaction.accountName.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            formatTime(transaction.occurredOn)?.let { time ->
+                                Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency)
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency, style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 visibility.displayMoney(transaction.runningBalance, currency),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            transaction.categoryName?.let { name ->
+                                Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }

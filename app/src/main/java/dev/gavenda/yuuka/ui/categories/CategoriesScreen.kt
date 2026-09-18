@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -69,9 +69,11 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         floatingActionButton = {
-            FloatingActionButton(onClick = { creatingIn = state.sections.first(); creatingParentId = null }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add category")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { creatingIn = state.sections.first(); creatingParentId = null },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("New category") },
+            )
         },
     ) { padding ->
         LazyColumn(

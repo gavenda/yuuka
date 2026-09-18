@@ -14,10 +14,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,7 +48,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-private enum class FormMode { EXPENSE, INCOME, TRANSFER }
+private enum class FormMode(val label: String) { EXPENSE("Expense"), INCOME("Income"), TRANSFER("Transfer") }
 
 private data class FormFields(
     val mode: FormMode = FormMode.EXPENSE,
@@ -118,10 +120,15 @@ fun TransactionForm(
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (!isEditing) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(fields.mode == FormMode.EXPENSE, onClick = { fields = fields.copy(mode = FormMode.EXPENSE, categoryId = "") }, label = { Text("Expense") })
-                FilterChip(fields.mode == FormMode.INCOME, onClick = { fields = fields.copy(mode = FormMode.INCOME, categoryId = "") }, label = { Text("Income") })
-                FilterChip(fields.mode == FormMode.TRANSFER, onClick = { fields = fields.copy(mode = FormMode.TRANSFER, categoryId = "") }, label = { Text("Transfer") })
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                FormMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = fields.mode == mode,
+                        onClick = { fields = fields.copy(mode = mode, categoryId = "") },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = FormMode.entries.size),
+                        label = { Text(mode.label) },
+                    )
+                }
             }
         }
 

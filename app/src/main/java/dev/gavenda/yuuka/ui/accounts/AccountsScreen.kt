@@ -19,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -71,7 +72,13 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         // The outer app bar's Scaffold already insets for system bars — an inset-aware
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-        floatingActionButton = { androidx.compose.material3.FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Filled.Add, contentDescription = "Add account") } },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { creating = true },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("New account") },
+            )
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxWidth(),
@@ -182,7 +189,7 @@ private fun AccountCard(account: Account, onEdit: () -> Unit, onToggleArchive: (
                     Text(account.currency, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     MoneyText(account.balance, tone = MoneyTone.SIGNED, currency = account.currency, modifier = Modifier.padding(top = 4.dp))
                 }
-                AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 32)
+                AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28)
             }
         }
     }

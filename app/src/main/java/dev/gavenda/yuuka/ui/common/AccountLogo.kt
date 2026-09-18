@@ -2,8 +2,9 @@ package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,7 +48,7 @@ fun AccountLogo(name: String, logoUrl: String?, invertDark: Boolean, modifier: M
         AsyncImage(
             model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current).data(logoUrl).crossfade(true).build(),
             contentDescription = "$name logo",
-            modifier = modifier.height(size.dp),
+            modifier = modifier.heightIn(max = size.dp),
             contentScale = ContentScale.Fit,
             colorFilter = if (invertDark && dark) ColorFilter.colorMatrix(INVERT_MATRIX) else null,
             onError = { failed = true },
@@ -55,7 +56,8 @@ fun AccountLogo(name: String, logoUrl: String?, invertDark: Boolean, modifier: M
     } else {
         Box(
             modifier = modifier
-                .size(size.dp)
+                .heightIn(max = size.dp)
+                .aspectRatio(1f)
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
