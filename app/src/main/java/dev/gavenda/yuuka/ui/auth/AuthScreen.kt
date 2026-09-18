@@ -12,8 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.gavenda.yuuka.R
 
 /** Mirrors `LoginView.vue`. */
 @Composable
@@ -23,14 +25,14 @@ fun AuthScreen(onLogin: () -> Unit, onSignUp: () -> Unit, modifier: Modifier = M
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("yuuka", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
+        Text(stringResource(R.string.brand_name), style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
         Text(
-            "Personal budgeting and financial tracking.",
+            stringResource(R.string.auth_tagline),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
         )
-        Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text("Log in") }
-        OutlinedButton(onClick = onSignUp, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) { Text("Sign up") }
+        Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_log_in)) }
+        OutlinedButton(onClick = onSignUp, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) { Text(stringResource(R.string.action_sign_up)) }
     }
 }

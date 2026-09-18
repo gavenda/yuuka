@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import dev.gavenda.yuuka.R
 
 /**
  * A circular avatar for the signed-in user: the Auth0 profile picture when it loads,
@@ -33,6 +35,7 @@ import coil3.request.crossfade
 @Composable
 fun UserAvatar(name: String?, pictureUrl: String?, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier, size: Int = 32) {
     var failed by remember(pictureUrl) { mutableStateOf(false) }
+    val accountLabel = stringResource(R.string.cd_account)
 
     Box(
         modifier = modifier
@@ -41,7 +44,7 @@ fun UserAvatar(name: String?, pictureUrl: String?, onClick: (() -> Unit)? = null
             .background(MaterialTheme.colorScheme.primaryContainer)
             .let { base ->
                 if (onClick != null) {
-                    base.semantics { role = Role.Button }.clickable(onClickLabel = "Account", onClick = onClick)
+                    base.semantics { role = Role.Button }.clickable(onClickLabel = accountLabel, onClick = onClick)
                 } else {
                     base
                 }
@@ -51,7 +54,7 @@ fun UserAvatar(name: String?, pictureUrl: String?, onClick: (() -> Unit)? = null
         if (pictureUrl != null && !failed) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(pictureUrl).crossfade(true).build(),
-                contentDescription = "Account",
+                contentDescription = accountLabel,
                 modifier = Modifier.size(size.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop,
                 onError = { failed = true },

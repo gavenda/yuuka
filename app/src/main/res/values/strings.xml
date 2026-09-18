@@ -7,4 +7,220 @@
     <string name="auth0_audience">https://api.yuuka.gavenda.dev</string>
     <!-- One Cloudflare Pages project serves both the site and /api, so the API lives at the site's own origin. -->
     <string name="api_base_url">https://yuuka.gavenda.dev/api/</string>
+
+    <!-- Brand -->
+    <string name="brand_name">yuuka</string>
+
+    <!-- Common actions -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_add">Add</string>
+    <string name="action_today">Today</string>
+    <string name="action_view_all">View all</string>
+    <string name="action_log_in">Log in</string>
+    <string name="action_sign_up">Sign up</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="save_changes">Save changes</string>
+
+    <!-- Shared field labels -->
+    <string name="label_name">Name</string>
+    <string name="label_type">Type</string>
+    <string name="label_account">Account</string>
+    <string name="label_category">Category</string>
+    <string name="label_currency">Currency</string>
+    <string name="label_fixed">Fixed</string>
+    <string name="placeholder_optional">Optional</string>
+    <string name="placeholder_amount_decimal">0.00</string>
+
+    <!-- Category / transaction kinds -->
+    <string name="category_kind_expense">Expense</string>
+    <string name="category_kind_income">Income</string>
+    <string name="category_kind_cashflow">Cashflow</string>
+    <string name="category_kind_transfer">Transfer</string>
+    <string name="category_uncategorized">Uncategorized</string>
+
+    <!-- Shared stats -->
+    <string name="net_worth">Net worth</string>
+    <string name="label_spent">Spent</string>
+    <string name="label_planned">Planned</string>
+    <string name="name_archived">%1$s (Archived)</string>
+    <string name="transfer_account_flow">%1$s → %2$s</string>
+    <string name="archived_toggle_hide">Hide %1$d archived</string>
+    <string name="archived_toggle_show">Show %1$d archived</string>
+    <string name="no_categories_yet">No categories yet</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_menu">Menu</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_show_amounts">Show amounts</string>
+    <string name="cd_hide_amounts">Hide amounts</string>
+    <string name="cd_previous_month">Previous month</string>
+    <string name="cd_next_month">Next month</string>
+    <string name="cd_account">Account</string>
+    <string name="cd_clear">Clear</string>
+    <string name="cd_archive_item">Archive %1$s</string>
+    <string name="cd_delete_item">Delete %1$s</string>
+    <string name="cd_rename_item">Rename %1$s</string>
+    <string name="cd_collapse_section">Collapse %1$s</string>
+    <string name="cd_expand_section">Expand %1$s</string>
+
+    <!-- Destinations -->
+    <string name="destination_dashboard">Dashboard</string>
+    <string name="destination_transactions">Transactions</string>
+    <string name="destination_budget">Budget</string>
+    <string name="destination_accounts">Accounts</string>
+    <string name="destination_categories">Categories</string>
+    <string name="destination_settings">Settings</string>
+
+    <!-- Auth screen -->
+    <string name="auth_tagline">Personal budgeting and financial tracking.</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_net_this_month">Net this month</string>
+    <string name="dashboard_saved">Saved</string>
+    <string name="dashboard_overspent">Overspent</string>
+    <string name="dashboard_budget_remaining">Budget remaining</string>
+    <string name="dashboard_across_budgeted_categories">Across budgeted categories</string>
+    <string name="dashboard_over_budget">Over budget</string>
+    <string name="dashboard_needs_attention">Needs attention</string>
+    <string name="dashboard_nothing_overspent">Nothing overspent</string>
+    <string name="dashboard_spending_by_day">Spending by day</string>
+    <string name="dashboard_spend_summary">%1$s across %2$s</string>
+    <string name="dashboard_no_spending">No spending recorded this month.</string>
+    <string name="dashboard_where_money_went">Where the money went</string>
+    <string name="dashboard_nothing_recorded_month">Nothing recorded this month.</string>
+    <string name="dashboard_recent_activity">Recent activity</string>
+    <string name="dashboard_nothing_recorded_month_yet">Nothing recorded this month yet</string>
+    <plurals name="days_count">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <!-- Budget screen -->
+    <string name="planned_income_label">Planned income</string>
+    <string name="placeholder_gross_income">Gross 0.00</string>
+    <string name="set_gross_income">Set gross income</string>
+    <string name="set_income">Set income</string>
+    <string name="income_mode_gross">Gross</string>
+    <string name="gross_income_hint">Enter your gross monthly pay.\nThe take-home net is what you budget from.</string>
+    <string name="net_income_hint">Set what you expect to bring in.\nBudget a category as a percentage of it.</string>
+    <string name="monthly_contributions">Monthly contributions</string>
+    <string name="net_pay">Net pay</string>
+    <string name="used_as_planned_income">Used as planned income</string>
+    <string name="allocated">Allocated</string>
+    <string name="planned_across_categories">Planned across categories</string>
+    <string name="unallocated">Unallocated</string>
+    <string name="across_expense_categories">Across expense categories</string>
+    <string name="percent_of_plan">%1$d%% of plan</string>
+    <string name="no_plan_set">No plan set</string>
+    <string name="budget_empty_description">Budgets are set per category, so create a few first.</string>
+    <string name="percent_range_hint">Enter a percentage between 0 and 100</string>
+    <string name="set_a_budget">Set a budget</string>
+    <string name="unbudgeted">Unbudgeted</string>
+    <string name="no_budget_set">No budget set</string>
+    <string name="amount_over">%1$s over</string>
+    <string name="amount_left">%1$s left</string>
+    <string name="placeholder_percent_zero">0</string>
+
+    <!-- Categories screen -->
+    <string name="new_category">New category</string>
+    <string name="categories_empty_description">Categories are how spending gets grouped and budgeted.</string>
+    <string name="category_restored">Category restored</string>
+    <string name="category_archived">Category archived</string>
+    <string name="category_deleted">Category deleted</string>
+    <string name="no_section_categories_yet">No %1$s categories yet.</string>
+    <string name="category_updated">Category updated</string>
+    <string name="category_added">Category added</string>
+    <string name="edit_category">Edit category</string>
+    <string name="label_kind">Kind</string>
+    <string name="label_colour">Colour</string>
+    <string name="custom_colour">Custom colour</string>
+    <string name="custom_colour_hex">Custom colour (hex)</string>
+    <string name="placeholder_hex_sample">#64748b</string>
+    <string name="hex_colour_hint">Enter a 6-digit hex colour, e.g. #64748b</string>
+    <string name="add_category">Add category</string>
+    <string name="add_sub">+ Sub</string>
+    <string name="nested_under">Nested under: %1$s</string>
+
+    <!-- Accounts screen -->
+    <string name="new_account">New account</string>
+    <string name="edit_account">Edit account</string>
+    <string name="manage_types">Manage types</string>
+    <string name="no_accounts_yet">No accounts yet</string>
+    <string name="accounts_empty_description">Add the accounts you want to track.</string>
+    <string name="account_restored">Account restored</string>
+    <string name="account_archived">Account archived</string>
+    <string name="account_updated">Account updated</string>
+    <string name="account_added">Account added</string>
+    <string name="delete_confirm_title">Delete \"%1$s\"?</string>
+    <string name="account_deleted">Account deleted</string>
+    <string name="could_not_delete_account">Could not delete the account.</string>
+    <string name="delete_account_transactions_confirm">%1$s\n\nDelete the account and its transactions?</string>
+    <string name="delete_anyway">Delete anyway</string>
+    <string name="label_starting_balance">Starting balance</string>
+    <string name="label_logo_url">Logo URL (optional)</string>
+    <string name="invert_colours_dark_mode">Invert colours in dark mode</string>
+    <string name="error_starting_balance_number">Starting balance must be a number.</string>
+    <string name="error_name_type_required">Name and type are required.</string>
+    <string name="add_account">Add account</string>
+    <string name="account_types_title">Account types</string>
+    <string name="account_types_description">These are your own labels. Rename one and every account using it follows.</string>
+    <string name="placeholder_add_a_type">Add a type</string>
+    <string name="type_added">Type added</string>
+    <string name="type_renamed">Type renamed</string>
+    <string name="type_restored">Type restored</string>
+    <string name="type_archived">Type archived</string>
+    <string name="type_deleted">Type deleted</string>
+
+    <!-- Settings screen -->
+    <string name="display_currency">Display currency</string>
+    <string name="display_currency_hint">Used for net worth, the monthly summary and budgets.</string>
+    <string name="preview_label">Preview</string>
+    <string name="currency_hint_3letter">Use a 3-letter currency code, such as PHP.</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="use_wallpaper_colors">Use wallpaper colors</string>
+    <string name="budget_mode_label">Budget mode</string>
+    <string name="budget_mode_monthly">Monthly</string>
+    <string name="budget_mode_fixed_hint">A category\'s planned amount applies to every month, until changed again.</string>
+    <string name="budget_mode_monthly_hint">Each month keeps its own planned amount, set separately.</string>
+    <string name="default_account">Default account</string>
+    <string name="first_active_account">First active account</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="could_not_save_setting">Could not save the setting.</string>
+
+    <!-- Transaction form -->
+    <string name="label_payee">Payee</string>
+    <string name="placeholder_transfer_name">Leave blank to name it From → To</string>
+    <string name="placeholder_who_was_paid">Who was paid</string>
+    <string name="label_amount">Amount</string>
+    <string name="label_from_account">From account</string>
+    <string name="label_to_account">To account</string>
+    <string name="label_cashflow_category">Cashflow category</string>
+    <string name="label_date">Date</string>
+    <string name="label_time">Time</string>
+    <string name="label_notes">Notes</string>
+    <string name="error_amount_greater_than_zero">Enter an amount greater than zero.</string>
+    <string name="error_choose_different_accounts">Choose two different accounts.</string>
+    <string name="error_choose_account">Choose an account.</string>
+    <string name="add_transaction">Add transaction</string>
+
+    <!-- Transactions screen -->
+    <string name="new_transaction">New transaction</string>
+    <string name="search_payee_notes">Search payee or notes</string>
+    <string name="all_accounts">All accounts</string>
+    <string name="all_categories">All categories</string>
+    <string name="transactions_empty_title">No transactions here</string>
+    <string name="transactions_empty_description">Nothing matches these filters yet. Add one, or widen the search.</string>
+    <string name="loading_ellipsis">Loading…</string>
+    <string name="load_more">Load more (%1$d of %2$d)</string>
+    <string name="delete_transfer_confirm_title">Delete this transfer?</string>
+    <string name="delete_transaction_confirm_title">Delete this transaction?</string>
+    <string name="delete_transfer_body">Both sides of the transfer will be removed.</string>
+
+    <!-- Generic -->
+    <string name="error_generic">Something went wrong.</string>
 </resources>

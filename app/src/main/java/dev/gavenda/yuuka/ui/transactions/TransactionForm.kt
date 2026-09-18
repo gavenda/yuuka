@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -29,7 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
@@ -41,6 +44,7 @@ import dev.gavenda.yuuka.domain.parseMoney
 import dev.gavenda.yuuka.domain.today
 import dev.gavenda.yuuka.domain.toDecimalString
 import dev.gavenda.yuuka.domain.transferCategories
+import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
 import dev.gavenda.yuuka.ui.common.showDatePicker
 import dev.gavenda.yuuka.ui.common.showTimePicker
@@ -48,7 +52,11 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-private enum class FormMode(val label: String) { EXPENSE("Expense"), INCOME("Income"), TRANSFER("Transfer") }
+private enum class FormMode(@androidx.annotation.StringRes val labelRes: Int) {
+    EXPENSE(R.string.category_kind_expense),
+    INCOME(R.string.category_kind_income),
+    TRANSFER(R.string.category_kind_transfer),
+}
 
 private data class FormFields(
     val mode: FormMode = FormMode.EXPENSE,
@@ -126,7 +134,7 @@ fun TransactionForm(
                         selected = fields.mode == mode,
                         onClick = { fields = fields.copy(mode = mode, categoryId = "") },
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = FormMode.entries.size),
-                        label = { Text(mode.label) },
+                        label = { Text(stringResource(mode.labelRes)) },
                     )
                 }
             }
@@ -135,8 +143,8 @@ fun TransactionForm(
         PayeeField(
             value = fields.payee,
             onValueChange = { fields = fields.copy(payee = it) },
-            label = if (fields.mode == FormMode.TRANSFER) "Name" else "Payee",
-            placeholder = if (fields.mode == FormMode.TRANSFER) "Leave blank to name it From → To" else "Who was paid",
+            label = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_name) else stringResource(R.string.label_payee),
+            placeholder = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.placeholder_transfer_name) else stringResource(R.string.placeholder_who_was_paid),
             payees = payees,
             onSelect = { entry ->
                 fields = fields.copy(
@@ -152,8 +160,8 @@ fun TransactionForm(
         OutlinedTextField(
             value = fields.amount,
             onValueChange = { fields = fields.copy(amount = it) },
-            label = { Text("Amount") },
-            placeholder = { Text("0.00") },
+            label = { Text(stringResource(R.string.label_amount)) },
+            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -164,7 +172,7 @@ fun TransactionForm(
                 value = accounts.firstOrNull { it.id == fields.accountId }?.name ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(if (fields.mode == FormMode.TRANSFER) "From account" else "Account") },
+                label = { Text(if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_from_account) else stringResource(R.string.label_account)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountMenuOpen) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             )
@@ -182,7 +190,7 @@ fun TransactionForm(
                     value = accounts.firstOrNull { it.id == fields.toAccountId }?.name ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("To account") },
+                    label = { Text(stringResource(R.string.label_to_account)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = toMenuOpen) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
@@ -195,18 +203,19 @@ fun TransactionForm(
         }
 
         var categoryMenuOpen by remember { mutableStateOf(false) }
-        val selectedCategoryLabel = categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == fields.categoryId }?.name ?: "Uncategorized"
+        val uncategorizedLabel = stringResource(R.string.category_uncategorized)
+        val selectedCategoryLabel = categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == fields.categoryId }?.name ?: uncategorizedLabel
         ExposedDropdownMenuBox(expanded = categoryMenuOpen, onExpandedChange = { categoryMenuOpen = it }) {
             OutlinedTextField(
                 value = selectedCategoryLabel,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(if (fields.mode == FormMode.TRANSFER) "Cashflow category" else "Category") },
+                label = { Text(if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_cashflow_category) else stringResource(R.string.label_category)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenuOpen) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             )
             ExposedDropdownMenu(expanded = categoryMenuOpen, onDismissRequest = { categoryMenuOpen = false }) {
-                DropdownMenuItem(text = { Text("Uncategorized") }, onClick = { fields = fields.copy(categoryId = ""); categoryMenuOpen = false })
+                DropdownMenuItem(text = { Text(uncategorizedLabel) }, onClick = { fields = fields.copy(categoryId = ""); categoryMenuOpen = false })
                 categoryGroups.forEach { group ->
                     DropdownMenuItem(text = { Text(group.parent.name) }, onClick = { fields = fields.copy(categoryId = group.parent.id); categoryMenuOpen = false })
                     group.children.forEach { child ->
@@ -219,12 +228,14 @@ fun TransactionForm(
             }
         }
 
+        val optionalPlaceholder = stringResource(R.string.placeholder_optional)
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(
                 value = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE),
                 onValueChange = {},
                 enabled = false,
-                label = { Text("Date") },
+                label = { Text(stringResource(R.string.label_date)) },
                 colors = readOnlyFieldColors(),
                 modifier = Modifier.weight(1f).clickableField { showDatePicker(context, fields.date) { fields = fields.copy(date = it) } },
             )
@@ -232,8 +243,8 @@ fun TransactionForm(
                 value = fields.time?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
                 onValueChange = {},
                 enabled = false,
-                label = { Text("Time") },
-                placeholder = { Text("Optional") },
+                label = { Text(stringResource(R.string.label_time)) },
+                placeholder = { Text(optionalPlaceholder) },
                 colors = readOnlyFieldColors(),
                 modifier = Modifier.weight(1f).clickableField { showTimePicker(context, fields.time ?: LocalTime.now()) { fields = fields.copy(time = it) } },
             )
@@ -242,8 +253,8 @@ fun TransactionForm(
         OutlinedTextField(
             value = fields.notes,
             onValueChange = { fields = fields.copy(notes = it) },
-            label = { Text("Notes") },
-            placeholder = { Text("Optional") },
+            label = { Text(stringResource(R.string.label_notes)) },
+            placeholder = { Text(optionalPlaceholder) },
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -252,22 +263,26 @@ fun TransactionForm(
             Text(shownError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
+        val amountGreaterThanZeroError = stringResource(R.string.error_amount_greater_than_zero)
+        val chooseDifferentAccountsError = stringResource(R.string.error_choose_different_accounts)
+        val chooseAccountError = stringResource(R.string.error_choose_account)
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 enabled = !submitting,
                 onClick = {
                     val minor = parseMoney(fields.amount)
                     if (minor == null || minor <= 0) {
-                        localError = "Enter an amount greater than zero."
+                        localError = amountGreaterThanZeroError
                         return@Button
                     }
                     if (fields.mode == FormMode.TRANSFER && fields.accountId == fields.toAccountId) {
-                        localError = "Choose two different accounts."
+                        localError = chooseDifferentAccountsError
                         return@Button
                     }
                     if (fields.accountId.isBlank() || (fields.mode == FormMode.TRANSFER && fields.toAccountId.isBlank())) {
-                        localError = "Choose an account."
+                        localError = chooseAccountError
                         return@Button
                     }
                     localError = null
@@ -297,7 +312,11 @@ fun TransactionForm(
                     onSubmit(submission)
                 },
             ) {
-                Text(if (isEditing) "Save changes" else "Add transaction")
+                if (submitting) {
+                    MutationLoadingIndicator()
+                } else {
+                    Text(if (isEditing) stringResource(R.string.save_changes) else stringResource(R.string.add_transaction))
+                }
             }
         }
     }

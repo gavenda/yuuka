@@ -36,6 +36,15 @@ fun formatMoney(minor: Long, currency: String = DEFAULT_CURRENCY): String {
     }
 }
 
+/** The currency's symbol alone, e.g. `"PHP"` -> `"₱"`, for an input field's prefix affix. */
+fun currencySymbol(currency: String = DEFAULT_CURRENCY): String {
+    return try {
+        Currency.getInstance(currency).getSymbol(Locale.getDefault())
+    } catch (_: IllegalArgumentException) {
+        currency
+    }
+}
+
 /** Formats without the currency symbol, for tables that label the currency once. */
 fun formatAmount(minor: Long): String {
     val format = NumberFormat.getNumberInstance(Locale.getDefault())

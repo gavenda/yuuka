@@ -17,8 +17,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
 import dev.gavenda.yuuka.domain.AmountVisibility
@@ -58,12 +61,12 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                 }
             }
 
-            item { StatCard("Net worth", state.summary?.netWorth ?: 0, currency = state.currency, hero = true, onClick = {}) }
+            item { StatCard(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, currency = state.currency, hero = true, onClick = {}) }
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard("Income", state.summary?.income ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
-                    StatCard("Spent", state.summary?.expenses ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
+                    StatCard(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
+                    StatCard(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
                 }
             }
 
@@ -74,20 +77,20 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
-                        "Net this month",
+                        stringResource(R.string.dashboard_net_this_month),
                         state.summary?.net ?: 0,
                         currency = state.currency,
                         signed = true,
-                        caption = if ((state.summary?.net ?: 0) >= 0) "Saved" else "Overspent",
+                        caption = if ((state.summary?.net ?: 0) >= 0) stringResource(R.string.dashboard_saved) else stringResource(R.string.dashboard_overspent),
                         onClick = {},
                     )
-                    StatCard("Budget remaining", unspent, currency = state.currency, caption = "Across budgeted categories", onClick = {})
+                    StatCard(stringResource(R.string.dashboard_budget_remaining), unspent, currency = state.currency, caption = stringResource(R.string.dashboard_across_budgeted_categories), onClick = {})
                     StatCard(
-                        "Over budget",
+                        stringResource(R.string.dashboard_over_budget),
                         overspent,
                         currency = state.currency,
                         signed = true,
-                        caption = if (overspent < 0) "Needs attention" else "Nothing overspent",
+                        caption = if (overspent < 0) stringResource(R.string.dashboard_needs_attention) else stringResource(R.string.dashboard_nothing_overspent),
                         onClick = {},
                     )
                 }
@@ -96,20 +99,24 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Spending by day", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleSmall)
                         val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
                         val total = series.sumOf { it.amount }
                         val spentDays = series.count { it.amount > 0 }
                         if (total > 0) {
                             Text(
-                                "${visibility.displayMoney(total, state.currency)} across $spentDays ${if (spentDays == 1) "day" else "days"}",
+                                stringResource(
+                                    R.string.dashboard_spend_summary,
+                                    visibility.displayMoney(total, state.currency),
+                                    pluralStringResource(R.plurals.days_count, spentDays, spentDays),
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             DailySpendChart(series, modifier = Modifier.padding(top = 12.dp))
                         } else {
                             Text(
-                                "No spending recorded this month.",
+                                stringResource(R.string.dashboard_no_spending),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -121,11 +128,11 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Where the money went", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleSmall)
                         val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense }, 8)
                         if (entries.isEmpty()) {
                             Text(
-                                "Nothing recorded this month.",
+                                stringResource(R.string.dashboard_nothing_recorded_month),
                                 modifier = Modifier.padding(top = 12.dp),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -143,16 +150,16 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Recent activity", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.dashboard_recent_activity), style = MaterialTheme.typography.titleSmall)
                     TextButton(
                         onClick = onViewAllTransactions,
                         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
-                    ) { Text("View all") }
+                    ) { Text(stringResource(R.string.action_view_all)) }
                 }
             }
 
             if (state.recentRows.isEmpty()) {
-                item { EmptyState("Nothing recorded this month yet") }
+                item { EmptyState(stringResource(R.string.dashboard_nothing_recorded_month_yet)) }
             } else {
                 items(state.recentRows) { row -> RecentActivityRow(row, state.currency) }
             }
@@ -166,7 +173,7 @@ private fun RecentActivityRow(row: TransactionRow, currency: String) {
         when (row) {
             is TransactionRow.Transfer -> {
                 Column(Modifier.weight(1f)) {
-                    Text(row.payee.ifBlank { "${row.fromAccountName} → ${row.toAccountName}" }, style = MaterialTheme.typography.bodyMedium)
+                    Text(row.payee.ifBlank { stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty()) }, style = MaterialTheme.typography.bodyMedium)
                     Text(
                         listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ${row.fromAccountName} → ${row.toAccountName}",
                         style = MaterialTheme.typography.bodySmall,
@@ -179,7 +186,7 @@ private fun RecentActivityRow(row: TransactionRow, currency: String) {
             is TransactionRow.Single -> {
                 val transaction = row.transaction
                 Column(Modifier.weight(1f)) {
-                    Text(transaction.payee.ifBlank { transaction.categoryName ?: "Uncategorized" }, style = MaterialTheme.typography.bodyMedium)
+                    Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
                     Text(
                         listOfNotNull(formatDate(transaction.occurredOn), formatTime(transaction.occurredOn)).joinToString(" · ") + " · ${transaction.accountName}",
                         style = MaterialTheme.typography.bodySmall,

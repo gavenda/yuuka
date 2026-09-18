@@ -22,6 +22,7 @@ fun ActionIconButton(
     modifier: Modifier = Modifier,
     danger: Boolean = false,
     enabled: Boolean = true,
+    loading: Boolean = false,
 ) {
     val imageVector = when (icon) {
         ActionIcon.EDIT -> Icons.Filled.Edit
@@ -31,7 +32,11 @@ fun ActionIconButton(
     }
     val tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
 
-    IconButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Icon(imageVector, contentDescription = label, tint = if (enabled) tint else MaterialTheme.colorScheme.outlineVariant)
+    IconButton(onClick = onClick, modifier = modifier, enabled = enabled && !loading) {
+        if (loading) {
+            MutationLoadingIndicator(color = tint)
+        } else {
+            Icon(imageVector, contentDescription = label, tint = if (enabled) tint else MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 }

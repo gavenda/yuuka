@@ -17,7 +17,9 @@ import dev.gavenda.yuuka.repository.PayeeRepository
 import dev.gavenda.yuuka.repository.TransactionRepository
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -42,6 +44,7 @@ data class TransactionsUiState(
     val total: Int = 0,
     val loadedCount: Int = PAGE_SIZE,
     val status: ScreenStatus = ScreenStatus.Idle,
+    val deletingId: String? = null,
 ) {
     val hasMore: Boolean get() = loadedCount < total
 }
@@ -82,6 +85,9 @@ class TransactionsViewModel(
 
     private val _formState = MutableStateFlow(TransactionFormState())
     val formState: StateFlow<TransactionFormState> = _formState.asStateFlow()
+
+    private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val events: SharedFlow<String> = _events
 
     private val filterKey = MutableStateFlow(currentFilters())
     private val limit = MutableStateFlow(PAGE_SIZE)
@@ -242,8 +248,15 @@ class TransactionsViewModel(
                     }
                 }
 
+                val isEditing = editing != null
                 closeForm()
                 refreshAfterMutation()
+                _events.tryEmit(
+                    when (submission) {
+                        is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
+                        is TransactionSubmission.Plain -> if (isEditing) "Transaction updated" else "Transaction added"
+                    },
+                )
             } catch (e: ApiError) {
                 _formState.update { it.copy(submitting = false, error = e.message ?: "Could not save the transaction.") }
             }
@@ -251,12 +264,17 @@ class TransactionsViewModel(
     }
 
     fun delete(transaction: Transaction) {
+        val isTransfer = transaction.transferId != null
         viewModelScope.launch {
+            _uiState.update { it.copy(deletingId = transaction.id) }
             try {
                 transactionRepository.deleteTransactionOrTransfer(transaction)
                 refreshAfterMutation()
+                _events.tryEmit(if (isTransfer) "Transfer deleted" else "Transaction deleted")
             } catch (e: ApiError) {
                 _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not delete.")) }
+            } finally {
+                _uiState.update { it.copy(deletingId = null) }
             }
         }
     }

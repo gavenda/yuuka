@@ -18,9 +18,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class BudgetUiState(
@@ -55,6 +57,10 @@ class BudgetViewModel(
 
     private val _mutationErrors = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val mutationErrors: SharedFlow<String> = _mutationErrors
+
+    /** Categories (or "income") with a budget save in flight, so only that row's control disables/spins. */
+    private val _savingKeys = MutableStateFlow<Set<String>>(emptySet())
+    val savingKeys: StateFlow<Set<String>> = _savingKeys.asStateFlow()
 
     val uiState: StateFlow<BudgetUiState> = combine(
         month,
@@ -108,31 +114,44 @@ class BudgetViewModel(
 
     fun setBudgetAmount(categoryId: String, amount: Long) {
         viewModelScope.launch {
+            _savingKeys.update { it + categoryId }
             try {
                 budgetRepository.setBudgetAmount(categoryId, month.value, amount)
             } catch (e: ApiError) {
                 _mutationErrors.tryEmit(e.message ?: "Could not save the budget.")
+            } finally {
+                _savingKeys.update { it - categoryId }
             }
         }
     }
 
     fun setBudgetPercent(categoryId: String, percent: Double) {
         viewModelScope.launch {
+            _savingKeys.update { it + categoryId }
             try {
                 budgetRepository.setBudgetPercent(categoryId, month.value, percent)
             } catch (e: ApiError) {
                 _mutationErrors.tryEmit(e.message ?: "Could not save the budget.")
+            } finally {
+                _savingKeys.update { it - categoryId }
             }
         }
     }
 
     fun setIncomePlan(amount: Long, mode: IncomePlanMode, grossAmount: Long?) {
         viewModelScope.launch {
+            _savingKeys.update { it + INCOME_KEY }
             try {
                 budgetRepository.setIncomePlan(month.value, amount, mode.name, grossAmount)
             } catch (e: ApiError) {
                 _mutationErrors.tryEmit(e.message ?: "Could not save planned income.")
+            } finally {
+                _savingKeys.update { it - INCOME_KEY }
             }
         }
+    }
+
+    companion object {
+        const val INCOME_KEY = "income"
     }
 }

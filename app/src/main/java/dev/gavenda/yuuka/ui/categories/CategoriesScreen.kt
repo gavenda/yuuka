@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,36 +34,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
-import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.ui.common.ActionIcon
 import dev.gavenda.yuuka.ui.common.ActionIconButton
 import dev.gavenda.yuuka.ui.common.ColorWheelPicker
 import dev.gavenda.yuuka.ui.common.EmptyState
+import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
-import kotlinx.coroutines.launch
+import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
+import dev.gavenda.yuuka.ui.common.rememberBusyState
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+    val busy = rememberBusyState()
+    val snackbarHostState = LocalSnackbarHostState.current
 
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
+    var collapsedSections by remember { mutableStateOf(emptySet<String>()) }
+
+    val categoryRestoredMessage = stringResource(R.string.category_restored)
+    val categoryArchivedMessage = stringResource(R.string.category_archived)
+    val categoryDeletedMessage = stringResource(R.string.category_deleted)
+    val categoryUpdatedMessage = stringResource(R.string.category_updated)
+    val categoryAddedMessage = stringResource(R.string.category_added)
 
     Scaffold(
         modifier = modifier,
@@ -72,7 +85,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             ExtendedFloatingActionButton(
                 onClick = { creatingIn = state.sections.first(); creatingParentId = null },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("New category") },
+                text = { Text(stringResource(R.string.new_category)) },
             )
         },
     ) { padding ->
@@ -82,40 +95,89 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (state.categories.isEmpty()) {
-                item { EmptyState("No categories yet", description = "Categories are how spending gets grouped and budgeted.") }
+                item { EmptyState(stringResource(R.string.no_categories_yet), description = stringResource(R.string.categories_empty_description)) }
             }
 
             state.sections.forEach { section ->
+                val expanded = section.key !in collapsedSections
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(section.title, style = MaterialTheme.typography.titleSmall)
-                            Text(section.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        collapsedSections = if (expanded) {
+                                            collapsedSections + section.key
+                                        } else {
+                                            collapsedSections - section.key
+                                        }
+                                    },
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(section.title, style = MaterialTheme.typography.titleSmall)
+                                    Text(section.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Icon(
+                                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                                    contentDescription = if (expanded) stringResource(R.string.cd_collapse_section, section.title) else stringResource(R.string.cd_expand_section, section.title),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
 
-                            if (section.families.isEmpty()) {
+                            if (expanded && section.families.isEmpty()) {
                                 Text(
-                                    "No ${section.title.lowercase()} categories yet.",
+                                    stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 12.dp),
                                 )
-                            } else {
+                            } else if (expanded) {
                                 Column(modifier = Modifier.padding(top = 12.dp)) {
                                     section.families.forEach { family ->
+                                        val archiveKey = "archive:${family.parent.id}"
+                                        val deleteKey = "delete:${family.parent.id}"
                                         CategoryRow(
                                             family.parent,
+                                            archiving = busy.isBusy(archiveKey),
+                                            deleting = busy.isBusy(deleteKey),
                                             onEdit = { editing = family.parent },
-                                            onArchive = { scope.launch { viewModel.setArchived(family.parent.id, !family.parent.archived) } },
-                                            onDelete = { scope.launch { runCatching { viewModel.deleteCategory(family.parent.id) } } },
+                                            onArchive = {
+                                                busy.run(
+                                                    archiveKey,
+                                                    snackbarHostState,
+                                                    successMessage = if (family.parent.archived) categoryRestoredMessage else categoryArchivedMessage,
+                                                ) { viewModel.setArchived(family.parent.id, !family.parent.archived) }
+                                            },
+                                            onDelete = {
+                                                busy.run(deleteKey, snackbarHostState, successMessage = categoryDeletedMessage) {
+                                                    viewModel.deleteCategory(family.parent.id)
+                                                }
+                                            },
                                             onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
                                         )
                                         family.children.forEach { child ->
+                                            val childArchiveKey = "archive:${child.id}"
+                                            val childDeleteKey = "delete:${child.id}"
                                             CategoryRow(
                                                 child,
                                                 indent = true,
+                                                archiving = busy.isBusy(childArchiveKey),
+                                                deleting = busy.isBusy(childDeleteKey),
                                                 onEdit = { editing = child },
-                                                onArchive = { scope.launch { viewModel.setArchived(child.id, !child.archived) } },
-                                                onDelete = { scope.launch { runCatching { viewModel.deleteCategory(child.id) } } },
+                                                onArchive = {
+                                                    busy.run(
+                                                        childArchiveKey,
+                                                        snackbarHostState,
+                                                        successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
+                                                    ) { viewModel.setArchived(child.id, !child.archived) }
+                                                },
+                                                onDelete = {
+                                                    busy.run(childDeleteKey, snackbarHostState, successMessage = categoryDeletedMessage) {
+                                                        viewModel.deleteCategory(child.id)
+                                                    }
+                                                },
                                             )
                                         }
                                     }
@@ -129,7 +191,12 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             if (state.archivedCount > 0) {
                 item {
                     TextButton(onClick = viewModel::toggleShowArchived) {
-                        Text("${if (state.showArchived) "Hide" else "Show"} ${state.archivedCount} archived")
+                        Text(
+                            stringResource(
+                                if (state.showArchived) R.string.archived_toggle_hide else R.string.archived_toggle_show,
+                                state.archivedCount,
+                            ),
+                        )
                     }
                 }
             }
@@ -138,39 +205,57 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
 
     val section = creatingIn
     if (section != null || editing != null) {
-        ModalBottomSheet(onDismissRequest = { creatingIn = null; editing = null }) {
-            CategoryFormContent(
-                sections = state.sections,
-                initialSection = section ?: state.sections.first(),
-                parentId = creatingParentId,
-                editing = editing,
-                parentOptionsFor = { viewModel.parentOptionsFor(it.kind, it.appliesTo) },
-                nextColorFor = { viewModel.nextColorFor(it.kind, it.appliesTo) },
-                onSave = { name, kind, appliesTo, color ->
-                    scope.launch {
-                        try {
+        val formKey = "category-form"
+        val submitting = busy.isBusy(formKey)
+        ModalBottomSheet(onDismissRequest = { if (!submitting) { creatingIn = null; editing = null } }) {
+            WithSnackbarOverlay {
+                CategoryFormContent(
+                    sections = state.sections,
+                    initialSection = section ?: state.sections.first(),
+                    parentId = creatingParentId,
+                    editing = editing,
+                    submitting = submitting,
+                    parentOptionsFor = { viewModel.parentOptionsFor(it.kind, it.appliesTo) },
+                    nextColorFor = { viewModel.nextColorFor(it.kind, it.appliesTo) },
+                    onSave = { name, kind, appliesTo, color ->
+                        busy.run(
+                            formKey,
+                            snackbarHostState,
+                            successMessage = if (editing != null) categoryUpdatedMessage else categoryAddedMessage,
+                            onSuccess = { creatingIn = null; editing = null },
+                        ) {
                             if (editing != null) viewModel.updateCategory(editing!!.id, name, kind, color)
                             else viewModel.createCategory(name, kind, appliesTo, color, creatingParentId)
-                            creatingIn = null
-                            editing = null
-                        } catch (_: ApiError) {
-                            // The form stays open; a real app would surface this inline.
                         }
-                    }
-                },
-                onCancel = { creatingIn = null; editing = null },
-            )
+                    },
+                    onCancel = { creatingIn = null; editing = null },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun CategoryRow(category: Category, indent: Boolean = false, onEdit: () -> Unit, onArchive: () -> Unit, onDelete: () -> Unit, onAddSub: (() -> Unit)? = null) {
+private fun CategoryRow(
+    category: Category,
+    indent: Boolean = false,
+    archiving: Boolean = false,
+    deleting: Boolean = false,
+    onEdit: () -> Unit,
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+    onAddSub: (() -> Unit)? = null,
+) {
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
-            ActionIconButton(if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE, "Archive ${category.name}", onArchive)
-            ActionIconButton(ActionIcon.DELETE, "Delete ${category.name}", onDelete, danger = true)
+            ActionIconButton(
+                if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
+                stringResource(R.string.cd_archive_item, category.name),
+                onArchive,
+                loading = archiving,
+            )
+            ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, category.name), onDelete, danger = true, loading = deleting)
         },
     ) {
         Row(
@@ -186,11 +271,11 @@ private fun CategoryRow(category: Category, indent: Boolean = false, onEdit: () 
                 modifier = Modifier.size(if (indent) 8.dp else 12.dp).clip(CircleShape).background(colorFromHex(category.color)),
             )
             Text(
-                category.name + if (category.archived) " (Archived)" else "",
+                if (category.archived) stringResource(R.string.name_archived, category.name) else category.name,
                 modifier = Modifier.padding(start = 8.dp).weight(1f),
                 style = if (indent) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
             )
-            if (onAddSub != null) TextButton(onClick = onAddSub) { Text("+ Sub") }
+            if (onAddSub != null) TextButton(onClick = onAddSub) { Text(stringResource(R.string.add_sub)) }
         }
     }
 }
@@ -211,6 +296,7 @@ private fun CategoryFormContent(
     initialSection: CategorySection,
     parentId: String?,
     editing: Category?,
+    submitting: Boolean,
     parentOptionsFor: (CategorySection) -> List<Category>,
     nextColorFor: (CategorySection) -> String,
     onSave: (String, CategoryKind, CategoryScope, String) -> Unit,
@@ -224,12 +310,12 @@ private fun CategoryFormContent(
     val appliesTo = editing?.appliesTo ?: selectedSection.appliesTo
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (editing != null) "Edit category" else "New category", style = MaterialTheme.typography.titleMedium)
+        Text(if (editing != null) stringResource(R.string.edit_category) else stringResource(R.string.new_category), style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth())
 
         if (editing == null && parentId == null) {
-            Text("Kind", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.label_kind), style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 sections.forEach { option ->
                     androidx.compose.material3.FilterChip(
@@ -246,13 +332,13 @@ private fun CategoryFormContent(
 
         if (editing == null && parentId != null) {
             val parentName = parentOptionsFor(selectedSection).firstOrNull { it.id == parentId }?.name
-            Text("Nested under: ${parentName ?: ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.nested_under, parentName ?: ""), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         val isCustomColor = PALETTE.none { it.light.equals(color, ignoreCase = true) }
         val isValidColor = HEX_COLOR_REGEX.matches(color)
 
-        Text("Colour", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(R.string.label_colour), style = MaterialTheme.typography.labelMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PALETTE.forEach { slot ->
                 Box(
@@ -289,7 +375,7 @@ private fun CategoryFormContent(
                 if (!isCustomColor) {
                     Icon(
                         Icons.Filled.Add,
-                        contentDescription = "Custom colour",
+                        contentDescription = stringResource(R.string.custom_colour),
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -307,12 +393,12 @@ private fun CategoryFormContent(
             OutlinedTextField(
                 value = color,
                 onValueChange = { color = it },
-                label = { Text("Custom colour (hex)") },
-                placeholder = { Text("#64748b") },
+                label = { Text(stringResource(R.string.custom_colour_hex)) },
+                placeholder = { Text(stringResource(R.string.placeholder_hex_sample)) },
                 singleLine = true,
                 isError = !isValidColor,
                 supportingText = if (!isValidColor) {
-                    { Text("Enter a 6-digit hex colour, e.g. #64748b") }
+                    { Text(stringResource(R.string.hex_colour_hint)) }
                 } else {
                     null
                 },
@@ -321,11 +407,17 @@ private fun CategoryFormContent(
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 onClick = { if (name.isNotBlank() && isValidColor) onSave(name, kind, appliesTo, color) },
-                enabled = name.isNotBlank() && isValidColor,
-            ) { Text(if (editing != null) "Save changes" else "Add category") }
+                enabled = name.isNotBlank() && isValidColor && !submitting,
+            ) {
+                if (submitting) {
+                    MutationLoadingIndicator()
+                } else {
+                    Text(if (editing != null) stringResource(R.string.save_changes) else stringResource(R.string.add_category))
+                }
+            }
         }
     }
 }

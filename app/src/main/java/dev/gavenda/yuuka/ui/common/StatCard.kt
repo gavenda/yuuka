@@ -1,13 +1,16 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
@@ -30,6 +33,7 @@ fun StatCard(
     emphasized: Boolean = true,
     /** Non-null gives the card Material's press ripple, purely for touch feedback — pass `{}` where no action is needed. */
     onClick: (() -> Unit)? = null,
+    icon: @Composable (() -> Unit)? = null,
 ) {
     val content: @Composable ColumnScope.() -> Unit = {
         Text(
@@ -55,13 +59,20 @@ fun StatCard(
         }
     }
 
+    val body: @Composable () -> Unit = {
+        if (icon == null) {
+            Column(modifier = Modifier.padding(20.dp), content = content)
+        } else {
+            Row(modifier = Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), content = content)
+                icon()
+            }
+        }
+    }
+
     if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), content = content)
-        }
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth()) { body() }
     } else {
-        Card(modifier = modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), content = content)
-        }
+        Card(modifier = modifier.fillMaxWidth()) { body() }
     }
 }

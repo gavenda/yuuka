@@ -15,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -28,14 +29,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
@@ -44,11 +48,14 @@ import dev.gavenda.yuuka.domain.formatTime
 import dev.gavenda.yuuka.ui.common.ActionIcon
 import dev.gavenda.yuuka.ui.common.ActionIconButton
 import dev.gavenda.yuuka.ui.common.EmptyState
+import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.MoneyText
 import dev.gavenda.yuuka.ui.common.MoneyTone
 import dev.gavenda.yuuka.ui.common.MonthSwitcher
+import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
+import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -58,8 +65,17 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
     val payees by viewModel.payeeRepository.payees.collectAsStateWithLifecycle(initialValue = emptyList())
+    val snackbarHostState = LocalSnackbarHostState.current
 
     var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { message -> snackbarHostState.showSnackbar(message) }
+    }
+
+    val allAccountsLabel = stringResource(R.string.all_accounts)
+    val allCategoriesLabel = stringResource(R.string.all_categories)
+    val uncategorizedLabel = stringResource(R.string.category_uncategorized)
 
     Scaffold(
         modifier = modifier,
@@ -70,7 +86,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             ExtendedFloatingActionButton(
                 onClick = viewModel::openCreate,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("New transaction") },
+                text = { Text(stringResource(R.string.new_transaction)) },
             )
         },
     ) { padding ->
@@ -90,7 +106,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                         OutlinedTextField(
                             value = state.searchText,
                             onValueChange = viewModel::setSearchText,
-                            label = { Text("Search payee or notes") },
+                            label = { Text(stringResource(R.string.search_payee_notes)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -98,20 +114,20 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterDropdown(
                                 modifier = Modifier.weight(1f),
-                                label = "Account",
-                                selectedLabel = state.accounts.firstOrNull { it.id == state.accountFilter }?.name ?: "All accounts",
-                                options = listOf(null to "All accounts") + state.accounts.map { it.id to it.name },
+                                label = stringResource(R.string.label_account),
+                                selectedLabel = state.accounts.firstOrNull { it.id == state.accountFilter }?.name ?: allAccountsLabel,
+                                options = listOf(null to allAccountsLabel) + state.accounts.map { it.id to it.name },
                                 onSelect = viewModel::setAccountFilter,
                             )
                             FilterDropdown(
                                 modifier = Modifier.weight(1f),
-                                label = "Category",
+                                label = stringResource(R.string.label_category),
                                 selectedLabel = when (state.categoryFilter) {
-                                    null -> "All categories"
-                                    "none" -> "Uncategorized"
-                                    else -> state.categories.firstOrNull { it.id == state.categoryFilter }?.name ?: "All categories"
+                                    null -> allCategoriesLabel
+                                    "none" -> uncategorizedLabel
+                                    else -> state.categories.firstOrNull { it.id == state.categoryFilter }?.name ?: allCategoriesLabel
                                 },
-                                options = listOf(null to "All categories", "none" to "Uncategorized") + state.categories.map { it.id to it.name },
+                                options = listOf(null to allCategoriesLabel, "none" to uncategorizedLabel) + state.categories.map { it.id to it.name },
                                 onSelect = viewModel::setCategoryFilter,
                             )
                         }
@@ -125,20 +141,26 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                 if (state.rows.isEmpty() && state.status != ScreenStatus.Loading) {
                     item {
                         EmptyState(
-                            "No transactions here",
+                            stringResource(R.string.transactions_empty_title),
                             modifier = Modifier.padding(16.dp),
-                            description = "Nothing matches these filters yet. Add one, or widen the search.",
+                            description = stringResource(R.string.transactions_empty_description),
                         )
                     }
                 } else {
                     grouped.forEach { (date, rows) ->
                         item {
-                            Text(
-                                formatLongDate(date),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                            )
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    formatLongDate(date),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                         items(rows) { row ->
                             TransactionRowItem(
@@ -164,7 +186,13 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                                 TextButton(onClick = viewModel::loadMore, modifier = Modifier.fillMaxWidth()) {
-                                    Text(if (state.status == ScreenStatus.Loading) "Loading…" else "Load more (${state.loadedCount} of ${state.total})")
+                                    Text(
+                                        if (state.status == ScreenStatus.Loading) {
+                                            stringResource(R.string.loading_ellipsis)
+                                        } else {
+                                            stringResource(R.string.load_more, state.loadedCount, state.total)
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -177,33 +205,51 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     if (formState.open) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(onDismissRequest = viewModel::closeForm, sheetState = sheetState) {
-            TransactionForm(
-                editing = formState.editing,
-                transferToAccountId = formState.transferToAccountId,
-                accounts = state.accounts.filter { !it.archived },
-                categories = state.categories,
-                payees = payees,
-                defaultAccountId = state.defaultAccountId,
-                submitting = formState.submitting,
-                error = formState.error,
-                onSubmit = viewModel::submit,
-                onCancel = viewModel::closeForm,
-            )
+            WithSnackbarOverlay {
+                TransactionForm(
+                    editing = formState.editing,
+                    transferToAccountId = formState.transferToAccountId,
+                    accounts = state.accounts.filter { !it.archived },
+                    categories = state.categories,
+                    payees = payees,
+                    defaultAccountId = state.defaultAccountId,
+                    submitting = formState.submitting,
+                    error = formState.error,
+                    onSubmit = viewModel::submit,
+                    onCancel = viewModel::closeForm,
+                )
+            }
         }
     }
 
     val toDelete = pendingDelete
     if (toDelete != null) {
+        val deleting = state.deletingId == toDelete.id
+        // Deletion is fire-and-forget on the ViewModel, so the dialog stays open (showing the
+        // spinner) until deletingId reverts to null, rather than closing the instant it's tapped.
+        var started by remember(toDelete.id) { mutableStateOf(false) }
+        LaunchedEffect(deleting) {
+            if (deleting) started = true else if (started) pendingDelete = null
+        }
+
         AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text(if (toDelete.transferId != null) "Delete this transfer?" else "Delete this transaction?") },
+            onDismissRequest = { if (!deleting) pendingDelete = null },
+            title = { Text(if (toDelete.transferId != null) stringResource(R.string.delete_transfer_confirm_title) else stringResource(R.string.delete_transaction_confirm_title)) },
             text = {
-                if (toDelete.transferId != null) Text("Both sides of the transfer will be removed.")
+                WithSnackbarOverlay {
+                    if (toDelete.transferId != null) Text(stringResource(R.string.delete_transfer_body))
+                }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.delete(toDelete); pendingDelete = null }) { Text("Delete") }
+                TextButton(onClick = { viewModel.delete(toDelete) }, enabled = !deleting) {
+                    if (deleting) {
+                        MutationLoadingIndicator()
+                    } else {
+                        Text(stringResource(R.string.action_delete))
+                    }
+                }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -220,13 +266,17 @@ private fun groupByDate(rows: List<TransactionRow>): List<Pair<String, List<Tran
     return groups.entries.map { it.key to it.value }
 }
 
+/** Net change to your accounts' balances for the day — transfers move money between your own accounts, so they don't count, mirroring why [AccountGroup.total] sums balances rather than raw amounts. */
+private fun dailyAccrued(rows: List<TransactionRow>): Long =
+    rows.filterIsInstance<TransactionRow.Single>().sumOf { it.transaction.amount }
+
 @Composable
 private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: () -> Unit, onDelete: () -> Unit) {
     val visibility = koinInject<AmountVisibility>()
 
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        actions = { ActionIconButton(ActionIcon.DELETE, "Delete", onDelete, danger = true) },
+        actions = { ActionIconButton(ActionIcon.DELETE, stringResource(R.string.action_delete), onDelete, danger = true) },
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -239,8 +289,8 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
             ) {
                 when (row) {
                     is TransactionRow.Transfer -> {
-                        val accountFlow = "${row.fromAccountName} → ${row.toAccountName}"
-                        val title = if (row.payee.isBlank() || row.payee == accountFlow) "Transfer" else row.payee
+                        val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
+                        val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(title, style = MaterialTheme.typography.bodyMedium)
                             Text(
@@ -268,7 +318,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                     is TransactionRow.Single -> {
                         val transaction = row.transaction
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(transaction.payee.ifBlank { transaction.categoryName ?: "Uncategorized" }, style = MaterialTheme.typography.bodyMedium)
+                            Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 transaction.accountName.orEmpty(),
                                 style = MaterialTheme.typography.bodySmall,

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -27,14 +28,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.BudgetMode
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
 import dev.gavenda.yuuka.domain.formatMoney
+import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -49,6 +53,7 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
 
     val themeMode by themePreference.themeMode.collectAsStateWithLifecycle()
     val dynamicColor by themePreference.dynamicColor.collectAsStateWithLifecycle()
@@ -60,6 +65,10 @@ fun SettingsScreen(
     var accountMenuOpen by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
+
+    val settingsSavedMessage = stringResource(R.string.settings_saved)
+    val couldNotSaveSettingMessage = stringResource(R.string.could_not_save_setting)
+    val firstActiveAccountLabel = stringResource(R.string.first_active_account)
 
     LaunchedEffect(state.displayCurrency, state.budgetMode, state.defaultAccountId) {
         currencyDraft = state.displayCurrency
@@ -76,11 +85,11 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = currencyDraft,
                 onValueChange = { currencyDraft = it },
-                label = { Text("Display currency") },
+                label = { Text(stringResource(R.string.display_currency)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                "Used for net worth, the monthly summary and budgets.",
+                stringResource(R.string.display_currency_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
@@ -89,34 +98,34 @@ fun SettingsScreen(
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp)) {
-                Text("Preview", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.preview_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(if (isValid) formatMoney(123_456, normalised) else "—", style = MaterialTheme.typography.titleMedium)
             }
         }
 
         if (currencyDraft.isNotBlank() && !isValid) {
-            Text("Use a 3-letter currency code, such as PHP.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.currency_hint_3letter), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Column {
-            Text("Appearance", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.appearance), style = MaterialTheme.typography.labelMedium)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     themeMode == ThemeMode.system,
                     onClick = { themePreference.setThemeMode(ThemeMode.system) },
-                    label = { Text("System", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                    label = { Text(stringResource(R.string.theme_system), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                     modifier = Modifier.weight(1f),
                 )
                 FilterChip(
                     themeMode == ThemeMode.light,
                     onClick = { themePreference.setThemeMode(ThemeMode.light) },
-                    label = { Text("Light", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                    label = { Text(stringResource(R.string.theme_light), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                     modifier = Modifier.weight(1f),
                 )
                 FilterChip(
                     themeMode == ThemeMode.dark,
                     onClick = { themePreference.setThemeMode(ThemeMode.dark) },
-                    label = { Text("Dark", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                    label = { Text(stringResource(R.string.theme_dark), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -126,30 +135,30 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Use wallpaper colors", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.use_wallpaper_colors), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = dynamicColor, onCheckedChange = { themePreference.setDynamicColor(it) })
                 }
             }
         }
 
         Column {
-            Text("Budget mode", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.budget_mode_label), style = MaterialTheme.typography.labelMedium)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     budgetModeDraft == BudgetMode.fixed,
                     onClick = { budgetModeDraft = BudgetMode.fixed },
-                    label = { Text("Fixed", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                    label = { Text(stringResource(R.string.label_fixed), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                     modifier = Modifier.weight(1f),
                 )
                 FilterChip(
                     budgetModeDraft == BudgetMode.monthly,
                     onClick = { budgetModeDraft = BudgetMode.monthly },
-                    label = { Text("Monthly", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                    label = { Text(stringResource(R.string.budget_mode_monthly), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                     modifier = Modifier.weight(1f),
                 )
             }
             Text(
-                if (budgetModeDraft == BudgetMode.fixed) "A category's planned amount applies to every month, until changed again." else "Each month keeps its own planned amount, set separately.",
+                if (budgetModeDraft == BudgetMode.fixed) stringResource(R.string.budget_mode_fixed_hint) else stringResource(R.string.budget_mode_monthly_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
@@ -158,15 +167,15 @@ fun SettingsScreen(
 
         ExposedDropdownMenuBox(expanded = accountMenuOpen, onExpandedChange = { accountMenuOpen = it }) {
             OutlinedTextField(
-                value = state.accounts.firstOrNull { it.id == defaultAccountDraft }?.name ?: "First active account",
+                value = state.accounts.firstOrNull { it.id == defaultAccountDraft }?.name ?: firstActiveAccountLabel,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Default account") },
+                label = { Text(stringResource(R.string.default_account)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountMenuOpen) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             )
             ExposedDropdownMenu(expanded = accountMenuOpen, onDismissRequest = { accountMenuOpen = false }) {
-                DropdownMenuItem(text = { Text("First active account") }, onClick = { defaultAccountDraft = null; accountMenuOpen = false })
+                DropdownMenuItem(text = { Text(firstActiveAccountLabel) }, onClick = { defaultAccountDraft = null; accountMenuOpen = false })
                 state.accounts.forEach { account ->
                     DropdownMenuItem(text = { Text(account.name) }, onClick = { defaultAccountDraft = account.id; accountMenuOpen = false })
                 }
@@ -188,8 +197,10 @@ fun SettingsScreen(
                         defaultAccountId = defaultAccountDraft,
                         clearDefaultAccount = defaultAccountDraft == null && state.defaultAccountId != null,
                     )
+                    snackbarHostState.showSnackbar(settingsSavedMessage)
                 } catch (e: ApiError) {
-                    error = e.message ?: "Could not save the setting."
+                    error = e.message ?: couldNotSaveSettingMessage
+                    snackbarHostState.showSnackbar(error!!)
                 } finally {
                     saving = false
                 }
