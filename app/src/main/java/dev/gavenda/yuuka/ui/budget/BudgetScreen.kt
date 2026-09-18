@@ -241,6 +241,11 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                             stringResource(R.string.unallocated),
                             state.unallocatedIncome,
                             currency = state.currency,
+                            // Unclamped, unlike percentOf: over-allocating reads as a negative share.
+                            caption = stringResource(
+                                R.string.percent_of_income_unallocated,
+                                Math.round(state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).toInt(),
+                            ),
                             signed = true,
                             compact = compactAmounts,
                             onClick = {},

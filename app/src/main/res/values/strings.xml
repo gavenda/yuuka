@@ -111,6 +111,7 @@
     <string name="allocated">Allocated</string>
     <string name="planned_across_categories">Planned across categories</string>
     <string name="unallocated">Unallocated</string>
+    <string name="percent_of_income_unallocated">%1$d%% of planned income</string>
     <string name="across_expense_categories">Across expense categories</string>
     <string name="percent_of_plan">%1$d%% of plan</string>
     <string name="no_plan_set">No plan set</string>

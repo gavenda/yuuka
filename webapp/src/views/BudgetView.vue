@@ -33,6 +33,10 @@ const totalAllocated = computed(() =>
 	[...budget.expenseBreakdown, ...budget.cashflowBreakdown].reduce((sum, entry) => sum + entry.planned, 0),
 );
 const unallocatedIncome = computed(() => budget.plannedIncome - totalAllocated.value);
+/** Unclamped, unlike `percentOf`: over-allocating reads as a negative share. */
+const unallocatedPercent = computed(() =>
+	budget.plannedIncome > 0 ? Math.round((unallocatedIncome.value / budget.plannedIncome) * 100) : 0,
+);
 
 const editingIncome = ref(false);
 const savingIncome = ref(false);
@@ -175,7 +179,7 @@ onMounted(async () => {
 				:amount="unallocatedIncome"
 				:currency="currency"
 				signed
-				caption="Income not yet put towards a category"
+				:caption="`${unallocatedPercent}% of planned income`"
 			/>
 		</template>
 
