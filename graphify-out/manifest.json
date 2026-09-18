@@ -18,9 +18,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/MainActivity.kt": {
-    "mtime": 1789748137.3433788,
-    "seen": 1789748163.7929904,
-    "ast_hash": "0822c04499f20aa471f084919180ae17",
+    "mtime": 1789748235.038115,
+    "seen": 1789748246.1099694,
+    "ast_hash": "56e907151b68136d06fb0021f809b106",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/YuukaApplication.kt": {
@@ -30,9 +30,9 @@
     "semantic_hash": "e70d21824d638b4e0fd71ca2dc8491eb"
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/AuthManager.kt": {
-    "mtime": 1789746959.191,
-    "seen": 1789747133.2975976,
-    "ast_hash": "3c5e841aa2aeb3a62d7068189fceccbd",
+    "mtime": 1789748235.0385253,
+    "seen": 1789748246.1099856,
+    "ast_hash": "987e73df774e9387a840e081a415d74f",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt": {
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/auth/AuthScreen.kt": {
-    "mtime": 1789746959.173,
-    "seen": 1789747133.2979784,
-    "ast_hash": "6b5bc1d0f572e421fa21fe9f5bd753b7",
+    "mtime": 1789748235.0380595,
+    "seen": 1789748246.1106377,
+    "ast_hash": "1f91b85f09d5d7fbcf9f5031fc7fb423",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt": {
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsScreen.kt": {
-    "mtime": 1789747109.173,
-    "seen": 1789747133.2980914,
-    "ast_hash": "d4bd3e7d7720fb3b9063648eaf13d966",
+    "mtime": 1789748688.5187235,
+    "seen": 1789748693.1096227,
+    "ast_hash": "de6d7aebdbe5e9d2f41e4cff618fdc0d",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsViewModel.kt": {
@@ -456,64 +456,64 @@
     "semantic_hash": "8d72c7e178147d00a82c2006bc90b3f1"
   },
   "app/src/main/res/mipmap-hdpi/ic_launcher.webp": {
-    "mtime": 1789677930.08919,
-    "seen": 1789684275.6601043,
-    "ast_hash": "39d9bb21eb48f128a71c3f01ad3cd427",
-    "semantic_hash": "39d9bb21eb48f128a71c3f01ad3cd427"
+    "mtime": 1789750170.946795,
+    "seen": 1789750174.874877,
+    "ast_hash": "41152f6c0b2b270a96bd16c5c0d80ebc",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp": {
-    "mtime": 1789677930.089204,
-    "seen": 1789684275.6601045,
-    "ast_hash": "70d6f58af3c76ee221c829b1ce9daa04",
-    "semantic_hash": "70d6f58af3c76ee221c829b1ce9daa04"
+    "mtime": 1789750170.9757955,
+    "seen": 1789750174.8748777,
+    "ast_hash": "f086a5d8e2939d928491b8207354adcf",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-mdpi/ic_launcher.webp": {
-    "mtime": 1789677930.0892258,
-    "seen": 1789684275.660105,
-    "ast_hash": "d2acce71c7b46e5e9540d23a9f7b2166",
-    "semantic_hash": "d2acce71c7b46e5e9540d23a9f7b2166"
+    "mtime": 1789750170.9277945,
+    "seen": 1789750174.8748782,
+    "ast_hash": "d68c0b116ee3a4e1a6500d76d8e54ff3",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp": {
-    "mtime": 1789677930.089239,
-    "seen": 1789684275.6601055,
-    "ast_hash": "6376acb48f96a855ee95c113cd7fd616",
-    "semantic_hash": "6376acb48f96a855ee95c113cd7fd616"
+    "mtime": 1789750170.9427948,
+    "seen": 1789750174.8748786,
+    "ast_hash": "b1b5be7094864340023b2a24282c62b4",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xhdpi/ic_launcher.webp": {
-    "mtime": 1789677930.0892587,
-    "seen": 1789684275.6601057,
-    "ast_hash": "bd087d80b70bec05a43c745f29dc3ffc",
-    "semantic_hash": "bd087d80b70bec05a43c745f29dc3ffc"
+    "mtime": 1789750170.9817955,
+    "seen": 1789750174.8748798,
+    "ast_hash": "b47543ed726a61373edd2304b061ab5c",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp": {
-    "mtime": 1789677930.0892723,
-    "seen": 1789684275.6601062,
-    "ast_hash": "7479edd56ab712609f030054bffd7263",
-    "semantic_hash": "7479edd56ab712609f030054bffd7263"
+    "mtime": 1789750171.0347965,
+    "seen": 1789750174.8748803,
+    "ast_hash": "c9883025b1836bb2813ef43d5684d25a",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp": {
-    "mtime": 1789677930.0892966,
-    "seen": 1789684275.6601064,
-    "ast_hash": "ea180e8d1a2e8300cc998b987266b736",
-    "semantic_hash": "ea180e8d1a2e8300cc998b987266b736"
+    "mtime": 1789750171.0427966,
+    "seen": 1789750174.8748808,
+    "ast_hash": "3efca7bcb6434e2fb7196ffba170c72d",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp": {
-    "mtime": 1789677930.089313,
-    "seen": 1789684275.660107,
-    "ast_hash": "947842742b29eeda80ee0805e1600366",
-    "semantic_hash": "947842742b29eeda80ee0805e1600366"
+    "mtime": 1789750171.1657987,
+    "seen": 1789750174.874881,
+    "ast_hash": "e7ac48c038fcff5fd03c23e0e7e49075",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp": {
-    "mtime": 1789677930.0893414,
-    "seen": 1789684275.6601074,
-    "ast_hash": "54ab624970c86c2146e76b93f27586f7",
-    "semantic_hash": "54ab624970c86c2146e76b93f27586f7"
+    "mtime": 1789750171.176799,
+    "seen": 1789750174.8748815,
+    "ast_hash": "606ebb6a1b70fc0bca2eb0a090d8304e",
+    "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp": {
-    "mtime": 1789677930.089358,
-    "seen": 1789684275.6601076,
-    "ast_hash": "9ee591be72fb336861a8044086054daa",
-    "semantic_hash": "9ee591be72fb336861a8044086054daa"
+    "mtime": 1789750171.3958027,
+    "seen": 1789750174.874882,
+    "ast_hash": "e755175fb18ae948723f46f6d7a15460",
+    "semantic_hash": ""
   },
   ".claude/settings.json": {
     "mtime": 1789677930.0875368,
@@ -1311,6 +1311,12 @@
     "mtime": 1789746334.0706935,
     "seen": 1789746346.9762814,
     "ast_hash": "16e4a910fd955dbde0ffc92c3925cfb7",
+    "semantic_hash": ""
+  },
+  "app/src/main/res/drawable-nodpi/ic_launcher_foreground.webp": {
+    "mtime": 1789750170.9217944,
+    "seen": 1789750174.8748765,
+    "ast_hash": "0dda06dd99b4cc0538bba7e3f0b134b7",
     "semantic_hash": ""
   }
 }

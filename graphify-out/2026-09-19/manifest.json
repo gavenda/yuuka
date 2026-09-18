@@ -18,9 +18,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/MainActivity.kt": {
-    "mtime": 1789677930.087793,
-    "seen": 1789684275.6600296,
-    "ast_hash": "2b66648fa26bbe481e65f6fefd7577a5",
+    "mtime": 1789748235.038115,
+    "seen": 1789748246.1099694,
+    "ast_hash": "56e907151b68136d06fb0021f809b106",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/YuukaApplication.kt": {
@@ -30,9 +30,9 @@
     "semantic_hash": "e70d21824d638b4e0fd71ca2dc8491eb"
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/AuthManager.kt": {
-    "mtime": 1789746959.191,
-    "seen": 1789747133.2975976,
-    "ast_hash": "3c5e841aa2aeb3a62d7068189fceccbd",
+    "mtime": 1789748235.0385253,
+    "seen": 1789748246.1099856,
+    "ast_hash": "987e73df774e9387a840e081a415d74f",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt": {
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/auth/AuthScreen.kt": {
-    "mtime": 1789746959.173,
-    "seen": 1789747133.2979784,
-    "ast_hash": "6b5bc1d0f572e421fa21fe9f5bd753b7",
+    "mtime": 1789748235.0380595,
+    "seen": 1789748246.1106377,
+    "ast_hash": "1f91b85f09d5d7fbcf9f5031fc7fb423",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt": {
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsScreen.kt": {
-    "mtime": 1789747109.173,
-    "seen": 1789747133.2980914,
-    "ast_hash": "d4bd3e7d7720fb3b9063648eaf13d966",
+    "mtime": 1789748519.5969932,
+    "seen": 1789748529.2177587,
+    "ast_hash": "76da940ad3e815fe226daa27f358b842",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsViewModel.kt": {
