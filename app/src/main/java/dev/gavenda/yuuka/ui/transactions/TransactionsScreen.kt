@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.*
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -242,6 +243,10 @@ private fun dailyAccrued(rows: List<TransactionRow>): Long =
 @Composable
 private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: () -> Unit, onDelete: () -> Unit) {
     val visibility = koinInject<AmountVisibility>()
+    val notes = when (row) {
+        is TransactionRow.Transfer -> row.notes
+        is TransactionRow.Single -> row.transaction.notes
+    }.trim()
 
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -301,6 +306,24 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                             transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
                         }
                     }
+                }
+            }
+
+            if (notes.isNotEmpty()) {
+                HorizontalDivider()
+                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(
+                        Icons.Filled.EditNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
