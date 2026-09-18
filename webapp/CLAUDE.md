@@ -134,7 +134,10 @@ in (`accounts.round_up_source`), and the per-user `round_up_rules` row is
 enabled with a destination account set, the gap between the amount and the
 next `round_to` multiple (₱10 or ₱100 — a minor-unit multiple of 1000 or
 10000, never centavos) is posted as its own transfer: two rows sharing a
-`transfer_id`, uncategorised, payee `"Save the Change"`. That payee is
+`transfer_id`, payee `"Save the Change"`, both legs carrying whichever
+category the rule names (`round_up_rules.category_id`) — a transfer-scope
+one, the same Cashflow tree an ordinary transfer uses, since a round-up is
+one. Uncategorised when the rule names none. That payee is
 synthetic and is never fed into `rememberPayee`, the same way a transfer's
 derived "From → To" name isn't. A purchase that happens to occur on the
 destination account itself simply doesn't round up — the rest of that

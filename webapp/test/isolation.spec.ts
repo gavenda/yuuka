@@ -308,6 +308,16 @@ describe('round-up rule is private', () => {
 		const { roundUpRule } = await json<{ roundUpRule: { enabled: boolean } }>(await theirs('/round-up'));
 		expect(roundUpRule.enabled).toBe(false);
 	});
+
+	it('cannot be pointed at another user’s category', async () => {
+		const theirCategoryId = await makeCategory(theirs, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+
+		const response = await mine('/round-up', { method: 'PATCH', body: JSON.stringify({ categoryId: theirCategoryId }) });
+		expect(response.status).toBe(400);
+
+		const { roundUpRule } = await json<{ roundUpRule: { categoryId: string | null } }>(await mine('/round-up'));
+		expect(roundUpRule.categoryId).toBeNull();
+	});
 });
 
 describe('summaries are private', () => {

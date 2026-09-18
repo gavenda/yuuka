@@ -34,6 +34,8 @@ data class RoundUpRule(
     /** Minor-unit multiple to round up to: 1000 (₱10) or 10000 (₱100). */
     val roundTo: Long = 1000,
     val destinationAccountId: String? = null,
+    /** Must be a transfer-scope category — a round-up posts as an ordinary transfer. Null stays uncategorized. */
+    val categoryId: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
 )

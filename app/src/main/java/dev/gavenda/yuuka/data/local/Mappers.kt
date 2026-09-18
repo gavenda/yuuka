@@ -53,9 +53,9 @@ fun SettingsEntity.toDomain() = Settings(displayCurrency, enumValueOf<BudgetMode
 
 fun Settings.toEntity() = SettingsEntity(0, displayCurrency, budgetMode.name, defaultAccountId, createdAt, updatedAt)
 
-fun RoundUpRuleEntity.toDomain() = RoundUpRule(enabled, roundTo, destinationAccountId, createdAt, updatedAt)
+fun RoundUpRuleEntity.toDomain() = RoundUpRule(enabled, roundTo, destinationAccountId, categoryId, createdAt, updatedAt)
 
-fun RoundUpRule.toEntity() = RoundUpRuleEntity(0, enabled, roundTo, destinationAccountId, createdAt, updatedAt)
+fun RoundUpRule.toEntity() = RoundUpRuleEntity(0, enabled, roundTo, destinationAccountId, categoryId, createdAt, updatedAt)
 
 fun BudgetEntity.toDomain() = Budget(id, categoryId, month, amount, percent, createdAt, updatedAt)
 

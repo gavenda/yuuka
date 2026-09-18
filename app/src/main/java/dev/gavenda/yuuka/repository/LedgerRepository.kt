@@ -91,11 +91,19 @@ class LedgerRepository(
         roundUpRuleDao.upsert(response.roundUpRule.toEntity())
     }
 
-    suspend fun updateRoundUpRule(enabled: Boolean? = null, roundTo: Long? = null, destinationAccountId: String? = null, clearDestination: Boolean = false) {
+    suspend fun updateRoundUpRule(
+        enabled: Boolean? = null,
+        roundTo: Long? = null,
+        destinationAccountId: String? = null,
+        clearDestination: Boolean = false,
+        categoryId: String? = null,
+        clearCategory: Boolean = false,
+    ) {
         val body = buildJsonObject {
             enabled?.let { put("enabled", it) }
             roundTo?.let { put("roundTo", it) }
             if (clearDestination) put("destinationAccountId", null as String?) else destinationAccountId?.let { put("destinationAccountId", it) }
+            if (clearCategory) put("categoryId", null as String?) else categoryId?.let { put("categoryId", it) }
         }
         val response = apiCall { api.updateRoundUpRule(body) }
         roundUpRuleDao.upsert(response.roundUpRule.toEntity())

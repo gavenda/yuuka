@@ -49,6 +49,8 @@ const ROUND_UP_PAYEE = 'Save the Change';
 interface RoundUpEligibility {
 	roundTo: number;
 	destinationAccountId: string;
+	/** The category both legs post under, from the rule. Null stays uncategorised. */
+	categoryId: string | null;
 }
 
 /**
@@ -60,13 +62,20 @@ interface RoundUpEligibility {
 async function loadRoundUpEligibility(db: D1Database, userId: string, accountId: string): Promise<RoundUpEligibility | null> {
 	const row = await db
 		.prepare(
-			`SELECT a.round_up_source AS account_opt_in, r.enabled AS rule_enabled, r.round_to AS round_to, r.destination_account_id AS destination_account_id
+			`SELECT a.round_up_source AS account_opt_in, r.enabled AS rule_enabled, r.round_to AS round_to,
+			        r.destination_account_id AS destination_account_id, r.category_id AS category_id
 			 FROM accounts a
 			 LEFT JOIN round_up_rules r ON r.user_id = a.user_id
 			 WHERE a.id = ? AND a.user_id = ?`,
 		)
 		.bind(accountId, userId)
-		.first<{ account_opt_in: number; rule_enabled: number | null; round_to: number | null; destination_account_id: string | null }>();
+		.first<{
+			account_opt_in: number;
+			rule_enabled: number | null;
+			round_to: number | null;
+			destination_account_id: string | null;
+			category_id: string | null;
+		}>();
 
 	if (!row || row.account_opt_in !== 1 || row.rule_enabled !== 1 || !row.destination_account_id) return null;
 	// This purchase's own account is the destination — nothing sensible to
@@ -74,7 +83,7 @@ async function loadRoundUpEligibility(db: D1Database, userId: string, accountId:
 	// legitimate source for purchases made elsewhere.
 	if (row.destination_account_id === accountId) return null;
 
-	return { roundTo: row.round_to!, destinationAccountId: row.destination_account_id };
+	return { roundTo: row.round_to!, destinationAccountId: row.destination_account_id, categoryId: row.category_id };
 }
 
 /** The gap between `amount` and the next whole `roundTo` multiple above it. */
@@ -203,12 +212,15 @@ export const transactionRoutes = new Hono<AppEnv>()
 					const sourceLegId = newId('txn');
 					const destinationLegId = newId('txn');
 
+					// Both legs carry the rule's category, same as an ordinary transfer
+					// between the user's own accounts — a round-up is one, so it takes
+					// a transfer-scope category rather than a standard one.
 					const [outflow, inflow] = await c.env.DB.batch([
 						c.env.DB.prepare(INSERT_GUARDED).bind(
 							sourceLegId,
 							userId,
 							input.accountId,
-							null,
+							eligibility.categoryId,
 							-roundUpAmount,
 							input.occurredOn,
 							ROUND_UP_PAYEE,
@@ -216,16 +228,16 @@ export const transactionRoutes = new Hono<AppEnv>()
 							transferId,
 							input.accountId,
 							userId,
-							null,
-							null,
+							eligibility.categoryId,
+							eligibility.categoryId,
 							userId,
-							'standard',
+							'transfer',
 						),
 						c.env.DB.prepare(INSERT_GUARDED).bind(
 							destinationLegId,
 							userId,
 							eligibility.destinationAccountId,
-							null,
+							eligibility.categoryId,
 							roundUpAmount,
 							input.occurredOn,
 							ROUND_UP_PAYEE,
@@ -233,10 +245,10 @@ export const transactionRoutes = new Hono<AppEnv>()
 							transferId,
 							eligibility.destinationAccountId,
 							userId,
-							null,
-							null,
+							eligibility.categoryId,
+							eligibility.categoryId,
 							userId,
-							'standard',
+							'transfer',
 						),
 					]);
 

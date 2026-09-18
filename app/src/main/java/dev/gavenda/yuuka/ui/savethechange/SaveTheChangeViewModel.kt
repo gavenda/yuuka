@@ -3,6 +3,9 @@ package dev.gavenda.yuuka.ui.savethechange
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Account
+import dev.gavenda.yuuka.domain.CategoryGroup
+import dev.gavenda.yuuka.domain.groupForPicker
+import dev.gavenda.yuuka.domain.transferCategories
 import dev.gavenda.yuuka.repository.LedgerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,29 +18,37 @@ data class SaveTheChangeUiState(
     val enabled: Boolean = false,
     val roundTo: Long = 1000,
     val destinationAccountId: String? = null,
+    /** Must be a transfer-scope category — a round-up posts as an ordinary transfer. Null stays uncategorized. */
+    val categoryId: String? = null,
     val accounts: List<Account> = emptyList(),
+    /** Cashflow categories, grouped for picking — the same tree a transfer offers. */
+    val categoryGroups: List<CategoryGroup> = emptyList(),
 )
 
 /** Mirrors `SettingsScreen`/`SettingsViewModel`, plus a per-account opt-in list the web app keeps on the account form instead. */
 class SaveTheChangeViewModel(private val ledgerRepository: LedgerRepository) : ViewModel() {
-    val uiState: StateFlow<SaveTheChangeUiState> = combine(ledgerRepository.roundUpRule, ledgerRepository.accounts) { rule, accounts ->
-        SaveTheChangeUiState(
-            enabled = rule?.enabled ?: false,
-            roundTo = rule?.roundTo ?: 1000,
-            destinationAccountId = rule?.destinationAccountId,
-            accounts = accounts.filter { !it.archived },
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SaveTheChangeUiState())
+    val uiState: StateFlow<SaveTheChangeUiState> =
+        combine(ledgerRepository.roundUpRule, ledgerRepository.accounts, ledgerRepository.categories) { rule, accounts, categories ->
+            SaveTheChangeUiState(
+                enabled = rule?.enabled ?: false,
+                roundTo = rule?.roundTo ?: 1000,
+                destinationAccountId = rule?.destinationAccountId,
+                categoryId = rule?.categoryId,
+                accounts = accounts.filter { !it.archived },
+                categoryGroups = groupForPicker(transferCategories(categories)),
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SaveTheChangeUiState())
 
     init {
         viewModelScope.launch {
             runCatching { ledgerRepository.refreshRoundUpRule() }
             runCatching { ledgerRepository.refreshAccounts() }
+            runCatching { ledgerRepository.refreshCategories() }
         }
     }
 
-    suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean) {
-        ledgerRepository.updateRoundUpRule(enabled, roundTo, destinationAccountId, clearDestination)
+    suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) {
+        ledgerRepository.updateRoundUpRule(enabled, roundTo, destinationAccountId, clearDestination, categoryId, clearCategory)
     }
 
     /** Toggling participation on an account is a plain account update — the same field an account's own edit form also carries. */

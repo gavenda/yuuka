@@ -25,6 +25,10 @@ const saving = ref(false);
 const roundUpEnabledDraft = ref(ledger.roundUpRule?.enabled ?? false);
 const roundToDraft = ref<1000 | 10000>(ledger.roundUpRule?.roundTo ?? 1000);
 const roundUpDestinationDraft = ref(ledger.roundUpRule?.destinationAccountId ?? '');
+const roundUpCategoryDraft = ref(ledger.roundUpRule?.categoryId ?? '');
+
+/** A round-up posts as an ordinary transfer, so it takes the same Cashflow tree a plain transfer does. */
+const roundUpCategoryGroups = computed(() => ledger.groupForPicker(ledger.transferCategories));
 
 const normalised = computed(() => draft.value.trim().toUpperCase());
 const isValid = computed(() => /^[A-Za-z]{3}$/.test(draft.value.trim()));
@@ -38,7 +42,10 @@ const roundToChanged = computed(() => roundToDraft.value !== (ledger.roundUpRule
 const roundUpDestinationChanged = computed(
 	() => (roundUpDestinationDraft.value || null) !== (ledger.roundUpRule?.destinationAccountId ?? null),
 );
-const roundUpChanged = computed(() => roundUpEnabledChanged.value || roundToChanged.value || roundUpDestinationChanged.value);
+const roundUpCategoryChanged = computed(() => (roundUpCategoryDraft.value || null) !== (ledger.roundUpRule?.categoryId ?? null));
+const roundUpChanged = computed(
+	() => roundUpEnabledChanged.value || roundToChanged.value || roundUpDestinationChanged.value || roundUpCategoryChanged.value,
+);
 // A destination is required once the rule is on — nothing sensible to save without one.
 const roundUpValid = computed(() => !roundUpEnabledDraft.value || Boolean(roundUpDestinationDraft.value));
 
@@ -56,6 +63,7 @@ watch(
 		roundUpEnabledDraft.value = ledger.roundUpRule?.enabled ?? false;
 		roundToDraft.value = ledger.roundUpRule?.roundTo ?? 1000;
 		roundUpDestinationDraft.value = ledger.roundUpRule?.destinationAccountId ?? '';
+		roundUpCategoryDraft.value = ledger.roundUpRule?.categoryId ?? '';
 		error.value = null;
 	},
 );
@@ -82,6 +90,7 @@ async function save(): Promise<void> {
 						...(roundUpEnabledChanged.value ? { enabled: roundUpEnabledDraft.value } : {}),
 						...(roundToChanged.value ? { roundTo: roundToDraft.value } : {}),
 						...(roundUpDestinationChanged.value ? { destinationAccountId: roundUpDestinationDraft.value || null } : {}),
+						...(roundUpCategoryChanged.value ? { categoryId: roundUpCategoryDraft.value || null } : {}),
 					})
 				: Promise.resolve(),
 		]);
@@ -227,6 +236,20 @@ async function save(): Promise<void> {
 					<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
 				</select>
 				<p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Where the rounded-up spare change is deposited.</p>
+			</div>
+
+			<div>
+				<label class="label" for="round-up-category">Cashflow category</label>
+				<select id="round-up-category" v-model="roundUpCategoryDraft" class="input">
+					<option value="">Uncategorized</option>
+					<template v-for="group in roundUpCategoryGroups" :key="group.parent.id">
+						<option :value="group.parent.id">{{ group.parent.name }}</option>
+						<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
+					</template>
+				</select>
+				<p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+					Optional. Lets you budget the round-ups, the same as a plain transfer.
+				</p>
 			</div>
 
 			<p v-if="roundUpEnabledDraft && !roundUpDestinationDraft" class="text-sm text-amber-700 dark:text-amber-400" role="alert">

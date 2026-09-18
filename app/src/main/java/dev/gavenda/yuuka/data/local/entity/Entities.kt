@@ -70,6 +70,7 @@ data class RoundUpRuleEntity(
     val enabled: Boolean,
     val roundTo: Long,
     val destinationAccountId: String?,
+    val categoryId: String?,
     val createdAt: String?,
     val updatedAt: String?,
 )

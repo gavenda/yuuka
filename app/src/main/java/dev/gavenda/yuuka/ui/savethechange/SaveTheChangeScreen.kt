@@ -52,21 +52,28 @@ fun SaveTheChangeScreen(
     var enabledDraft by remember { mutableStateOf(state.enabled) }
     var roundToDraft by remember { mutableLongStateOf(state.roundTo) }
     var destinationDraft by remember { mutableStateOf(state.destinationAccountId) }
+    var categoryDraft by remember { mutableStateOf(state.categoryId) }
     var accountMenuOpen by remember { mutableStateOf(false) }
+    var categoryMenuOpen by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
 
     val savedMessage = stringResource(R.string.save_the_change_saved)
     val couldNotSaveMessage = stringResource(R.string.could_not_save_round_up_rule)
     val chooseAnAccountLabel = stringResource(R.string.choose_an_account)
+    val uncategorizedLabel = stringResource(R.string.category_uncategorized)
 
-    LaunchedEffect(state.enabled, state.roundTo, state.destinationAccountId) {
+    LaunchedEffect(state.enabled, state.roundTo, state.destinationAccountId, state.categoryId) {
         enabledDraft = state.enabled
         roundToDraft = state.roundTo
         destinationDraft = state.destinationAccountId
+        categoryDraft = state.categoryId
     }
 
-    val changed = enabledDraft != state.enabled || roundToDraft != state.roundTo || destinationDraft != state.destinationAccountId
+    val changed = enabledDraft != state.enabled ||
+        roundToDraft != state.roundTo ||
+        destinationDraft != state.destinationAccountId ||
+        categoryDraft != state.categoryId
     val isValid = !enabledDraft || destinationDraft != null
 
     Column(modifier = modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -120,6 +127,31 @@ fun SaveTheChangeScreen(
             }
         }
 
+        val selectedCategoryLabel =
+            state.categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == categoryDraft }?.name ?: uncategorizedLabel
+        ExposedDropdownMenuBox(expanded = categoryMenuOpen, onExpandedChange = { categoryMenuOpen = it }) {
+            OutlinedTextField(
+                value = selectedCategoryLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.label_cashflow_category)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenuOpen) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(expanded = categoryMenuOpen, onDismissRequest = { categoryMenuOpen = false }) {
+                DropdownMenuItem(text = { Text(uncategorizedLabel) }, onClick = { categoryDraft = null; categoryMenuOpen = false })
+                state.categoryGroups.forEach { group ->
+                    DropdownMenuItem(text = { Text(group.parent.name) }, onClick = { categoryDraft = group.parent.id; categoryMenuOpen = false })
+                    group.children.forEach { child ->
+                        DropdownMenuItem(
+                            text = { Text("    ${child.name}") },
+                            onClick = { categoryDraft = child.id; categoryMenuOpen = false },
+                        )
+                    }
+                }
+            }
+        }
+
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
 
         HorizontalDivider()
@@ -161,6 +193,8 @@ fun SaveTheChangeScreen(
                         roundTo = roundToDraft,
                         destinationAccountId = destinationDraft,
                         clearDestination = destinationDraft == null && state.destinationAccountId != null,
+                        categoryId = categoryDraft,
+                        clearCategory = categoryDraft == null && state.categoryId != null,
                     )
                     snackbarHostState.showSnackbar(savedMessage)
                 } catch (e: ApiError) {

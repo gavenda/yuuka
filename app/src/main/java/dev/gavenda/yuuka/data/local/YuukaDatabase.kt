@@ -42,7 +42,7 @@ import dev.gavenda.yuuka.data.local.entity.TransactionEntity
         PayeeEntity::class,
         RoundUpRuleEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

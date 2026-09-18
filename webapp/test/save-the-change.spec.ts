@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { authedClient, json, makeAccount, otherClient, type Call } from './helpers';
+import { authedClient, json, makeAccount, makeCategory, otherClient, type Call } from './helpers';
 
 let call: Call;
 let sourceId: string;
@@ -35,6 +35,14 @@ describe('save the change', () => {
 
 		const { total } = await json<{ total: number }>(await call('/transactions'));
 		expect(total).toBe(3); // the purchase, plus the two round-up legs
+	});
+
+	it("posts both legs under the rule's category when one is set", async () => {
+		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		await call('/round-up', { method: 'PATCH', body: JSON.stringify({ categoryId }) });
+
+		const { roundUp } = await json<CreateResponse>(await post({ accountId: sourceId, amount: -4599, occurredOn: '2026-09-03' }));
+		expect(roundUp).toMatchObject({ categoryId });
 	});
 
 	it('rounds up to the nearest ₱100 when configured', async () => {

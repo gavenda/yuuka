@@ -24,6 +24,8 @@ export interface RoundUpRule {
 	/** Minor-unit multiple to round up to: 1000 (₱10) or 10000 (₱100). */
 	roundTo: 1000 | 10000;
 	destinationAccountId: string | null;
+	/** Must be a transfer-scope category — a round-up posts as an ordinary transfer. Null stays uncategorised. */
+	categoryId: string | null;
 	createdAt: string | null;
 	updatedAt: string | null;
 }

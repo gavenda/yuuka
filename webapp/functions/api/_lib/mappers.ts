@@ -41,6 +41,7 @@ export interface RoundUpRuleRow {
 	enabled: number;
 	round_to: number;
 	destination_account_id: string | null;
+	category_id: string | null;
 	created_at: string | null;
 	updated_at: string | null;
 }
@@ -138,6 +139,7 @@ export const toRoundUpRule = (row: RoundUpRuleRow) => ({
 	enabled: row.enabled === 1,
 	roundTo: row.round_to,
 	destinationAccountId: row.destination_account_id,
+	categoryId: row.category_id,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

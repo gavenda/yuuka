@@ -186,6 +186,8 @@ export const roundUpRuleUpdateSchema = z
 		enabled: z.boolean(),
 		roundTo: z.union([z.literal(1000), z.literal(10000)]),
 		destinationAccountId: z.string().min(1).nullable(),
+		/** Must be a transfer-scope category, e.g. Cashflow or one of its children. Null means uncategorised. */
+		categoryId: z.string().min(1).nullable(),
 	})
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');

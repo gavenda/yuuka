@@ -105,7 +105,9 @@ export const useLedgerStore = defineStore('ledger', () => {
 		settings.value = (await api.updateSettings(input)).settings;
 	}
 
-	async function updateRoundUpRule(input: Partial<Pick<RoundUpRule, 'enabled' | 'roundTo' | 'destinationAccountId'>>): Promise<void> {
+	async function updateRoundUpRule(
+		input: Partial<Pick<RoundUpRule, 'enabled' | 'roundTo' | 'destinationAccountId' | 'categoryId'>>,
+	): Promise<void> {
 		roundUpRule.value = (await api.updateRoundUpRule(input)).roundUpRule;
 	}
 
