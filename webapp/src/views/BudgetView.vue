@@ -168,37 +168,58 @@ onMounted(async () => {
 			</div>
 
 			<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
+
+			<div v-if="budget.incomeBreakdown.length" class="mt-4">
+				<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Income</p>
+				<ul class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex items-center justify-between gap-3 py-2 text-sm">
+						<span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: entry.color }" />
+						<span class="text-slate-500 dark:text-slate-400">{{ entry.name }}</span>
+						<span class="tabular text-slate-900 dark:text-slate-100">{{ displayMoney(entry.actual, currency) }}</span>
+					</li>
+				</ul>
+			</div>
 		</section>
 
-		<StatCard v-if="netPayBreakdown" label="Net pay" :amount="netPayBreakdown.netPay" currency="PHP" caption="Used as planned income" />
+		<!-- One row each from md up; stacked on mobile. Columns follow however many cards are showing. -->
+		<div v-if="netPayBreakdown || budget.plannedIncome > 0" class="grid gap-6 md:auto-cols-fr md:grid-flow-col">
+			<StatCard v-if="netPayBreakdown" label="Net pay" :amount="netPayBreakdown.netPay" currency="PHP" caption="Used as planned income" />
 
-		<template v-if="budget.plannedIncome > 0">
-			<StatCard label="Allocated" :amount="totalAllocated" :currency="currency" caption="Planned across expense and cashflow categories" />
+			<template v-if="budget.plannedIncome > 0">
+				<StatCard
+					label="Allocated"
+					:amount="totalAllocated"
+					:currency="currency"
+					caption="Planned across expense and cashflow categories"
+				/>
+				<StatCard
+					label="Unallocated"
+					:amount="unallocatedIncome"
+					:currency="currency"
+					signed
+					:caption="`${unallocatedPercent}% of planned income`"
+				/>
+			</template>
+		</div>
+
+		<div class="grid gap-6 md:auto-cols-fr md:grid-flow-col">
+			<StatCard label="Planned" :amount="totalPlanned" :currency="currency" caption="Across expense categories" />
 			<StatCard
-				label="Unallocated"
-				:amount="unallocatedIncome"
+				label="Spent"
+				:amount="totalActual"
 				:currency="currency"
-				signed
-				:caption="`${unallocatedPercent}% of planned income`"
+				:caption="totalPlanned > 0 ? `${percentOf(totalActual, totalPlanned)}% of plan` : 'No plan set'"
 			/>
-		</template>
+			<StatCard label="Remaining" :amount="totalPlanned - totalActual" :currency="currency" signed caption="Planned minus spent" />
 
-		<StatCard label="Planned" :amount="totalPlanned" :currency="currency" caption="Across expense categories" />
-		<StatCard
-			label="Spent"
-			:amount="totalActual"
-			:currency="currency"
-			:caption="totalPlanned > 0 ? `${percentOf(totalActual, totalPlanned)}% of plan` : 'No plan set'"
-		/>
-		<StatCard label="Remaining" :amount="totalPlanned - totalActual" :currency="currency" signed caption="Planned minus spent" />
-
-		<StatCard
-			v-if="budget.cashflowBreakdown.length"
-			label="Moved to cashflow"
-			:amount="budget.summary?.cashflow ?? 0"
-			:currency="currency"
-			caption="Investments, savings and the like"
-		/>
+			<StatCard
+				v-if="budget.cashflowBreakdown.length"
+				label="Moved to cashflow"
+				:amount="budget.summary?.cashflow ?? 0"
+				:currency="currency"
+				caption="Investments, savings and the like"
+			/>
+		</div>
 
 		<EmptyState
 			v-if="!budget.loading && !budget.expenseBreakdown.length"
@@ -248,19 +269,6 @@ onMounted(async () => {
 							<BudgetAmountEditor :entry="entry" :currency="currency" />
 						</div>
 					</div>
-				</li>
-			</ul>
-		</section>
-
-		<section v-if="budget.incomeBreakdown.length" class="card p-5">
-			<h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Income</h2>
-			<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
-				<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex items-center justify-between gap-3 py-3">
-					<div class="flex min-w-0 items-center gap-2">
-						<span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: entry.color }" />
-						<span class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ entry.name }}</span>
-					</div>
-					<span class="tabular text-sm text-emerald-700 dark:text-emerald-400">{{ displayMoney(entry.actual, currency) }}</span>
 				</li>
 			</ul>
 		</section>

@@ -54,3 +54,8 @@ export function mergeTransferRows(group: Transaction[]): TransactionRow[] {
 
 	return rows;
 }
+
+/** Net change to your accounts' balances for a day. A transfer moves money between your own accounts, so it doesn't count. */
+export function dailyAccrued(rows: TransactionRow[]): number {
+	return rows.reduce((sum, row) => (row.kind === 'transaction' ? sum + row.transaction.amount : sum), 0);
+}

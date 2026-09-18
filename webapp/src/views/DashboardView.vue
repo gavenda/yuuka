@@ -53,9 +53,8 @@ watch(
 			{{ budget.error }}
 		</p>
 
-		<!-- One hero figure per view: everything else on the page explains it. -->
-		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-			<StatCard label="Net worth" :amount="budget.summary?.netWorth ?? 0" :currency="currency" hero class="sm:col-span-2" />
+		<div class="grid gap-4 sm:grid-cols-3">
+			<StatCard label="Net worth" :amount="budget.summary?.netWorth ?? 0" :currency="currency" />
 			<StatCard label="Income this month" :amount="budget.summary?.income ?? 0" :currency="currency" />
 			<StatCard label="Spent this month" :amount="budget.summary?.expenses ?? 0" :currency="currency" />
 		</div>

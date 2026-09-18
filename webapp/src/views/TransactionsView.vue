@@ -7,7 +7,7 @@ import TransactionForm from '@/components/TransactionForm.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
-import { mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
+import { dailyAccrued, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
@@ -184,11 +184,10 @@ async function remove(): Promise<void> {
 
 		<div v-else class="card divide-y divide-slate-100 dark:divide-slate-800/60">
 			<section v-for="[date, group] in groupedRows" :key="date">
-				<h2
-					class="bg-slate-50 px-4 py-2 text-xs font-medium tracking-wide text-slate-500 uppercase dark:bg-slate-950/40 dark:text-slate-400"
-				>
-					{{ formatLongDate(date) }}
-				</h2>
+				<div class="flex items-center justify-between gap-3 bg-slate-50 px-4 py-2 text-xs font-medium dark:bg-slate-950/40">
+					<h2 class="tracking-wide text-slate-500 uppercase dark:text-slate-400">{{ formatLongDate(date) }}</h2>
+					<MoneyText :amount="dailyAccrued(group)" :currency="currency" signed explicit />
+				</div>
 
 				<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
 					<li
