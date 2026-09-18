@@ -147,7 +147,8 @@
     <!-- Accounts screen -->
     <string name="new_account">New account</string>
     <string name="edit_account">Edit account</string>
-    <string name="manage_types">Manage types</string>
+    <string name="edit_account_types">Edit account types</string>
+    <string name="account_actions">Account actions</string>
     <string name="no_accounts_yet">No accounts yet</string>
     <string name="accounts_empty_description">Add the accounts you want to track.</string>
     <string name="account_restored">Account restored</string>

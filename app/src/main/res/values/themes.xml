@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Yuuka" parent="android:Theme.Material.Light.NoActionBar"/>
+    <!-- Material 3 DayNight, so the window, status bar and splash follow the system instead of
+         staying light. Compose paints the app's colour scheme on top; the window background is
+         set to match its surface so nothing flashes the baseline tint before the first frame. -->
+    <style name="Theme.Yuuka" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:colorBackground">@color/window_background</item>
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

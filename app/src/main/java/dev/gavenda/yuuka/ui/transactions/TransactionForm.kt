@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.ui.transactions
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,7 @@ import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.domain.*
+import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
 import dev.gavenda.yuuka.ui.common.YuukaDatePickerDialog
@@ -100,16 +102,12 @@ fun TransactionForm(
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (!isEditing) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                FormMode.entries.forEachIndexed { index, mode ->
-                    SegmentedButton(
-                        selected = fields.mode == mode,
-                        onClick = { fields = fields.copy(mode = mode, categoryId = "") },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = FormMode.entries.size),
-                        label = { Text(stringResource(mode.labelRes)) },
-                    )
-                }
-            }
+            ConnectedButtonGroup(
+                options = FormMode.entries,
+                selected = fields.mode,
+                onSelect = { fields = fields.copy(mode = it, categoryId = "") },
+                label = { stringResource(it.labelRes) },
+            )
         }
 
         PayeeField(
@@ -203,22 +201,18 @@ fun TransactionForm(
         val optionalPlaceholder = stringResource(R.string.placeholder_optional)
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(
+            PickerField(
                 value = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                onValueChange = {},
-                enabled = false,
-                label = { Text(stringResource(R.string.label_date)) },
-                colors = readOnlyFieldColors(),
-                modifier = Modifier.weight(1f).clickableField { pickingDate = true },
+                label = stringResource(R.string.label_date),
+                onClick = { pickingDate = true },
+                modifier = Modifier.weight(1f),
             )
-            OutlinedTextField(
+            PickerField(
                 value = fields.time?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
-                onValueChange = {},
-                enabled = false,
-                label = { Text(stringResource(R.string.label_time)) },
-                placeholder = { Text(optionalPlaceholder) },
-                colors = readOnlyFieldColors(),
-                modifier = Modifier.weight(1f).clickableField { pickingTime = true },
+                label = stringResource(R.string.label_time),
+                placeholder = optionalPlaceholder,
+                onClick = { pickingTime = true },
+                modifier = Modifier.weight(1f),
             )
         }
 
@@ -317,19 +311,32 @@ fun TransactionForm(
     }
 }
 
-/** A read-only field that reacts to taps rather than the keyboard — used for date/time entry. */
-private fun Modifier.clickableField(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
-
 /**
- * OutlinedTextField must be disabled (not just readOnly) for the outer tap handler to receive
- * clicks — otherwise the field's own focus/cursor gesture detector consumes the touch first.
- * This restyles the disabled state to look identical to an enabled field.
+ * A read-only field that opens a picker instead of a keyboard, used for date/time entry. It stays
+ * an enabled field, so it keeps its focus and accessibility semantics; the tap is read off its
+ * interaction source because the field's own gesture handling would otherwise swallow a `clickable`.
  */
 @Composable
-private fun readOnlyFieldColors() = OutlinedTextFieldDefaults.colors(
-    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-    disabledBorderColor = MaterialTheme.colorScheme.outline,
-    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-)
+private fun PickerField(
+    value: String,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val currentOnClick by rememberUpdatedState(onClick)
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { if (it is PressInteraction.Release) currentOnClick() }
+    }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text(label) },
+        placeholder = placeholder?.let { { Text(it) } },
+        interactionSource = interactionSource,
+        modifier = modifier,
+    )
+}

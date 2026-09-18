@@ -7,12 +7,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.auth.AuthManager
 import dev.gavenda.yuuka.auth.AuthState
@@ -27,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val authManager: AuthManager by lazy { getKoin().get() }
     private val themePreference: ThemePreference by lazy { getKoin().get() }
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -43,13 +48,16 @@ class MainActivity : ComponentActivity() {
             YuukaTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
                 val authState by authManager.authState.collectAsStateWithLifecycle()
 
-                // The window background comes from the (always light) XML theme, so without a Surface
-                // nothing paints the Compose scheme's background or sets a content colour, and a dark
-                // scheme ends up as pale text on a light window.
+                // The XML theme follows the system, but the in-app theme mode can override it, so
+                // without a Surface nothing paints the Compose scheme's background or sets a content
+                // colour, and a forced dark scheme ends up as pale text on a light window.
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         when (authState) {
-                            is AuthState.Loading -> Text("Loading…", modifier = Modifier.align(Alignment.Center))
+                            is AuthState.Loading -> {
+                                val loadingLabel = stringResource(R.string.loading_ellipsis)
+                                LoadingIndicator(modifier = Modifier.align(Alignment.Center).semantics { contentDescription = loadingLabel })
+                            }
 
                             is AuthState.Unauthenticated -> AuthScreen(onLogin = { authManager.login(this@MainActivity) })
 

@@ -20,8 +20,11 @@ The following bullets and sections are important and should be adhered:
 - If a change in the database or api changes, always run `bun run db:migrate && bun run deploy` after pushing the tags to origin.
 
 ### IDE
-If Idea MCP is available, use it to launch scripts, debugging, and other tools that can be done within the IDE. Otherwise,
-opt-in for shell commands.
+If Idea MCP is available, use it for the following:
+- Debugging
+- Launching build scripts (gradle, etc)
+
+Otherwise, opt-in for shell commands.
 
 ## Money
 

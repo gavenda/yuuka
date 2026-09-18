@@ -1,9 +1,8 @@
 package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,20 +69,13 @@ fun CategoryBarList(entries: List<RankableEntry>, modifier: Modifier = Modifier,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction)
-                            .height(8.dp)
-                            .background(color, RoundedCornerShape(4.dp)),
-                    )
-                }
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.padding(top = 4.dp).fillMaxWidth().height(8.dp),
+                    color = color,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    drawStopIndicator = {},
+                )
             }
         }
     }

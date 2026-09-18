@@ -6,31 +6,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
+import dev.gavenda.yuuka.ui.theme.ExtendedColors
+import dev.gavenda.yuuka.ui.theme.extendedColors
 import org.koin.compose.koinInject
 import kotlin.math.abs
 
 /** Tone a figure reads in, mirroring `MoneyText.vue`'s colour rules. */
 enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER }
 
-private val Green = Color(0xFF047857)
-private val GreenDark = Color(0xFF34D399)
-private val Red = Color(0xFFBE123C)
-private val RedDark = Color(0xFFFB7185)
-private val Blue = Color(0xFF1D4ED8)
-private val BlueDark = Color(0xFF60A5FA)
-
+/**
+ * The colour a figure reads in, taken from the theme so it follows dynamic colour:
+ * negative is `error`, transfers are `primary`, and inflows use the extended
+ * [positive][ExtendedColors.positive] role.
+ */
 @Composable
-fun moneyColor(amount: Long, tone: MoneyTone, dark: Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f): Color = when (tone) {
-    MoneyTone.TRANSFER -> if (dark) BlueDark else Blue
+fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
+    MoneyTone.TRANSFER -> MaterialTheme.colorScheme.primary
     MoneyTone.NEUTRAL -> LocalContentColor.current
     MoneyTone.SIGNED -> when {
-        amount > 0 -> if (dark) GreenDark else Green
-        amount < 0 -> if (dark) RedDark else Red
+        amount > 0 -> MaterialTheme.extendedColors.positive
+        amount < 0 -> MaterialTheme.colorScheme.error
         else -> LocalContentColor.current
     }
 }

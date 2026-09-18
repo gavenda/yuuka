@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -54,7 +53,7 @@ fun AccountLogo(name: String, logoUrl: String?, invertDark: Boolean, modifier: M
             modifier = modifier
                 .heightIn(max = size.dp)
                 .aspectRatio(1f)
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
             Text(

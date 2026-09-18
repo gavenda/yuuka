@@ -43,39 +43,46 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                 }
             }
 
-            item { StatCard(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, currency = state.currency, hero = true, onClick = {}) }
-
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
-                    StatCard(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, Modifier.weight(1f), currency = state.currency, onClick = {})
-                }
+                StatCarousel(
+                    listOf(
+                        StatItem(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, state.currency),
+                        StatItem(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, state.currency),
+                        StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency),
+                    ),
+                )
             }
 
             item {
                 val expenseBreakdown = state.summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense }
                 val unspent = expenseBreakdown.sumOf { maxOf(0, it.remaining) }
                 val overspent = expenseBreakdown.sumOf { minOf(0, it.remaining) }
+                val net = state.summary?.net ?: 0
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(
-                        stringResource(R.string.dashboard_net_this_month),
-                        state.summary?.net ?: 0,
-                        currency = state.currency,
-                        signed = true,
-                        caption = if ((state.summary?.net ?: 0) >= 0) stringResource(R.string.dashboard_saved) else stringResource(R.string.dashboard_overspent),
-                        onClick = {},
-                    )
-                    StatCard(stringResource(R.string.dashboard_budget_remaining), unspent, currency = state.currency, caption = stringResource(R.string.dashboard_across_budgeted_categories), onClick = {})
-                    StatCard(
-                        stringResource(R.string.dashboard_over_budget),
-                        overspent,
-                        currency = state.currency,
-                        signed = true,
-                        caption = if (overspent < 0) stringResource(R.string.dashboard_needs_attention) else stringResource(R.string.dashboard_nothing_overspent),
-                        onClick = {},
-                    )
-                }
+                StatCarousel(
+                    listOf(
+                        StatItem(
+                            stringResource(R.string.dashboard_net_this_month),
+                            net,
+                            state.currency,
+                            caption = if (net >= 0) stringResource(R.string.dashboard_saved) else stringResource(R.string.dashboard_overspent),
+                            signed = true,
+                        ),
+                        StatItem(
+                            stringResource(R.string.dashboard_budget_remaining),
+                            unspent,
+                            state.currency,
+                            caption = stringResource(R.string.dashboard_across_budgeted_categories),
+                        ),
+                        StatItem(
+                            stringResource(R.string.dashboard_over_budget),
+                            overspent,
+                            state.currency,
+                            caption = if (overspent < 0) stringResource(R.string.dashboard_needs_attention) else stringResource(R.string.dashboard_nothing_overspent),
+                            signed = true,
+                        ),
+                    ),
+                )
             }
 
             item {
@@ -155,12 +162,21 @@ private fun RecentActivityRow(row: TransactionRow, currency: String) {
         when (row) {
             is TransactionRow.Transfer -> {
                 Column(Modifier.weight(1f)) {
-                    Text(row.payee.ifBlank { stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty()) }, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ${row.fromAccountName} → ${row.toAccountName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    val from = row.fromAccountName.orEmpty()
+                    val to = row.toAccountName.orEmpty()
+                    if (row.payee.isBlank()) {
+                        AccountFlow(from, to, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    } else {
+                        Text(row.payee, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        AccountFlow(from, to)
+                    }
                 }
                 MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency)
             }

@@ -2,33 +2,25 @@ package dev.gavenda.yuuka.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+private val Base = Typography()
+
+/**
+ * The Material 3 type scale, with the display and headline tiers emphasised. The app only
+ * uses them for figures and the brand mark (net worth, budgets, planned income), and those
+ * read better heavier than the scale's regular weight, so the weight lives here rather
+ * than as an override at each call site.
+ */
+val Typography = Base.copy(
+    displaySmall = Base.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+    headlineLarge = Base.headlineLarge.copy(fontWeight = FontWeight.Bold),
+    headlineMedium = Base.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
 )
+
+/**
+ * The emphasised figure for a compact stat card, one step below [Typography.headlineMedium].
+ * `titleLarge` itself stays regular because top app bars use it.
+ */
+val Typography.compactFigure: TextStyle
+    get() = titleLarge.copy(fontWeight = FontWeight.SemiBold)

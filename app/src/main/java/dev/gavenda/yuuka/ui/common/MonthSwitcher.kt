@@ -1,6 +1,5 @@
 package dev.gavenda.yuuka.ui.common
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,11 +23,7 @@ import dev.gavenda.yuuka.domain.formatMonth
 fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val isCurrent = month == currentMonth()
 
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
+    OutlinedCard(modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),

@@ -18,7 +18,9 @@ import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
 import dev.gavenda.yuuka.domain.formatMoney
+import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.YuukaSwitch
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -88,20 +90,21 @@ fun SettingsScreen(
 
         Column {
             Text(stringResource(R.string.appearance), style = MaterialTheme.typography.labelMedium)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                val options = listOf(
-                    ThemeMode.system to R.string.theme_system,
-                    ThemeMode.light to R.string.theme_light,
-                    ThemeMode.dark to R.string.theme_dark,
-                )
-                options.forEachIndexed { index, (mode, label) ->
-                    SegmentedButton(
-                        selected = themeMode == mode,
-                        onClick = { themePreference.setThemeMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    ) { Text(stringResource(label)) }
-                }
-            }
+            ConnectedButtonGroup(
+                options = ThemeMode.entries,
+                selected = themeMode,
+                onSelect = { themePreference.setThemeMode(it) },
+                label = {
+                    stringResource(
+                        when (it) {
+                            ThemeMode.system -> R.string.theme_system
+                            ThemeMode.light -> R.string.theme_light
+                            ThemeMode.dark -> R.string.theme_dark
+                        },
+                    )
+                },
+                modifier = Modifier.padding(top = 4.dp),
+            )
             if (dynamicColorAvailable) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -109,26 +112,20 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(stringResource(R.string.use_wallpaper_colors), style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = dynamicColor, onCheckedChange = { themePreference.setDynamicColor(it) })
+                    YuukaSwitch(checked = dynamicColor, onCheckedChange = { themePreference.setDynamicColor(it) })
                 }
             }
         }
 
         Column {
             Text(stringResource(R.string.budget_mode_label), style = MaterialTheme.typography.labelMedium)
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                val options = listOf(
-                    BudgetMode.fixed to R.string.label_fixed,
-                    BudgetMode.monthly to R.string.budget_mode_monthly,
-                )
-                options.forEachIndexed { index, (mode, label) ->
-                    SegmentedButton(
-                        selected = budgetModeDraft == mode,
-                        onClick = { budgetModeDraft = mode },
-                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                    ) { Text(stringResource(label)) }
-                }
-            }
+            ConnectedButtonGroup(
+                options = BudgetMode.entries,
+                selected = budgetModeDraft,
+                onSelect = { budgetModeDraft = it },
+                label = { stringResource(if (it == BudgetMode.fixed) R.string.label_fixed else R.string.budget_mode_monthly) },
+                modifier = Modifier.padding(top = 4.dp),
+            )
             Text(
                 if (budgetModeDraft == BudgetMode.fixed) stringResource(R.string.budget_mode_fixed_hint) else stringResource(R.string.budget_mode_monthly_hint),
                 style = MaterialTheme.typography.bodySmall,

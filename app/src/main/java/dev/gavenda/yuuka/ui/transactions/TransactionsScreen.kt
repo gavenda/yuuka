@@ -262,11 +262,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                         val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(title, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                accountFlow,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
                             formatTime(row.leg.occurredOn)?.let { time ->
                                 Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

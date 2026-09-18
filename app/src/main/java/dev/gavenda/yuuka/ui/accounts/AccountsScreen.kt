@@ -1,16 +1,24 @@
 package dev.gavenda.yuuka.ui.accounts
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material3.*
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -23,13 +31,14 @@ import dev.gavenda.yuuka.domain.toDecimalString
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
 
+    var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var typesOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Account?>(null) }
     var creating by remember { mutableStateOf(false) }
@@ -52,11 +61,36 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { creating = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.new_account)) },
-            )
+            BackHandler(fabMenuExpanded) { fabMenuExpanded = false }
+            FloatingActionButtonMenu(
+                // The menu pads its own button 16dp in from the end and 16dp up from the bottom, on top
+                // of the Scaffold's usual FAB inset — this cancels it so the FAB lines up with the
+                // ExtendedFloatingActionButton on the other screens.
+                modifier = Modifier.offset(x = 16.dp, y = 16.dp),
+                expanded = fabMenuExpanded,
+                button = {
+                    val actionsLabel = stringResource(R.string.account_actions)
+                    ToggleFloatingActionButton(
+                        modifier = Modifier.semantics { contentDescription = actionsLabel },
+                        checked = fabMenuExpanded,
+                        onCheckedChange = { fabMenuExpanded = it },
+                    ) {
+                        val icon by remember { derivedStateOf { if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add } }
+                        Icon(rememberVectorPainter(icon), contentDescription = null, modifier = Modifier.animateIcon({ checkedProgress }))
+                    }
+                },
+            ) {
+                FloatingActionButtonMenuItem(
+                    onClick = { fabMenuExpanded = false; creating = true },
+                    icon = { Icon(Icons.Filled.LibraryAdd, contentDescription = null) },
+                    text = { Text(stringResource(R.string.new_account)) },
+                )
+                FloatingActionButtonMenuItem(
+                    onClick = { fabMenuExpanded = false; typesOpen = true },
+                    icon = { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) },
+                    text = { Text(stringResource(R.string.edit_account_types)) },
+                )
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -64,12 +98,6 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { typesOpen = true }) { Text(stringResource(R.string.manage_types)) }
-                }
-            }
-
             item { StatCard(stringResource(R.string.net_worth), state.netWorth, currency = state.displayCurrency, hero = true) }
 
             if (state.groups.isEmpty()) {
@@ -241,7 +269,7 @@ private fun AccountCard(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, account.name), onDelete, danger = true)
         },
     ) {
-        Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit)) {
+        Card(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name, style = MaterialTheme.typography.bodyLarge)
@@ -312,7 +340,7 @@ private fun AccountFormContent(
         if (logoUrl.isNotBlank()) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
-                Switch(checked = invertDark, onCheckedChange = { invertDark = it })
+                YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
             }
         }
 

@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -17,6 +19,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -246,7 +251,9 @@ private fun CategoryRow(
     }
 }
 
-private fun colorFromHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(Color.Gray)
+@Composable
+private fun colorFromHex(hex: String): Color =
+    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
 
 private fun Color.toHexString(): String {
     val argb = this.toArgb()
@@ -304,19 +311,17 @@ private fun CategoryFormContent(
         val isValidColor = HEX_COLOR_REGEX.matches(color)
 
         Text(stringResource(R.string.label_colour), style = MaterialTheme.typography.labelMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PALETTE.forEach { slot ->
+                val selected = color == slot.light
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
                         .background(colorFromHex(slot.light))
-                        .border(
-                            width = if (color == slot.light) 2.dp else 0.dp,
-                            color = if (color == slot.light) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                            shape = CircleShape,
-                        )
-                        .clickable { color = slot.light },
+                        .then(if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+                        .semantics { contentDescription = slot.name }
+                        .selectable(selected = selected, role = Role.RadioButton) { color = slot.light },
                 )
             }
 
@@ -334,7 +339,7 @@ private fun CategoryFormContent(
                         color = if (isCustomColor) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
                         shape = CircleShape,
                     )
-                    .clickable { if (!isCustomColor) color = "#64748b" },
+                    .selectable(selected = isCustomColor, role = Role.RadioButton) { if (!isCustomColor) color = "#64748b" },
                 contentAlignment = androidx.compose.ui.Alignment.Center,
             ) {
                 if (!isCustomColor) {

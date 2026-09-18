@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -128,7 +127,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                     } else {
                                         if (state.plannedIncome > 0) visibility.displayMoney(state.plannedIncome, state.currency) else stringResource(R.string.set_income)
                                     },
-                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                                    style = MaterialTheme.typography.headlineMedium,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -137,16 +136,13 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
 
 
                         if (isPhp) {
-                            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                                IncomePlanMode.entries.forEachIndexed { index, mode ->
-                                    SegmentedButton(
-                                        selected = incomeMode == mode,
-                                        onClick = { incomeMode = mode; incomeEditing = false },
-                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = IncomePlanMode.entries.size),
-                                        label = { Text(if (mode == IncomePlanMode.gross) stringResource(R.string.income_mode_gross) else stringResource(R.string.label_fixed)) },
-                                    )
-                                }
-                            }
+                            ConnectedButtonGroup(
+                                options = IncomePlanMode.entries,
+                                selected = incomeMode,
+                                onSelect = { incomeMode = it; incomeEditing = false },
+                                label = { if (it == IncomePlanMode.gross) stringResource(R.string.income_mode_gross) else stringResource(R.string.label_fixed) },
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
                         }
 
                         Text(
@@ -171,62 +167,75 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                 }
                             }
                         }
-                    }
-                }
-            }
 
-            if (netPayBreakdown != null) {
-                item {
-                    StatCard(
-                        stringResource(R.string.net_pay),
-                        netPayBreakdown.netPay,
-                        currency = "PHP",
-                        caption = stringResource(R.string.used_as_planned_income),
-                        compact = compactAmounts,
-                        onClick = {},
-                    )
-                }
-            }
-
-            if (state.plannedIncome > 0) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatCard(
-                            stringResource(R.string.allocated),
-                            state.totalAllocated,
-                            currency = state.currency,
-                            caption = stringResource(R.string.planned_across_categories),
-                            compact = compactAmounts,
-                            onClick = {},
-                        )
-                        StatCard(
-                            stringResource(R.string.unallocated),
-                            state.unallocatedIncome,
-                            currency = state.currency,
-                            // Unclamped, unlike percentOf: over-allocating reads as a negative share.
-                            caption = stringResource(
-                                R.string.percent_of_income_unallocated,
-                                Math.round(state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).toInt(),
-                            ),
-                            signed = true,
-                            compact = compactAmounts,
-                            onClick = {},
-                        )
+                        if (state.incomeBreakdown.isNotEmpty()) {
+                            Text(stringResource(R.string.category_kind_income), style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+                            Column(modifier = Modifier.padding(top = 4.dp)) {
+                                state.incomeBreakdown.forEach { entry ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(entry.name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        MoneyText(entry.actual, currency = state.currency, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(stringResource(R.string.label_planned), state.totalPlanned, currency = state.currency, caption = stringResource(R.string.across_expense_categories), onClick = {})
-                    StatCard(
-                        stringResource(R.string.label_spent),
-                        state.totalActual,
-                        currency = state.currency,
-                        caption = if (state.totalPlanned > 0) stringResource(R.string.percent_of_plan, percentOf(state.totalActual, state.totalPlanned)) else stringResource(R.string.no_plan_set),
-                        onClick = {},
-                    )
-                }
+                StatCarousel(
+                    buildList {
+                        add(StatItem(stringResource(R.string.label_planned), state.totalPlanned, state.currency, caption = stringResource(R.string.across_expense_categories)))
+                        add(
+                            StatItem(
+                                stringResource(R.string.label_spent),
+                                state.totalActual,
+                                state.currency,
+                                caption = if (state.totalPlanned > 0) stringResource(R.string.percent_of_plan, percentOf(state.totalActual, state.totalPlanned)) else stringResource(R.string.no_plan_set),
+                            ),
+                        )
+                        if (netPayBreakdown != null) {
+                            add(
+                                StatItem(
+                                    stringResource(R.string.net_pay),
+                                    netPayBreakdown.netPay,
+                                    "PHP",
+                                    caption = stringResource(R.string.used_as_planned_income),
+                                    compact = compactAmounts,
+                                ),
+                            )
+                        }
+                        if (state.plannedIncome > 0) {
+                            add(
+                                StatItem(
+                                    stringResource(R.string.allocated),
+                                    state.totalAllocated,
+                                    state.currency,
+                                    caption = stringResource(R.string.planned_across_categories),
+                                    compact = compactAmounts,
+                                ),
+                            )
+                            add(
+                                StatItem(
+                                    stringResource(R.string.unallocated),
+                                    state.unallocatedIncome,
+                                    state.currency,
+                                    // Unclamped, unlike percentOf: over-allocating reads as a negative share.
+                                    caption = stringResource(
+                                        R.string.percent_of_income_unallocated,
+                                        Math.round(state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).toInt(),
+                                    ),
+                                    signed = true,
+                                    compact = compactAmounts,
+                                ),
+                            )
+                        }
+                    },
+                )
             }
 
             if (!state.hasAnyCategories) {
@@ -244,16 +253,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                 item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
                 items(state.cashflowBreakdown) { entry ->
                     BudgetRow(entry, state.currency, entry.categoryId in savingKeys, viewModel::setBudgetAmount, viewModel::setBudgetPercent)
-                }
-            }
-
-            if (state.incomeBreakdown.isNotEmpty()) {
-                item { Text(stringResource(R.string.category_kind_income), style = MaterialTheme.typography.titleSmall) }
-                items(state.incomeBreakdown) { entry ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(entry.name, style = MaterialTheme.typography.bodyMedium)
-                        Text(visibility.displayMoney(entry.actual, state.currency), style = MaterialTheme.typography.bodyMedium)
-                    }
                 }
             }
         }
@@ -300,17 +299,13 @@ private fun BudgetRow(
             if (editing) {
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                     val modes = listOf("amount" to currency, "percent" to "%")
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        modes.forEachIndexed { index, (value, label) ->
-                            SegmentedButton(
-                                selected = mode == value,
-                                onClick = { if (mode != value) { mode = value; draft = "" } },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
-                                label = { Text(label) },
-                                enabled = !saving,
-                            )
-                        }
-                    }
+                    ConnectedButtonGroup(
+                        options = modes,
+                        selected = modes.first { it.first == mode },
+                        onSelect = { (value, _) -> if (mode != value) { mode = value; draft = "" } },
+                        label = { it.second },
+                        enabled = !saving,
+                    )
                     val percentInvalid = mode == "percent" && draft.isNotBlank() && parsePercent(draft) == null
                     DenseOutlinedTextField(
                         value = draft,
@@ -370,7 +365,7 @@ private fun BudgetRow(
                             entry.planned > 0 -> visibility.displayMoney(entry.planned, currency)
                             else -> stringResource(R.string.set_a_budget)
                         },
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.headlineMedium,
                     )
                 }
             }
@@ -413,6 +408,6 @@ private fun BudgetProgressRing(percent: Int, color: Color, modifier: Modifier = 
                 }
             }
         )
-        Text("$percent%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+        Text("$percent%", style = MaterialTheme.typography.labelSmall)
     }
 }

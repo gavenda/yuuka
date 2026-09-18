@@ -7,11 +7,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
+import dev.gavenda.yuuka.ui.theme.compactFigure
 
 /** One hero figure per view: everything else on the screen explains it. Mirrors `StatCard.vue`. */
 @Composable
@@ -41,8 +39,12 @@ fun StatCard(
             modifier = Modifier.padding(top = 8.dp),
             currency = currency,
             tone = if (signed) MoneyTone.SIGNED else MoneyTone.NEUTRAL,
-            fontSize = if (emphasized) (if (hero) (if (compact) 30.sp else 40.sp) else (if (compact) 20.sp else 26.sp)) else TextUnit.Unspecified,
-            style = if (emphasized) MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyLarge,
+            style = when {
+                !emphasized -> MaterialTheme.typography.bodyLarge
+                hero -> MaterialTheme.typography.displaySmall
+                compact -> MaterialTheme.typography.compactFigure
+                else -> MaterialTheme.typography.headlineMedium
+            },
         )
         if (caption != null) {
             Text(

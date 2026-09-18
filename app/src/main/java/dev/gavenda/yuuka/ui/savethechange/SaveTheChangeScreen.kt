@@ -12,7 +12,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.remote.ApiError
+import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.YuukaSwitch
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -71,25 +73,18 @@ fun SaveTheChangeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(checked = enabledDraft, onCheckedChange = { enabledDraft = it })
+                YuukaSwitch(checked = enabledDraft, onCheckedChange = { enabledDraft = it })
             }
 
             Column {
                 Text(stringResource(R.string.round_to_label), style = MaterialTheme.typography.labelMedium)
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                    SegmentedButton(
-                        selected = roundToDraft == 1000L,
-                        onClick = { roundToDraft = 1000L },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        label = { Text(stringResource(R.string.round_to_ten)) },
-                    )
-                    SegmentedButton(
-                        selected = roundToDraft == 10000L,
-                        onClick = { roundToDraft = 10000L },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        label = { Text(stringResource(R.string.round_to_hundred)) },
-                    )
-                }
+                ConnectedButtonGroup(
+                    options = listOf(1000L, 10000L),
+                    selected = roundToDraft,
+                    onSelect = { roundToDraft = it },
+                    label = { stringResource(if (it == 1000L) R.string.round_to_ten else R.string.round_to_hundred) },
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
 
             ExposedDropdownMenuBox(expanded = accountMenuOpen, onExpandedChange = { accountMenuOpen = it }) {
@@ -148,7 +143,7 @@ fun SaveTheChangeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(account.name, modifier = Modifier.weight(1f))
-                    Switch(
+                    YuukaSwitch(
                         checked = account.roundUpSource,
                         onCheckedChange = { checked ->
                             scope.launch {

@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.domain
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import dev.gavenda.yuuka.ui.theme.extendedColors
 
 /**
  * Categorical palette for category colours.
@@ -42,20 +43,15 @@ enum class BudgetHealth { GOOD, WARNING, CRITICAL }
 
 /**
  * Status colours are reserved for state and never used as a series colour.
- * Each is paired with a visible label wherever it appears. GOOD isn't listed
- * here: it just means "on track", so it borrows the theme's primary colour
- * rather than reserving a colour of its own.
+ * Each is paired with a visible label wherever it appears. They come from the
+ * theme, so they follow dynamic colour: GOOD just means "on track" and borrows
+ * the primary colour, WARNING is the extended warning role and CRITICAL is `error`.
  */
-object Status {
-    const val WARNING = 0xFFFAB219.toInt()
-    const val CRITICAL = 0xFFD03B3B.toInt()
-}
-
 @Composable
 fun statusColor(health: BudgetHealth): Color = when (health) {
     BudgetHealth.GOOD -> MaterialTheme.colorScheme.primary
-    BudgetHealth.WARNING -> Color(Status.WARNING)
-    BudgetHealth.CRITICAL -> Color(Status.CRITICAL)
+    BudgetHealth.WARNING -> MaterialTheme.extendedColors.warning
+    BudgetHealth.CRITICAL -> MaterialTheme.colorScheme.error
 }
 
 /**

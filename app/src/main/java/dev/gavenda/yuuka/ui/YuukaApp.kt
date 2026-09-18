@@ -108,11 +108,21 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     // Accounts] stack and back/predictive-back steps through them in that order rather than
     // jumping straight to Dashboard. popUpTo(route, inclusive = true) still collapses a
     // *revisited* destination's old position so repeated taps don't pile up duplicate entries.
+    // Tapping the destination already on screen is a no-op: the pop-and-repush above would
+    // otherwise replay the enter/exit transition on the very screen being shown.
     val navigateToTopLevel: (String) -> Unit = { route ->
-        navController.navigate(route) {
-            launchSingleTop = true
-            popUpTo(route) { inclusive = true }
+        if (route != currentRoute) {
+            navController.navigate(route) {
+                launchSingleTop = true
+                popUpTo(route) { inclusive = true }
+            }
         }
+    }
+
+    // Settings and Save the Change are pushed on top of whatever tab was showing, so they
+    // just need the same guard against re-navigating to the screen already shown.
+    val navigateToDetail: (String) -> Unit = { route ->
+        if (route != currentRoute) navController.navigate(route)
     }
 
     CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
@@ -172,7 +182,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
                             selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
                             onClick = {
-                                navController.navigate(SAVE_THE_CHANGE_ROUTE)
+                                navigateToDetail(SAVE_THE_CHANGE_ROUTE)
                                 scope.launch { drawerState.close() }
                             },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -184,7 +194,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         selected = currentRoute == SETTINGS_ROUTE,
                         onClick = {
-                            navController.navigate(SETTINGS_ROUTE)
+                            navigateToDetail(SETTINGS_ROUTE)
                             scope.launch { drawerState.close() }
                         },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
