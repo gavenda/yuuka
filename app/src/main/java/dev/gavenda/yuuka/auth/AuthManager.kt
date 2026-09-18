@@ -65,7 +65,7 @@ class AuthManager(private val context: Context) {
         })
     }
 
-    fun login(activity: Activity, screenHint: String? = null) {
+    fun login(activity: Activity) {
         WebAuthProvider.login(account)
             .withScheme(context.getString(R.string.com_auth0_scheme))
             // offline_access: requests a refresh token for session persistence.
@@ -73,7 +73,6 @@ class AuthManager(private val context: Context) {
             // The API only accepts tokens addressed to it; without this the token
             // Auth0 issues cannot be verified against AUTH0_AUDIENCE server-side.
             .withAudience(context.getString(R.string.auth0_audience))
-            .withParameters(buildMap { screenHint?.let { put("screen_hint", it) } })
             .start(
                 activity,
                 object : Callback<Credentials, AuthenticationException> {

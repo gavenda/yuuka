@@ -3,7 +3,6 @@ package dev.gavenda.yuuka.ui.auth
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,7 +14,7 @@ import dev.gavenda.yuuka.R
 
 /** Mirrors `LoginView.vue`. */
 @Composable
-fun AuthScreen(onLogin: () -> Unit, onSignUp: () -> Unit, modifier: Modifier = Modifier) {
+fun AuthScreen(onLogin: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -29,6 +28,5 @@ fun AuthScreen(onLogin: () -> Unit, onSignUp: () -> Unit, modifier: Modifier = M
             modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
         )
         Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_log_in)) }
-        OutlinedButton(onClick = onSignUp, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) { Text(stringResource(R.string.action_sign_up)) }
     }
 }

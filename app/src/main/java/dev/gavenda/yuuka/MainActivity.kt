@@ -51,10 +51,7 @@ class MainActivity : ComponentActivity() {
                         when (authState) {
                             is AuthState.Loading -> Text("Loading…", modifier = Modifier.align(Alignment.Center))
 
-                            is AuthState.Unauthenticated -> AuthScreen(
-                                onLogin = { authManager.login(this@MainActivity) },
-                                onSignUp = { authManager.login(this@MainActivity, screenHint = "signup") },
-                            )
+                            is AuthState.Unauthenticated -> AuthScreen(onLogin = { authManager.login(this@MainActivity) })
 
                             is AuthState.Authenticated -> YuukaApp(onSignOut = { authManager.logout(this@MainActivity) })
                         }
