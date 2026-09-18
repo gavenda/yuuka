@@ -1,26 +1,7 @@
 package dev.gavenda.yuuka.data.local
 
-import dev.gavenda.yuuka.data.local.entity.AccountEntity
-import dev.gavenda.yuuka.data.local.entity.AccountTypeEntity
-import dev.gavenda.yuuka.data.local.entity.BudgetEntity
-import dev.gavenda.yuuka.data.local.entity.CategoryEntity
-import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
-import dev.gavenda.yuuka.data.local.entity.PayeeEntity
-import dev.gavenda.yuuka.data.local.entity.RoundUpRuleEntity
-import dev.gavenda.yuuka.data.local.entity.SettingsEntity
-import dev.gavenda.yuuka.data.model.Account
-import dev.gavenda.yuuka.data.model.AccountType
-import dev.gavenda.yuuka.data.model.Budget
-import dev.gavenda.yuuka.data.model.BudgetMode
-import dev.gavenda.yuuka.data.model.Category
-import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
-import dev.gavenda.yuuka.data.model.IncomePlan
-import dev.gavenda.yuuka.data.model.IncomePlanMode
-import dev.gavenda.yuuka.data.model.Payee
-import dev.gavenda.yuuka.data.model.PayeeKind
-import dev.gavenda.yuuka.data.model.RoundUpRule
-import dev.gavenda.yuuka.data.model.Settings
+import dev.gavenda.yuuka.data.local.entity.*
+import dev.gavenda.yuuka.data.model.*
 
 /** Entity <-> domain mappers. Enum fields are stored in Room as their raw (wire-format) name. */
 
@@ -97,7 +78,7 @@ fun Payee.toEntity() = PayeeEntity(
     lastUsedAt = lastUsedAt,
 )
 
-fun dev.gavenda.yuuka.data.model.Transaction.toEntity() = dev.gavenda.yuuka.data.local.entity.TransactionEntity(
+fun Transaction.toEntity() = TransactionEntity(
     id = id,
     accountId = accountId,
     accountName = accountName,
@@ -114,7 +95,7 @@ fun dev.gavenda.yuuka.data.model.Transaction.toEntity() = dev.gavenda.yuuka.data
     updatedAt = updatedAt,
 )
 
-fun dev.gavenda.yuuka.data.local.entity.TransactionEntity.toDomain() = dev.gavenda.yuuka.data.model.Transaction(
+fun TransactionEntity.toDomain() = Transaction(
     id = id,
     accountId = accountId,
     accountName = accountName,

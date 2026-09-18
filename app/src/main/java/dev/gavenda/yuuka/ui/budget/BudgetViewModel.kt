@@ -2,27 +2,15 @@ package dev.gavenda.yuuka.ui.budget
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.gavenda.yuuka.data.model.CategoryBreakdown
-import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
-import dev.gavenda.yuuka.data.model.IncomePlanMode
-import dev.gavenda.yuuka.data.model.Summary
+import dev.gavenda.yuuka.data.model.*
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
+import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.ui.common.ScreenStatus
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class BudgetUiState(
@@ -51,6 +39,7 @@ data class BudgetUiState(
 class BudgetViewModel(
     private val ledgerRepository: LedgerRepository,
     private val budgetRepository: BudgetRepository,
+    syncRepository: SyncRepository,
 ) : ViewModel() {
     private val month = MutableStateFlow(currentMonth())
     private val status = MutableStateFlow<ScreenStatus>(ScreenStatus.Idle)
@@ -91,6 +80,7 @@ class BudgetViewModel(
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshSettings() } }
+        viewModelScope.launch { syncRepository.synced.collect { refresh() } }
         refresh()
     }
 

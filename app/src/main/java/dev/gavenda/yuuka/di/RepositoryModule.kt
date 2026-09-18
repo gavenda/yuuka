@@ -1,9 +1,6 @@
 package dev.gavenda.yuuka.di
 
-import dev.gavenda.yuuka.repository.BudgetRepository
-import dev.gavenda.yuuka.repository.LedgerRepository
-import dev.gavenda.yuuka.repository.PayeeRepository
-import dev.gavenda.yuuka.repository.TransactionRepository
+import dev.gavenda.yuuka.repository.*
 import org.koin.dsl.module
 
 val repositoryModule = module {
@@ -11,4 +8,5 @@ val repositoryModule = module {
     single { TransactionRepository(get(), get()) }
     single { BudgetRepository(get(), get(), get(), get()) }
     single { PayeeRepository(get(), get()) }
+    single { SyncRepository(get(), get(), get(), get(), get(), get(), get()) }
 }

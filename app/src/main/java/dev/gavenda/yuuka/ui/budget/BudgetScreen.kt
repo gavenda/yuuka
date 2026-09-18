@@ -1,63 +1,25 @@
 package dev.gavenda.yuuka.ui.budget
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ButtonShapes
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.IncomePlanMode
-import dev.gavenda.yuuka.domain.AmountVisibility
-import dev.gavenda.yuuka.domain.budgetStatus
-import dev.gavenda.yuuka.domain.computeNetPay
-import dev.gavenda.yuuka.domain.currencySymbol
-import dev.gavenda.yuuka.domain.parseMoney
-import dev.gavenda.yuuka.domain.parsePercent
-import dev.gavenda.yuuka.domain.percentOf
-import dev.gavenda.yuuka.domain.statusColor
-import dev.gavenda.yuuka.domain.toDecimalString
-import dev.gavenda.yuuka.ui.common.DenseOutlinedTextField
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
-import dev.gavenda.yuuka.ui.common.EmptyState
-import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
-import dev.gavenda.yuuka.ui.common.MonthSwitcher
-import dev.gavenda.yuuka.ui.common.MoneyText
-import dev.gavenda.yuuka.ui.common.StatCard
-import dev.gavenda.yuuka.ui.common.rememberIsWideLayout
+import dev.gavenda.yuuka.domain.*
+import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -129,10 +91,10 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                         onClear = { incomeDraft = "" },
                                     )
                                 }
-                                Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    androidx.compose.material3.OutlinedButton(
+                                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    androidx.compose.material3.TextButton(
                                         enabled = !savingIncome,
-                                        modifier = Modifier.fillMaxWidth(0.5f),
+                                        modifier = Modifier.weight(1f),
                                         onClick = {
                                             incomeEditing = false
                                         },
@@ -141,7 +103,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                     }
                                     androidx.compose.material3.Button(
                                         enabled = !savingIncome,
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.weight(1f),
                                         onClick = {
                                             val amount = if (incomeDraft.isBlank()) 0L else parseMoney(incomeDraft)
                                             if (amount == null || amount < 0) return@Button
@@ -298,7 +260,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BudgetRow(
     entry: CategoryBreakdown,

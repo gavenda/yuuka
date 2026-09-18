@@ -1,11 +1,6 @@
 package dev.gavenda.yuuka.ui.dashboard
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -13,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,20 +18,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
-import dev.gavenda.yuuka.domain.AmountVisibility
-import dev.gavenda.yuuka.domain.TransactionRow
-import dev.gavenda.yuuka.domain.formatDate
-import dev.gavenda.yuuka.domain.formatTime
-import dev.gavenda.yuuka.domain.monthSeries
-import dev.gavenda.yuuka.domain.rankAndFold
-import dev.gavenda.yuuka.ui.common.CategoryBarList
-import dev.gavenda.yuuka.ui.common.DailySpendChart
-import dev.gavenda.yuuka.ui.common.EmptyState
-import dev.gavenda.yuuka.ui.common.MoneyText
-import dev.gavenda.yuuka.ui.common.MoneyTone
-import dev.gavenda.yuuka.ui.common.MonthSwitcher
-import dev.gavenda.yuuka.ui.common.ScreenStatus
-import dev.gavenda.yuuka.ui.common.StatCard
+import dev.gavenda.yuuka.domain.*
+import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

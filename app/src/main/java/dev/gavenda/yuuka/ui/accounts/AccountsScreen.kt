@@ -2,39 +2,13 @@ package dev.gavenda.yuuka.ui.accounts
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,22 +17,10 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.data.remote.ApiError
-import dev.gavenda.yuuka.domain.toDecimalString
-import dev.gavenda.yuuka.ui.common.AccountLogo
-import dev.gavenda.yuuka.ui.common.ActionIcon
-import dev.gavenda.yuuka.ui.common.ActionIconButton
-import dev.gavenda.yuuka.ui.common.DenseOutlinedTextField
-import dev.gavenda.yuuka.ui.common.EmptyState
-import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
-import dev.gavenda.yuuka.ui.common.MoneyText
-import dev.gavenda.yuuka.ui.common.MoneyTone
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
-import dev.gavenda.yuuka.ui.common.StatCard
-import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
-import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
-import dev.gavenda.yuuka.ui.common.rememberBusyState
 import dev.gavenda.yuuka.domain.formatMoney
 import dev.gavenda.yuuka.domain.parseMoney
+import dev.gavenda.yuuka.domain.toDecimalString
+import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -292,7 +254,6 @@ private fun AccountCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AccountFormContent(
     account: Account?,
@@ -308,7 +269,7 @@ private fun AccountFormContent(
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
-    var roundUpSource by remember { mutableStateOf(account?.roundUpSource ?: false) }
+    val roundUpSource = account?.roundUpSource ?: false
     var error by remember { mutableStateOf<String?>(null) }
     var typeMenuOpen by remember { mutableStateOf(false) }
 
@@ -355,21 +316,12 @@ private fun AccountFormContent(
             }
         }
 
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text(stringResource(R.string.round_up_source_label), modifier = Modifier.weight(1f))
-            Switch(checked = roundUpSource, onCheckedChange = { roundUpSource = it })
-        }
-        Text(
-            stringResource(R.string.round_up_source_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
+                modifier = Modifier.weight(1f),
                 enabled = !submitting,
                 onClick = {
                     val balance = parseMoney(startingBalance)
@@ -441,9 +393,10 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
 
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
+                modifier = Modifier.weight(1f),
                 enabled = !submitting,
                 onClick = {
                     val target = parseMoney(balance)

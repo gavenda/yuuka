@@ -1,41 +1,20 @@
 package dev.gavenda.yuuka.ui.transactions
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,17 +24,7 @@ import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatTime
-import dev.gavenda.yuuka.ui.common.ActionIcon
-import dev.gavenda.yuuka.ui.common.ActionIconButton
-import dev.gavenda.yuuka.ui.common.EmptyState
-import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
-import dev.gavenda.yuuka.ui.common.MoneyText
-import dev.gavenda.yuuka.ui.common.MoneyTone
-import dev.gavenda.yuuka.ui.common.MonthSwitcher
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
-import dev.gavenda.yuuka.ui.common.ScreenStatus
-import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
-import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
+import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -309,9 +278,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            row.categoryName?.let { name ->
-                                Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            row.categoryName?.let { name -> CategoryLabel(name, row.categoryColor) }
                         }
                     }
 
@@ -335,9 +302,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            transaction.categoryName?.let { name ->
-                                Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                            transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
                         }
                     }
                 }
@@ -346,7 +311,15 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryLabel(name: String, colorHex: String?) {
+    val color = colorHex?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (color != null) Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+    }
+}
+
 @Composable
 private fun FilterDropdown(
     label: String,

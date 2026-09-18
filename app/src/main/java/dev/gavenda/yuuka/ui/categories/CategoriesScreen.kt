@@ -3,38 +3,15 @@ package dev.gavenda.yuuka.ui.categories
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -46,16 +23,10 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
+import dev.gavenda.yuuka.domain.CollapsedSections
 import dev.gavenda.yuuka.domain.PALETTE
-import dev.gavenda.yuuka.ui.common.ActionIcon
-import dev.gavenda.yuuka.ui.common.ActionIconButton
-import dev.gavenda.yuuka.ui.common.ColorWheelPicker
-import dev.gavenda.yuuka.ui.common.EmptyState
-import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
-import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
-import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
-import dev.gavenda.yuuka.ui.common.rememberBusyState
+import dev.gavenda.yuuka.ui.common.*
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +39,8 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
-    var collapsedSections by remember { mutableStateOf(emptySet<String>()) }
+    val sectionState = koinInject<CollapsedSections>()
+    val collapsedSections by sectionState.categories.collectAsStateWithLifecycle()
 
     val categoryRestoredMessage = stringResource(R.string.category_restored)
     val categoryArchivedMessage = stringResource(R.string.category_archived)
@@ -80,7 +52,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
         modifier = modifier,
         // The outer app bar's Scaffold already insets for system bars — an inset-aware
         // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { creatingIn = state.sections.first(); creatingParentId = null },
@@ -106,13 +78,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        collapsedSections = if (expanded) {
-                                            collapsedSections + section.key
-                                        } else {
-                                            collapsedSections - section.key
-                                        }
-                                    },
+                                    .clickable { sectionState.toggleCategorySection(section.key) },
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -289,7 +255,6 @@ private fun Color.toHexString(): String {
 
 private val HEX_COLOR_REGEX = Regex("^#[0-9a-fA-F]{6}$")
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryFormContent(
     sections: List<CategorySection>,
@@ -318,7 +283,7 @@ private fun CategoryFormContent(
             Text(stringResource(R.string.label_kind), style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 sections.forEach { option ->
-                    androidx.compose.material3.FilterChip(
+                    FilterChip(
                         selected = selectedSection.key == option.key,
                         onClick = {
                             selectedSection = option
@@ -406,9 +371,10 @@ private fun CategoryFormContent(
             )
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
+                modifier = Modifier.weight(1f),
                 onClick = { if (name.isNotBlank() && isValidColor) onSave(name, kind, appliesTo, color) },
                 enabled = name.isNotBlank() && isValidColor && !submitting,
             ) {

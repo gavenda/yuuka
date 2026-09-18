@@ -1,28 +1,82 @@
 package dev.gavenda.yuuka.ui.common
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.content.Context
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import dev.gavenda.yuuka.R
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 
-/** Platform pickers rather than Material3's own — fewer moving parts for a plain date/time field. */
-fun showDatePicker(context: Context, initial: LocalDate, onPicked: (LocalDate) -> Unit) {
+/**
+ * Material 3's own date picker, in the standard dialog. Its state is a UTC-midnight
+ * timestamp whatever the device's zone, so the conversions to and from [LocalDate]
+ * are pinned to UTC — using the local zone would shift the date by a day.
+ */
+@Composable
+fun YuukaDatePickerDialog(
+    initial: LocalDate,
+    onDismiss: () -> Unit,
+    onPicked: (LocalDate) -> Unit,
+) {
+    val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+
     DatePickerDialog(
-        context,
-        { _, year, month, day -> onPicked(LocalDate.of(year, month + 1, day)) },
-        initial.year,
-        initial.monthValue - 1,
-        initial.dayOfMonth,
-    ).show()
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = state.selectedDateMillis != null,
+                onClick = {
+                    state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                },
+            ) { Text(stringResource(R.string.action_ok)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    ) {
+        DatePicker(state = state)
+    }
 }
 
-fun showTimePicker(context: Context, initial: LocalTime, onPicked: (LocalTime) -> Unit) {
-    TimePickerDialog(
-        context,
-        { _, hour, minute -> onPicked(LocalTime.of(hour, minute)) },
-        initial.hour,
-        initial.minute,
-        false,
-    ).show()
+/**
+ * The expressive ("vibrant") time picker: scrolling hour and minute columns, with a
+ * toggle to type the time in instead.
+ */
+@Composable
+fun YuukaTimePickerDialog(
+    initial: LocalTime,
+    onDismiss: () -> Unit,
+    onPicked: (LocalTime) -> Unit,
+) {
+    val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = false)
+    // A Boolean rather than the mode itself: TimePickerDisplayMode is a value class, which cannot be saved in a Bundle.
+    var typing by rememberSaveable { mutableStateOf(false) }
+    val displayMode = if (typing) TimePickerDisplayMode.Input else TimePickerDisplayMode.Scroll
+
+    VibrantTimePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = state.isInputValid,
+                onClick = { onPicked(LocalTime.of(state.hour, state.minute)) },
+            ) { Text(stringResource(R.string.action_ok)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        modeToggleButton = {
+            TimePickerDialogDefaults.ScrollDisplayModeToggle(
+                onDisplayModeChange = { typing = !typing },
+                displayMode = displayMode,
+            )
+        },
+    ) {
+        if (typing) {
+            TimeInput(state = state, shapes = TimePickerDefaults.shapes())
+        } else {
+            TimeScroll(state = state, shapes = TimePickerDefaults.shapes())
+        }
+    }
 }

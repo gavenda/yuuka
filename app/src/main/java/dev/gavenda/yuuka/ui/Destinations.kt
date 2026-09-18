@@ -2,11 +2,7 @@ package dev.gavenda.yuuka.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.gavenda.yuuka.R
 
@@ -22,5 +18,5 @@ enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, val
 /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
 const val SETTINGS_ROUTE = "settings"
 
-/** Reached from the navigation drawer, same as [SETTINGS_ROUTE] — not a bottom-nav tab. */
+/** Reached from the navigation drawer, grouped with the ledger destinations rather than [SETTINGS_ROUTE] — not a bottom-nav tab. */
 const val SAVE_THE_CHANGE_ROUTE = "save-the-change"

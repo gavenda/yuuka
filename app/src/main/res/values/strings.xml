@@ -13,6 +13,7 @@
 
     <!-- Common actions -->
     <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
@@ -215,8 +216,6 @@
     <string name="destination_account">Destination account</string>
     <string name="choose_an_account">Choose an account</string>
     <string name="save_the_change_accounts_title">Accounts</string>
-    <string name="round_up_source_label">Round up purchases (Save the Change)</string>
-    <string name="round_up_source_hint">Every expense on this account rounds up to the nearest ₱10 or ₱100 you\'ve set under Save the Change, moving the difference to your chosen account.</string>
     <string name="save_the_change_saved">Save the Change updated</string>
     <string name="could_not_save_round_up_rule">Could not save Save the Change.</string>
 

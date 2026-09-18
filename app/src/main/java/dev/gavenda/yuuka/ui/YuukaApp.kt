@@ -30,8 +30,9 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.auth.AuthManager
 import dev.gavenda.yuuka.auth.AuthState
 import dev.gavenda.yuuka.auth.decodeIdTokenClaims
+import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.AmountVisibility
-import dev.gavenda.yuuka.repository.LedgerRepository
+import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
 import dev.gavenda.yuuka.ui.categories.CategoriesScreen
@@ -60,7 +61,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val amountVisibility = koinInject<AmountVisibility>()
     val hidden by amountVisibility.hidden.collectAsStateWithLifecycle()
 
-    val ledgerRepository = koinInject<LedgerRepository>()
+    val syncRepository = koinInject<SyncRepository>()
+    val syncErrorMessage = stringResource(R.string.error_generic)
     var isSyncing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
@@ -163,6 +165,18 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             )
                         }
+                        // Grouped with Budget/Categories rather than Settings below the
+                        // divider — it's a ledger concern, not app configuration.
+                        NavigationDrawerItem(
+                            label = { Text(saveTheChangeLabel) },
+                            icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
+                            selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
+                            onClick = {
+                                navController.navigate(SAVE_THE_CHANGE_ROUTE)
+                                scope.launch { drawerState.close() }
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
                     }
                     HorizontalDivider()
                     NavigationDrawerItem(
@@ -171,16 +185,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         selected = currentRoute == SETTINGS_ROUTE,
                         onClick = {
                             navController.navigate(SETTINGS_ROUTE)
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    )
-                    NavigationDrawerItem(
-                        label = { Text(saveTheChangeLabel) },
-                        icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
-                        selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
-                        onClick = {
-                            navController.navigate(SAVE_THE_CHANGE_ROUTE)
                             scope.launch { drawerState.close() }
                         },
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -203,8 +207,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 onRefresh = {
                     scope.launch {
                         isSyncing = true
-                        runCatching { ledgerRepository.refreshAll() }
-                        isSyncing = false
+                        val failure = try {
+                            syncRepository.fullSync()
+                            null
+                        } catch (e: ApiError) {
+                            e
+                        } finally {
+                            isSyncing = false
+                        }
+                        // After the spinner stops: showSnackbar suspends until the message is dismissed.
+                        failure?.let { snackbarHostState.showSnackbar(it.message ?: syncErrorMessage) }
                     }
                 },
                 state = pullToRefreshState,

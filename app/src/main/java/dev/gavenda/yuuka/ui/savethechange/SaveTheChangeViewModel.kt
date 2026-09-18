@@ -7,7 +7,6 @@ import dev.gavenda.yuuka.domain.CategoryGroup
 import dev.gavenda.yuuka.domain.groupForPicker
 import dev.gavenda.yuuka.domain.transferCategories
 import dev.gavenda.yuuka.repository.LedgerRepository
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine

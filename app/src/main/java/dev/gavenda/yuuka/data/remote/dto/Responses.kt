@@ -1,14 +1,6 @@
 package dev.gavenda.yuuka.data.remote.dto
 
-import dev.gavenda.yuuka.data.model.Account
-import dev.gavenda.yuuka.data.model.AccountType
-import dev.gavenda.yuuka.data.model.Budget
-import dev.gavenda.yuuka.data.model.Category
-import dev.gavenda.yuuka.data.model.IncomePlan
-import dev.gavenda.yuuka.data.model.Payee
-import dev.gavenda.yuuka.data.model.RoundUpRule
-import dev.gavenda.yuuka.data.model.Settings
-import dev.gavenda.yuuka.data.model.Transaction
+import dev.gavenda.yuuka.data.model.*
 import kotlinx.serialization.Serializable
 
 /** Envelopes the API wraps its resources in — mirrors the shapes `src/lib/api.ts` unwraps. */

@@ -1,35 +1,13 @@
 package dev.gavenda.yuuka.ui.transactions
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
@@ -37,17 +15,11 @@ import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.Transaction
-import dev.gavenda.yuuka.domain.expenseCategories
-import dev.gavenda.yuuka.domain.groupForPicker
-import dev.gavenda.yuuka.domain.incomeCategories
-import dev.gavenda.yuuka.domain.parseMoney
-import dev.gavenda.yuuka.domain.today
-import dev.gavenda.yuuka.domain.toDecimalString
-import dev.gavenda.yuuka.domain.transferCategories
+import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
-import dev.gavenda.yuuka.ui.common.showDatePicker
-import dev.gavenda.yuuka.ui.common.showTimePicker
+import dev.gavenda.yuuka.ui.common.YuukaDatePickerDialog
+import dev.gavenda.yuuka.ui.common.YuukaTimePickerDialog
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -97,7 +69,6 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionForm(
     editing: Transaction?,
@@ -113,7 +84,8 @@ fun TransactionForm(
 ) {
     var fields by remember(editing) { mutableStateOf(seedFrom(editing, transferToAccountId, defaultAccountId, accounts)) }
     var localError by remember(editing) { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    var pickingTime by rememberSaveable { mutableStateOf(false) }
     val isEditing = editing != null
 
     val categoryGroups = remember(fields.mode, categories) {
@@ -237,7 +209,7 @@ fun TransactionForm(
                 enabled = false,
                 label = { Text(stringResource(R.string.label_date)) },
                 colors = readOnlyFieldColors(),
-                modifier = Modifier.weight(1f).clickableField { showDatePicker(context, fields.date) { fields = fields.copy(date = it) } },
+                modifier = Modifier.weight(1f).clickableField { pickingDate = true },
             )
             OutlinedTextField(
                 value = fields.time?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
@@ -246,7 +218,29 @@ fun TransactionForm(
                 label = { Text(stringResource(R.string.label_time)) },
                 placeholder = { Text(optionalPlaceholder) },
                 colors = readOnlyFieldColors(),
-                modifier = Modifier.weight(1f).clickableField { showTimePicker(context, fields.time ?: LocalTime.now()) { fields = fields.copy(time = it) } },
+                modifier = Modifier.weight(1f).clickableField { pickingTime = true },
+            )
+        }
+
+        if (pickingDate) {
+            YuukaDatePickerDialog(
+                initial = fields.date,
+                onDismiss = { pickingDate = false },
+                onPicked = {
+                    fields = fields.copy(date = it)
+                    pickingDate = false
+                },
+            )
+        }
+
+        if (pickingTime) {
+            YuukaTimePickerDialog(
+                initial = fields.time ?: LocalTime.now(),
+                onDismiss = { pickingTime = false },
+                onPicked = {
+                    fields = fields.copy(time = it)
+                    pickingTime = false
+                },
             )
         }
 
@@ -267,9 +261,10 @@ fun TransactionForm(
         val chooseDifferentAccountsError = stringResource(R.string.error_choose_different_accounts)
         val chooseAccountError = stringResource(R.string.error_choose_account)
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
+                modifier = Modifier.weight(1f),
                 enabled = !submitting,
                 onClick = {
                     val minor = parseMoney(fields.amount)

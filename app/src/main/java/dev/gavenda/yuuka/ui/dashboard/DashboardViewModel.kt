@@ -11,15 +11,11 @@ import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.domain.mergeTransferRows
 import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
+import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.repository.TransactionRepository
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 /** Fetched deeper than the 8 shown so a transfer pair split across the page boundary still merges into one row. */
@@ -39,6 +35,7 @@ class DashboardViewModel(
     private val ledgerRepository: LedgerRepository,
     private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository,
+    syncRepository: SyncRepository,
 ) : ViewModel() {
     private val month = MutableStateFlow(currentMonth())
     private val status = MutableStateFlow<ScreenStatus>(ScreenStatus.Idle)
@@ -61,6 +58,7 @@ class DashboardViewModel(
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshAll() } }
+        viewModelScope.launch { syncRepository.synced.collect { refresh() } }
         refresh()
     }
 

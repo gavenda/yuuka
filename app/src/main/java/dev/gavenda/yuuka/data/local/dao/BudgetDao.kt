@@ -1,10 +1,6 @@
 package dev.gavenda.yuuka.data.local.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Transaction
+import androidx.room.*
 import dev.gavenda.yuuka.data.local.entity.BudgetEntity
 import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
 import dev.gavenda.yuuka.data.local.entity.SummaryEntity
@@ -20,6 +16,9 @@ interface BudgetDao {
 
     @Query("DELETE FROM budgets WHERE queriedMonth = :month")
     suspend fun clearMonth(month: String)
+
+    @Query("DELETE FROM budgets")
+    suspend fun clear()
 
     @Query("DELETE FROM budgets WHERE id = :id")
     suspend fun deleteById(id: String)
@@ -38,6 +37,9 @@ interface IncomePlanDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(plan: IncomePlanEntity)
+
+    @Query("DELETE FROM income_plans")
+    suspend fun clear()
 }
 
 @Dao
@@ -47,4 +49,7 @@ interface SummaryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(summary: SummaryEntity)
+
+    @Query("DELETE FROM summaries")
+    suspend fun clear()
 }

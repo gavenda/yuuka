@@ -1,15 +1,7 @@
 package dev.gavenda.yuuka.data.local.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Transaction
-import dev.gavenda.yuuka.data.local.entity.AccountEntity
-import dev.gavenda.yuuka.data.local.entity.AccountTypeEntity
-import dev.gavenda.yuuka.data.local.entity.CategoryEntity
-import dev.gavenda.yuuka.data.local.entity.RoundUpRuleEntity
-import dev.gavenda.yuuka.data.local.entity.SettingsEntity
+import androidx.room.*
+import dev.gavenda.yuuka.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao

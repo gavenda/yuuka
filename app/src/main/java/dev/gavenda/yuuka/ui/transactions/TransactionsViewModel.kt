@@ -7,27 +7,11 @@ import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
 import dev.gavenda.yuuka.data.remote.ApiError
-import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
-import dev.gavenda.yuuka.domain.TransactionRow
-import dev.gavenda.yuuka.domain.formatMoney
-import dev.gavenda.yuuka.domain.currentMonth
-import dev.gavenda.yuuka.domain.mergeTransferRows
-import dev.gavenda.yuuka.repository.BudgetRepository
-import dev.gavenda.yuuka.repository.LedgerRepository
-import dev.gavenda.yuuka.repository.PayeeRepository
-import dev.gavenda.yuuka.repository.TransactionRepository
+import dev.gavenda.yuuka.domain.*
+import dev.gavenda.yuuka.repository.*
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 private const val PAGE_SIZE = 50
@@ -80,6 +64,7 @@ class TransactionsViewModel(
     private val transactionRepository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
     val payeeRepository: PayeeRepository,
+    syncRepository: SyncRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
@@ -113,6 +98,8 @@ class TransactionsViewModel(
         viewModelScope.launch {
             searchInput.debounce(250).distinctUntilChanged().collect { reload() }
         }
+
+        viewModelScope.launch { syncRepository.synced.collect { reload() } }
 
         viewModelScope.launch {
             filterKey.flatMapLatest { f -> limit.flatMapLatest { l -> transactionRepository.observePage(f, l).map(::mergeTransferRows) } }

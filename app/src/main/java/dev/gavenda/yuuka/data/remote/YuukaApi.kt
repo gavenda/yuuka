@@ -1,30 +1,9 @@
 package dev.gavenda.yuuka.data.remote
 
 import dev.gavenda.yuuka.data.model.Summary
-import dev.gavenda.yuuka.data.remote.dto.AccountResponse
-import dev.gavenda.yuuka.data.remote.dto.AccountTypeResponse
-import dev.gavenda.yuuka.data.remote.dto.AccountTypesResponse
-import dev.gavenda.yuuka.data.remote.dto.AccountsResponse
-import dev.gavenda.yuuka.data.remote.dto.BudgetResponse
-import dev.gavenda.yuuka.data.remote.dto.BudgetsResponse
-import dev.gavenda.yuuka.data.remote.dto.CategoriesResponse
-import dev.gavenda.yuuka.data.remote.dto.CategoryResponse
-import dev.gavenda.yuuka.data.remote.dto.IncomePlanResponse
-import dev.gavenda.yuuka.data.remote.dto.MeResponse
-import dev.gavenda.yuuka.data.remote.dto.PayeesResponse
-import dev.gavenda.yuuka.data.remote.dto.RoundUpRuleResponse
-import dev.gavenda.yuuka.data.remote.dto.SettingsResponse
-import dev.gavenda.yuuka.data.remote.dto.TransactionResponse
-import dev.gavenda.yuuka.data.remote.dto.TransferResponse
+import dev.gavenda.yuuka.data.remote.dto.*
 import kotlinx.serialization.json.JsonObject
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.PATCH
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
-import retrofit2.http.Query
+import retrofit2.http.*
 
 /**
  * All routes are under `/api`, mirroring the `api` object in the web app's
