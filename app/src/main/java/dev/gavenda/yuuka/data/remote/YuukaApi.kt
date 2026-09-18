@@ -12,6 +12,7 @@ import dev.gavenda.yuuka.data.remote.dto.CategoryResponse
 import dev.gavenda.yuuka.data.remote.dto.IncomePlanResponse
 import dev.gavenda.yuuka.data.remote.dto.MeResponse
 import dev.gavenda.yuuka.data.remote.dto.PayeesResponse
+import dev.gavenda.yuuka.data.remote.dto.RoundUpRuleResponse
 import dev.gavenda.yuuka.data.remote.dto.SettingsResponse
 import dev.gavenda.yuuka.data.remote.dto.TransactionResponse
 import dev.gavenda.yuuka.data.remote.dto.TransferResponse
@@ -48,6 +49,12 @@ interface YuukaApi {
     @PATCH("settings")
     suspend fun updateSettings(@Body body: JsonObject): SettingsResponse
 
+    @GET("round-up")
+    suspend fun getRoundUpRule(): RoundUpRuleResponse
+
+    @PATCH("round-up")
+    suspend fun updateRoundUpRule(@Body body: JsonObject): RoundUpRuleResponse
+
     @GET("account-types")
     suspend fun listAccountTypes(@Query("includeArchived") includeArchived: Boolean = false): AccountTypesResponse
 
@@ -71,6 +78,9 @@ interface YuukaApi {
 
     @DELETE("accounts/{id}")
     suspend fun deleteAccount(@Path("id") id: String, @Query("includeTransactions") includeTransactions: Boolean = false)
+
+    @POST("accounts/{id}/adjust")
+    suspend fun adjustAccountBalance(@Path("id") id: String, @Body body: JsonObject): TransactionResponse
 
     @GET("categories")
     suspend fun listCategories(@Query("includeArchived") includeArchived: Boolean = false): CategoriesResponse

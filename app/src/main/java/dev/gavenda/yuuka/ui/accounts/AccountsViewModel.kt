@@ -6,8 +6,10 @@ import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.domain.currentMonth
+import dev.gavenda.yuuka.domain.today
 import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
+import dev.gavenda.yuuka.repository.TransactionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +55,7 @@ data class AccountsUiState(
 class AccountsViewModel(
     private val ledgerRepository: LedgerRepository,
     private val budgetRepository: BudgetRepository,
+    private val transactionRepository: TransactionRepository,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
 
@@ -81,13 +84,30 @@ class AccountsViewModel(
 
     private suspend fun resyncBudget() = runCatching { budgetRepository.refreshSummary(currentMonth()) }
 
-    suspend fun createAccount(name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) {
-        ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+    suspend fun createAccount(
+        name: String,
+        typeId: String,
+        currency: String,
+        startingBalance: Long,
+        logoUrl: String,
+        logoInvertDark: Boolean,
+        roundUpSource: Boolean = false,
+    ) {
+        ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
         resyncBudget()
     }
 
-    suspend fun updateAccount(id: String, name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) {
-        ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+    suspend fun updateAccount(
+        id: String,
+        name: String,
+        typeId: String,
+        currency: String,
+        startingBalance: Long,
+        logoUrl: String,
+        logoInvertDark: Boolean,
+        roundUpSource: Boolean? = null,
+    ) {
+        ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
         resyncBudget()
     }
 
@@ -99,6 +119,17 @@ class AccountsViewModel(
     /** May throw [dev.gavenda.yuuka.data.remote.ApiError] with status 409 when the account still has transactions. */
     suspend fun deleteAccount(id: String, includeTransactions: Boolean = false) {
         ledgerRepository.deleteAccount(id, includeTransactions)
+        resyncBudget()
+    }
+
+    /**
+     * Logs the difference between [id]'s current balance and [balance] as its own transaction —
+     * an expense if it dropped, income if it rose. May throw [dev.gavenda.yuuka.data.remote.ApiError]
+     * with status 400 when the account is already at that balance.
+     */
+    suspend fun adjustBalance(id: String, balance: Long, payee: String) {
+        transactionRepository.adjustAccountBalance(id, balance, today(), payee, notes = "")
+        ledgerRepository.refreshAccounts()
         resyncBudget()
     }
 

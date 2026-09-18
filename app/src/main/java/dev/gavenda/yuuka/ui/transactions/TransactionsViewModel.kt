@@ -9,6 +9,7 @@ import dev.gavenda.yuuka.data.model.TransactionFilters
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.domain.TransactionRow
+import dev.gavenda.yuuka.domain.formatMoney
 import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.domain.mergeTransferRows
 import dev.gavenda.yuuka.repository.BudgetRepository
@@ -199,6 +200,11 @@ class TransactionsViewModel(
         viewModelScope.launch {
             _formState.update { it.copy(submitting = true, error = null) }
             try {
+                // Only a plain, newly created expense can trigger "Save the
+                // Change" — captured here so its feedback can ride along with
+                // the ordinary success message below.
+                var roundUp: Transaction? = null
+
                 when (submission) {
                     is TransactionSubmission.Plain -> if (editing != null) {
                         transactionRepository.updateTransaction(
@@ -211,7 +217,7 @@ class TransactionsViewModel(
                             submission.notes,
                         )
                     } else {
-                        transactionRepository.createTransaction(
+                        roundUp = transactionRepository.createTransaction(
                             submission.accountId,
                             submission.categoryId,
                             submission.amount,
@@ -251,10 +257,22 @@ class TransactionsViewModel(
                 val isEditing = editing != null
                 closeForm()
                 refreshAfterMutation()
+
+                val baseMessage = when (submission) {
+                    is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
+                    is TransactionSubmission.Plain -> if (isEditing) "Transaction updated" else "Transaction added"
+                }
+
+                // Combined into one message rather than a second `_events.tryEmit()`:
+                // with `extraBufferCapacity = 1` and no suspension between the two
+                // calls, a second emit here could land while the buffer from the
+                // first is still unread and get silently dropped.
                 _events.tryEmit(
-                    when (submission) {
-                        is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
-                        is TransactionSubmission.Plain -> if (isEditing) "Transaction updated" else "Transaction added"
+                    if (roundUp != null) {
+                        val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency ?: _uiState.value.currency
+                        "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
+                    } else {
+                        baseMessage
                     },
                 )
             } catch (e: ApiError) {

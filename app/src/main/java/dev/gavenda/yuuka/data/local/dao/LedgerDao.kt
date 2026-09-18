@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import dev.gavenda.yuuka.data.local.entity.AccountEntity
 import dev.gavenda.yuuka.data.local.entity.AccountTypeEntity
 import dev.gavenda.yuuka.data.local.entity.CategoryEntity
+import dev.gavenda.yuuka.data.local.entity.RoundUpRuleEntity
 import dev.gavenda.yuuka.data.local.entity.SettingsEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -72,4 +73,13 @@ interface SettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(settings: SettingsEntity)
+}
+
+@Dao
+interface RoundUpRuleDao {
+    @Query("SELECT * FROM round_up_rule WHERE id = 0")
+    fun observe(): Flow<RoundUpRuleEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(rule: RoundUpRuleEntity)
 }

@@ -30,6 +30,28 @@ const form = reactive({
 	startingBalance: '0.00',
 	logoUrl: '',
 	logoInvertDark: false,
+	roundUpSource: false,
+});
+
+const adjustDialogOpen = ref(false);
+const adjusting = ref<Account | null>(null);
+const adjustError = ref<string | null>(null);
+const adjustForm = reactive({
+	balance: '0.00',
+	payee: '',
+});
+
+/** Today, in the account's own local timezone rather than UTC — matches how a transaction date picker behaves elsewhere. */
+function today(): string {
+	const now = new Date();
+	return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+const adjustDifference = computed(() => {
+	if (!adjusting.value) return null;
+	const target = parseMoney(adjustForm.balance);
+	if (target === null) return null;
+	return target - adjusting.value.balance;
 });
 
 const visible = computed(() => ledger.accounts.filter((account) => showArchived.value || !account.archived));
@@ -95,6 +117,7 @@ function openCreate(): void {
 		startingBalance: '0.00',
 		logoUrl: '',
 		logoInvertDark: false,
+		roundUpSource: false,
 	});
 	dialogOpen.value = true;
 }
@@ -109,6 +132,7 @@ function openEdit(account: Account): void {
 		startingBalance: toDecimalString(account.startingBalance),
 		logoUrl: account.logoUrl ?? '',
 		logoInvertDark: account.logoInvertDark,
+		roundUpSource: account.roundUpSource,
 	});
 	dialogOpen.value = true;
 }
@@ -127,6 +151,7 @@ async function save(): Promise<void> {
 		startingBalance,
 		logoUrl: form.logoUrl.trim(),
 		logoInvertDark: form.logoInvertDark,
+		roundUpSource: form.roundUpSource,
 	};
 
 	try {
@@ -137,6 +162,36 @@ async function save(): Promise<void> {
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the account.';
+	}
+}
+
+function openAdjust(account: Account): void {
+	adjusting.value = account;
+	adjustError.value = null;
+	Object.assign(adjustForm, { balance: toDecimalString(account.balance), payee: '' });
+	adjustDialogOpen.value = true;
+}
+
+async function saveAdjustment(): Promise<void> {
+	const account = adjusting.value;
+	if (!account) return;
+
+	const balance = parseMoney(adjustForm.balance);
+	if (balance === null) {
+		adjustError.value = 'Balance must be a number.';
+		return;
+	}
+	if (balance === account.balance) {
+		adjustError.value = 'That is already the current balance.';
+		return;
+	}
+
+	try {
+		await api.adjustAccount(account.id, { balance, occurredOn: today(), payee: adjustForm.payee.trim() || undefined });
+		adjustDialogOpen.value = false;
+		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
+	} catch (caught) {
+		adjustError.value = caught instanceof ApiError ? caught.message : 'Could not adjust the balance.';
 	}
 }
 
@@ -221,6 +276,7 @@ onMounted(() => ledger.load());
 							<AccountWatermark class="flex-0 block" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" />
 							<div class="flex-1 row-actions">
 								<ActionIcon icon="edit" :label="`Edit ${account.name}`" @click="openEdit(account)" />
+								<ActionIcon icon="adjust" :label="`Adjust balance for ${account.name}`" @click="openAdjust(account)" />
 								<ActionIcon
 									:icon="account.archived ? 'restore' : 'archive'"
 									:label="`${account.archived ? 'Restore' : 'Archive'} ${account.name}`"
@@ -278,6 +334,20 @@ onMounted(() => ledger.load());
 				</div>
 
 				<div>
+					<label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+						<input
+							v-model="form.roundUpSource"
+							type="checkbox"
+							class="size-4 rounded border-slate-300 accent-blue-600 dark:border-slate-700"
+						/>
+						Round up purchases (Save the Change)
+					</label>
+					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+						Every expense on this account rounds up to the nearest ₱10 or ₱100 — set the exact amount and destination in Settings.
+					</p>
+				</div>
+
+				<div>
 					<label class="label" for="account-logo">Logo URL</label>
 					<div class="flex items-center gap-3">
 						<AccountLogo :name="form.name || '?'" :logo-url="form.logoUrl.trim() || null" :invert-dark="form.logoInvertDark" :size="40" />
@@ -310,6 +380,45 @@ onMounted(() => ledger.load());
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-secondary" @click="dialogOpen = false">Cancel</button>
 					<button type="submit" class="btn-primary">{{ editing ? 'Save changes' : 'Add account' }}</button>
+				</div>
+			</form>
+		</ModalDialog>
+
+		<ModalDialog :open="adjustDialogOpen" title="Adjust balance" @close="adjustDialogOpen = false">
+			<form v-if="adjusting" class="space-y-4" @submit.prevent="saveAdjustment">
+				<p class="text-sm text-slate-500 dark:text-slate-400">
+					{{ adjusting.name }}'s current balance is
+					<MoneyText :amount="adjusting.balance" :currency="adjusting.currency" class="font-medium text-slate-700 dark:text-slate-300" />.
+					Enter what it should be instead — the difference is logged as its own transaction, dated today.
+				</p>
+
+				<div>
+					<label class="label" for="adjust-balance">New balance</label>
+					<input id="adjust-balance" v-model="adjustForm.balance" class="input tabular" inputmode="decimal" placeholder="0.00" />
+				</div>
+
+				<p v-if="adjustDifference !== null && adjustDifference !== 0" class="text-sm text-slate-500 dark:text-slate-400">
+					Logs
+					<MoneyText :amount="adjustDifference" :currency="adjusting.currency" signed class="font-medium" />
+					as {{ adjustDifference > 0 ? 'income' : 'an expense' }}.
+				</p>
+
+				<div>
+					<label class="label" for="adjust-payee">Payee (optional)</label>
+					<input id="adjust-payee" v-model="adjustForm.payee" class="input" placeholder="Balance adjustment" />
+				</div>
+
+				<p
+					v-if="adjustError"
+					class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
+					role="alert"
+				>
+					{{ adjustError }}
+				</p>
+
+				<div class="flex justify-end gap-2 pt-2">
+					<button type="button" class="btn-secondary" @click="adjustDialogOpen = false">Cancel</button>
+					<button type="submit" class="btn-primary">Save adjustment</button>
 				</div>
 			</form>
 		</ModalDialog>

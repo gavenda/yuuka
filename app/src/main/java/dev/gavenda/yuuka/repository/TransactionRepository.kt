@@ -50,7 +50,8 @@ class TransactionRepository(
         return page
     }
 
-    suspend fun createTransaction(accountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String) {
+    /** Returns the "Save the Change" round-up this create triggered, if any — its destination-account leg, ready to surface as feedback. */
+    suspend fun createTransaction(accountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String): Transaction? {
         val body = buildJsonObject {
             put("accountId", accountId)
             put("categoryId", categoryId)
@@ -60,7 +61,8 @@ class TransactionRepository(
             put("notes", notes)
         }
         val response = apiCall { api.createTransaction(body) }
-        dao.insertAll(listOf(response.transaction.toEntity()))
+        dao.insertAll(listOfNotNull(response.transaction, response.roundUp).map { it.toEntity() })
+        return response.roundUp
     }
 
     suspend fun updateTransaction(id: String, accountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String) {
@@ -73,6 +75,23 @@ class TransactionRepository(
             put("notes", notes)
         }
         val response = apiCall { api.updateTransaction(id, body) }
+        dao.insertAll(listOf(response.transaction.toEntity()))
+    }
+
+    /**
+     * Posts the difference between an account's current balance and [balance] as its own
+     * transaction, computed by the API from the balance it holds at write time rather than
+     * whatever this call happened to observe. Throws [dev.gavenda.yuuka.data.remote.ApiError]
+     * with status 400 when the account is already at that balance.
+     */
+    suspend fun adjustAccountBalance(accountId: String, balance: Long, occurredOn: String, payee: String, notes: String) {
+        val body = buildJsonObject {
+            put("balance", balance)
+            put("occurredOn", occurredOn)
+            put("payee", payee)
+            put("notes", notes)
+        }
+        val response = apiCall { api.adjustAccountBalance(accountId, body) }
         dao.insertAll(listOf(response.transaction.toEntity()))
     }
 

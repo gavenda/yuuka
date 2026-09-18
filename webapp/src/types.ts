@@ -18,6 +18,16 @@ export interface Settings {
 	updatedAt: string;
 }
 
+/** "Save the Change": rounds an opted-in account's expenses up and moves the difference into a chosen account. */
+export interface RoundUpRule {
+	enabled: boolean;
+	/** Minor-unit multiple to round up to: 1000 (₱10) or 10000 (₱100). */
+	roundTo: 1000 | 10000;
+	destinationAccountId: string | null;
+	createdAt: string | null;
+	updatedAt: string | null;
+}
+
 /** A user-defined account type. Everyone starts with a default set. */
 export interface AccountType {
 	id: string;
@@ -40,6 +50,8 @@ export interface Account {
 	logoUrl: string | null;
 	/** Applies an `invert()` filter to the logo in dark mode, for a dark mark that would otherwise disappear. */
 	logoInvertDark: boolean;
+	/** Whether this account's own expenses round up under "Save the Change". */
+	roundUpSource: boolean;
 	startingBalance: number;
 	balance: number;
 	archived: boolean;

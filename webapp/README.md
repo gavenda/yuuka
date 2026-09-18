@@ -126,19 +126,21 @@ them.
 All routes are under `/api`. Everything except `/api/health` requires an Auth0
 access token in `Authorization: Bearer <token>`.
 
-| Method                  | Path                         | Purpose                                    |
-| ----------------------- | ---------------------------- | ------------------------------------------ |
-| `GET`                   | `/health`                    | Liveness check                             |
-| `GET`                   | `/auth/me`                   | The verified caller's subject and claims   |
-| `GET/DELETE`            | `/payees`                    | Remembered payees, for autosuggest         |
-| `GET/PATCH`             | `/settings`                  | Per-user preferences (display currency)    |
-| `GET/POST/PATCH/DELETE` | `/account-types`             | Account types, with usage counts           |
-| `GET/POST/PATCH/DELETE` | `/accounts`, `/accounts/:id` | Accounts, with derived balances            |
-| `GET/POST/PATCH/DELETE` | `/categories`                | Categories                                 |
-| `GET/POST/PATCH/DELETE` | `/transactions`              | Transactions, filtered and paged           |
-| `POST`                  | `/transactions/transfer`     | Write both legs of a transfer              |
-| `GET/PUT/DELETE`        | `/budgets`                   | Per-category monthly budgets               |
-| `GET`                   | `/summary?month=YYYY-MM`     | Totals, balances, budget vs actual, by day |
+| Method                  | Path                         | Purpose                                           |
+| ----------------------- | ---------------------------- | ------------------------------------------------- |
+| `GET`                   | `/health`                    | Liveness check                                    |
+| `GET`                   | `/auth/me`                   | The verified caller's subject and claims          |
+| `GET/DELETE`            | `/payees`                    | Remembered payees, for autosuggest                |
+| `GET/PATCH`             | `/settings`                  | Per-user preferences (display currency)           |
+| `GET/PATCH`             | `/round-up`                  | "Save the Change" round-up rule                   |
+| `GET/POST/PATCH/DELETE` | `/account-types`             | Account types, with usage counts                  |
+| `GET/POST/PATCH/DELETE` | `/accounts`, `/accounts/:id` | Accounts, with derived balances                   |
+| `POST`                  | `/accounts/:id/adjust`       | Log the gap to a target balance as income/expense |
+| `GET/POST/PATCH/DELETE` | `/categories`                | Categories                                        |
+| `GET/POST/PATCH/DELETE` | `/transactions`              | Transactions, filtered and paged                  |
+| `POST`                  | `/transactions/transfer`     | Write both legs of a transfer                     |
+| `GET/PUT/DELETE`        | `/budgets`                   | Per-category monthly budgets                      |
+| `GET`                   | `/summary?month=YYYY-MM`     | Totals, balances, budget vs actual, by day        |
 
 `GET /transactions` accepts `month`, `from`, `to`, `accountId`, `categoryId`
 (or `none` for uncategorised), `search`, `limit` and `offset`.

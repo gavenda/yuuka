@@ -39,6 +39,7 @@ import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.UserAvatar
 import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
+import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
 import dev.gavenda.yuuka.ui.settings.SettingsScreen
 import dev.gavenda.yuuka.ui.transactions.TransactionsScreen
 import kotlinx.coroutines.launch
@@ -63,9 +64,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     var isSyncing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
-    var settingsSaveEnabled by remember { mutableStateOf(false) }
-    var settingsSaving by remember { mutableStateOf(false) }
-    var settingsSaveAction by remember { mutableStateOf({}) }
+    // Lifted by whichever drawer-only detail screen (Settings, Save the Change) is
+    // currently shown, so its Save action can live in the shared top app bar. At
+    // most one such screen is ever the current route, so one set of vars suffices.
+    var detailSaveEnabled by remember { mutableStateOf(false) }
+    var detailSaving by remember { mutableStateOf(false) }
+    var detailSaveAction by remember { mutableStateOf({}) }
 
     val authManager = koinInject<AuthManager>()
     val authState by authManager.authState.collectAsStateWithLifecycle()
@@ -74,7 +78,14 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val currentDestination = YuukaDestination.entries.firstOrNull { it.route == currentRoute }
     val brandName = stringResource(R.string.brand_name)
     val settingsLabel = stringResource(R.string.destination_settings)
-    val title = currentDestination?.let { stringResource(it.labelRes) } ?: if (currentRoute == SETTINGS_ROUTE) settingsLabel else brandName
+    val saveTheChangeLabel = stringResource(R.string.destination_save_the_change)
+    val drawerDetailRoutes = setOf(SETTINGS_ROUTE, SAVE_THE_CHANGE_ROUTE)
+    val title = currentDestination?.let { stringResource(it.labelRes) }
+        ?: when (currentRoute) {
+            SETTINGS_ROUTE -> settingsLabel
+            SAVE_THE_CHANGE_ROUTE -> saveTheChangeLabel
+            else -> brandName
+        }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -165,6 +176,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     )
                     NavigationDrawerItem(
+                        label = { Text(saveTheChangeLabel) },
+                        icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
+                        selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
+                        onClick = {
+                            navController.navigate(SAVE_THE_CHANGE_ROUTE)
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                    NavigationDrawerItem(
                         label = { Text(stringResource(R.string.action_sign_out)) },
                         icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
                         selected = false,
@@ -208,7 +229,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.cd_menu))
                                     }
-                                } else if (currentRoute == SETTINGS_ROUTE) {
+                                } else if (currentRoute in drawerDetailRoutes) {
                                     IconButton(onClick = { navController.popBackStack() }) {
                                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                                     }
@@ -222,9 +243,9 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                             contentDescription = stringResource(if (hidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
                                         )
                                     }
-                                } else if (currentRoute == SETTINGS_ROUTE) {
-                                    IconButton(onClick = settingsSaveAction, enabled = settingsSaveEnabled) {
-                                        if (settingsSaving) {
+                                } else if (currentRoute in drawerDetailRoutes) {
+                                    IconButton(onClick = detailSaveAction, enabled = detailSaveEnabled) {
+                                        if (detailSaving) {
                                             MutationLoadingIndicator(size = 24.dp)
                                         } else {
                                             Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.action_save))
@@ -290,9 +311,18 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         composable(SETTINGS_ROUTE) {
                             SettingsScreen(
                                 onSaveStateChange = { enabled, saving, save ->
-                                    settingsSaveEnabled = enabled
-                                    settingsSaving = saving
-                                    settingsSaveAction = save
+                                    detailSaveEnabled = enabled
+                                    detailSaving = saving
+                                    detailSaveAction = save
+                                },
+                            )
+                        }
+                        composable(SAVE_THE_CHANGE_ROUTE) {
+                            SaveTheChangeScreen(
+                                onSaveStateChange = { enabled, saving, save ->
+                                    detailSaveEnabled = enabled
+                                    detailSaving = saving
+                                    detailSaveAction = save
                                 },
                             )
                         }

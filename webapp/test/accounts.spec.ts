@@ -122,4 +122,73 @@ describe('accounts', () => {
 		const { total } = await json<{ total: number }>(await call('/transactions'));
 		expect(total).toBe(0);
 	});
+
+	describe('adjust', () => {
+		it('logs the difference as an income transaction when the new balance is higher', async () => {
+			const id = await makeAccount(call, { startingBalance: 100_00 });
+			const response = await call(`/accounts/${id}/adjust`, {
+				method: 'POST',
+				body: JSON.stringify({ balance: 150_00, occurredOn: '2026-09-04' }),
+			});
+
+			expect(response.status).toBe(201);
+			const { transaction } = await json<{ transaction: Record<string, unknown> }>(response);
+			expect(transaction).toMatchObject({ accountId: id, amount: 5000, categoryId: null, payee: 'Balance adjustment' });
+
+			const { account } = await json<{ account: { balance: number } }>(await call(`/accounts/${id}`));
+			expect(account.balance).toBe(150_00);
+		});
+
+		it('logs the difference as an expense transaction when the new balance is lower', async () => {
+			const id = await makeAccount(call, { startingBalance: 100_00 });
+			const response = await call(`/accounts/${id}/adjust`, {
+				method: 'POST',
+				body: JSON.stringify({ balance: 60_00, occurredOn: '2026-09-04' }),
+			});
+
+			expect(response.status).toBe(201);
+			const { transaction } = await json<{ transaction: Record<string, unknown> }>(response);
+			expect(transaction).toMatchObject({ amount: -4000 });
+		});
+
+		it('accounts for existing transactions, not just the starting balance', async () => {
+			const id = await makeAccount(call, { startingBalance: 100_00 });
+			await call('/transactions', { method: 'POST', body: JSON.stringify({ accountId: id, amount: -2000, occurredOn: '2026-09-04' }) });
+
+			// Balance is now 8000; asking for 9000 should post an 1000 difference, not 8000.
+			const response = await call(`/accounts/${id}/adjust`, {
+				method: 'POST',
+				body: JSON.stringify({ balance: 90_00, occurredOn: '2026-09-05' }),
+			});
+			const { transaction } = await json<{ transaction: Record<string, unknown> }>(response);
+			expect(transaction).toMatchObject({ amount: 1000 });
+		});
+
+		it('uses a custom payee when one is given', async () => {
+			const id = await makeAccount(call, { startingBalance: 0 });
+			const response = await call(`/accounts/${id}/adjust`, {
+				method: 'POST',
+				body: JSON.stringify({ balance: 500, occurredOn: '2026-09-04', payee: 'Found cash' }),
+			});
+			const { transaction } = await json<{ transaction: Record<string, unknown> }>(response);
+			expect(transaction).toMatchObject({ payee: 'Found cash' });
+		});
+
+		it('rejects when the account is already at that balance', async () => {
+			const id = await makeAccount(call, { startingBalance: 100_00 });
+			const response = await call(`/accounts/${id}/adjust`, {
+				method: 'POST',
+				body: JSON.stringify({ balance: 100_00, occurredOn: '2026-09-04' }),
+			});
+			expect(response.status).toBe(400);
+		});
+
+		it('404s for an unknown account', async () => {
+			const response = await call('/accounts/acc_nope/adjust', {
+				method: 'POST',
+				body: JSON.stringify({ balance: 100, occurredOn: '2026-09-04' }),
+			});
+			expect(response.status).toBe(404);
+		});
+	});
 });

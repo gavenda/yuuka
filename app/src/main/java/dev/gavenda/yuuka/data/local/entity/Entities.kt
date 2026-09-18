@@ -30,6 +30,7 @@ data class AccountEntity(
     val currency: String,
     val logoUrl: String?,
     val logoInvertDark: Boolean,
+    val roundUpSource: Boolean,
     val startingBalance: Long,
     val balance: Long,
     val archived: Boolean,
@@ -60,6 +61,17 @@ data class SettingsEntity(
     val defaultAccountId: String?,
     val createdAt: String,
     val updatedAt: String,
+)
+
+/** Single row, pinned at id 0 — mirrors [SettingsEntity]; not guaranteed to exist until the first sync. */
+@Entity(tableName = "round_up_rule")
+data class RoundUpRuleEntity(
+    @PrimaryKey val id: Int = 0,
+    val enabled: Boolean,
+    val roundTo: Long,
+    val destinationAccountId: String?,
+    val createdAt: String?,
+    val updatedAt: String?,
 )
 
 @Entity(tableName = "transactions")

@@ -43,6 +43,46 @@ const SELECT_ENRICHED = `
 const MISSING_REFERENCE = 'Unknown account or category.';
 const WRONG_SCOPE = 'That category cannot be used here. Spending and income use standard categories; transfers use Cashflow categories.';
 
+/** The synthetic payee "Save the Change" round-ups are posted under. Never fed into `rememberPayee` — it's derived, not typed. */
+const ROUND_UP_PAYEE = 'Save the Change';
+
+interface RoundUpEligibility {
+	roundTo: number;
+	destinationAccountId: string;
+}
+
+/**
+ * Reads the source account's opt-in and the user's rule in one query. A
+ * missing rule row (never configured) and a missing destination both read as
+ * null, so both cases fall through to "not eligible" without a separate
+ * existence check.
+ */
+async function loadRoundUpEligibility(db: D1Database, userId: string, accountId: string): Promise<RoundUpEligibility | null> {
+	const row = await db
+		.prepare(
+			`SELECT a.round_up_source AS account_opt_in, r.enabled AS rule_enabled, r.round_to AS round_to, r.destination_account_id AS destination_account_id
+			 FROM accounts a
+			 LEFT JOIN round_up_rules r ON r.user_id = a.user_id
+			 WHERE a.id = ? AND a.user_id = ?`,
+		)
+		.bind(accountId, userId)
+		.first<{ account_opt_in: number; rule_enabled: number | null; round_to: number | null; destination_account_id: string | null }>();
+
+	if (!row || row.account_opt_in !== 1 || row.rule_enabled !== 1 || !row.destination_account_id) return null;
+	// This purchase's own account is the destination — nothing sensible to
+	// move for this one purchase, even though the account may still be a
+	// legitimate source for purchases made elsewhere.
+	if (row.destination_account_id === accountId) return null;
+
+	return { roundTo: row.round_to!, destinationAccountId: row.destination_account_id };
+}
+
+/** The gap between `amount` and the next whole `roundTo` multiple above it. */
+function computeRoundUp(amount: number, roundTo: number): number {
+	const absolute = Math.abs(amount);
+	return Math.ceil(absolute / roundTo) * roundTo - absolute;
+}
+
 /**
  * Inserts only if the account, and the category when one is given, belong to
  * the same user and the category may be used here. Doing it as one statement
@@ -62,7 +102,7 @@ const INSERT_GUARDED = `
 `;
 
 /** Re-reads a row with its joined account and category labels. */
-async function loadOne(db: D1Database, userId: string, id: string): Promise<TransactionRow | null> {
+export async function loadOne(db: D1Database, userId: string, id: string): Promise<TransactionRow | null> {
 	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(userId, id, userId).first<TransactionRow>();
 }
 
@@ -150,9 +190,73 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		if (!result.meta.changes) throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
 
+		// Only an ordinary expense — never a transfer, an edit or a balance
+		// adjustment — can trigger "Save the Change"; this is the one place
+		// that reads `round_up_rules`.
+		let roundUpId: string | null = null;
+		if (input.amount < 0) {
+			const eligibility = await loadRoundUpEligibility(c.env.DB, userId, input.accountId);
+			if (eligibility) {
+				const roundUpAmount = computeRoundUp(input.amount, eligibility.roundTo);
+				if (roundUpAmount > 0) {
+					const transferId = newId('tfr');
+					const sourceLegId = newId('txn');
+					const destinationLegId = newId('txn');
+
+					const [outflow, inflow] = await c.env.DB.batch([
+						c.env.DB.prepare(INSERT_GUARDED).bind(
+							sourceLegId,
+							userId,
+							input.accountId,
+							null,
+							-roundUpAmount,
+							input.occurredOn,
+							ROUND_UP_PAYEE,
+							'',
+							transferId,
+							input.accountId,
+							userId,
+							null,
+							null,
+							userId,
+							'standard',
+						),
+						c.env.DB.prepare(INSERT_GUARDED).bind(
+							destinationLegId,
+							userId,
+							eligibility.destinationAccountId,
+							null,
+							roundUpAmount,
+							input.occurredOn,
+							ROUND_UP_PAYEE,
+							'',
+							transferId,
+							eligibility.destinationAccountId,
+							userId,
+							null,
+							null,
+							userId,
+							'standard',
+						),
+					]);
+
+					// The destination account may have been deleted between the read
+					// above and this write; treat that race as "no round-up" rather
+					// than failing the purchase that triggered it.
+					if (outflow.meta.changes && inflow.meta.changes) {
+						roundUpId = destinationLegId;
+					} else {
+						await c.env.DB.prepare('DELETE FROM transactions WHERE transfer_id = ? AND user_id = ?').bind(transferId, userId).run();
+					}
+				}
+			}
+		}
+
 		await invalidateSummaries(c.env.CACHE, userId, [monthOf(input.occurredOn)]);
 
-		// A named transaction teaches the form what to offer next time.
+		// A named transaction teaches the form what to offer next time. The
+		// round-up's payee is synthetic, so it is never remembered — the same
+		// way a transfer's derived "From → To" name isn't.
 		await rememberPayee(c.env.DB, userId, {
 			payee: input.payee,
 			kind: payeeKind(input.amount, null),
@@ -161,7 +265,13 @@ export const transactionRoutes = new Hono<AppEnv>()
 			notes: input.notes,
 		});
 
-		return c.json({ transaction: toTransaction((await loadOne(c.env.DB, userId, id))!) }, 201);
+		return c.json(
+			{
+				transaction: toTransaction((await loadOne(c.env.DB, userId, id))!),
+				roundUp: roundUpId ? toTransaction((await loadOne(c.env.DB, userId, roundUpId))!) : null,
+			},
+			201,
+		);
 	})
 	.post('/transfer', async (c) => {
 		const input = await parseJson(c, transferCreateSchema);

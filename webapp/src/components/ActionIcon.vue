@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete';
+export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete' | 'adjust';
 
 const props = withDefaults(defineProps<{ icon: ActionIconName; label: string; danger?: boolean; disabled?: boolean }>(), {
 	danger: false,
@@ -21,6 +21,8 @@ const PATHS: Record<ActionIconName, string[]> = {
 	restore: ['M6.5 5.5 3 9l3.5 3.5', 'M3 9h9a4 4 0 1 1 0 8H8'],
 	// Bin with lid, handle and two slots.
 	delete: ['M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10', 'M9 9v4.5M11 9v4.5'],
+	// A balance scale: post, beam and two pans.
+	adjust: ['M10 3v14', 'M4 6h12', 'M4 6l-2 4.5a2.5 2.5 0 0 0 5 0z', 'M16 6l-2 4.5a2.5 2.5 0 0 0 5 0z', 'M7 17h6'],
 };
 
 const paths = computed(() => PATHS[props.icon]);

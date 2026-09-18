@@ -8,6 +8,7 @@ import { budgetRoutes } from './routes/budgets';
 import { categoryRoutes } from './routes/categories';
 import { incomePlanRoutes } from './routes/income-plan';
 import { payeeRoutes } from './routes/payees';
+import { roundUpRoutes } from './routes/round-up';
 import { settingsRoutes } from './routes/settings';
 import { summaryRoutes } from './routes/summary';
 import { transactionRoutes } from './routes/transactions';
@@ -39,6 +40,7 @@ app.route('/api/budgets', budgetRoutes);
 app.route('/api/income-plan', incomePlanRoutes);
 app.route('/api/payees', payeeRoutes);
 app.route('/api/settings', settingsRoutes);
+app.route('/api/round-up', roundUpRoutes);
 app.route('/api/summary', summaryRoutes);
 
 app.notFound((c) => c.json({ error: 'Not found.' }, 404));

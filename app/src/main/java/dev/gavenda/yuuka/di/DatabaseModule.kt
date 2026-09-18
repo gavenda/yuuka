@@ -24,4 +24,5 @@ val databaseModule = module {
     single { get<YuukaDatabase>().incomePlanDao() }
     single { get<YuukaDatabase>().summaryDao() }
     single { get<YuukaDatabase>().payeeDao() }
+    single { get<YuukaDatabase>().roundUpRuleDao() }
 }

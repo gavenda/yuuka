@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { Account, AccountType, Category, Settings } from '@/types';
+import type { Account, AccountType, Category, RoundUpRule, Settings } from '@/types';
 
 /**
  * Accounts and categories change rarely but are needed by nearly every view, so
@@ -13,6 +13,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 	const accountTypes = ref<AccountType[]>([]);
 	const categories = ref<Category[]>([]);
 	const settings = ref<Settings | null>(null);
+	const roundUpRule = ref<RoundUpRule | null>(null);
 	const loaded = ref(false);
 	const loading = ref(false);
 
@@ -71,16 +72,18 @@ export const useLedgerStore = defineStore('ledger', () => {
 		loading.value = true;
 
 		try {
-			const [accountsResponse, typesResponse, categoriesResponse, settingsResponse] = await Promise.all([
+			const [accountsResponse, typesResponse, categoriesResponse, settingsResponse, roundUpResponse] = await Promise.all([
 				api.listAccounts(true),
 				api.listAccountTypes(true),
 				api.listCategories(true),
 				api.settings(),
+				api.getRoundUpRule(),
 			]);
 			accounts.value = accountsResponse.accounts;
 			accountTypes.value = typesResponse.accountTypes;
 			categories.value = categoriesResponse.categories;
 			settings.value = settingsResponse.settings;
+			roundUpRule.value = roundUpResponse.roundUpRule;
 			loaded.value = true;
 		} finally {
 			loading.value = false;
@@ -102,8 +105,13 @@ export const useLedgerStore = defineStore('ledger', () => {
 		settings.value = (await api.updateSettings(input)).settings;
 	}
 
+	async function updateRoundUpRule(input: Partial<Pick<RoundUpRule, 'enabled' | 'roundTo' | 'destinationAccountId'>>): Promise<void> {
+		roundUpRule.value = (await api.updateRoundUpRule(input)).roundUpRule;
+	}
+
 	function reset(): void {
 		settings.value = null;
+		roundUpRule.value = null;
 		accounts.value = [];
 		accountTypes.value = [];
 		categories.value = [];
@@ -115,10 +123,12 @@ export const useLedgerStore = defineStore('ledger', () => {
 		accountTypes,
 		activeAccountTypes,
 		settings,
+		roundUpRule,
 		displayCurrency,
 		budgetMode,
 		defaultAccountId,
 		updateSettings,
+		updateRoundUpRule,
 		categories,
 		loaded,
 		loading,

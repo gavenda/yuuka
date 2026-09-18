@@ -8,6 +8,7 @@ import dev.gavenda.yuuka.data.local.dao.BudgetDao
 import dev.gavenda.yuuka.data.local.dao.CategoryDao
 import dev.gavenda.yuuka.data.local.dao.IncomePlanDao
 import dev.gavenda.yuuka.data.local.dao.PayeeDao
+import dev.gavenda.yuuka.data.local.dao.RoundUpRuleDao
 import dev.gavenda.yuuka.data.local.dao.SettingsDao
 import dev.gavenda.yuuka.data.local.dao.SummaryDao
 import dev.gavenda.yuuka.data.local.dao.TransactionDao
@@ -17,6 +18,7 @@ import dev.gavenda.yuuka.data.local.entity.BudgetEntity
 import dev.gavenda.yuuka.data.local.entity.CategoryEntity
 import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
 import dev.gavenda.yuuka.data.local.entity.PayeeEntity
+import dev.gavenda.yuuka.data.local.entity.RoundUpRuleEntity
 import dev.gavenda.yuuka.data.local.entity.SettingsEntity
 import dev.gavenda.yuuka.data.local.entity.SummaryEntity
 import dev.gavenda.yuuka.data.local.entity.TransactionEntity
@@ -38,8 +40,9 @@ import dev.gavenda.yuuka.data.local.entity.TransactionEntity
         IncomePlanEntity::class,
         SummaryEntity::class,
         PayeeEntity::class,
+        RoundUpRuleEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {
@@ -52,4 +55,5 @@ abstract class YuukaDatabase : RoomDatabase() {
     abstract fun incomePlanDao(): IncomePlanDao
     abstract fun summaryDao(): SummaryDao
     abstract fun payeeDao(): PayeeDao
+    abstract fun roundUpRuleDao(): RoundUpRuleDao
 }

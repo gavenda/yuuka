@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Unarchive
@@ -11,7 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE }
+enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE, ADJUST }
 
 /** A row of icon-only actions sharing one visual language, mirroring `ActionIcon.vue`. */
 @Composable
@@ -29,6 +30,7 @@ fun ActionIconButton(
         ActionIcon.ARCHIVE -> Icons.Filled.Archive
         ActionIcon.RESTORE -> Icons.Filled.Unarchive
         ActionIcon.DELETE -> Icons.Filled.Delete
+        ActionIcon.ADJUST -> Icons.Filled.Balance
     }
     val tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
 

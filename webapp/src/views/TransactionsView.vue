@@ -26,6 +26,8 @@ const search = ref('');
 const accountFilter = ref('');
 const categoryFilter = ref('');
 const month = ref(budget.month);
+const roundUpNotice = ref<string | null>(null);
+let roundUpNoticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 const currency = computed(() => ledger.displayCurrency);
 
@@ -69,14 +71,31 @@ function openEdit(transaction: Transaction, transferToAccountId: string | null =
 	dialogOpen.value = true;
 }
 
+/** Shows "+₱X saved to <account>" for a few seconds after a purchase triggers a Save the Change round-up. */
+function showRoundUpNotice(roundUp: Transaction): void {
+	const destinationCurrency = ledger.accountsById.get(roundUp.accountId)?.currency ?? currency.value;
+	roundUpNotice.value = `${displayMoney(roundUp.amount, destinationCurrency)} saved to ${roundUp.accountName ?? 'your account'}`;
+
+	clearTimeout(roundUpNoticeTimer);
+	roundUpNoticeTimer = setTimeout(() => {
+		roundUpNotice.value = null;
+	}, 5000);
+}
+
 async function save(payload: Record<string, unknown> & { mode: string }): Promise<void> {
 	const { mode, ...body } = payload;
 
 	try {
-		if (mode === 'transfer' && editing.value?.transferId) await api.updateTransfer(editing.value.transferId, body);
-		else if (mode === 'transfer') await api.createTransfer(body);
-		else if (editing.value) await api.updateTransaction(editing.value.id, body);
-		else await api.createTransaction(body);
+		if (mode === 'transfer' && editing.value?.transferId) {
+			await api.updateTransfer(editing.value.transferId, body);
+		} else if (mode === 'transfer') {
+			await api.createTransfer(body);
+		} else if (editing.value) {
+			await api.updateTransaction(editing.value.id, body);
+		} else {
+			const response = await api.createTransaction(body);
+			if (response.roundUp) showRoundUpNotice(response.roundUp);
+		}
 
 		dialogOpen.value = false;
 		await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
@@ -106,6 +125,14 @@ async function remove(): Promise<void> {
 				<button type="button" class="btn-primary" @click="openCreate">Add</button>
 			</div>
 		</header>
+
+		<p
+			v-if="roundUpNotice"
+			class="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+			role="status"
+		>
+			{{ roundUpNotice }}
+		</p>
 
 		<!-- Filters sit in one row above the list. -->
 		<div class="grid gap-3 sm:grid-cols-3">

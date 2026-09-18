@@ -117,6 +117,33 @@ uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
 _would_ take its transactions with it, so the API answers `409` until the caller
 repeats the request with `?includeTransactions=true`.
 
+**A balance adjustment is an ordinary, uncategorised transaction.** `POST
+/accounts/:id/adjust` takes the balance the account should read, not the
+amount to post — it computes the difference itself, in the same statement
+that reads the account's current balance and writes the transaction, so a
+transaction landing in between cannot make the posted amount wrong. Nothing
+distinguishes the resulting row from one entered by hand; it counts towards
+income or spending exactly like any other uncategorised transaction, because
+that is what it is. A request that would post a zero amount is rejected
+rather than silently writing nothing.
+
+**"Save the Change" round-ups are an ordinary linked transfer, not a new
+transaction shape.** `POST /transactions` is the only place it can trigger:
+when the new row is an expense (negative amount) on an account that has opted
+in (`accounts.round_up_source`), and the per-user `round_up_rules` row is
+enabled with a destination account set, the gap between the amount and the
+next `round_to` multiple (₱10 or ₱100 — a minor-unit multiple of 1000 or
+10000, never centavos) is posted as its own transfer: two rows sharing a
+`transfer_id`, uncategorised, payee `"Save the Change"`. That payee is
+synthetic and is never fed into `rememberPayee`, the same way a transfer's
+derived "From → To" name isn't. A purchase that happens to occur on the
+destination account itself simply doesn't round up — the rest of that
+account's spending is unaffected. Editing a transaction, transfers and
+balance adjustments never trigger it; only a plain `POST /transactions` does.
+`round_up_rules` is not provisioned on sign-in — it follows the same
+GET-with-default / upsert pattern as `income_plans` and `payee_history`
+rather than a guaranteed row, since most users never touch the feature.
+
 **Account logos are linked, not uploaded.** An account may carry an image URL the
 browser loads from wherever it lives — no upload, no copy, no storage beyond the
 string. The scheme is restricted to http(s), because the value lands in an

@@ -67,6 +67,8 @@ export const accountCreateSchema = z.object({
 	startingBalance: money.default(0),
 	logoUrl: logoUrl.optional(),
 	logoInvertDark: z.boolean().default(false),
+	/** Whether this account's own purchases round up under "Save the Change". */
+	roundUpSource: z.boolean().default(false),
 });
 
 export const accountUpdateSchema = z
@@ -77,10 +79,19 @@ export const accountUpdateSchema = z
 		startingBalance: money,
 		logoUrl,
 		logoInvertDark: z.boolean(),
+		roundUpSource: z.boolean(),
 		archived: z.boolean(),
 	})
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
+
+export const accountAdjustSchema = z.object({
+	/** The account's balance after this adjustment posts; the API computes the difference itself. */
+	balance: money,
+	occurredOn: dateTimeString,
+	payee: z.string().trim().max(120).default(''),
+	notes: z.string().trim().max(500).default(''),
+});
 
 export const categoryCreateSchema = z.object({
 	name: label,
@@ -166,6 +177,18 @@ export const incomePlanUpsertSchema = z
 		message: 'Gross mode requires a gross amount.',
 		path: ['grossAmount'],
 	});
+
+/** Minor-unit multiple "Save the Change" rounds up to: 1000 (₱10) or 10000 (₱100). */
+export const ROUND_TO_VALUES = [1000, 10000] as const;
+
+export const roundUpRuleUpdateSchema = z
+	.object({
+		enabled: z.boolean(),
+		roundTo: z.union([z.literal(1000), z.literal(10000)]),
+		destinationAccountId: z.string().min(1).nullable(),
+	})
+	.partial()
+	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
 export const settingsUpdateSchema = z
 	.object({

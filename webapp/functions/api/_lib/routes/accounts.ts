@@ -1,12 +1,15 @@
 import { Hono } from 'hono';
-import { invalidateAllSummaries } from '../cache';
+import { invalidateAllSummaries, invalidateSummaries } from '../cache';
+import { monthOf } from '../dates';
 import { badRequest, conflict, notFound } from '../errors';
 import { newId } from '../ids';
+import { toAccount, toTransaction, type AccountRow } from '../mappers';
+import { payeeKind, rememberPayee } from '../payees';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
-import { toAccount, type AccountRow } from '../mappers';
-import { accountCreateSchema, accountUpdateSchema, listQuerySchema } from '../schemas';
+import { accountAdjustSchema, accountCreateSchema, accountUpdateSchema, listQuerySchema } from '../schemas';
+import { loadOne } from './transactions';
 import type { AppEnv } from '../types';
 
 /**
@@ -15,7 +18,7 @@ import type { AppEnv } from '../types';
  * so a stray row could never leak into someone else's total.
  */
 const SELECT_WITH_BALANCE = `
-	SELECT a.id, a.name, a.type_id, a.currency, a.logo_url, a.logo_invert_dark, a.starting_balance, a.archived, a.created_at, a.updated_at,
+	SELECT a.id, a.name, a.type_id, a.currency, a.logo_url, a.logo_invert_dark, a.round_up_source, a.starting_balance, a.archived, a.created_at, a.updated_at,
 	       ty.name AS type_name,
 	       a.starting_balance + COALESCE(SUM(t.amount), 0) AS balance
 	FROM accounts a
@@ -56,8 +59,8 @@ export const accountRoutes = new Hono<AppEnv>()
 		// Guarded the same way transactions are: the type has to be the caller's,
 		// checked in the statement that performs the write.
 		const result = await c.env.DB.prepare(
-			`INSERT INTO accounts (id, user_id, name, type_id, currency, starting_balance, logo_url, logo_invert_dark)
-			 SELECT ?, ?, ?, ?, ?, ?, ?, ?
+			`INSERT INTO accounts (id, user_id, name, type_id, currency, starting_balance, logo_url, logo_invert_dark, round_up_source)
+			 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
 			 WHERE EXISTS (SELECT 1 FROM account_types WHERE id = ? AND user_id = ?)`,
 		)
 			.bind(
@@ -69,6 +72,7 @@ export const accountRoutes = new Hono<AppEnv>()
 				input.startingBalance,
 				input.logoUrl ?? null,
 				toSqliteBool(input.logoInvertDark),
+				toSqliteBool(input.roundUpSource),
 				input.typeId,
 				userId,
 			)
@@ -94,6 +98,7 @@ export const accountRoutes = new Hono<AppEnv>()
 			currency: input.currency,
 			logo_url: input.logoUrl,
 			logo_invert_dark: toSqliteBool(input.logoInvertDark),
+			round_up_source: toSqliteBool(input.roundUpSource),
 			starting_balance: input.startingBalance,
 			archived: toSqliteBool(input.archived),
 		});
@@ -120,6 +125,55 @@ export const accountRoutes = new Hono<AppEnv>()
 			.bind(id, userId)
 			.first<AccountRow>();
 		return c.json({ account: toAccount(row!) });
+	})
+	.post('/:id/adjust', async (c) => {
+		const id = c.req.param('id');
+		const userId = c.get('userId');
+		const input = await parseJson(c, accountAdjustSchema);
+		const txnId = newId('txn');
+		const payee = input.payee || 'Balance adjustment';
+
+		// The posted amount is the target balance minus whatever the account's
+		// balance is right now, computed in the same statement that writes it so a
+		// transaction landing in between cannot make the difference wrong the
+		// instant it posts. An account that is not the caller's, or already at the
+		// target balance, both leave `current` matching nothing to insert.
+		const result = await c.env.DB.prepare(
+			`WITH current AS (
+				 SELECT a.starting_balance + COALESCE(SUM(t.amount), 0) AS balance
+				 FROM accounts a
+				 LEFT JOIN transactions t ON t.account_id = a.id AND t.user_id = a.user_id
+				 WHERE a.id = ? AND a.user_id = ?
+				 GROUP BY a.id
+			 )
+			 INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, payee, notes, transfer_id)
+			 SELECT ?, ?, ?, NULL, ? - current.balance, ?, ?, ?, NULL
+			 FROM current
+			 WHERE ? - current.balance != 0`,
+		)
+			.bind(id, userId, txnId, userId, id, input.balance, input.occurredOn, payee, input.notes, input.balance)
+			.run();
+
+		if (!result.meta.changes) {
+			const owned = await c.env.DB.prepare('SELECT 1 AS present FROM accounts WHERE id = ? AND user_id = ?')
+				.bind(id, userId)
+				.first<{ present: number }>();
+			throw owned ? badRequest('Already at that balance.') : notFound('Account not found.');
+		}
+
+		await invalidateSummaries(c.env.CACHE, userId, [monthOf(input.occurredOn)]);
+
+		const created = (await loadOne(c.env.DB, userId, txnId))!;
+
+		await rememberPayee(c.env.DB, userId, {
+			payee,
+			kind: payeeKind(created.amount, null),
+			accountId: id,
+			categoryId: null,
+			notes: input.notes,
+		});
+
+		return c.json({ transaction: toTransaction(created) }, 201);
 	})
 	.delete('/:id', async (c) => {
 		const id = c.req.param('id');

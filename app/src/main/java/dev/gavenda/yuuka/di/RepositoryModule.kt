@@ -7,7 +7,7 @@ import dev.gavenda.yuuka.repository.TransactionRepository
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single { LedgerRepository(get(), get(), get(), get(), get()) }
+    single { LedgerRepository(get(), get(), get(), get(), get(), get()) }
     single { TransactionRepository(get(), get()) }
     single { BudgetRepository(get(), get(), get(), get()) }
     single { PayeeRepository(get(), get()) }

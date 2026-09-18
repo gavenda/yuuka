@@ -66,6 +66,17 @@ describe('accounts are private', () => {
 		expect((await theirs(`/accounts/${accountId}`, { method: 'DELETE' })).status).toBe(404);
 		expect((await mine(`/accounts/${accountId}`)).status).toBe(200);
 	});
+
+	it('cannot be balance-adjusted by another user', async () => {
+		const response = await theirs(`/accounts/${accountId}/adjust`, {
+			method: 'POST',
+			body: JSON.stringify({ balance: 999_00, occurredOn: '2026-09-04' }),
+		});
+		expect(response.status).toBe(404);
+
+		const { account } = await json<{ account: { balance: number } }>(await mine(`/accounts/${accountId}`));
+		expect(account.balance).toBe(500_00);
+	});
 });
 
 describe('transactions are private', () => {
@@ -276,6 +287,26 @@ describe('default account setting is private', () => {
 
 		const { settings } = await json<{ settings: { defaultAccountId: string | null } }>(await mine('/settings'));
 		expect(settings.defaultAccountId).toBeNull();
+	});
+});
+
+describe('round-up rule is private', () => {
+	it('cannot be pointed at another user’s account', async () => {
+		const theirAccountId = await makeAccount(theirs, { name: 'Not yours' });
+
+		const response = await mine('/round-up', { method: 'PATCH', body: JSON.stringify({ destinationAccountId: theirAccountId }) });
+		expect(response.status).toBe(400);
+
+		const { roundUpRule } = await json<{ roundUpRule: { destinationAccountId: string | null } }>(await mine('/round-up'));
+		expect(roundUpRule.destinationAccountId).toBeNull();
+	});
+
+	it('one user changing theirs does not touch another’s', async () => {
+		const destinationId = await makeAccount(mine, { name: 'Savings' });
+		await mine('/round-up', { method: 'PATCH', body: JSON.stringify({ enabled: true, destinationAccountId: destinationId }) });
+
+		const { roundUpRule } = await json<{ roundUpRule: { enabled: boolean } }>(await theirs('/round-up'));
+		expect(roundUpRule.enabled).toBe(false);
 	});
 });
 

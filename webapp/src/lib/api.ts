@@ -5,6 +5,7 @@ import type {
 	Category,
 	IncomePlan,
 	Payee,
+	RoundUpRule,
 	Settings,
 	Summary,
 	Transaction,
@@ -94,6 +95,10 @@ export const api = {
 	settings: () => request<{ settings: Settings }>('/settings'),
 	updateSettings: (input: Partial<Settings>) => request<{ settings: Settings }>('/settings', { method: 'PATCH', body: body(input) }),
 
+	getRoundUpRule: () => request<{ roundUpRule: RoundUpRule }>('/round-up'),
+	updateRoundUpRule: (input: Partial<RoundUpRule>) =>
+		request<{ roundUpRule: RoundUpRule }>('/round-up', { method: 'PATCH', body: body(input) }),
+
 	listAccountTypes: (includeArchived = false) =>
 		request<{ accountTypes: AccountType[] }>(`/account-types${queryString({ includeArchived: String(includeArchived) })}`),
 	createAccountType: (input: Partial<AccountType>) =>
@@ -109,6 +114,8 @@ export const api = {
 		request<{ account: Account }>(`/accounts/${id}`, { method: 'PATCH', body: body(input) }),
 	deleteAccount: (id: string, includeTransactions = false) =>
 		request<void>(`/accounts/${id}${queryString({ includeTransactions: String(includeTransactions) })}`, { method: 'DELETE' }),
+	adjustAccount: (id: string, input: { balance: number; occurredOn: string; payee?: string; notes?: string }) =>
+		request<{ transaction: Transaction }>(`/accounts/${id}/adjust`, { method: 'POST', body: body(input) }),
 
 	listCategories: (includeArchived = false) =>
 		request<{ categories: Category[] }>(`/categories${queryString({ includeArchived: String(includeArchived) })}`),
@@ -120,7 +127,7 @@ export const api = {
 	listTransactions: (filters: TransactionFilters = {}) =>
 		request<TransactionPage>(`/transactions${queryString(filters as Record<string, string | number | undefined>)}`),
 	createTransaction: (input: Record<string, unknown>) =>
-		request<{ transaction: Transaction }>('/transactions', { method: 'POST', body: body(input) }),
+		request<{ transaction: Transaction; roundUp: Transaction | null }>('/transactions', { method: 'POST', body: body(input) }),
 	updateTransaction: (id: string, input: Record<string, unknown>) =>
 		request<{ transaction: Transaction }>(`/transactions/${id}`, { method: 'PATCH', body: body(input) }),
 	deleteTransaction: (id: string) => request<void>(`/transactions/${id}`, { method: 'DELETE' }),

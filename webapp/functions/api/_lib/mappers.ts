@@ -29,11 +29,20 @@ export interface AccountRow {
 	currency: string;
 	logo_url: string | null;
 	logo_invert_dark: number;
+	round_up_source: number;
 	starting_balance: number;
 	archived: number;
 	created_at: string;
 	updated_at: string;
 	balance?: number;
+}
+
+export interface RoundUpRuleRow {
+	enabled: number;
+	round_to: number;
+	destination_account_id: string | null;
+	created_at: string | null;
+	updated_at: string | null;
 }
 
 export type CategoryScope = 'standard' | 'transfer';
@@ -117,9 +126,18 @@ export const toAccount = (row: AccountRow) => ({
 	currency: row.currency,
 	logoUrl: row.logo_url,
 	logoInvertDark: row.logo_invert_dark === 1,
+	roundUpSource: row.round_up_source === 1,
 	startingBalance: row.starting_balance,
 	balance: row.balance ?? row.starting_balance,
 	archived: row.archived === 1,
+	createdAt: row.created_at,
+	updatedAt: row.updated_at,
+});
+
+export const toRoundUpRule = (row: RoundUpRuleRow) => ({
+	enabled: row.enabled === 1,
+	roundTo: row.round_to,
+	destinationAccountId: row.destination_account_id,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

@@ -23,6 +23,21 @@ data class Settings(
     val updatedAt: String = "",
 )
 
+/**
+ * The "Save the Change" round-up rule. Not provisioned on sign-in — a user who
+ * never opens the feature never gets a row, so a missing rule reads the same
+ * as this default (disabled, no destination).
+ */
+@Serializable
+data class RoundUpRule(
+    val enabled: Boolean = false,
+    /** Minor-unit multiple to round up to: 1000 (₱10) or 10000 (₱100). */
+    val roundTo: Long = 1000,
+    val destinationAccountId: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+)
+
 /** A user-defined account type. Everyone starts with a default set. */
 @Serializable
 data class AccountType(
@@ -47,6 +62,8 @@ data class Account(
     val logoUrl: String? = null,
     /** Applies an invert filter to the logo in dark mode, for a dark mark that would otherwise disappear. */
     val logoInvertDark: Boolean = false,
+    /** Whether this account's own purchases round up under "Save the Change". */
+    val roundUpSource: Boolean = false,
     val startingBalance: Long,
     val balance: Long,
     val archived: Boolean,

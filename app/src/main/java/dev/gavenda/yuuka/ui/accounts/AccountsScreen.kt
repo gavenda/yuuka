@@ -57,6 +57,7 @@ import dev.gavenda.yuuka.ui.common.StatCard
 import dev.gavenda.yuuka.ui.common.SwipeToRevealActions
 import dev.gavenda.yuuka.ui.common.WithSnackbarOverlay
 import dev.gavenda.yuuka.ui.common.rememberBusyState
+import dev.gavenda.yuuka.domain.formatMoney
 import dev.gavenda.yuuka.domain.parseMoney
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -70,6 +71,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
     var typesOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Account?>(null) }
     var creating by remember { mutableStateOf(false) }
+    var adjusting by remember { mutableStateOf<Account?>(null) }
     var pendingDelete by remember { mutableStateOf<Account?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
 
@@ -78,6 +80,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
     val accountUpdatedMessage = stringResource(R.string.account_updated)
     val accountAddedMessage = stringResource(R.string.account_added)
     val accountDeletedMessage = stringResource(R.string.account_deleted)
+    val balanceAdjustedMessage = stringResource(R.string.balance_adjusted)
     val couldNotDeleteAccountMessage = stringResource(R.string.could_not_delete_account)
     val deleteAccountTransactionsConfirmTemplate = stringResource(R.string.delete_account_transactions_confirm)
 
@@ -123,6 +126,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                             account = account,
                             archiving = busy.isBusy(archiveKey),
                             onEdit = { editing = account },
+                            onAdjust = { adjusting = account },
                             onToggleArchive = {
                                 busy.run(
                                     archiveKey,
@@ -169,18 +173,41 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                     accountTypes = state.accountTypes.filter { !it.archived },
                     displayCurrency = state.displayCurrency,
                     submitting = submitting,
-                    onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark ->
+                    onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource ->
                         busy.run(
                             formKey,
                             snackbarHostState,
                             successMessage = if (editing != null) accountUpdatedMessage else accountAddedMessage,
                             onSuccess = { creating = false; editing = null },
                         ) {
-                            if (editing != null) viewModel.updateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark)
-                            else viewModel.createAccount(name, typeId, currency, startingBalance, logoUrl, invertDark)
+                            if (editing != null) {
+                                viewModel.updateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource)
+                            } else {
+                                viewModel.createAccount(name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource)
+                            }
                         }
                     },
                     onCancel = { creating = false; editing = null },
+                )
+            }
+        }
+    }
+
+    val toAdjust = adjusting
+    if (toAdjust != null) {
+        val adjustKey = "account-adjust:${toAdjust.id}"
+        val submitting = busy.isBusy(adjustKey)
+        ModalBottomSheet(onDismissRequest = { if (!submitting) adjusting = null }) {
+            WithSnackbarOverlay {
+                AccountAdjustContent(
+                    account = toAdjust,
+                    submitting = submitting,
+                    onSave = { balance, payee ->
+                        busy.run(adjustKey, snackbarHostState, successMessage = balanceAdjustedMessage, onSuccess = { adjusting = null }) {
+                            viewModel.adjustBalance(toAdjust.id, balance, payee)
+                        }
+                    },
+                    onCancel = { adjusting = null },
                 )
             }
         }
@@ -231,10 +258,18 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
 }
 
 @Composable
-private fun AccountCard(account: Account, archiving: Boolean, onEdit: () -> Unit, onToggleArchive: () -> Unit, onDelete: () -> Unit) {
+private fun AccountCard(
+    account: Account,
+    archiving: Boolean,
+    onEdit: () -> Unit,
+    onAdjust: () -> Unit,
+    onToggleArchive: () -> Unit,
+    onDelete: () -> Unit,
+) {
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
+            ActionIconButton(ActionIcon.ADJUST, stringResource(R.string.cd_adjust_balance_item, account.name), onAdjust)
             ActionIconButton(
                 if (account.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
                 stringResource(R.string.cd_archive_item, account.name),
@@ -264,7 +299,7 @@ private fun AccountFormContent(
     accountTypes: List<AccountType>,
     displayCurrency: String,
     submitting: Boolean,
-    onSave: (String, String, String, Long, String, Boolean) -> Unit,
+    onSave: (String, String, String, Long, String, Boolean, Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
     var name by remember { mutableStateOf(account?.name ?: "") }
@@ -273,6 +308,7 @@ private fun AccountFormContent(
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
+    var roundUpSource by remember { mutableStateOf(account?.roundUpSource ?: false) }
     var error by remember { mutableStateOf<String?>(null) }
     var typeMenuOpen by remember { mutableStateOf(false) }
 
@@ -319,6 +355,16 @@ private fun AccountFormContent(
             }
         }
 
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(stringResource(R.string.round_up_source_label), modifier = Modifier.weight(1f))
+            Switch(checked = roundUpSource, onCheckedChange = { roundUpSource = it })
+        }
+        Text(
+            stringResource(R.string.round_up_source_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -335,13 +381,87 @@ private fun AccountFormContent(
                         error = nameTypeRequiredErrorMessage
                         return@Button
                     }
-                    onSave(name, typeId, currency, balance, logoUrl.trim(), invertDark)
+                    onSave(name, typeId, currency, balance, logoUrl.trim(), invertDark, roundUpSource)
                 },
             ) {
                 if (submitting) {
                     MutationLoadingIndicator()
                 } else {
                     Text(if (account != null) stringResource(R.string.save_changes) else stringResource(R.string.add_account))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: (Long, String) -> Unit, onCancel: () -> Unit) {
+    var balance by remember { mutableStateOf(toDecimalString(account.balance)) }
+    var payee by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    val balanceErrorMessage = stringResource(R.string.error_balance_number)
+    val unchangedErrorMessage = stringResource(R.string.error_balance_unchanged)
+    val difference = parseMoney(balance)?.let { it - account.balance }
+
+    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(R.string.adjust_balance), style = MaterialTheme.typography.titleMedium)
+
+        Text(
+            stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        OutlinedTextField(
+            value = balance,
+            onValueChange = { balance = it },
+            label = { Text(stringResource(R.string.label_new_balance)) },
+            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (difference != null && difference != 0L) {
+            Text(
+                stringResource(
+                    if (difference > 0) R.string.adjust_balance_logs_income else R.string.adjust_balance_logs_expense,
+                    formatMoney(difference, account.currency),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        OutlinedTextField(
+            value = payee,
+            onValueChange = { payee = it },
+            label = { Text(stringResource(R.string.label_payee_optional)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) }
+            Button(
+                enabled = !submitting,
+                onClick = {
+                    val target = parseMoney(balance)
+                    if (target == null) {
+                        error = balanceErrorMessage
+                        return@Button
+                    }
+                    if (target == account.balance) {
+                        error = unchangedErrorMessage
+                        return@Button
+                    }
+                    onSave(target, payee.trim())
+                },
+            ) {
+                if (submitting) {
+                    MutationLoadingIndicator()
+                } else {
+                    Text(stringResource(R.string.save_adjustment))
                 }
             }
         }

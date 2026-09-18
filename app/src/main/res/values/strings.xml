@@ -172,6 +172,18 @@
     <string name="type_restored">Type restored</string>
     <string name="type_archived">Type archived</string>
     <string name="type_deleted">Type deleted</string>
+    <string name="adjust_balance">Adjust balance</string>
+    <string name="cd_adjust_balance_item">Adjust balance for %1$s</string>
+    <string name="adjust_balance_description">%1$s\'s current balance is %2$s. Enter what it should be instead — the difference is logged as its own transaction, dated today.</string>
+    <string name="label_new_balance">New balance</string>
+    <string name="label_payee_optional">Payee (optional)</string>
+    <string name="adjust_balance_logs_income">Logs %1$s as income.</string>
+    <string name="adjust_balance_logs_expense">Logs %1$s as an expense.</string>
+    <string name="error_balance_number">Balance must be a number.</string>
+    <string name="error_balance_unchanged">That is already the current balance.</string>
+    <string name="save_adjustment">Save adjustment</string>
+    <string name="balance_adjusted">Balance adjusted</string>
+    <string name="could_not_adjust_balance">Could not adjust the balance.</string>
 
     <!-- Settings screen -->
     <string name="display_currency">Display currency</string>
@@ -191,6 +203,21 @@
     <string name="first_active_account">First active account</string>
     <string name="settings_saved">Settings saved</string>
     <string name="could_not_save_setting">Could not save the setting.</string>
+
+    <!-- Save the Change -->
+    <string name="destination_save_the_change">Save the Change</string>
+    <string name="save_the_change_enabled">Round up purchases</string>
+    <string name="save_the_change_description">Rounds up ordinary expenses on accounts you\'ve opted into below, and moves the difference into your chosen account.</string>
+    <string name="round_to_label">Round up to the nearest</string>
+    <string name="round_to_ten">₱10</string>
+    <string name="round_to_hundred">₱100</string>
+    <string name="destination_account">Destination account</string>
+    <string name="choose_an_account">Choose an account</string>
+    <string name="save_the_change_accounts_title">Accounts</string>
+    <string name="round_up_source_label">Round up purchases (Save the Change)</string>
+    <string name="round_up_source_hint">Every expense on this account rounds up to the nearest ₱10 or ₱100 you\'ve set under Save the Change, moving the difference to your chosen account.</string>
+    <string name="save_the_change_saved">Save the Change updated</string>
+    <string name="could_not_save_round_up_rule">Could not save Save the Change.</string>
 
     <!-- Transaction form -->
     <string name="label_payee">Payee</string>

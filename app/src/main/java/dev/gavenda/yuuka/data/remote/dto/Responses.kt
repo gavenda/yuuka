@@ -6,6 +6,7 @@ import dev.gavenda.yuuka.data.model.Budget
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.IncomePlan
 import dev.gavenda.yuuka.data.model.Payee
+import dev.gavenda.yuuka.data.model.RoundUpRule
 import dev.gavenda.yuuka.data.model.Settings
 import dev.gavenda.yuuka.data.model.Transaction
 import kotlinx.serialization.Serializable
@@ -39,8 +40,12 @@ data class CategoriesResponse(val categories: List<Category>)
 @Serializable
 data class CategoryResponse(val category: Category)
 
+/** `roundUp`, when present, is only ever set on `POST /transactions`'s create response — the destination leg of an auto-generated linked transfer. */
 @Serializable
-data class TransactionResponse(val transaction: Transaction)
+data class TransactionResponse(val transaction: Transaction, val roundUp: Transaction? = null)
+
+@Serializable
+data class RoundUpRuleResponse(val roundUpRule: RoundUpRule)
 
 @Serializable
 data class TransferResponse(val transferId: String, val transactions: List<Transaction>)

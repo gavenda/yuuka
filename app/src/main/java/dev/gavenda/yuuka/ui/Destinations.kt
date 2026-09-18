@@ -21,3 +21,6 @@ enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, val
 
 /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
 const val SETTINGS_ROUTE = "settings"
+
+/** Reached from the navigation drawer, same as [SETTINGS_ROUTE] — not a bottom-nav tab. */
+const val SAVE_THE_CHANGE_ROUTE = "save-the-change"
