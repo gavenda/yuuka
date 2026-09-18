@@ -26,8 +26,8 @@ android {
         applicationId = "dev.gavenda.yuuka"
         minSdk = 36
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.6.1"
+        versionCode = 11
+        versionName = "1.6.2"
 
         // Configure the Auth0 SDK
         manifestPlaceholders["auth0Domain"] = "@string/com_auth0_domain"
