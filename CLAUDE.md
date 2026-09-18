@@ -21,8 +21,25 @@ The following bullets and sections are important and should be adhered:
 
 ### IDE
 If Idea MCP is available, use it for the following:
-- Debugging
-- Launching build scripts (gradle, etc)
+- Analyze function paths (analyze_calls)
+- Building (build_project)
+- Linting (line_files)
+- Getting symbol info (get_symbol_info)
+- Creating new file (create_new_file)
+- Listing directories (list_directory_tree)
+- Reformatting (reformat_file)
+- Applying patches (apply_patch)
+- Read file (read_file)
+- Search file (search_file)
+- Search text (search_text)
+- Search regex (search_regex)
+- Search symbol (search_symbol)
+- Refactor rename (rename_refactoring)
+- Get repositories (get_repositories)
+- Git Status (git_status)
+- Launching build scripts (get_run_configurations, execute_run_configuration)
+
+When debugging, use `get_run_configuration` to get the debug config and use `execute_run_configuration` to run it.
 
 Otherwise, opt-in for shell commands.
 
