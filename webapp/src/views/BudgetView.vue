@@ -173,7 +173,6 @@ onMounted(async () => {
 				<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Income</p>
 				<ul class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
 					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex items-center justify-between gap-3 py-2 text-sm">
-						<span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: entry.color }" />
 						<span class="text-slate-500 dark:text-slate-400">{{ entry.name }}</span>
 						<span class="tabular text-slate-900 dark:text-slate-100">{{ displayMoney(entry.actual, currency) }}</span>
 					</li>
