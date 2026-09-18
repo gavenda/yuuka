@@ -345,6 +345,18 @@ describe('summary', () => {
 		]);
 	});
 
+	it('buckets a timed occurrence under its calendar date, merged with any bare-date spending the same day', async () => {
+		await addTransaction({ categoryId: groceries, amount: -500, occurredOn: '2026-09-03T09:15' });
+		await addTransaction({ categoryId: groceries, amount: -1_500, occurredOn: '2026-09-20T21:45' });
+
+		const { dailySpend } = await json<{ dailySpend: { date: string; amount: number }[] }>(await call('/summary?month=2026-09'));
+		expect(dailySpend).toEqual([
+			{ date: '2026-09-03', amount: 8450 + 500 },
+			{ date: '2026-09-11', amount: 12000 },
+			{ date: '2026-09-20', amount: 1500 },
+		]);
+	});
+
 	it('excludes transfers from income and spending', async () => {
 		const savings = await makeAccount(call, { name: 'Savings' });
 		await call('/transactions/transfer', {

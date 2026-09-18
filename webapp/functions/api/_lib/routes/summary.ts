@@ -115,11 +115,15 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		// fixed budgets, so it doesn't reset when the caller switches months.
 		c.env.DB.prepare('SELECT amount, mode, gross_amount FROM income_plans WHERE user_id = ? AND month = ?').bind(userId, budgetMonth),
 		c.env.DB.prepare(
-			`SELECT occurred_on AS date, -SUM(amount) AS spent
+			// `occurred_on` may carry a `THH:MM` time of day, so bucket on just the
+			// date portion — grouping on the raw column would split one day's
+			// spending across several rows keyed by timestamps the frontend's
+			// per-day lookup never matches.
+			`SELECT substr(occurred_on, 1, 10) AS date, -SUM(amount) AS spent
 			 FROM transactions
 			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND occurred_on >= ? AND occurred_on < ?
-			 GROUP BY occurred_on
-			 ORDER BY occurred_on ASC`,
+			 GROUP BY substr(occurred_on, 1, 10)
+			 ORDER BY date ASC`,
 		).bind(userId, start, end),
 	]);
 

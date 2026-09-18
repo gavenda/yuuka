@@ -45456,7 +45456,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt",
-      "source_location": "L131",
+      "source_location": "L135",
       "weight": 1.0
     },
     {
@@ -46548,7 +46548,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "webapp/functions/api/_lib/routes/summary.ts",
-      "source_location": "L217",
+      "source_location": "L221",
       "weight": 1.0
     },
     {
@@ -106766,7 +106766,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "webapp/functions/api/_lib/routes/summary.ts",
-      "source_location": "L210",
+      "source_location": "L214",
       "weight": 1.0
     },
     {
@@ -107246,5 +107246,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2e2ff3d9a5b54785b90f5f7f57793442db268bfa"
+  "built_at_commit": "853eee4edc6abe689ecb5e35e58c92712a9dffe0"
 }

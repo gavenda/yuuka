@@ -1,17 +1,17 @@
 # Graph Report - yuuka  (2026-09-18)
 
 ## Corpus Check
-- 200 files · ~159,464 words
+- 200 files · ~159,671 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 30 file(s) not represented in the graph (top: .xml 13, (none) 7, .properties 2)
 
 ## Summary
-- 3481 nodes · 5367 edges · 274 communities (94 shown, 180 thin omitted)
+- 3486 nodes · 5371 edges · 282 communities (99 shown, 183 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 46 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `920b63ea`
+- Built from commit: `68afd96e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -25,24 +25,24 @@
 - apiCall
 - AuthManager.kt
 - AccountsScreen.kt
-- TransactionForm
+- TransactionForm.kt
 - YuukaDatabase.kt
 - Responses.kt
-- AccountDao
+- Entities.kt
 - worker-configuration.d.ts
 - SwipeToRevealActions.kt
-- helpers.ts
-- Composable
-- materialtheme
-- BarCharts.kt
-- Dates.kt
+- vitest
+- AccountLogo.kt
+- ActionIconButton.kt
+- LedgerDao.kt
+- currentMonth
 - ThemePreference
 - ref_node_events
 - MainActivity.kt
 - app.ts
 - Event
 - schemas.ts
-- budgets.ts
+- summary.ts
 - NetworkModule.kt
 - gradlew
 - Round App Launcher Icon (hdpi)
@@ -93,7 +93,7 @@
 - src/types.ts
 - compilerOptions
 - scripts
-- ScreenStatus
+- budgets.ts
 - compilerOptions
 - URLSearchParams
 - devDependencies
@@ -133,7 +133,7 @@
 - SqlStorageCursor
 - Vectorize
 - WorkflowInstance
-- ref_types
+- vue
 - Ai
 - AiSearchNamespace
 - ReadableStreamBYOBReader
@@ -149,7 +149,7 @@
 - ReadableStreamDefaultReader
 - Span
 - TextDecoder
-- IncomePlanMode
+- Money.kt
 - AiGateway
 - Comment
 - Disposable
@@ -258,18 +258,26 @@
 - FormMode
 - repository
 - asimagebitmap
-- ref_cloudflare_test
+- PayeeField.kt
 - ref_home_enda_projects_yuuka_webapp_node_modules_wrangler_templates_middleware_middleware_miniflare3_json_error_ts
 - ref_home_enda_projects_yuuka_webapp_node_modules_wrangler_templates_pages_template_worker_ts
 - ref_home_enda_projects_yuuka_webapp_wrangler_tmp_bundle_48t1to_middleware_insertion_facade_js
 - ref_home_enda_projects_yuuka_webapp_wrangler_tmp_bundle_ye8fey_middleware_insertion_facade_js
 - ref_home_enda_projects_yuuka_webapp_wrangler_tmp_pages_glcokt_functionsworker_0_30812614670656835_mjs
 - ref_node_stream
+- ViewModelModule.kt
+- TransactionDao
+- BudgetDao
 - ref_home_enda_projects_yuuka_webapp_node_modules_wrangler_templates_middleware_common_ts
-- authedClient
+- helpers.ts
 - AccountsViewModel
 - BudgetRepository
+- budgets.spec.ts
+- D1PreparedStatement
 - subcategories.spec.ts
+- ModalDialog.vue
+- floatingactionbutton
+- home
 - lib/dates.ts
 - palette.ts
 - mutableintstateof
@@ -285,7 +293,7 @@
 - intrinsicsize
 - ref_home_enda_projects_yuuka_webapp_wrangler_tmp_pages_nkq7dl_functionsworker_0_8211557961464369_mjs
 - wrapcontentwidth
-- vue
+- AccountLogo.vue
 - test/payees.spec.ts
 
 ## God Nodes (most connected - your core abstractions)
@@ -309,93 +317,93 @@
   app/src/main/java/dev/gavenda/yuuka/ui/transactions/TransactionsScreen.kt → app/src/main/java/dev/gavenda/yuuka/ui/transactions/TransactionForm.kt
 - `accountRoutes` --indirect_call--> `toAccount()`  [INFERRED]
   webapp/functions/api/_lib/routes/accounts.ts → webapp/functions/api/_lib/mappers.ts
-- `MainActivity` --references--> `AuthManager`  [EXTRACTED]
-  app/src/main/java/dev/gavenda/yuuka/MainActivity.kt → app/src/main/java/dev/gavenda/yuuka/auth/AuthManager.kt
+- `useBudgetStore` --indirect_call--> `load()`  [INFERRED]
+  webapp/src/stores/budget.ts → webapp/src/components/PayeeInput.vue
 
 ## Import Cycles
 - None detected.
 
-## Communities (274 total, 180 thin omitted)
+## Communities (282 total, 183 thin omitted)
 
 ### Community 0 - "ColorWheel.kt"
 Cohesion: 0.07
-Nodes (38): alpha, AccountLogo(), AccountWatermark(), Modifier, BrightnessSlider(), ColorWheelPicker(), HueSaturationWheel(), Color (+30 more)
+Nodes (37): CategoryBreakdown, DailySpend, DaySeriesEntry, CategoryBreakdown, monthSeries(), RankableEntry, rankAndFold(), toRankable() (+29 more)
 
 ### Community 1 - "TransactionsViewModel.kt"
-Cohesion: 0.12
-Nodes (13): StateFlow, Transaction, TransactionFilters, ViewModel, Plain, TransactionFormState, TransactionSubmission, TransactionsUiState (+5 more)
+Cohesion: 0.11
+Nodes (14): StateFlow, Transaction, TransactionFilters, ViewModel, Plain, TransactionFormState, TransactionSubmission, TransactionsUiState (+6 more)
 
 ### Community 2 - "YuukaApi"
-Cohesion: 0.07
-Nodes (22): AccountResponse, AccountsResponse, AccountTypeResponse, AccountTypesResponse, BudgetResponse, BudgetsResponse, CategoriesResponse, CategoryResponse (+14 more)
+Cohesion: 0.06
+Nodes (23): Summary, AccountResponse, AccountsResponse, AccountTypeResponse, AccountTypesResponse, BudgetResponse, BudgetsResponse, CategoriesResponse (+15 more)
 
 ### Community 3 - "PhilippinesTax.kt"
 Cohesion: 0.09
 Nodes (20): androidjunit4, ExampleInstrumentedTest, computeNetPay(), ContributionLine, NetPayBreakdown, pagIbigContribution(), peso(), philHealthContribution() (+12 more)
 
 ### Community 4 - "YuukaApp.kt"
-Cohesion: 0.05
-Nodes (41): animatedcontenttransitionscope, CategoriesScreen(), CategoryFormContent(), CategoryRow(), colorFromHex(), Category, Color, Modifier (+33 more)
+Cohesion: 0.07
+Nodes (33): animatedcontenttransitionscope, Modifier, UserAvatar(), Modifier, SettingsScreen(), Modifier, tabSlideDirection(), YuukaApp() (+25 more)
 
 ### Community 5 - "YuukaApplication.kt"
-Cohesion: 0.18
-Nodes (11): androidlogger, Context, Factory, YuukaApplication, Application, ImageLoader, level, okhttpclient (+3 more)
+Cohesion: 0.15
+Nodes (13): androidcontext, androidlogger, Context, Factory, YuukaApplication, Application, ImageLoader, level (+5 more)
 
 ### Community 6 - "apiCall"
-Cohesion: 0.14
-Nodes (11): apiCall(), Account, AccountType, Category, CategoryKind, CategoryScope, LedgerRepository, Flow (+3 more)
+Cohesion: 0.18
+Nodes (9): apiCall(), Account, AccountType, Category, CategoryKind, CategoryScope, Flow, LedgerRepository (+1 more)
 
 ### Community 7 - "AuthManager.kt"
 Cohesion: 0.18
 Nodes (13): AuthManager, AuthState, SharedFlow, StateFlow, Loading, Unauthenticated, Auth0, mutablesharedflow (+5 more)
 
 ### Community 8 - "AccountsScreen.kt"
-Cohesion: 0.13
-Nodes (47): add, alertdialog, ApiError, arrangement, button, card, clickable, collectasstate (+39 more)
+Cohesion: 0.14
+Nodes (39): add, alertdialog, ApiError, arrangement, button, card, collectasstate, collectasstatewithlifecycle (+31 more)
 
-### Community 9 - "TransactionForm"
-Cohesion: 0.11
-Nodes (23): CategoryGroup, expenseCategories(), groupForPicker(), incomeCategories(), Category, transferCategories(), today(), isExhausted() (+15 more)
+### Community 9 - "TransactionForm.kt"
+Cohesion: 0.12
+Nodes (28): CategoryGroup, expenseCategories(), groupForPicker(), incomeCategories(), Category, transferCategories(), Context, showDatePicker() (+20 more)
 
 ### Community 10 - "YuukaDatabase.kt"
-Cohesion: 0.07
-Nodes (25): BudgetDao, IncomePlanDao, Flow, SummaryDao, SettingsDao, Flow, PayeeDao, Flow (+17 more)
+Cohesion: 0.14
+Nodes (8): SettingsDao, Flow, PayeeDao, PayeeEntity, SettingsEntity, YuukaDatabase, database, RoomDatabase
 
 ### Community 11 - "Responses.kt"
-Cohesion: 0.11
-Nodes (34): AccountEntity, AccountTypeEntity, toDomain(), toEntity(), Account, AccountType, BudgetMode, fixed (+26 more)
+Cohesion: 0.12
+Nodes (30): toDomain(), toEntity(), Account, AccountType, BudgetMode, fixed, monthly, Category (+22 more)
 
-### Community 12 - "AccountDao"
-Cohesion: 0.15
-Nodes (5): AccountDao, AccountTypeDao, CategoryDao, Flow, CategoryEntity
+### Community 12 - "Entities.kt"
+Cohesion: 0.14
+Nodes (9): AccountDao, AccountTypeDao, CategoryDao, Flow, AccountEntity, AccountTypeEntity, CategoryEntity, entity (+1 more)
 
 ### Community 13 - "worker-configuration.d.ts"
 Cohesion: 0.00
 Nodes (886): RFC-2253, RFC-3339, RFC-5246, RFC-9440, AgentMemoryGetSummaryOptions, AgentMemoryGetSummaryResponse, AgentMemoryIncomingMemory, AgentMemoryIngestOptions (+878 more)
 
 ### Community 14 - "SwipeToRevealActions.kt"
-Cohesion: 0.08
-Nodes (24): anchoreddraggable, anchoreddraggablestate, animateto, Modifier, RevealAnchor, CLOSED, OPEN, basictextfield (+16 more)
-
-### Community 15 - "helpers.ts"
-Cohesion: 0.23
-Nodes (9): vitest, DEFAULT_CURRENCY, accountTypeId(), Call, categoryCount(), json(), makeAccount(), makeCategory() (+1 more)
-
-### Community 16 - "Composable"
-Cohesion: 0.16
-Nodes (16): addMonths(), currentMonth(), formatMonth(), EmptyState(), Modifier, Modifier, MonthSwitcher(), borderstroke (+8 more)
-
-### Community 17 - "materialtheme"
-Cohesion: 0.16
-Nodes (13): ActionIcon, ARCHIVE, DELETE, EDIT, RESTORE, ActionIconButton(), Modifier, archive (+5 more)
-
-### Community 18 - "BarCharts.kt"
-Cohesion: 0.15
-Nodes (18): CategoryBreakdown, DailySpend, DaySeriesEntry, CategoryBreakdown, monthSeries(), RankableEntry, rankAndFold(), toRankable() (+10 more)
-
-### Community 19 - "Dates.kt"
 Cohesion: 0.11
-Nodes (21): formatDate(), formatLongDate(), formatTime(), Context, showDatePicker(), showTimePicker(), TransactionRow, RecentActivityRow() (+13 more)
+Nodes (18): anchoreddraggable, anchoreddraggablestate, animateto, Modifier, RevealAnchor, CLOSED, OPEN, boxscope (+10 more)
+
+### Community 15 - "vitest"
+Cohesion: 0.22
+Nodes (9): vitest, DEFAULT_ACCOUNT_TYPES, DEFAULT_CURRENCY, accountTypeId(), Call, json(), makeAccount(), makeCategory() (+1 more)
+
+### Community 16 - "AccountLogo.kt"
+Cohesion: 0.07
+Nodes (40): alignment, alpha, AccountLogo(), AccountWatermark(), Modifier, Modifier, Modifier, aspectratio (+32 more)
+
+### Community 17 - "ActionIconButton.kt"
+Cohesion: 0.17
+Nodes (11): ActionIcon, ARCHIVE, DELETE, EDIT, RESTORE, Modifier, archive, delete (+3 more)
+
+### Community 18 - "LedgerDao.kt"
+Cohesion: 0.19
+Nodes (10): IncomePlanDao, Flow, SummaryDao, IncomePlanEntity, SummaryEntity, dao, insert, onconflictstrategy (+2 more)
+
+### Community 19 - "currentMonth"
+Cohesion: 0.15
+Nodes (17): addMonths(), currentMonth(), formatDate(), formatLongDate(), formatMonth(), formatTime(), today(), Modifier (+9 more)
 
 ### Community 20 - "ThemePreference"
 Cohesion: 0.21
@@ -403,11 +411,11 @@ Nodes (9): StateFlow, ThemeMode, dark, light, system, ThemePreference, asstatefl
 
 ### Community 22 - "MainActivity.kt"
 Cohesion: 0.09
-Nodes (24): alignment, MainActivity, AuthScreen(), Modifier, YuukaTheme(), box, build, Bundle (+16 more)
+Nodes (23): MainActivity, AuthScreen(), Modifier, YuukaTheme(), box, build, Bundle, ComponentActivity (+15 more)
 
 ### Community 23 - "app.ts"
-Cohesion: 0.23
-Nodes (10): hono, ref_hono_cloudflare_pages, ref_hono_http_exception, app, AccessTokenClaims, toPayee(), authRoutes, payeeRoutes (+2 more)
+Cohesion: 0.20
+Nodes (12): hono, ref_hono_cloudflare_pages, ref_hono_http_exception, app, AccessTokenClaims, PayeeRow, toPayee(), authRoutes (+4 more)
 
 ### Community 24 - "Event"
 Cohesion: 0.04
@@ -415,15 +423,15 @@ Nodes (12): CloseEvent, CustomEvent, EmailEvent, ErrorEvent, Event, ExtendableEv
 
 ### Community 25 - "schemas.ts"
 Cohesion: 0.07
-Nodes (39): addMonths(), DATE_PATTERN, DATE_TIME_PATTERN, isDate(), isMonth(), MONTH_PATTERN, monthOf(), monthRange() (+31 more)
+Nodes (39): BUDGET_MODES, addMonths(), DATE_PATTERN, DATE_TIME_PATTERN, isDate(), isMonth(), MONTH_PATTERN, monthOf() (+31 more)
 
-### Community 26 - "budgets.ts"
-Cohesion: 0.11
-Nodes (37): BUDGET_MODES, BudgetMode, budgetMonthKey(), FIXED_BUDGET_MONTH, getBudgetMode(), invalidateSummaries(), readSummary(), summaryKey() (+29 more)
+### Community 26 - "summary.ts"
+Cohesion: 0.13
+Nodes (23): BudgetMode, readSummary(), summaryKey(), userPrefix(), writeSummary(), AccountRow, AccountTypeRow, BudgetRow (+15 more)
 
 ### Community 27 - "NetworkModule.kt"
-Cohesion: 0.18
-Nodes (9): androidcontext, apijson, asconverterfactory, buildconfig, httplogginginterceptor, module, r, room (+1 more)
+Cohesion: 0.29
+Nodes (6): apijson, asconverterfactory, buildconfig, httplogginginterceptor, r, tomediatype
 
 ### Community 28 - "gradlew"
 Cohesion: 0.83
@@ -434,24 +442,24 @@ Cohesion: 0.67
 Nodes (3): Round App Launcher Icon (hdpi), Android Robot with Grid/Network Motif Branding, Round Launcher Icon Variant (Android adaptive icons)
 
 ### Community 42 - "BudgetViewModel.kt"
-Cohesion: 0.22
-Nodes (7): BudgetUiState, BudgetViewModel, SharedFlow, StateFlow, ViewModel, flatmaplatest, viewmodel
+Cohesion: 0.13
+Nodes (13): IncomePlanMode, fixed, gross, BudgetUiState, BudgetViewModel, SharedFlow, StateFlow, ViewModel (+5 more)
 
 ### Community 43 - "DashboardViewModel.kt"
-Cohesion: 0.22
-Nodes (11): TransactionFilters, Transaction, mergeTransferRows(), Single, TransactionRow, Transfer, DashboardUiState, DashboardViewModel (+3 more)
+Cohesion: 0.24
+Nodes (10): TransactionFilters, Transaction, mergeTransferRows(), Single, TransactionRow, Transfer, DashboardUiState, DashboardViewModel (+2 more)
 
 ### Community 44 - "Destinations.kt"
 Cohesion: 0.15
 Nodes (12): accountbalancewallet, YuukaDestination, ACCOUNTS, BUDGET, CATEGORIES, DASHBOARD, TRANSACTIONS, category (+4 more)
 
 ### Community 45 - "BudgetScreen.kt"
-Cohesion: 0.11
-Nodes (21): abs, AmountVisibility, StateFlow, formatAmount(), formatMoney(), parseMoney(), parsePercent(), percentOf() (+13 more)
+Cohesion: 0.10
+Nodes (33): parseMoney(), parsePercent(), percentOf(), toDecimalString(), AccountCard(), AccountFormContent(), AccountsScreen(), AccountTypeManagerContent() (+25 more)
 
 ### Community 46 - "Callback"
-Cohesion: 0.20
-Nodes (5): Authenticated, Callback, Callback, Credentials, CredentialsManagerException
+Cohesion: 0.19
+Nodes (6): Authenticated, Callback, Callback, Callback, Credentials, CredentialsManagerException
 
 ### Community 47 - "CategoriesViewModel"
 Cohesion: 0.20
@@ -466,16 +474,16 @@ Cohesion: 0.19
 Nodes (5): Flow, Transaction, TransactionFilters, TransactionRepository, TransactionPage
 
 ### Community 50 - ".login"
-Cohesion: 0.24
-Nodes (5): Activity, Callback, Callback, AuthenticationException, Callback
+Cohesion: 0.25
+Nodes (4): Activity, Callback, Callback, AuthenticationException
 
 ### Community 51 - "ServiceWorkerGlobalScope"
 Cohesion: 0.04
 Nodes (7): AbortSignal, EventSource, EventTarget, MessagePort, ServiceWorkerGlobalScope, WebSocket, WorkerGlobalScope
 
 ### Community 52 - "MoneyText.kt"
-Cohesion: 0.10
-Nodes (28): AccountCard(), AccountFormContent(), AccountsScreen(), AccountTypeManagerContent(), Account, AccountType, Modifier, Color (+20 more)
+Cohesion: 0.12
+Nodes (18): Color, Modifier, moneyColor(), MoneyTone, NEUTRAL, SIGNED, TRANSFER, Modifier (+10 more)
 
 ### Community 53 - "UnitConverterFactory.kt"
 Cohesion: 0.39
@@ -510,8 +518,8 @@ Cohesion: 0.24
 Nodes (8): BudgetHealth, CRITICAL, GOOD, WARNING, budgetStatus(), PaletteSlot, Status, statusColor()
 
 ### Community 61 - "defaults.ts"
-Cohesion: 0.11
-Nodes (17): DEFAULT_ACCOUNT_TYPES, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_COUNT, DefaultAccount, DefaultAccountType, DefaultBudget, DefaultCategory, DefaultTransaction (+9 more)
+Cohesion: 0.16
+Nodes (12): DEFAULT_CATEGORIES, DEFAULT_CATEGORY_COUNT, DefaultAccount, DefaultAccountType, DefaultBudget, DefaultCategory, DefaultTransaction, DEMO_ACCOUNTS (+4 more)
 
 ### Community 62 - "src/views/BudgetView.vue"
 Cohesion: 0.07
@@ -530,8 +538,8 @@ Cohesion: 0.10
 Nodes (16): ref_components_accountlogo_vue, ref_components_accounttypemanager_vue, ref_components_accountwatermark_vue, AccountGroup, archivedCount, budget, dialogOpen, editing (+8 more)
 
 ### Community 66 - "MonthSwitcher.vue"
-Cohesion: 0.33
-Nodes (6): ref_lib_dates, emit, isCurrent, label, props, shift()
+Cohesion: 0.40
+Nodes (5): emit, isCurrent, label, props, shift()
 
 ### Community 68 - "src/views/CategoriesView.vue"
 Cohesion: 0.10
@@ -558,8 +566,8 @@ Cohesion: 0.11
 Nodes (18): concurrently, happy-dom, prettier, tailwindcss, @types/node, typescript, vue-tsc, @vue/tsconfig (+10 more)
 
 ### Community 75 - "middleware/auth.ts"
-Cohesion: 0.22
-Nodes (14): ref_hono_factory, ref_hono_utils_jwt_types, ALLOWED_ALGORITHMS, auth0Config, fetchJwks(), jwksCacheKey(), readJwks(), unauthorizedFor() (+6 more)
+Cohesion: 0.19
+Nodes (16): ref_hono_factory, ref_hono_utils_jwt, ref_hono_utils_jwt_jws, ref_hono_utils_jwt_types, ALLOWED_ALGORITHMS, auth0Config, fetchJwks(), jwksCacheKey() (+8 more)
 
 ### Community 76 - "src/types.ts"
 Cohesion: 0.12
@@ -573,9 +581,9 @@ Nodes (16): compilerOptions, allowImportingTsExtensions, erasableSyntaxOnly, lib
 Cohesion: 0.12
 Nodes (15): scripts, build, cf-typegen, db:migrate, db:migrate:local, deploy, dev, dev:api (+7 more)
 
-### Community 79 - "ScreenStatus"
-Cohesion: 0.40
-Nodes (4): Error, Idle, Loading, ScreenStatus
+### Community 79 - "budgets.ts"
+Cohesion: 0.27
+Nodes (15): budgetMonthKey(), FIXED_BUDGET_MONTH, getBudgetMode(), invalidateSummaries(), currentMonth(), newId(), stableId(), toBudget() (+7 more)
 
 ### Community 80 - "compilerOptions"
 Cohesion: 0.12
@@ -629,13 +637,13 @@ Nodes (3): ByteLengthQueuingStrategy, CountQueuingStrategy, QueuingStrategy
 Cohesion: 0.25
 Nodes (8): dependencies, @auth0/auth0-vue, chart.js, hono, pinia, vue, vue-router, zod
 
-### Community 119 - "ref_types"
-Cohesion: 0.13
-Nodes (14): ref_lib_api, ref_lib_auth0, pinia, ref_router, ref_types, load(), TransactionRow, TransferRow (+6 more)
+### Community 119 - "vue"
+Cohesion: 0.08
+Nodes (19): ref_lib_api, ref_lib_auth0, ref_lib_dates, pinia, ref_router, ref_types, vue, failed (+11 more)
 
-### Community 135 - "IncomePlanMode"
-Cohesion: 0.50
-Nodes (3): IncomePlanMode, fixed, gross
+### Community 135 - "Money.kt"
+Cohesion: 0.15
+Nodes (11): abs, AmountVisibility, StateFlow, formatAmount(), formatMoney(), currency, locale, max (+3 more)
 
 ### Community 138 - "Disposable"
 Cohesion: 0.40
@@ -657,17 +665,37 @@ Nodes (4): FormMode, EXPENSE, INCOME, TRANSFER
 Cohesion: 0.50
 Nodes (4): repository, directory, type, url
 
-### Community 256 - "authedClient"
-Cohesion: 0.18
-Nodes (15): ref_hono_utils_jwt, ref_hono_utils_jwt_jws, PROTECTED, authedClient(), request(), generateKeys(), mintToken(), OTHER_SUBJECT (+7 more)
+### Community 245 - "PayeeField.kt"
+Cohesion: 0.25
+Nodes (9): isExhausted(), Payee, rankPayees(), Modifier, Payee, PayeeField(), dropdownmenu, onfocuschanged (+1 more)
+
+### Community 252 - "ViewModelModule.kt"
+Cohesion: 0.22
+Nodes (5): Flow, Payee, PayeeRepository, module, viewmodel
+
+### Community 253 - "TransactionDao"
+Cohesion: 0.29
+Nodes (3): Flow, TransactionDao, TransactionEntity
+
+### Community 256 - "helpers.ts"
+Cohesion: 0.19
+Nodes (15): ref_cloudflare_test, PROTECTED, authedClient(), categoryCount(), request(), generateKeys(), mintToken(), OTHER_SUBJECT (+7 more)
 
 ### Community 258 - "BudgetRepository"
 Cohesion: 0.24
 Nodes (5): BudgetRepository, Flow, Summary, Budget, IncomePlan
 
+### Community 259 - "budgets.spec.ts"
+Cohesion: 0.40
+Nodes (3): useBudgetStore, setBudget(), setIncomePlan()
+
 ### Community 261 - "subcategories.spec.ts"
 Cohesion: 0.50
 Nodes (3): byName(), categories(), Category
+
+### Community 262 - "ModalDialog.vue"
+Cohesion: 0.50
+Nodes (4): emit, onKeydown(), panel, props
 
 ### Community 268 - "lib/dates.ts"
 Cohesion: 0.29
@@ -685,9 +713,9 @@ Nodes (4): byName(), categories(), Category, transfer()
 Cohesion: 0.50
 Nodes (3): ErrorBody, httpexception, ioexception
 
-### Community 299 - "vue"
-Cohesion: 0.09
-Nodes (17): vue, failed, fallbackStyle, imageStyle, initial, props, showImage, failed (+9 more)
+### Community 299 - "AccountLogo.vue"
+Cohesion: 0.29
+Nodes (6): failed, fallbackStyle, imageStyle, initial, props, showImage
 
 ### Community 300 - "test/payees.spec.ts"
 Cohesion: 0.20
@@ -695,13 +723,13 @@ Nodes (5): isExhausted(), rankPayees(), all, names(), Payee
 
 ## Knowledge Gaps
 - **1313 isolated node(s):** `Loading`, `Unauthenticated`, `fixed`, `monthly`, `income` (+1308 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2303 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **180 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 2306 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **183 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `helpers.ts` to `authedClient`, `subcategories.spec.ts`, `chart.ts`, `privacy.ts`, `package.json`, `lib/dates.ts`, `palette.ts`, `test/payees.spec.ts`, `cashflow.spec.ts`, `ref_cloudflare_test`, `schemas.ts`, `philippinesTax.ts`, `defaults.ts`, `index.ts`?**
+- **Why does `vitest` connect `vitest` to `helpers.ts`, `budgets.spec.ts`, `subcategories.spec.ts`, `chart.ts`, `privacy.ts`, `package.json`, `lib/dates.ts`, `palette.ts`, `test/payees.spec.ts`, `cashflow.spec.ts`, `schemas.ts`, `philippinesTax.ts`, `defaults.ts`, `index.ts`?**
   _High betweenness centrality (0.425) - this node is a cross-community bridge._
 - **Why does `scripts` connect `scripts` to `package.json`?**
   _High betweenness centrality (0.350) - this node is a cross-community bridge._
@@ -710,8 +738,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `Loading`, `Unauthenticated`, `fixed` to the rest of the system?**
   _1313 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `ColorWheel.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.06707317073170732 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07195121951219512 - nodes in this community are weakly interconnected._
 - **Should `TransactionsViewModel.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.1164021164021164 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11083743842364532 - nodes in this community are weakly interconnected._
 - **Should `YuukaApi` be split into smaller, more focused modules?**
-  _Cohesion score 0.06588235294117648 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0641025641025641 - nodes in this community are weakly interconnected._
