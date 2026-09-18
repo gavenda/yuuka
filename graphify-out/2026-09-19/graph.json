@@ -355,32 +355,6 @@
       "source_location": "L14"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_budget",
-      "label": "Budget",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "budget",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L32"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_categorybreakdown",
-      "label": "CategoryBreakdown",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "categorybreakdown",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L73"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplan",
       "label": "IncomePlan",
       "_callable": true,
@@ -392,45 +366,6 @@
       "norm_label": "incomeplan",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
       "source_location": "L52"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_subcategorybreakdown",
-      "label": "SubcategoryBreakdown",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "subcategorybreakdown",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L64"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_summary",
-      "label": "Summary",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "summary",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L92"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_transaction",
-      "label": "Transaction",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "transaction",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L5"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_transactionpage",
@@ -446,17 +381,17 @@
       "source_location": "L24"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_apierror_errorbody",
-      "label": "ErrorBody",
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository",
+      "label": "PayeeRepository",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
       "community_name": "BudgetRepository.kt",
       "file_type": "code",
-      "norm_label": "errorbody",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/ApiError.kt",
-      "source_location": "L17"
+      "norm_label": "payeerepository",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
+      "source_location": "L13"
     },
     {
       "id": "webapp_worker_configuration_d_socket",
@@ -12146,6 +12081,19 @@
       "source_location": "L1303"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_revealanchor",
+      "label": "RevealAnchor",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "file_type": "code",
+      "norm_label": "revealanchor",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
+      "source_location": "L17"
+    },
+    {
       "id": "webapp_worker_configuration_d_aigateway",
       "label": "AiGateway",
       "_callable": true,
@@ -12224,17 +12172,17 @@
       "source_location": "L640"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_revealanchor",
-      "label": "RevealAnchor",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination",
+      "label": "YuukaDestination",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "file_type": "code",
-      "norm_label": "revealanchor",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
-      "source_location": "L17"
+      "norm_label": "yuukadestination",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L10"
     },
     {
       "id": "webapp_worker_configuration_d_emailmessage",
@@ -12393,19 +12341,6 @@
       "source_location": "L31"
     },
     {
-      "id": "webapp_test_payees_spec_payee",
-      "label": "Payee",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "helpers.ts",
-      "file_type": "code",
-      "norm_label": "payee",
-      "source_file": "webapp/test/payees.spec.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "webapp_test_round_up_spec_rounduprulebody",
       "label": "RoundUpRuleBody",
       "_callable": true,
@@ -12430,6 +12365,19 @@
       "norm_label": "createresponse",
       "source_file": "webapp/test/save-the-change.spec.ts",
       "source_location": "L22"
+    },
+    {
+      "id": "webapp_test_subcategories_spec_category",
+      "label": "Category",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "category",
+      "source_file": "webapp/test/subcategories.spec.ts",
+      "source_location": "L12"
     },
     {
       "id": "webapp_worker_configuration_d_table",
@@ -14395,32 +14343,6 @@
       "source_location": "L16"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository",
-      "label": "PayeeRepository",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": "payeerepository",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
-      "source_location": "L13"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_syncrepository_syncrepository",
-      "label": "SyncRepository",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": "syncrepository",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/SyncRepository.kt",
-      "source_location": "L21"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_local_dao_budgetdao_budgetdao",
       "label": "BudgetDao",
       "_callable": true,
@@ -14577,30 +14499,43 @@
       "source_location": "L49"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_charts_dayseriesentry",
+      "label": "DaySeriesEntry",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "dayseriesentry",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
+      "source_location": "L7"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone",
+      "label": "MoneyTone",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "moneytone",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L19"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_theme_extendedcolors_extendedcolors",
       "label": "ExtendedColors",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "extendedcolors",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/theme/ExtendedColors.kt",
       "source_location": "L16"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination",
-      "label": "YuukaDestination",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "yuukadestination",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L10"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_transactions_transactionform_formfields",
@@ -14889,19 +14824,6 @@
       "source_location": "L11"
     },
     {
-      "id": "webapp_test_subcategories_spec_category",
-      "label": "Category",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 366,
-      "community_name": "subcategories.spec.ts",
-      "file_type": "code",
-      "norm_label": "category",
-      "source_file": "webapp/test/subcategories.spec.ts",
-      "source_location": "L12"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_local_yuukadatabase_yuukadatabase",
       "label": "YuukaDatabase",
       "_callable": true,
@@ -14921,24 +14843,37 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "file_type": "code",
       "norm_label": "idtokenclaims",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt",
       "source_location": "L8"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode",
-      "label": "IncomePlanMode",
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_apierror_errorbody",
+      "label": "ErrorBody",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "ApiError.kt",
+      "file_type": "code",
+      "norm_label": "errorbody",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/ApiError.kt",
+      "source_location": "L17"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_syncrepository_syncrepository",
+      "label": "SyncRepository",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
-      "norm_label": "incomeplanmode",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L45"
+      "norm_label": "syncrepository",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/SyncRepository.kt",
+      "source_location": "L21"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel_budgetuistate",
@@ -14947,7 +14882,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "budgetuistate",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
@@ -14960,7 +14895,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "budgetviewmodel",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
@@ -14973,7 +14908,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "error",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt",
@@ -14986,7 +14921,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "idle",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt",
@@ -14999,7 +14934,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "loading",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt",
@@ -15012,7 +14947,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "screenstatus",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt",
@@ -15030,6 +14965,19 @@
       "norm_label": "transactionfilters",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/TransactionFilters.kt",
       "source_location": "L4"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_transaction",
+      "label": "Transaction",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "DashboardViewModel.kt",
+      "file_type": "code",
+      "norm_label": "transaction",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L5"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_transactionrows_single",
@@ -15071,19 +15019,6 @@
       "source_location": "L10"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate",
-      "label": "BusyState",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "DashboardViewModel.kt",
-      "file_type": "code",
-      "norm_label": "busystate",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
-      "source_location": "L22"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardviewmodel_dashboarduistate",
       "label": "DashboardUiState",
       "_callable": true,
@@ -15116,24 +15051,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "dailyspend",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
       "source_location": "L89"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_charts_dayseriesentry",
-      "label": "DaySeriesEntry",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "file_type": "code",
-      "norm_label": "dayseriesentry",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
-      "source_location": "L7"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_charts_rankableentry",
@@ -15142,7 +15064,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "rankableentry",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
@@ -15155,11 +15077,50 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "statitem",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCarousel.kt",
       "source_location": "L17"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_budget",
+      "label": "Budget",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "budget",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L32"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_categorybreakdown",
+      "label": "CategoryBreakdown",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "categorybreakdown",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L73"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode",
+      "label": "IncomePlanMode",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "incomeplanmode",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L45"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_payee",
@@ -15168,7 +15129,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payee",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
@@ -15181,11 +15142,37 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payeekind",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
       "source_location": "L114"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_subcategorybreakdown",
+      "label": "SubcategoryBreakdown",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "subcategorybreakdown",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L64"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_summary",
+      "label": "Summary",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "summary",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L92"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_collapsedsections_collapsedsections",
@@ -15316,6 +15303,32 @@
       "norm_label": "mode",
       "source_file": "webapp/src/components/TransactionForm.vue",
       "source_location": "L10"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_transactionrow",
+      "label": "TransactionRow",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "transactionrow",
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L18"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_transferrow",
+      "label": "TransferRow",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "transferrow",
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L4"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_auth_authmanager_authenticated",
@@ -15552,6 +15565,19 @@
       "source_location": "L16"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate",
+      "label": "BusyState",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 56,
+      "community_name": ".launch",
+      "file_type": "code",
+      "norm_label": "busystate",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L22"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_yuukaapplication_yuukaapplication",
       "label": "YuukaApplication",
       "_callable": true,
@@ -15604,30 +15630,17 @@
       "source_location": "L29"
     },
     {
-      "id": "webapp_src_lib_transactionrows_transactionrow",
-      "label": "TransactionRow",
+      "id": "webapp_test_payees_spec_payee",
+      "label": "Payee",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
-      "norm_label": "transactionrow",
-      "source_file": "webapp/src/lib/transactionRows.ts",
-      "source_location": "L18"
-    },
-    {
-      "id": "webapp_src_lib_transactionrows_transferrow",
-      "label": "TransferRow",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 61,
-      "community_name": "ref_types",
-      "file_type": "code",
-      "norm_label": "transferrow",
-      "source_file": "webapp/src/lib/transactionRows.ts",
-      "source_location": "L4"
+      "norm_label": "payee",
+      "source_file": "webapp/test/payees.spec.ts",
+      "source_location": "L9"
     },
     {
       "id": "webapp_worker_configuration_d_ratelimit",
@@ -16176,32 +16189,6 @@
       "source_location": "L132"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility",
-      "label": "AmountVisibility",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "amountvisibility",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
-      "source_location": "L29"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone",
-      "label": "MoneyTone",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "moneytone",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L19"
-    },
-    {
       "id": "webapp_worker_configuration_d_urlsearchparams",
       "label": "URLSearchParams",
       "_callable": true,
@@ -16291,6 +16278,19 @@
       "norm_label": "apierror",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/ApiError.kt",
       "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility",
+      "label": "AmountVisibility",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "YuukaApp.kt",
+      "file_type": "code",
+      "norm_label": "amountvisibility",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
+      "source_location": "L29"
     },
     {
       "id": "webapp_src_lib_philippinestax_contributionline",
@@ -16644,6 +16644,18 @@
       "source_location": "L14596"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_accounts_accountsscreen_accountcard",
+      "label": "AccountCard()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "file_type": "code",
+      "norm_label": "accountcard()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/accounts/AccountsScreen.kt",
+      "source_location": "L250"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_accountlogo_accountlogo",
       "label": "AccountLogo()",
       "_callable": true,
@@ -16666,6 +16678,18 @@
       "norm_label": "accountwatermark()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/AccountLogo.kt",
       "source_location": "L69"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay_withsnackbaroverlay",
+      "label": "WithSnackbarOverlay()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "file_type": "code",
+      "norm_label": "withsnackbaroverlay()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SnackbarOverlay.kt",
+      "source_location": "L15"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_useravatar_useravatar",
@@ -17710,6 +17734,30 @@
       "norm_label": "todomain()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/local/Mappers.kt",
       "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository_forget",
+      "label": ".forget()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "BudgetRepository.kt",
+      "file_type": "code",
+      "norm_label": ".forget()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
+      "source_location": "L25"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository_refresh",
+      "label": ".refresh()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "BudgetRepository.kt",
+      "file_type": "code",
+      "norm_label": ".refresh()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
+      "source_location": "L20"
     },
     {
       "id": "webapp_worker_configuration_d_socket_close",
@@ -19548,16 +19596,16 @@
       "source_location": "L258"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_rememberbusystate",
-      "label": "rememberBusyState()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_swipetorevealactions",
+      "label": "SwipeToRevealActions()",
       "_callable": true,
       "_origin": "ast",
       "community": 135,
       "community_name": "CategoriesScreen.kt",
       "file_type": "code",
-      "norm_label": "rememberbusystate()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
-      "source_location": "L12"
+      "norm_label": "swipetorevealactions()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
+      "source_location": "L27"
     },
     {
       "id": "webapp_worker_configuration_d_aigateway_getlog",
@@ -19728,16 +19776,16 @@
       "source_location": "L641"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_swipetorevealactions",
-      "label": "SwipeToRevealActions()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_budgetprogressring",
+      "label": "BudgetProgressRing()",
       "_callable": true,
       "_origin": "ast",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "file_type": "code",
-      "norm_label": "swipetorevealactions()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
-      "source_location": "L27"
+      "norm_label": "budgetprogressring()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
+      "source_location": "L395"
     },
     {
       "id": "webapp_worker_configuration_d_forwardableemailmessage_forward",
@@ -20208,28 +20256,52 @@
       "source_location": "L3562"
     },
     {
-      "id": "webapp_test_budgets_spec_addtransaction",
-      "label": "addTransaction()",
+      "id": "webapp_test_account_logos_spec_create",
+      "label": "create()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "helpers.ts",
       "file_type": "code",
-      "norm_label": "addtransaction()",
-      "source_file": "webapp/test/budgets.spec.ts",
-      "source_location": "L22"
+      "norm_label": "create()",
+      "source_file": "webapp/test/account-logos.spec.ts",
+      "source_location": "L12"
     },
     {
-      "id": "webapp_test_budgets_spec_setbudgetmode",
-      "label": "setBudgetMode()",
+      "id": "webapp_test_account_logos_spec_logoof",
+      "label": "logoOf()",
       "_callable": true,
       "_origin": "ast",
       "community": 15,
       "community_name": "helpers.ts",
       "file_type": "code",
-      "norm_label": "setbudgetmode()",
-      "source_file": "webapp/test/budgets.spec.ts",
-      "source_location": "L18"
+      "norm_label": "logoof()",
+      "source_file": "webapp/test/account-logos.spec.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "webapp_test_account_types_spec_create",
+      "label": "create()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "create()",
+      "source_file": "webapp/test/account-types.spec.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "webapp_test_helpers_accounttypeid",
+      "label": "accountTypeId()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "accounttypeid()",
+      "source_file": "webapp/test/helpers.ts",
+      "source_location": "L43"
     },
     {
       "id": "webapp_test_helpers_authedclient",
@@ -20316,42 +20388,6 @@
       "source_location": "L6"
     },
     {
-      "id": "webapp_test_payees_spec_payees",
-      "label": "payees()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "helpers.ts",
-      "file_type": "code",
-      "norm_label": "payees()",
-      "source_file": "webapp/test/payees.spec.ts",
-      "source_location": "L39"
-    },
-    {
-      "id": "webapp_test_payees_spec_post",
-      "label": "post()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "helpers.ts",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "webapp/test/payees.spec.ts",
-      "source_location": "L27"
-    },
-    {
-      "id": "webapp_test_payees_spec_transfer",
-      "label": "transfer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "helpers.ts",
-      "file_type": "code",
-      "norm_label": "transfer()",
-      "source_file": "webapp/test/payees.spec.ts",
-      "source_location": "L33"
-    },
-    {
       "id": "webapp_test_round_up_spec_patch",
       "label": "patch()",
       "_callable": true,
@@ -20386,6 +20422,42 @@
       "norm_label": "patch()",
       "source_file": "webapp/test/settings.spec.ts",
       "source_location": "L11"
+    },
+    {
+      "id": "webapp_test_subcategories_spec_addcategory",
+      "label": "addCategory()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "addcategory()",
+      "source_file": "webapp/test/subcategories.spec.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "webapp_test_subcategories_spec_byname",
+      "label": "byName()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "byname()",
+      "source_file": "webapp/test/subcategories.spec.ts",
+      "source_location": "L24"
+    },
+    {
+      "id": "webapp_test_subcategories_spec_categories",
+      "label": "categories()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "categories()",
+      "source_file": "webapp/test/subcategories.spec.ts",
+      "source_location": "L20"
     },
     {
       "id": "webapp_test_transactions_spec_post",
@@ -22704,6 +22776,18 @@
       "source_location": "L14"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_yuukaswitch_yuukaswitch",
+      "label": "YuukaSwitch()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "AccountFlow.kt",
+      "file_type": "code",
+      "norm_label": "yuukaswitch()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/YuukaSwitch.kt",
+      "source_location": "L13"
+    },
+    {
       "id": "webapp_worker_configuration_d_workerstub_getdurableobjectclass",
       "label": ".getDurableObjectClass()",
       "_callable": true,
@@ -23640,42 +23724,6 @@
       "source_location": "L26"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository_forget",
-      "label": ".forget()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": ".forget()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
-      "source_location": "L25"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_payeerepository_refresh",
-      "label": ".refresh()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": ".refresh()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt",
-      "source_location": "L20"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_syncrepository_syncrepository_fullsync",
-      "label": ".fullSync()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": ".fullsync()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/SyncRepository.kt",
-      "source_location": "L41"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_local_dao_budgetdao_budgetdao_clear",
       "label": ".clear()",
       "_callable": true,
@@ -23746,6 +23794,18 @@
       "norm_label": ".budgetdao()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/local/YuukaDatabase.kt",
       "source_location": "L36"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_currentmonth",
+      "label": "currentMonth()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 257,
+      "community_name": "AccountsViewModel",
+      "file_type": "code",
+      "norm_label": "currentmonth()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Dates.kt",
+      "source_location": "L12"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_today",
@@ -24353,23 +24413,59 @@
       "_callable": true,
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "authscreen()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/auth/AuthScreen.kt",
       "source_location": "L15"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay_withsnackbaroverlay",
-      "label": "WithSnackbarOverlay()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_categorybarlist",
+      "label": "CategoryBarList()",
       "_callable": true,
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
-      "norm_label": "withsnackbaroverlay()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SnackbarOverlay.kt",
-      "source_location": "L15"
+      "norm_label": "categorybarlist()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
+      "source_location": "L51"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_dailyspendchart",
+      "label": "DailySpendChart()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "dailyspendchart()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
+      "source_location": "L23"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneycolor",
+      "label": "moneyColor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "moneycolor()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L26"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytext",
+      "label": "MoneyText()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "moneytext()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L42"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_statcard_statcard",
@@ -24377,7 +24473,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "statcard()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCard.kt",
@@ -24389,23 +24485,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "rememberiswidelayout()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/WindowInfo.kt",
       "source_location": "L9"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_formatlongdate",
-      "label": "formatLongDate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "formatlongdate()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Dates.kt",
-      "source_location": "L36"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_datetimepickers_yuukadatepickerdialog",
@@ -24492,16 +24576,16 @@
       "source_location": "L12"
     },
     {
-      "id": "webapp_worker_configuration_d_durableobjectstorage_transaction",
-      "label": ".transaction()",
+      "id": "webapp_test_setup_clearnamespace",
+      "label": "clearNamespace()",
       "_callable": true,
       "_origin": "ast",
       "community": 280,
       "community_name": "defaults.ts",
       "file_type": "code",
-      "norm_label": ".transaction()",
-      "source_file": "webapp/worker-configuration.d.ts",
-      "source_location": "L594"
+      "norm_label": "clearnamespace()",
+      "source_file": "webapp/test/setup.ts",
+      "source_location": "L9"
     },
     {
       "id": "webapp_worker_configuration_d_domexception_constructor",
@@ -24888,42 +24972,6 @@
       "source_location": "L12"
     },
     {
-      "id": "webapp_test_subcategories_spec_addcategory",
-      "label": "addCategory()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 366,
-      "community_name": "subcategories.spec.ts",
-      "file_type": "code",
-      "norm_label": "addcategory()",
-      "source_file": "webapp/test/subcategories.spec.ts",
-      "source_location": "L26"
-    },
-    {
-      "id": "webapp_test_subcategories_spec_byname",
-      "label": "byName()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 366,
-      "community_name": "subcategories.spec.ts",
-      "file_type": "code",
-      "norm_label": "byname()",
-      "source_file": "webapp/test/subcategories.spec.ts",
-      "source_location": "L24"
-    },
-    {
-      "id": "webapp_test_subcategories_spec_categories",
-      "label": "categories()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 366,
-      "community_name": "subcategories.spec.ts",
-      "file_type": "code",
-      "norm_label": "categories()",
-      "source_file": "webapp/test/subcategories.spec.ts",
-      "source_location": "L20"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_local_yuukadatabase_yuukadatabase_categorydao",
       "label": ".categoryDao()",
       "_callable": true,
@@ -24953,23 +25001,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "file_type": "code",
       "norm_label": "decodeidtokenclaims()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt",
       "source_location": "L22"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_currentmonth",
-      "label": "currentMonth()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_syncrepository_syncrepository_fullsync",
+      "label": ".fullSync()",
       "_callable": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
-      "norm_label": "currentmonth()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Dates.kt",
-      "source_location": "L12"
+      "norm_label": ".fullsync()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/repository/SyncRepository.kt",
+      "source_location": "L41"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel_budgetviewmodel_refresh",
@@ -24977,7 +25025,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": ".refresh()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
@@ -24989,7 +25037,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": ".setbudgetamount()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
@@ -25001,23 +25049,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": ".setbudgetpercent()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
       "source_location": "L118"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel_budgetviewmodel_setincomeplan",
-      "label": ".setIncomePlan()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "currentMonth",
-      "file_type": "code",
-      "norm_label": ".setincomeplan()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
-      "source_location": "L131"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel_budgetviewmodel_setmonth",
@@ -25025,23 +25061,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": ".setmonth()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
       "source_location": "L87"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_settings_settingsviewmodel_settingsviewmodel_save",
-      "label": ".save()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "currentMonth",
-      "file_type": "code",
-      "norm_label": ".save()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsViewModel.kt",
-      "source_location": "L46"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_transactionrows_mergetransferrows",
@@ -25054,42 +25078,6 @@
       "norm_label": "mergetransferrows()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/TransactionRows.kt",
       "source_location": "L26"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_isbusy",
-      "label": ".isBusy()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "DashboardViewModel.kt",
-      "file_type": "code",
-      "norm_label": ".isbusy()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
-      "source_location": "L28"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_launch",
-      "label": ".launch()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "DashboardViewModel.kt",
-      "file_type": "code",
-      "norm_label": ".launch()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
-      "source_location": "L62"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_run",
-      "label": ".run()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "DashboardViewModel.kt",
-      "file_type": "code",
-      "norm_label": ".run()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
-      "source_location": "L35"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardviewmodel_dashboardviewmodel_refresh",
@@ -25121,7 +25109,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "monthseries()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
@@ -25133,7 +25121,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "rankandfold()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
@@ -25145,35 +25133,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "torankable()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
       "source_location": "L22"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_categorybarlist",
-      "label": "CategoryBarList()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "file_type": "code",
-      "norm_label": "categorybarlist()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
-      "source_location": "L51"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_dailyspendchart",
-      "label": "DailySpendChart()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "file_type": "code",
-      "norm_label": "dailyspendchart()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
-      "source_location": "L23"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_statcarousel_bleed",
@@ -25181,7 +25145,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "bleed()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCarousel.kt",
@@ -25193,7 +25157,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "statcarousel()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCarousel.kt",
@@ -25205,7 +25169,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "dashboardscreen()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/dashboard/DashboardScreen.kt",
@@ -25217,7 +25181,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "isexhausted()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Payees.kt",
@@ -25229,11 +25193,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "rankpayees()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Payees.kt",
       "source_location": "L13"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel_budgetviewmodel_setincomeplan",
+      "label": ".setIncomePlan()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": ".setincomeplan()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
+      "source_location": "L131"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_payeefield_payeefield",
@@ -25241,7 +25217,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payeefield()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/PayeeField.kt",
@@ -25380,6 +25356,18 @@
       "source_location": "L96"
     },
     {
+      "id": "webapp_src_components_payeeinput_load",
+      "label": "load()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "load()",
+      "source_file": "webapp/src/components/PayeeInput.vue",
+      "source_location": "L24"
+    },
+    {
       "id": "webapp_src_components_transactionform_applypayee",
       "label": "applyPayee()",
       "_callable": true,
@@ -25402,6 +25390,42 @@
       "norm_label": "submit()",
       "source_file": "webapp/src/components/TransactionForm.vue",
       "source_location": "L120"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_dailyaccrued",
+      "label": "dailyAccrued()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "dailyaccrued()",
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L59"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_mergetransferrows",
+      "label": "mergeTransferRows()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "mergetransferrows()",
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_spec_tx",
+      "label": "tx()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "tx()",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L5"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_auth_authmanager_authmanager_getvalidaccesstoken",
@@ -25594,6 +25618,18 @@
       "norm_label": ".setaccountparticipation()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/savethechange/SaveTheChangeViewModel.kt",
       "source_location": "L54"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_settings_settingsviewmodel_settingsviewmodel_save",
+      "label": ".save()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "SettingsViewModel.kt",
+      "file_type": "code",
+      "norm_label": ".save()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsViewModel.kt",
+      "source_location": "L46"
     },
     {
       "id": "webapp_worker_configuration_d_abortsignal_abort",
@@ -26064,30 +26100,6 @@
       "source_location": "L39"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_money_formatamount",
-      "label": "formatAmount()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "formatamount()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Money.kt",
-      "source_location": "L48"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_money_formatmoney",
-      "label": "formatMoney()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "formatmoney()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Money.kt",
-      "source_location": "L25"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_money_parsemoney",
       "label": "parseMoney()",
       "_callable": true,
@@ -26148,18 +26160,6 @@
       "source_location": "L377"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_accounts_accountsscreen_accountcard",
-      "label": "AccountCard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "accountcard()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/accounts/AccountsScreen.kt",
-      "source_location": "L250"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_accounts_accountsscreen_accountformcontent",
       "label": "AccountFormContent()",
       "_callable": true,
@@ -26196,18 +26196,6 @@
       "source_location": "L452"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_budgetprogressring",
-      "label": "BudgetProgressRing()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "budgetprogressring()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L390"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_budgetrow",
       "label": "BudgetRow()",
       "_callable": true,
@@ -26217,7 +26205,7 @@
       "file_type": "code",
       "norm_label": "budgetrow()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L257"
+      "source_location": "L262"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_budgetscreen",
@@ -26230,6 +26218,18 @@
       "norm_label": "budgetscreen()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
       "source_location": "L22"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_rememberbusystate",
+      "label": "rememberBusyState()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "file_type": "code",
+      "norm_label": "rememberbusystate()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L12"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_densetextfield_denseoutlinedtextfield",
@@ -26484,64 +26484,40 @@
       "source_location": "L10"
     },
     {
-      "id": "webapp_test_account_logos_spec_create",
-      "label": "create()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_isbusy",
+      "label": ".isBusy()",
       "_callable": true,
       "_origin": "ast",
       "community": 56,
-      "community_name": "vitest",
+      "community_name": ".launch",
       "file_type": "code",
-      "norm_label": "create()",
-      "source_file": "webapp/test/account-logos.spec.ts",
-      "source_location": "L12"
+      "norm_label": ".isbusy()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L28"
     },
     {
-      "id": "webapp_test_account_logos_spec_logoof",
-      "label": "logoOf()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_launch",
+      "label": ".launch()",
       "_callable": true,
       "_origin": "ast",
       "community": 56,
-      "community_name": "vitest",
+      "community_name": ".launch",
       "file_type": "code",
-      "norm_label": "logoof()",
-      "source_file": "webapp/test/account-logos.spec.ts",
-      "source_location": "L15"
+      "norm_label": ".launch()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L62"
     },
     {
-      "id": "webapp_test_account_types_spec_create",
-      "label": "create()",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate_busystate_run",
+      "label": ".run()",
       "_callable": true,
       "_origin": "ast",
       "community": 56,
-      "community_name": "vitest",
+      "community_name": ".launch",
       "file_type": "code",
-      "norm_label": "create()",
-      "source_file": "webapp/test/account-types.spec.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "webapp_test_helpers_accounttypeid",
-      "label": "accountTypeId()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "accounttypeid()",
-      "source_file": "webapp/test/helpers.ts",
-      "source_location": "L43"
-    },
-    {
-      "id": "webapp_test_setup_clearnamespace",
-      "label": "clearNamespace()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "clearnamespace()",
-      "source_file": "webapp/test/setup.ts",
-      "source_location": "L9"
+      "norm_label": ".run()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L35"
     },
     {
       "id": "webapp_src_components_categorybars_render",
@@ -26897,7 +26873,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "isexhausted()",
       "source_file": "webapp/src/lib/payees.ts",
@@ -26909,7 +26885,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "rankpayees()",
       "source_file": "webapp/src/lib/payees.ts",
@@ -26921,7 +26897,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "make()",
       "source_file": "webapp/src/lib/payees.spec.ts",
@@ -26933,23 +26909,47 @@
       "_callable": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "names()",
       "source_file": "webapp/src/lib/payees.spec.ts",
       "source_location": "L23"
     },
     {
-      "id": "webapp_src_lib_transactionrows_mergetransferrows",
-      "label": "mergeTransferRows()",
+      "id": "webapp_test_payees_spec_payees",
+      "label": "payees()",
       "_callable": true,
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
-      "norm_label": "mergetransferrows()",
-      "source_file": "webapp/src/lib/transactionRows.ts",
-      "source_location": "L21"
+      "norm_label": "payees()",
+      "source_file": "webapp/test/payees.spec.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "webapp_test_payees_spec_post",
+      "label": "post()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "test/payees.spec.ts",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "webapp/test/payees.spec.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "webapp_test_payees_spec_transfer",
+      "label": "transfer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 61,
+      "community_name": "test/payees.spec.ts",
+      "file_type": "code",
+      "norm_label": "transfer()",
+      "source_file": "webapp/test/payees.spec.ts",
+      "source_location": "L33"
     },
     {
       "id": "webapp_src_views_budgetview_commitincome",
@@ -28344,30 +28344,6 @@
       "source_location": "L37"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility_displaymoney",
-      "label": ".displayMoney()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": ".displaymoney()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
-      "source_location": "L53"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility_toggle",
-      "label": ".toggle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": ".toggle()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
-      "source_location": "L35"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_formatdate",
       "label": "formatDate()",
       "_callable": true,
@@ -28380,6 +28356,18 @@
       "source_location": "L31"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_formatlongdate",
+      "label": "formatLongDate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "TransactionsScreen.kt",
+      "file_type": "code",
+      "norm_label": "formatlongdate()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Dates.kt",
+      "source_location": "L36"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates_formattime",
       "label": "formatTime()",
       "_callable": true,
@@ -28390,30 +28378,6 @@
       "norm_label": "formattime()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Dates.kt",
       "source_location": "L44"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneycolor",
-      "label": "moneyColor()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "moneycolor()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L26"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytext",
-      "label": "MoneyText()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "moneytext()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L42"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardscreen_recentactivityrow",
@@ -28992,6 +28956,18 @@
       "source_location": "L598"
     },
     {
+      "id": "webapp_worker_configuration_d_durableobjectstorage_transaction",
+      "label": ".transaction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 84,
+      "community_name": "DurableObjectStorage",
+      "file_type": "code",
+      "norm_label": ".transaction()",
+      "source_file": "webapp/worker-configuration.d.ts",
+      "source_location": "L594"
+    },
+    {
       "id": "webapp_worker_configuration_d_durableobjectstorage_transactionsync",
       "label": ".transactionSync()",
       "_callable": true,
@@ -29004,16 +28980,16 @@
       "source_location": "L601"
     },
     {
-      "id": "webapp_src_components_payeeinput_load",
-      "label": "load()",
+      "id": "webapp_test_budgets_spec_addtransaction",
+      "label": "addTransaction()",
       "_callable": true,
       "_origin": "ast",
       "community": 85,
-      "community_name": "ref_lib_api",
+      "community_name": "budgets.spec.ts",
       "file_type": "code",
-      "norm_label": "load()",
-      "source_file": "webapp/src/components/PayeeInput.vue",
-      "source_location": "L24"
+      "norm_label": "addtransaction()",
+      "source_file": "webapp/test/budgets.spec.ts",
+      "source_location": "L22"
     },
     {
       "id": "webapp_test_budgets_spec_setbudget",
@@ -29021,11 +28997,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 85,
-      "community_name": "ref_lib_api",
+      "community_name": "budgets.spec.ts",
       "file_type": "code",
       "norm_label": "setbudget()",
       "source_file": "webapp/test/budgets.spec.ts",
       "source_location": "L16"
+    },
+    {
+      "id": "webapp_test_budgets_spec_setbudgetmode",
+      "label": "setBudgetMode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 85,
+      "community_name": "budgets.spec.ts",
+      "file_type": "code",
+      "norm_label": "setbudgetmode()",
+      "source_file": "webapp/test/budgets.spec.ts",
+      "source_location": "L18"
     },
     {
       "id": "webapp_test_budgets_spec_setincomeplan",
@@ -29033,7 +29021,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 85,
-      "community_name": "ref_lib_api",
+      "community_name": "budgets.spec.ts",
       "file_type": "code",
       "norm_label": "setincomeplan()",
       "source_file": "webapp/test/budgets.spec.ts",
@@ -29508,6 +29496,54 @@
       "source_location": "L1151"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility_displaymoney",
+      "label": ".displayMoney()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "YuukaApp.kt",
+      "file_type": "code",
+      "norm_label": ".displaymoney()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
+      "source_location": "L53"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_amountvisibility_toggle",
+      "label": ".toggle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "YuukaApp.kt",
+      "file_type": "code",
+      "norm_label": ".toggle()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
+      "source_location": "L35"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_money_formatamount",
+      "label": "formatAmount()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "YuukaApp.kt",
+      "file_type": "code",
+      "norm_label": "formatamount()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Money.kt",
+      "source_location": "L48"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_money_formatmoney",
+      "label": "formatMoney()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "YuukaApp.kt",
+      "file_type": "code",
+      "norm_label": "formatmoney()",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Money.kt",
+      "source_location": "L25"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_connectedbuttongroup_connectedbuttongroup",
       "label": "ConnectedButtonGroup()",
       "_callable": true,
@@ -29518,18 +29554,6 @@
       "norm_label": "connectedbuttongroup()",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ConnectedButtonGroup.kt",
       "source_location": "L23"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_yuukaswitch_yuukaswitch",
-      "label": "YuukaSwitch()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "file_type": "code",
-      "norm_label": "yuukaswitch()",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/YuukaSwitch.kt",
-      "source_location": "L13"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_savethechange_savethechangescreen_savethechangescreen",
@@ -30658,6 +30682,28 @@
       "source_location": ""
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay",
+      "label": "SnackbarOverlay.kt",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "file_type": "code",
+      "norm_label": "snackbaroverlay.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SnackbarOverlay.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay_kt_modifier",
+      "label": "Modifier",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "file_type": "code",
+      "norm_label": "modifier",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_useravatar",
       "label": "UserAvatar.kt",
       "_origin": "ast",
@@ -31087,50 +31133,6 @@
       "source_location": "L1"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions",
-      "label": "Transactions.kt",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "transactions.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_apierror",
-      "label": "ApiError.kt",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "apierror.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/ApiError.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_yuukaapi",
-      "label": "YuukaApi.kt",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "yuukaapi.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/YuukaApi.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_transactionrows",
-      "label": "TransactionRows.kt",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "file_type": "code",
-      "norm_label": "transactionrows.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/TransactionRows.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_repository_budgetrepository",
       "label": "BudgetRepository.kt",
       "_origin": "ast",
@@ -31182,6 +31184,17 @@
       "community_name": "BudgetRepository.kt",
       "file_type": "code",
       "norm_label": "flow",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_kt_payee",
+      "label": "Payee",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "BudgetRepository.kt",
+      "file_type": "code",
+      "norm_label": "payee",
       "source_file": "",
       "source_location": ""
     },
@@ -31527,22 +31540,11 @@
       "source_location": ""
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_densetextfield",
-      "label": "DenseTextField.kt",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
-      "file_type": "code",
-      "norm_label": "densetextfield.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/DenseTextField.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions",
       "label": "SwipeToRevealActions.kt",
       "_origin": "ast",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
       "file_type": "code",
       "norm_label": "swipetorevealactions.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
@@ -31552,8 +31554,8 @@
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_kt_modifier",
       "label": "Modifier",
       "_origin": "ast",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
@@ -31563,8 +31565,8 @@
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_revealanchor_closed",
       "label": "CLOSED",
       "_origin": "ast",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
       "file_type": "code",
       "norm_label": "closed",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
@@ -31574,22 +31576,187 @@
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_swipetorevealactions_revealanchor_open",
       "label": "OPEN",
       "_origin": "ast",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
       "file_type": "code",
       "norm_label": "open",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SwipeToRevealActions.kt",
       "source_location": "L17"
     },
     {
-      "id": "webapp_test_budgets_spec",
-      "label": "budgets.spec.ts",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen",
+      "label": "BudgetScreen.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "budgetscreen.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_kt_color",
+      "label": "Color",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "color",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_kt_modifier",
+      "label": "Modifier",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "modifier",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate",
+      "label": "BusyState.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "busystate.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_localsnackbar",
+      "label": "LocalSnackbar.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "localsnackbar.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/LocalSnackbar.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardscreen",
+      "label": "DashboardScreen.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "dashboardscreen.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/dashboard/DashboardScreen.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations",
+      "label": "Destinations.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "destinations.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_accounts",
+      "label": "ACCOUNTS",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "accounts",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L14"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_budget",
+      "label": "BUDGET",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "budget",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L13"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_categories",
+      "label": "CATEGORIES",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "categories",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L15"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_dashboard",
+      "label": "DASHBOARD",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "dashboard",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L11"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_transactions",
+      "label": "TRANSACTIONS",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "transactions",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
+      "source_location": "L12"
+    },
+    {
+      "id": "snackbarhoststate",
+      "label": "SnackbarHostState",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "DashboardScreen.kt",
+      "file_type": "code",
+      "norm_label": "snackbarhoststate",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "webapp_test_account_logos_spec",
+      "label": "account-logos.spec.ts",
       "_origin": "ast",
       "community": 15,
       "community_name": "helpers.ts",
       "file_type": "code",
-      "norm_label": "budgets.spec.ts",
-      "source_file": "webapp/test/budgets.spec.ts",
+      "norm_label": "account-logos.spec.ts",
+      "source_file": "webapp/test/account-logos.spec.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_test_account_types_spec",
+      "label": "account-types.spec.ts",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "account-types.spec.ts",
+      "source_file": "webapp/test/account-types.spec.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_test_accounts_spec",
+      "label": "accounts.spec.ts",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "accounts.spec.ts",
+      "source_file": "webapp/test/accounts.spec.ts",
       "source_location": "L1"
     },
     {
@@ -31626,17 +31793,6 @@
       "source_location": "L1"
     },
     {
-      "id": "webapp_test_payees_spec",
-      "label": "test/payees.spec.ts",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "helpers.ts",
-      "file_type": "code",
-      "norm_label": "test/payees.spec.ts",
-      "source_file": "webapp/test/payees.spec.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "webapp_test_round_up_spec",
       "label": "round-up.spec.ts",
       "_origin": "ast",
@@ -31670,6 +31826,17 @@
       "source_location": "L1"
     },
     {
+      "id": "webapp_test_subcategories_spec",
+      "label": "subcategories.spec.ts",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "code",
+      "norm_label": "subcategories.spec.ts",
+      "source_file": "webapp/test/subcategories.spec.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "webapp_test_transactions_spec",
       "label": "transactions.spec.ts",
       "_origin": "ast",
@@ -31679,6 +31846,17 @@
       "norm_label": "transactions.spec.ts",
       "source_file": "webapp/test/transactions.spec.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "ref_vitest",
+      "label": "vitest",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "helpers.ts",
+      "file_type": "concept",
+      "norm_label": "vitest",
+      "source_file": "webapp/package.json",
+      "source_location": "L52"
     },
     {
       "id": "webapp_src_components_payeeinput",
@@ -32308,6 +32486,17 @@
       "source_location": "L1"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_yuukaswitch_kt_modifier",
+      "label": "Modifier",
+      "_origin": "ast",
+      "community": 20,
+      "community_name": "AccountFlow.kt",
+      "file_type": "code",
+      "norm_label": "modifier",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_mainactivity",
       "label": "MainActivity.kt",
       "_origin": "ast",
@@ -32847,28 +33036,6 @@
       "source_location": "L1"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_di_repositorymodule",
-      "label": "RepositoryModule.kt",
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": "repositorymodule.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/di/RepositoryModule.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_repository_payeerepository_kt_payee",
-      "label": "Payee",
-      "_origin": "ast",
-      "community": 254,
-      "community_name": "RepositoryModule.kt",
-      "file_type": "code",
-      "norm_label": "payee",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_accounts_accountsviewmodel",
       "label": "AccountsViewModel.kt",
       "_origin": "ast",
@@ -33148,7 +33315,7 @@
       "label": "AuthScreen.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "authscreen.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/auth/AuthScreen.kt",
@@ -33159,40 +33326,117 @@
       "label": "Modifier",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay",
-      "label": "SnackbarOverlay.kt",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts",
+      "label": "BarCharts.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
-      "norm_label": "snackbaroverlay.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/SnackbarOverlay.kt",
+      "norm_label": "barcharts.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
       "source_location": "L1"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_snackbaroverlay_kt_modifier",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_kt_modifier",
       "label": "Modifier",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
       "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext",
+      "label": "MoneyText.kt",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "moneytext.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_color",
+      "label": "Color",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "color",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_modifier",
+      "label": "Modifier",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "modifier",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_textstyle",
+      "label": "TextStyle",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "textstyle",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_neutral",
+      "label": "NEUTRAL",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "neutral",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L19"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_signed",
+      "label": "SIGNED",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "signed",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L19"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_transfer",
+      "label": "TRANSFER",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "transfer",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
+      "source_location": "L19"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_statcard",
       "label": "StatCard.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "statcard.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCard.kt",
@@ -33203,7 +33447,7 @@
       "label": "Composable",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "composable",
       "source_file": "",
@@ -33214,7 +33458,7 @@
       "label": "Modifier",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
@@ -33225,21 +33469,10 @@
       "label": "WindowInfo.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "windowinfo.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/WindowInfo.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardscreen",
-      "label": "DashboardScreen.kt",
-      "_origin": "ast",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "file_type": "code",
-      "norm_label": "dashboardscreen.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/dashboard/DashboardScreen.kt",
       "source_location": "L1"
     },
     {
@@ -33247,7 +33480,7 @@
       "label": "Color.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "color.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/theme/Color.kt",
@@ -33258,11 +33491,33 @@
       "label": "ExtendedColors.kt",
       "_origin": "ast",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "file_type": "code",
       "norm_label": "extendedcolors.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/theme/ExtendedColors.kt",
       "source_location": "L1"
+    },
+    {
+      "id": "rankableentry",
+      "label": "RankableEntry",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "rankableentry",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "textunit",
+      "label": "TextUnit",
+      "_origin": "ast",
+      "community": 272,
+      "community_name": "composable",
+      "file_type": "code",
+      "norm_label": "textunit",
+      "source_file": "",
+      "source_location": ""
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_dates",
@@ -33285,72 +33540,6 @@
       "norm_label": "datetimepickers.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/DateTimePickers.kt",
       "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations",
-      "label": "Destinations.kt",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "destinations.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_accounts",
-      "label": "ACCOUNTS",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "accounts",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L14"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_budget",
-      "label": "BUDGET",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "budget",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L13"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_categories",
-      "label": "CATEGORIES",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "categories",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L15"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_dashboard",
-      "label": "DASHBOARD",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "dashboard",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L11"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_destinations_yuukadestination_transactions",
-      "label": "TRANSACTIONS",
-      "_origin": "ast",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "file_type": "code",
-      "norm_label": "transactions",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt",
-      "source_location": "L12"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_theme_type",
@@ -33534,6 +33723,17 @@
       "source_location": "L1"
     },
     {
+      "id": "webapp_functions_api_lib_defaults_default_account_types",
+      "label": "DEFAULT_ACCOUNT_TYPES",
+      "_origin": "ast",
+      "community": 280,
+      "community_name": "defaults.ts",
+      "file_type": "code",
+      "norm_label": "default_account_types",
+      "source_file": "webapp/functions/api/_lib/defaults.ts",
+      "source_location": "L76"
+    },
+    {
       "id": "webapp_functions_api_lib_defaults_default_categories",
       "label": "DEFAULT_CATEGORIES",
       "_origin": "ast",
@@ -33600,17 +33800,6 @@
       "source_location": "L114"
     },
     {
-      "id": "webapp_test_accounts_spec",
-      "label": "accounts.spec.ts",
-      "_origin": "ast",
-      "community": 280,
-      "community_name": "defaults.ts",
-      "file_type": "code",
-      "norm_label": "accounts.spec.ts",
-      "source_file": "webapp/test/accounts.spec.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "webapp_test_provisioning_spec",
       "label": "provisioning.spec.ts",
       "_origin": "ast",
@@ -33642,6 +33831,17 @@
       "norm_label": "seeding",
       "source_file": "webapp/test/provisioning.spec.ts",
       "source_location": "L24"
+    },
+    {
+      "id": "webapp_test_setup",
+      "label": "setup.ts",
+      "_origin": "ast",
+      "community": 280,
+      "community_name": "defaults.ts",
+      "file_type": "code",
+      "norm_label": "setup.ts",
+      "source_file": "webapp/test/setup.ts",
+      "source_location": "L1"
     },
     {
       "id": "webapp_test_auth_spec",
@@ -33941,17 +34141,6 @@
       "source_location": "L1"
     },
     {
-      "id": "webapp_test_subcategories_spec",
-      "label": "subcategories.spec.ts",
-      "_origin": "ast",
-      "community": 366,
-      "community_name": "subcategories.spec.ts",
-      "file_type": "code",
-      "norm_label": "subcategories.spec.ts",
-      "source_file": "webapp/test/subcategories.spec.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_local_yuukadatabase",
       "label": "YuukaDatabase.kt",
       "_origin": "ast",
@@ -34000,10 +34189,21 @@
       "label": "IdTokenClaims.kt",
       "_origin": "ast",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "file_type": "code",
       "norm_label": "idtokenclaims.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_apierror",
+      "label": "ApiError.kt",
+      "_origin": "ast",
+      "community": 4,
+      "community_name": "ApiError.kt",
+      "file_type": "code",
+      "norm_label": "apierror.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/ApiError.kt",
       "source_location": "L1"
     },
     {
@@ -34011,7 +34211,7 @@
       "label": "NetworkJson.kt",
       "_origin": "ast",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "file_type": "code",
       "norm_label": "networkjson.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/NetworkJson.kt",
@@ -34040,33 +34240,22 @@
       "source_location": "L1"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode_fixed",
-      "label": "fixed",
+      "id": "app_src_main_java_dev_gavenda_yuuka_di_repositorymodule",
+      "label": "RepositoryModule.kt",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
-      "norm_label": "fixed",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L48"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode_gross",
-      "label": "gross",
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "currentMonth",
-      "file_type": "code",
-      "norm_label": "gross",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
-      "source_location": "L47"
+      "norm_label": "repositorymodule.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/di/RepositoryModule.kt",
+      "source_location": "L1"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetviewmodel",
       "label": "BudgetViewModel.kt",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "budgetviewmodel.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt",
@@ -34077,7 +34266,7 @@
       "label": "SharedFlow",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "sharedflow",
       "source_file": "",
@@ -34088,7 +34277,7 @@
       "label": "StateFlow",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "stateflow",
       "source_file": "",
@@ -34099,7 +34288,7 @@
       "label": "ViewModel",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "viewmodel",
       "source_file": "",
@@ -34110,22 +34299,11 @@
       "label": "ScreenStatus.kt",
       "_origin": "ast",
       "community": 42,
-      "community_name": "currentMonth",
+      "community_name": "BudgetViewModel",
       "file_type": "code",
       "norm_label": "screenstatus.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt",
       "source_location": "L1"
-    },
-    {
-      "id": "budgetmode",
-      "label": "BudgetMode",
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "currentMonth",
-      "file_type": "code",
-      "norm_label": "budgetmode",
-      "source_file": "",
-      "source_location": ""
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactionfilters",
@@ -34136,6 +34314,17 @@
       "file_type": "code",
       "norm_label": "transactionfilters.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/TransactionFilters.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_transactionrows",
+      "label": "TransactionRows.kt",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "DashboardViewModel.kt",
+      "file_type": "code",
+      "norm_label": "transactionrows.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/TransactionRows.kt",
       "source_location": "L1"
     },
     {
@@ -34187,7 +34376,7 @@
       "label": "Charts.kt",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "charts.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Charts.kt",
@@ -34198,31 +34387,9 @@
       "label": "CategoryBreakdown",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "categorybreakdown",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts",
-      "label": "BarCharts.kt",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "file_type": "code",
-      "norm_label": "barcharts.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BarCharts.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_barcharts_kt_modifier",
-      "label": "Modifier",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "file_type": "code",
-      "norm_label": "modifier",
       "source_file": "",
       "source_location": ""
     },
@@ -34231,7 +34398,7 @@
       "label": "StatCarousel.kt",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "statcarousel.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/StatCarousel.kt",
@@ -34242,7 +34409,7 @@
       "label": "Dp",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "dp",
       "source_file": "",
@@ -34253,7 +34420,7 @@
       "label": "Modifier",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
@@ -34264,29 +34431,51 @@
       "label": "Modifier",
       "_origin": "ast",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "rankableentry",
-      "label": "RankableEntry",
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions",
+      "label": "Transactions.kt",
       "_origin": "ast",
-      "community": 44,
-      "community_name": "BarCharts.kt",
+      "community": 45,
+      "community_name": "Transactions.kt",
       "file_type": "code",
-      "norm_label": "rankableentry",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "transactions.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode_fixed",
+      "label": "fixed",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "fixed",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L48"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_incomeplanmode_gross",
+      "label": "gross",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "gross",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
+      "source_location": "L47"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_data_model_transactions_payeekind_expense",
       "label": "expense",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "expense",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
@@ -34297,7 +34486,7 @@
       "label": "income",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "income",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
@@ -34308,18 +34497,29 @@
       "label": "transfer",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "transfer",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/data/model/Transactions.kt",
       "source_location": "L118"
     },
     {
+      "id": "app_src_main_java_dev_gavenda_yuuka_data_remote_yuukaapi",
+      "label": "YuukaApi.kt",
+      "_origin": "ast",
+      "community": 45,
+      "community_name": "Transactions.kt",
+      "file_type": "code",
+      "norm_label": "yuukaapi.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/data/remote/YuukaApi.kt",
+      "source_location": "L1"
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_payees",
       "label": "Payees.kt",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payees.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/Payees.kt",
@@ -34330,7 +34530,7 @@
       "label": "Payee",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payee",
       "source_file": "",
@@ -34341,7 +34541,7 @@
       "label": "PayeeField.kt",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payeefield.kt",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/PayeeField.kt",
@@ -34352,7 +34552,7 @@
       "label": "Modifier",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "modifier",
       "source_file": "",
@@ -34363,7 +34563,7 @@
       "label": "Payee",
       "_origin": "ast",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "file_type": "code",
       "norm_label": "payee",
       "source_file": "",
@@ -34667,6 +34867,116 @@
       "source_location": "L31"
     },
     {
+      "id": "webapp_src_lib_transactionrows",
+      "label": "transactionRows.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "transactionrows.ts",
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_lib_transactionrows_spec",
+      "label": "transactionRows.spec.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "transactionrows.spec.ts",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_main",
+      "label": "main.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "main.ts",
+      "source_file": "webapp/src/main.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_stores_budget",
+      "label": "budget.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "budget.ts",
+      "source_file": "webapp/src/stores/budget.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_stores_ledger",
+      "label": "ledger.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "ledger.ts",
+      "source_file": "webapp/src/stores/ledger.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_stores_ledger_useledgerstore",
+      "label": "useLedgerStore",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "useledgerstore",
+      "source_file": "webapp/src/stores/ledger.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "webapp_src_stores_transactions",
+      "label": "stores/transactions.ts",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "stores/transactions.ts",
+      "source_file": "webapp/src/stores/transactions.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "webapp_src_stores_transactions_usetransactionstore",
+      "label": "useTransactionStore",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "usetransactionstore",
+      "source_file": "webapp/src/stores/transactions.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "webapp_src_views_notconfiguredview",
+      "label": "NotConfiguredView.vue",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "code",
+      "norm_label": "notconfiguredview.vue",
+      "source_file": "webapp/src/views/NotConfiguredView.vue",
+      "source_location": "L1"
+    },
+    {
+      "id": "ref_pinia",
+      "label": "pinia",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "file_type": "concept",
+      "norm_label": "pinia",
+      "source_file": "webapp/package.json",
+      "source_location": "L35"
+    },
+    {
       "id": "credentials",
       "label": "Credentials",
       "_origin": "ast",
@@ -34854,6 +35164,17 @@
       "source_location": ""
     },
     {
+      "id": "budgetmode",
+      "label": "BudgetMode",
+      "_origin": "ast",
+      "community": 50,
+      "community_name": "SettingsViewModel.kt",
+      "file_type": "code",
+      "norm_label": "budgetmode",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "app_src_main_java_dev_gavenda_yuuka_domain_money",
       "label": "Money.kt",
       "_origin": "ast",
@@ -34909,17 +35230,6 @@
       "source_location": ""
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen",
-      "label": "BudgetScreen.kt",
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "budgetscreen.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_kt_categorybreakdown",
       "label": "CategoryBreakdown",
       "_origin": "ast",
@@ -34931,26 +35241,15 @@
       "source_location": ""
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_kt_color",
-      "label": "Color",
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_densetextfield",
+      "label": "DenseTextField.kt",
       "_origin": "ast",
       "community": 52,
       "community_name": "AccountsScreen.kt",
       "file_type": "code",
-      "norm_label": "color",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_budget_budgetscreen_kt_modifier",
-      "label": "Modifier",
-      "_origin": "ast",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "file_type": "code",
-      "norm_label": "modifier",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "densetextfield.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/DenseTextField.kt",
+      "source_location": "L1"
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_densetextfield_kt_modifier",
@@ -35589,61 +35888,6 @@
       "norm_label": "vue-router",
       "source_file": "webapp/package.json",
       "source_location": "L37"
-    },
-    {
-      "id": "webapp_functions_api_lib_defaults_default_account_types",
-      "label": "DEFAULT_ACCOUNT_TYPES",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "default_account_types",
-      "source_file": "webapp/functions/api/_lib/defaults.ts",
-      "source_location": "L76"
-    },
-    {
-      "id": "webapp_test_account_logos_spec",
-      "label": "account-logos.spec.ts",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "account-logos.spec.ts",
-      "source_file": "webapp/test/account-logos.spec.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "webapp_test_account_types_spec",
-      "label": "account-types.spec.ts",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "account-types.spec.ts",
-      "source_file": "webapp/test/account-types.spec.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "webapp_test_setup",
-      "label": "setup.ts",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "code",
-      "norm_label": "setup.ts",
-      "source_file": "webapp/test/setup.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "ref_vitest",
-      "label": "vitest",
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "vitest",
-      "file_type": "concept",
-      "norm_label": "vitest",
-      "source_file": "webapp/package.json",
-      "source_location": "L52"
     },
     {
       "id": "webapp_src_components_categorybars",
@@ -36332,7 +36576,7 @@
       "label": "lib/payees.ts",
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "lib/payees.ts",
       "source_file": "webapp/src/lib/payees.ts",
@@ -36343,7 +36587,7 @@
       "label": "lib/payees.spec.ts",
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "lib/payees.spec.ts",
       "source_file": "webapp/src/lib/payees.spec.ts",
@@ -36354,21 +36598,21 @@
       "label": "all",
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
       "norm_label": "all",
       "source_file": "webapp/src/lib/payees.spec.ts",
       "source_location": "L22"
     },
     {
-      "id": "webapp_src_lib_transactionrows",
-      "label": "transactionRows.ts",
+      "id": "webapp_test_payees_spec",
+      "label": "test/payees.spec.ts",
       "_origin": "ast",
       "community": 61,
-      "community_name": "ref_types",
+      "community_name": "test/payees.spec.ts",
       "file_type": "code",
-      "norm_label": "transactionrows.ts",
-      "source_file": "webapp/src/lib/transactionRows.ts",
+      "norm_label": "test/payees.spec.ts",
+      "source_file": "webapp/test/payees.spec.ts",
       "source_location": "L1"
     },
     {
@@ -37425,6 +37669,28 @@
       "norm_label": "visible",
       "source_file": "webapp/src/views/AccountsView.vue",
       "source_location": "L57"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_connectedbuttongroup",
+      "label": "ConnectedButtonGroup.kt",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "file_type": "code",
+      "norm_label": "connectedbuttongroup.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ConnectedButtonGroup.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_connectedbuttongroup_kt_modifier",
+      "label": "Modifier",
+      "_origin": "ast",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "file_type": "code",
+      "norm_label": "modifier",
+      "source_file": "",
+      "source_location": ""
     },
     {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_emptystate",
@@ -38879,105 +39145,6 @@
       "source_location": ""
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility",
-      "label": "AmountVisibility.kt",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "amountvisibility.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_kt_stateflow",
-      "label": "StateFlow",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "stateflow",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext",
-      "label": "MoneyText.kt",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "moneytext.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_color",
-      "label": "Color",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "color",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_modifier",
-      "label": "Modifier",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "modifier",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_kt_textstyle",
-      "label": "TextStyle",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "textstyle",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_neutral",
-      "label": "NEUTRAL",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "neutral",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L19"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_signed",
-      "label": "SIGNED",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "signed",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L19"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_moneytext_moneytone_transfer",
-      "label": "TRANSFER",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "transfer",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/MoneyText.kt",
-      "source_location": "L19"
-    },
-    {
       "id": "app_src_main_java_dev_gavenda_yuuka_ui_dashboard_dashboardscreen_kt_transactionrow",
       "label": "TransactionRow",
       "_origin": "ast",
@@ -39020,29 +39187,6 @@
       "norm_label": "transactionrow",
       "source_file": "",
       "source_location": ""
-    },
-    {
-      "id": "textunit",
-      "label": "TextUnit",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "code",
-      "norm_label": "textunit",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "claude_money",
-      "label": "Money",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "file_type": "document",
-      "node_kind": "heading",
-      "norm_label": "money",
-      "source_file": "CLAUDE.md",
-      "source_location": "L29"
     },
     {
       "id": "webapp_tsconfig_functions",
@@ -39386,103 +39530,26 @@
       "source_location": "L54"
     },
     {
-      "id": "webapp_src_main",
-      "label": "main.ts",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "main.ts",
-      "source_file": "webapp/src/main.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "webapp_src_stores_budget",
-      "label": "budget.ts",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "budget.ts",
-      "source_file": "webapp/src/stores/budget.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "webapp_src_stores_budget_usebudgetstore",
       "label": "useBudgetStore",
       "_origin": "ast",
       "community": 85,
-      "community_name": "ref_lib_api",
+      "community_name": "budgets.spec.ts",
       "file_type": "code",
       "norm_label": "usebudgetstore",
       "source_file": "webapp/src/stores/budget.ts",
       "source_location": "L8"
     },
     {
-      "id": "webapp_src_stores_ledger",
-      "label": "ledger.ts",
+      "id": "webapp_test_budgets_spec",
+      "label": "budgets.spec.ts",
       "_origin": "ast",
       "community": 85,
-      "community_name": "ref_lib_api",
+      "community_name": "budgets.spec.ts",
       "file_type": "code",
-      "norm_label": "ledger.ts",
-      "source_file": "webapp/src/stores/ledger.ts",
+      "norm_label": "budgets.spec.ts",
+      "source_file": "webapp/test/budgets.spec.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "webapp_src_stores_ledger_useledgerstore",
-      "label": "useLedgerStore",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "useledgerstore",
-      "source_file": "webapp/src/stores/ledger.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "webapp_src_stores_transactions",
-      "label": "stores/transactions.ts",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "stores/transactions.ts",
-      "source_file": "webapp/src/stores/transactions.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "webapp_src_stores_transactions_usetransactionstore",
-      "label": "useTransactionStore",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "usetransactionstore",
-      "source_file": "webapp/src/stores/transactions.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "webapp_src_views_notconfiguredview",
-      "label": "NotConfiguredView.vue",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "code",
-      "norm_label": "notconfiguredview.vue",
-      "source_file": "webapp/src/views/NotConfiguredView.vue",
-      "source_location": "L1"
-    },
-    {
-      "id": "ref_pinia",
-      "label": "pinia",
-      "_origin": "ast",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "file_type": "concept",
-      "norm_label": "pinia",
-      "source_file": "webapp/package.json",
-      "source_location": "L35"
     },
     {
       "id": "webapp_tsconfig_app",
@@ -39628,35 +39695,24 @@
       "source_location": "L2"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_busystate",
-      "label": "BusyState.kt",
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility",
+      "label": "AmountVisibility.kt",
       "_origin": "ast",
       "community": 9,
       "community_name": "YuukaApp.kt",
       "file_type": "code",
-      "norm_label": "busystate.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt",
+      "norm_label": "amountvisibility.kt",
+      "source_file": "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt",
       "source_location": "L1"
     },
     {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_connectedbuttongroup",
-      "label": "ConnectedButtonGroup.kt",
+      "id": "app_src_main_java_dev_gavenda_yuuka_domain_amountvisibility_kt_stateflow",
+      "label": "StateFlow",
       "_origin": "ast",
       "community": 9,
       "community_name": "YuukaApp.kt",
       "file_type": "code",
-      "norm_label": "connectedbuttongroup.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/ConnectedButtonGroup.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_connectedbuttongroup_kt_modifier",
-      "label": "Modifier",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "file_type": "code",
-      "norm_label": "modifier",
+      "norm_label": "stateflow",
       "source_file": "",
       "source_location": ""
     },
@@ -39668,28 +39724,6 @@
       "community_name": "YuukaApp.kt",
       "file_type": "code",
       "norm_label": "t",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_localsnackbar",
-      "label": "LocalSnackbar.kt",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "file_type": "code",
-      "norm_label": "localsnackbar.kt",
-      "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/common/LocalSnackbar.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_main_java_dev_gavenda_yuuka_ui_common_yuukaswitch_kt_modifier",
-      "label": "Modifier",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "file_type": "code",
-      "norm_label": "modifier",
       "source_file": "",
       "source_location": ""
     },
@@ -39771,15 +39805,16 @@
       "source_location": ""
     },
     {
-      "id": "snackbarhoststate",
-      "label": "SnackbarHostState",
+      "id": "claude_money",
+      "label": "Money",
       "_origin": "ast",
       "community": 9,
       "community_name": "YuukaApp.kt",
-      "file_type": "code",
-      "norm_label": "snackbarhoststate",
-      "source_file": "",
-      "source_location": ""
+      "file_type": "document",
+      "node_kind": "heading",
+      "norm_label": "money",
+      "source_file": "CLAUDE.md",
+      "source_location": "L29"
     },
     {
       "id": "webapp_src_lib_philippinestax",
@@ -40117,6 +40152,18 @@
       "source_url": null
     },
     {
+      "id": "alignment",
+      "label": "alignment",
+      "_origin": "semantic",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "alignment",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "alpha",
       "label": "alpha",
       "_origin": "semantic",
@@ -40165,14 +40212,14 @@
       "type": "external"
     },
     {
-      "id": "clip",
-      "label": "clip",
+      "id": "circleshape",
+      "label": "circleshape",
       "_origin": "semantic",
       "community": 0,
       "community_name": "UserAvatar.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "clip",
+      "norm_label": "circleshape",
       "source_file": "",
       "type": "external"
     },
@@ -40273,14 +40320,26 @@
       "type": "external"
     },
     {
-      "id": "viewmodelscope",
-      "label": "viewmodelscope",
+      "id": "snackbarhost",
+      "label": "snackbarhost",
+      "_origin": "semantic",
+      "community": 0,
+      "community_name": "UserAvatar.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "snackbarhost",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "coroutinescope",
+      "label": "coroutinescope",
       "_origin": "semantic",
       "community": 1,
       "community_name": "TransactionsViewModel",
       "external": true,
       "file_type": "concept",
-      "norm_label": "viewmodelscope",
+      "norm_label": "coroutinescope",
       "source_file": "",
       "type": "external"
     },
@@ -40333,18 +40392,6 @@
       "type": "external"
     },
     {
-      "id": "abs",
-      "label": "abs",
-      "_origin": "semantic",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "abs",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "apijson",
       "label": "apijson",
       "_origin": "semantic",
@@ -40377,42 +40424,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "buildjsonobject",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "coroutinescope",
-      "label": "coroutinescope",
-      "_origin": "semantic",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "coroutinescope",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "httpexception",
-      "label": "httpexception",
-      "_origin": "semantic",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "httpexception",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ioexception",
-      "label": "ioexception",
-      "_origin": "semantic",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ioexception",
       "source_file": "",
       "type": "external"
     },
@@ -40453,26 +40464,26 @@
       "type": "external"
     },
     {
-      "id": "serializable",
-      "label": "serializable",
-      "_origin": "semantic",
-      "community": 11,
-      "community_name": "BudgetRepository.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "serializable",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "border",
-      "label": "border",
+      "id": "clickable",
+      "label": "clickable",
       "_origin": "semantic",
       "community": 135,
       "community_name": "CategoriesScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "border",
+      "norm_label": "clickable",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "constraints",
+      "label": "constraints",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "constraints",
       "source_file": "",
       "type": "external"
     },
@@ -40501,6 +40512,54 @@
       "type": "external"
     },
     {
+      "id": "intoffset",
+      "label": "intoffset",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "intoffset",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "layout",
+      "label": "layout",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "layout",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "layoutid",
+      "label": "layoutid",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "layoutid",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "mutableinteractionsource",
+      "label": "mutableinteractionsource",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "mutableinteractionsource",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "palette",
       "label": "palette",
       "_origin": "semantic",
@@ -40509,6 +40568,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "palette",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "roundtoint",
+      "label": "roundtoint",
+      "_origin": "semantic",
+      "community": 135,
+      "community_name": "CategoriesScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "roundtoint",
       "source_file": "",
       "type": "external"
     },
@@ -40549,146 +40620,134 @@
       "type": "external"
     },
     {
-      "id": "basictextfield",
-      "label": "basictextfield",
+      "id": "imagevector",
+      "label": "imagevector",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "basictextfield",
+      "norm_label": "imagevector",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "cancel",
-      "label": "cancel",
+      "id": "items",
+      "label": "items",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "cancel",
+      "norm_label": "items",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "clickable",
-      "label": "clickable",
+      "id": "koininject",
+      "label": "koininject",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "clickable",
+      "norm_label": "koininject",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "constraints",
-      "label": "constraints",
+      "id": "koinviewmodel",
+      "label": "koinviewmodel",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "constraints",
+      "norm_label": "koinviewmodel",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "intoffset",
-      "label": "intoffset",
+      "id": "lazycolumn",
+      "label": "lazycolumn",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "intoffset",
+      "norm_label": "lazycolumn",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "layout",
-      "label": "layout",
+      "id": "pluralstringresource",
+      "label": "pluralstringresource",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "layout",
+      "norm_label": "pluralstringresource",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "layoutid",
-      "label": "layoutid",
+      "id": "r",
+      "label": "r",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "layoutid",
+      "norm_label": "r",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "mutableinteractionsource",
-      "label": "mutableinteractionsource",
+      "id": "staticcompositionlocalof",
+      "label": "staticcompositionlocalof",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "mutableinteractionsource",
+      "norm_label": "staticcompositionlocalof",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "remember",
-      "label": "remember",
+      "id": "stringres",
+      "label": "stringres",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "remember",
+      "norm_label": "stringres",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "roundtoint",
-      "label": "roundtoint",
+      "id": "stringresource",
+      "label": "stringresource",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "roundtoint",
+      "norm_label": "stringresource",
       "source_file": "",
       "type": "external"
     },
     {
-      "id": "solidcolor",
-      "label": "solidcolor",
+      "id": "textbutton",
+      "label": "textbutton",
       "_origin": "semantic",
       "community": 14,
-      "community_name": "DenseTextField.kt",
+      "community_name": "DashboardScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "solidcolor",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "visualtransformation",
-      "label": "visualtransformation",
-      "_origin": "semantic",
-      "community": 14,
-      "community_name": "DenseTextField.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "visualtransformation",
+      "norm_label": "textbutton",
       "source_file": "",
       "type": "external"
     },
@@ -40813,18 +40872,6 @@
       "type": "external"
     },
     {
-      "id": "row",
-      "label": "row",
-      "_origin": "semantic",
-      "community": 20,
-      "community_name": "AccountFlow.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "row",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "size",
       "label": "size",
       "_origin": "semantic",
@@ -40921,18 +40968,6 @@
       "type": "external"
     },
     {
-      "id": "experimentalmaterial3expressiveapi",
-      "label": "experimentalmaterial3expressiveapi",
-      "_origin": "semantic",
-      "community": 22,
-      "community_name": "MainActivity.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "experimentalmaterial3expressiveapi",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "fillmaxsize",
       "label": "fillmaxsize",
       "_origin": "semantic",
@@ -40965,6 +41000,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "issystemindarktheme",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "loadingindicator",
+      "label": "loadingindicator",
+      "_origin": "semantic",
+      "community": 22,
+      "community_name": "MainActivity.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "loadingindicator",
       "source_file": "",
       "type": "external"
     },
@@ -41377,26 +41424,26 @@
       "type": "external"
     },
     {
-      "id": "alignment",
-      "label": "alignment",
-      "_origin": "semantic",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "alignment",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "button",
       "label": "button",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "button",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "canvas",
+      "label": "canvas",
+      "_origin": "semantic",
+      "community": 272,
+      "community_name": "composable",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "canvas",
       "source_file": "",
       "type": "external"
     },
@@ -41405,7 +41452,7 @@
       "label": "card",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "card",
@@ -41417,7 +41464,7 @@
       "label": "compactfigure",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "compactfigure",
@@ -41429,7 +41476,7 @@
       "label": "composable",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "composable",
@@ -41441,10 +41488,22 @@
       "label": "configuration",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "configuration",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "default_currency",
+      "label": "default_currency",
+      "_origin": "semantic",
+      "community": 272,
+      "community_name": "composable",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "default_currency",
       "source_file": "",
       "type": "external"
     },
@@ -41453,7 +41512,7 @@
       "label": "dp",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "dp",
@@ -41461,26 +41520,14 @@
       "type": "external"
     },
     {
-      "id": "items",
-      "label": "items",
+      "id": "linearprogressindicator",
+      "label": "linearprogressindicator",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
-      "norm_label": "items",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "lazycolumn",
-      "label": "lazycolumn",
-      "_origin": "semantic",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "lazycolumn",
+      "norm_label": "linearprogressindicator",
       "source_file": "",
       "type": "external"
     },
@@ -41489,10 +41536,22 @@
       "label": "localconfiguration",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "localconfiguration",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "localcontentcolor",
+      "label": "localcontentcolor",
+      "_origin": "semantic",
+      "community": 272,
+      "community_name": "composable",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "localcontentcolor",
       "source_file": "",
       "type": "external"
     },
@@ -41501,22 +41560,10 @@
       "label": "materialtheme",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "materialtheme",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "pluralstringresource",
-      "label": "pluralstringresource",
-      "_origin": "semantic",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "pluralstringresource",
       "source_file": "",
       "type": "external"
     },
@@ -41525,22 +41572,10 @@
       "label": "readonlycomposable",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "readonlycomposable",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "snackbarhost",
-      "label": "snackbarhost",
-      "_origin": "semantic",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "snackbarhost",
       "source_file": "",
       "type": "external"
     },
@@ -41549,22 +41584,10 @@
       "label": "text",
       "_origin": "semantic",
       "community": 272,
-      "community_name": "DashboardScreen.kt",
+      "community_name": "composable",
       "external": true,
       "file_type": "concept",
       "norm_label": "text",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "textbutton",
-      "label": "textbutton",
-      "_origin": "semantic",
-      "community": 272,
-      "community_name": "DashboardScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "textbutton",
       "source_file": "",
       "type": "external"
     },
@@ -41677,18 +41700,6 @@
       "type": "external"
     },
     {
-      "id": "imagevector",
-      "label": "imagevector",
-      "_origin": "semantic",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "imagevector",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "instant",
       "label": "instant",
       "_origin": "semantic",
@@ -41749,18 +41760,6 @@
       "type": "external"
     },
     {
-      "id": "r",
-      "label": "r",
-      "_origin": "semantic",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "r",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "remembersaveable",
       "label": "remembersaveable",
       "_origin": "semantic",
@@ -41781,18 +41780,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "setvalue",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "stringres",
-      "label": "stringres",
-      "_origin": "semantic",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "stringres",
       "source_file": "",
       "type": "external"
     },
@@ -41821,18 +41808,6 @@
       "type": "external"
     },
     {
-      "id": "verticalscroll",
-      "label": "verticalscroll",
-      "_origin": "semantic",
-      "community": 279,
-      "community_name": "TransactionForm.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "verticalscroll",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "zoneoffset",
       "label": "zoneoffset",
       "_origin": "semantic",
@@ -41841,6 +41816,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "zoneoffset",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_cloudflare_test",
+      "label": "ref_cloudflare_test",
+      "_origin": "semantic",
+      "community": 280,
+      "community_name": "defaults.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_cloudflare_test",
       "source_file": "",
       "type": "external"
     },
@@ -43109,10 +43096,34 @@
       "label": "base64",
       "_origin": "semantic",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "base64",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "httpexception",
+      "label": "httpexception",
+      "_origin": "semantic",
+      "community": 4,
+      "community_name": "ApiError.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "httpexception",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ioexception",
+      "label": "ioexception",
+      "_origin": "semantic",
+      "community": 4,
+      "community_name": "ApiError.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ioexception",
       "source_file": "",
       "type": "external"
     },
@@ -43121,10 +43132,46 @@
       "label": "json",
       "_origin": "semantic",
       "community": 4,
-      "community_name": "IdTokenClaims.kt",
+      "community_name": "ApiError.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "json",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "serializable",
+      "label": "serializable",
+      "_origin": "semantic",
+      "community": 4,
+      "community_name": "ApiError.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "serializable",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "viewmodelscope",
+      "label": "viewmodelscope",
+      "_origin": "semantic",
+      "community": 42,
+      "community_name": "BudgetViewModel",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "viewmodelscope",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "abs",
+      "label": "abs",
+      "_origin": "semantic",
+      "community": 43,
+      "community_name": "DashboardViewModel.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "abs",
       "source_file": "",
       "type": "external"
     },
@@ -43133,22 +43180,10 @@
       "label": "box",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "box",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "canvas",
-      "label": "canvas",
-      "_origin": "semantic",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "canvas",
       "source_file": "",
       "type": "external"
     },
@@ -43157,7 +43192,7 @@
       "label": "carddefaults",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "carddefaults",
@@ -43165,14 +43200,14 @@
       "type": "external"
     },
     {
-      "id": "default_currency",
-      "label": "default_currency",
+      "id": "graphicslayer",
+      "label": "graphicslayer",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "default_currency",
+      "norm_label": "graphicslayer",
       "source_file": "",
       "type": "external"
     },
@@ -43181,22 +43216,10 @@
       "label": "horizontaluncontainedcarousel",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "horizontaluncontainedcarousel",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "linearprogressindicator",
-      "label": "linearprogressindicator",
-      "_origin": "semantic",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "linearprogressindicator",
       "source_file": "",
       "type": "external"
     },
@@ -43205,7 +43228,7 @@
       "label": "paddingvalues",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "paddingvalues",
@@ -43217,7 +43240,7 @@
       "label": "remembercarouselstate",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "remembercarouselstate",
@@ -43229,7 +43252,7 @@
       "label": "yearmonth",
       "_origin": "semantic",
       "community": 44,
-      "community_name": "BarCharts.kt",
+      "community_name": "StatCarousel.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "yearmonth",
@@ -43241,7 +43264,7 @@
       "label": "onfocuschanged",
       "_origin": "semantic",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "onfocuschanged",
@@ -43253,7 +43276,7 @@
       "label": "widthin",
       "_origin": "semantic",
       "community": 45,
-      "community_name": "PayeeField.kt",
+      "community_name": "Transactions.kt",
       "external": true,
       "file_type": "concept",
       "norm_label": "widthin",
@@ -43297,14 +43320,74 @@
       "type": "external"
     },
     {
-      "id": "ref_stores_ledger",
-      "label": "ref_stores_ledger",
+      "id": "ref_lib_api",
+      "label": "ref_lib_api",
       "_origin": "semantic",
       "community": 48,
       "community_name": "TransactionForm.vue",
       "external": true,
       "file_type": "concept",
-      "norm_label": "ref_stores_ledger",
+      "norm_label": "ref_lib_api",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_lib_auth0",
+      "label": "ref_lib_auth0",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_lib_auth0",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_lib_dates",
+      "label": "ref_lib_dates",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_lib_dates",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_router",
+      "label": "ref_router",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_router",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_types",
+      "label": "ref_types",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_types",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "webapp_src_style",
+      "label": "webapp_src_style",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "TransactionForm.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "webapp_src_style",
       "source_file": "",
       "type": "external"
     },
@@ -43317,6 +43400,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "atan2",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "border",
+      "label": "border",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "ColorWheel.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "border",
       "source_file": "",
       "type": "external"
     },
@@ -43525,6 +43620,30 @@
       "type": "external"
     },
     {
+      "id": "basictextfield",
+      "label": "basictextfield",
+      "_origin": "semantic",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "basictextfield",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "cancel",
+      "label": "cancel",
+      "_origin": "semantic",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "cancel",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "close",
       "label": "close",
       "_origin": "semantic",
@@ -43545,18 +43664,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "libraryadd",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "loadingindicator",
-      "label": "loadingindicator",
-      "_origin": "semantic",
-      "community": 52,
-      "community_name": "AccountsScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "loadingindicator",
       "source_file": "",
       "type": "external"
     },
@@ -43597,6 +43704,18 @@
       "type": "external"
     },
     {
+      "id": "remember",
+      "label": "remember",
+      "_origin": "semantic",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "remember",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "remembervectorpainter",
       "label": "remembervectorpainter",
       "_origin": "semantic",
@@ -43605,6 +43724,30 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "remembervectorpainter",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "solidcolor",
+      "label": "solidcolor",
+      "_origin": "semantic",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "solidcolor",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "visualtransformation",
+      "label": "visualtransformation",
+      "_origin": "semantic",
+      "community": 52,
+      "community_name": "AccountsScreen.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "visualtransformation",
       "source_file": "",
       "type": "external"
     },
@@ -43725,18 +43868,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_components_settingsdialog_vue",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_cloudflare_test",
-      "label": "ref_cloudflare_test",
-      "_origin": "semantic",
-      "community": 56,
-      "community_name": "vitest",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_cloudflare_test",
       "source_file": "",
       "type": "external"
     },
@@ -43909,18 +44040,6 @@
       "type": "external"
     },
     {
-      "id": "ref_types",
-      "label": "ref_types",
-      "_origin": "semantic",
-      "community": 61,
-      "community_name": "ref_types",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_types",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "ref_components_budgetamounteditor_vue",
       "label": "ref_components_budgetamounteditor_vue",
       "_origin": "semantic",
@@ -44065,6 +44184,18 @@
       "type": "external"
     },
     {
+      "id": "buttongroupdefaults",
+      "label": "buttongroupdefaults",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "buttongroupdefaults",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "column",
       "label": "column",
       "_origin": "semantic",
@@ -44073,6 +44204,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "column",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "experimentalmaterial3expressiveapi",
+      "label": "experimentalmaterial3expressiveapi",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "experimentalmaterial3expressiveapi",
       "source_file": "",
       "type": "external"
     },
@@ -44137,6 +44280,42 @@
       "type": "external"
     },
     {
+      "id": "role",
+      "label": "role",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "role",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "row",
+      "label": "row",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "row",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "semantics",
+      "label": "semantics",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "semantics",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "textalign",
       "label": "textalign",
       "_origin": "semantic",
@@ -44145,6 +44324,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "textalign",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "togglebutton",
+      "label": "togglebutton",
+      "_origin": "semantic",
+      "community": 66,
+      "community_name": "MonthSwitcher.kt",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "togglebutton",
       "source_file": "",
       "type": "external"
     },
@@ -44221,6 +44412,18 @@
       "type": "external"
     },
     {
+      "id": "ref_stores_ledger",
+      "label": "ref_stores_ledger",
+      "_origin": "semantic",
+      "community": 73,
+      "community_name": "AccountTypeManager.vue",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_stores_ledger",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "add",
       "label": "add",
       "_origin": "semantic",
@@ -44233,38 +44436,14 @@
       "type": "external"
     },
     {
-      "id": "circleshape",
-      "label": "circleshape",
+      "id": "clip",
+      "label": "clip",
       "_origin": "semantic",
       "community": 8,
       "community_name": "TransactionsScreen.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "circleshape",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "collectasstatewithlifecycle",
-      "label": "collectasstatewithlifecycle",
-      "_origin": "semantic",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "collectasstatewithlifecycle",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "localcontentcolor",
-      "label": "localcontentcolor",
-      "_origin": "semantic",
-      "community": 8,
-      "community_name": "TransactionsScreen.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "localcontentcolor",
+      "norm_label": "clip",
       "source_file": "",
       "type": "external"
     },
@@ -44289,66 +44468,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "sheetvalue",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_lib_api",
-      "label": "ref_lib_api",
-      "_origin": "semantic",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_lib_api",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_lib_auth0",
-      "label": "ref_lib_auth0",
-      "_origin": "semantic",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_lib_auth0",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_lib_dates",
-      "label": "ref_lib_dates",
-      "_origin": "semantic",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_lib_dates",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_router",
-      "label": "ref_router",
-      "_origin": "semantic",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_router",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "webapp_src_style",
-      "label": "webapp_src_style",
-      "_origin": "semantic",
-      "community": 85,
-      "community_name": "ref_lib_api",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "webapp_src_style",
       "source_file": "",
       "type": "external"
     },
@@ -44401,14 +44520,14 @@
       "type": "external"
     },
     {
-      "id": "buttongroupdefaults",
-      "label": "buttongroupdefaults",
+      "id": "collectasstatewithlifecycle",
+      "label": "collectasstatewithlifecycle",
       "_origin": "semantic",
       "community": 9,
       "community_name": "YuukaApp.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "buttongroupdefaults",
+      "norm_label": "collectasstatewithlifecycle",
       "source_file": "",
       "type": "external"
     },
@@ -44421,30 +44540,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "currentbackstackentryasstate",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "koininject",
-      "label": "koininject",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "koininject",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "koinviewmodel",
-      "label": "koinviewmodel",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "koinviewmodel",
       "source_file": "",
       "type": "external"
     },
@@ -44557,30 +44652,6 @@
       "type": "external"
     },
     {
-      "id": "role",
-      "label": "role",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "role",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "semantics",
-      "label": "semantics",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "semantics",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "slideinhorizontally",
       "label": "slideinhorizontally",
       "_origin": "semantic",
@@ -44605,30 +44676,6 @@
       "type": "external"
     },
     {
-      "id": "staticcompositionlocalof",
-      "label": "staticcompositionlocalof",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "staticcompositionlocalof",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "stringresource",
-      "label": "stringresource",
-      "_origin": "semantic",
-      "community": 9,
-      "community_name": "YuukaApp.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "stringresource",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "textoverflow",
       "label": "textoverflow",
       "_origin": "semantic",
@@ -44641,25 +44688,14 @@
       "type": "external"
     },
     {
-      "id": "togglebutton",
-      "label": "togglebutton",
+      "id": "verticalscroll",
+      "label": "verticalscroll",
       "_origin": "semantic",
       "community": 9,
       "community_name": "YuukaApp.kt",
       "external": true,
       "file_type": "concept",
-      "norm_label": "togglebutton",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "graphicslayer",
-      "label": "graphicslayer",
-      "community": 44,
-      "community_name": "BarCharts.kt",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "graphicslayer",
+      "norm_label": "verticalscroll",
       "source_file": "",
       "type": "external"
     }
@@ -46354,7 +46390,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L383",
+      "source_location": "L388",
       "weight": 1.0
     },
     {
@@ -46366,7 +46402,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L233",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -49343,6 +49379,18 @@
       "context": "call",
       "source_file": "webapp/src/lib/payees.spec.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "webapp_src_lib_transactionrows_spec_tx",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -65479,6 +65527,30 @@
       "weight": 1.0
     },
     {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "webapp_src_lib_transactionrows_dailyaccrued",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "webapp_src_lib_transactionrows_mergetransferrows",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
       "source": "webapp_test_account_logos_spec",
       "target": "webapp_test_helpers_accounttypeid",
       "relation": "imports",
@@ -69601,6 +69673,43 @@
       "weight": 1.0
     },
     {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "ref_vitest",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "webapp_src_lib_transactionrows",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_src_lib_transactionrows_spec",
+      "target": "ref_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "webapp/src/lib/transactionRows.spec.ts",
+      "source_location": "L3",
+      "type_only": true,
+      "weight": 1.0
+    },
+    {
       "source": "webapp_src_main",
       "target": "ref_lib_api",
       "relation": "imports_from",
@@ -71932,7 +72041,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L390",
+      "source_location": "L395",
       "weight": 1.0
     },
     {
@@ -71944,7 +72053,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L390",
+      "source_location": "L395",
       "weight": 1.0
     },
     {
@@ -71956,7 +72065,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L257",
+      "source_location": "L262",
       "weight": 1.0
     },
     {
@@ -76222,7 +76331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L257",
+      "source_location": "L262",
       "weight": 1.0
     },
     {
@@ -76233,7 +76342,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L390",
+      "source_location": "L395",
       "weight": 1.0
     },
     {
@@ -81954,6 +82063,17 @@
       "confidence_score": 1.0,
       "source_file": "webapp/src/lib/transactionRows.ts",
       "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "webapp_src_lib_transactionrows",
+      "target": "webapp_src_lib_transactionrows_dailyaccrued",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "webapp/src/lib/transactionRows.ts",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -106904,7 +107024,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L266",
+      "source_location": "L271",
       "weight": 1.0
     },
     {
@@ -106916,7 +107036,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L267",
+      "source_location": "L272",
       "weight": 1.0
     },
     {
@@ -106928,7 +107048,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L297",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -106940,7 +107060,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L304",
+      "source_location": "L309",
       "weight": 1.0
     },
     {
@@ -106952,7 +107072,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L305",
+      "source_location": "L310",
       "weight": 1.0
     },
     {
@@ -106964,7 +107084,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L312",
+      "source_location": "L317",
       "weight": 1.0
     },
     {
@@ -106976,7 +107096,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L335",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -106988,7 +107108,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L340",
+      "source_location": "L345",
       "weight": 1.0
     },
     {
@@ -107000,7 +107120,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L351",
+      "source_location": "L356",
       "weight": 1.0
     },
     {
@@ -107012,7 +107132,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L383",
+      "source_location": "L388",
       "weight": 1.0
     },
     {
@@ -107060,7 +107180,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L175",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -107072,7 +107192,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L177",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -107084,7 +107204,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L183",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -107096,7 +107216,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt",
-      "source_location": "L227",
+      "source_location": "L242",
       "weight": 1.0
     },
     {

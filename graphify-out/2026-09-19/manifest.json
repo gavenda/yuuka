@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt": {
-    "mtime": 1789755079.9717917,
-    "seen": 1789755094.8155081,
-    "ast_hash": "358dd85d1e196329aaacb82799e7e58d",
+    "mtime": 1789756757.503,
+    "seen": 1789757107.0335517,
+    "ast_hash": "a690f7392d4f0cc75c6b2b44bbbf5663",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt": {
@@ -912,9 +912,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/transactionRows.ts": {
-    "mtime": 1789677930.1105006,
-    "seen": 1789684275.660085,
-    "ast_hash": "888f2e9e10f83ee9257c69d2f43ac884",
+    "mtime": 1789755694.3724267,
+    "seen": 1789757107.0348718,
+    "ast_hash": "c1ca5545e31625ae7575b1ab3b5639c3",
     "semantic_hash": ""
   },
   "webapp/src/main.ts": {
@@ -966,9 +966,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/BudgetView.vue": {
-    "mtime": 1789747323.121666,
-    "seen": 1789748044.335023,
-    "ast_hash": "008ae988685225511c2d32eb54ebec25",
+    "mtime": 1789757044.459,
+    "seen": 1789757107.0349503,
+    "ast_hash": "cbec7e1aa03ec3bb8e380de57ce2f763",
     "semantic_hash": ""
   },
   "webapp/src/views/CategoriesView.vue": {
@@ -978,9 +978,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/DashboardView.vue": {
-    "mtime": 1789677930.1109073,
-    "seen": 1789684275.6600893,
-    "ast_hash": "c423cb1d14bfaffeb9ad69d45cef2b2b",
+    "mtime": 1789755946.1927214,
+    "seen": 1789757107.0349603,
+    "ast_hash": "947637ffc761c8973ff1752b8b8db41f",
     "semantic_hash": ""
   },
   "webapp/src/views/LoginView.vue": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/TransactionsView.vue": {
-    "mtime": 1789733371.3087523,
-    "seen": 1789733986.2156844,
-    "ast_hash": "9b044081fe7c92dc941930074ddef4ec",
+    "mtime": 1789755709.3406825,
+    "seen": 1789757107.03498,
+    "ast_hash": "dba286276486af2cb6b28bae58a0c0d4",
     "semantic_hash": ""
   },
   "webapp/src/vite-env.d.ts": {
@@ -1347,6 +1347,12 @@
     "mtime": 1789755383.891129,
     "seen": 1789755457.0418139,
     "ast_hash": "a722a6f269178c0a79405dc800d91fc2",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/transactionRows.spec.ts": {
+    "mtime": 1789755694.5734303,
+    "seen": 1789757107.0348709,
+    "ast_hash": "daedf4df726f633d5b6bcf4418b1e0d8",
     "semantic_hash": ""
   }
 }
