@@ -2,14 +2,16 @@ package dev.gavenda.yuuka.ui.settings
 
 import android.os.Build
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gavenda.yuuka.BuildConfig
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.BudgetMode
 import dev.gavenda.yuuka.data.remote.ApiError
@@ -57,7 +59,7 @@ fun SettingsScreen(
     val isValid = Regex("^[A-Za-z]{3}$").matches(currencyDraft.trim())
     val changed = normalised != state.displayCurrency || budgetModeDraft != state.budgetMode || defaultAccountDraft != state.defaultAccountId
 
-    Column(modifier = modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column {
             OutlinedTextField(
                 value = currencyDraft,
@@ -86,25 +88,19 @@ fun SettingsScreen(
 
         Column {
             Text(stringResource(R.string.appearance), style = MaterialTheme.typography.labelMedium)
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    themeMode == ThemeMode.system,
-                    onClick = { themePreference.setThemeMode(ThemeMode.system) },
-                    label = { Text(stringResource(R.string.theme_system), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                    modifier = Modifier.weight(1f),
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                val options = listOf(
+                    ThemeMode.system to R.string.theme_system,
+                    ThemeMode.light to R.string.theme_light,
+                    ThemeMode.dark to R.string.theme_dark,
                 )
-                FilterChip(
-                    themeMode == ThemeMode.light,
-                    onClick = { themePreference.setThemeMode(ThemeMode.light) },
-                    label = { Text(stringResource(R.string.theme_light), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    themeMode == ThemeMode.dark,
-                    onClick = { themePreference.setThemeMode(ThemeMode.dark) },
-                    label = { Text(stringResource(R.string.theme_dark), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                    modifier = Modifier.weight(1f),
-                )
+                options.forEachIndexed { index, (mode, label) ->
+                    SegmentedButton(
+                        selected = themeMode == mode,
+                        onClick = { themePreference.setThemeMode(mode) },
+                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                    ) { Text(stringResource(label)) }
+                }
             }
             if (dynamicColorAvailable) {
                 Row(
@@ -120,19 +116,18 @@ fun SettingsScreen(
 
         Column {
             Text(stringResource(R.string.budget_mode_label), style = MaterialTheme.typography.labelMedium)
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    budgetModeDraft == BudgetMode.fixed,
-                    onClick = { budgetModeDraft = BudgetMode.fixed },
-                    label = { Text(stringResource(R.string.label_fixed), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                    modifier = Modifier.weight(1f),
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                val options = listOf(
+                    BudgetMode.fixed to R.string.label_fixed,
+                    BudgetMode.monthly to R.string.budget_mode_monthly,
                 )
-                FilterChip(
-                    budgetModeDraft == BudgetMode.monthly,
-                    onClick = { budgetModeDraft = BudgetMode.monthly },
-                    label = { Text(stringResource(R.string.budget_mode_monthly), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                    modifier = Modifier.weight(1f),
-                )
+                options.forEachIndexed { index, (mode, label) ->
+                    SegmentedButton(
+                        selected = budgetModeDraft == mode,
+                        onClick = { budgetModeDraft = mode },
+                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                    ) { Text(stringResource(label)) }
+                }
             }
             Text(
                 if (budgetModeDraft == BudgetMode.fixed) stringResource(R.string.budget_mode_fixed_hint) else stringResource(R.string.budget_mode_monthly_hint),
@@ -160,6 +155,20 @@ fun SettingsScreen(
         }
 
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
+
+        HorizontalDivider()
+
+        Column {
+            Text(stringResource(R.string.about), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                Text(stringResource(R.string.version), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    stringResource(R.string.version_value, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 
     SideEffect {
