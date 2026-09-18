@@ -1,6 +1,6 @@
 {
 	"name": "yuuka",
-	"version": "1.5.4",
+	"version": "1.5.5",
 	"private": true,
 	"type": "module",
 	"description": "Personal budgeting and financial tracking, running entirely on Cloudflare.",
