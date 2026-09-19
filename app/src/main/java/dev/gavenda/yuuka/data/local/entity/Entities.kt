@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -73,6 +74,25 @@ data class RoundUpRuleEntity(
     val categoryId: String?,
     val createdAt: String?,
     val updatedAt: String?,
+)
+
+@Entity(tableName = "tags")
+data class TagEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val color: String,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+/**
+ * Which tags a transaction wears. Deliberately without foreign keys: a transaction is written with
+ * `REPLACE`, which deletes the old row first, and a cascade would take its links with it.
+ */
+@Entity(tableName = "transaction_tags", primaryKeys = ["transactionId", "tagId"], indices = [Index("tagId")])
+data class TransactionTagEntity(
+    val transactionId: String,
+    val tagId: String,
 )
 
 @Entity(tableName = "transactions")

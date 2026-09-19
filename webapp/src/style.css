@@ -394,6 +394,23 @@
 		@apply state-layer type-label-large block min-h-12 w-full cursor-pointer px-3 py-3 text-left text-on-surface;
 	}
 
+	/*
+	 * A chip: a compact label at 8dp corners. Read-only on a card; a toggle
+	 * (`aria-pressed`) in a form, where the selected one fills with the
+	 * secondary container the way an M3 filter chip does.
+	 */
+	.chip {
+		@apply type-label-small inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-sm border border-outline-variant px-2 py-0.5 text-on-surface-variant;
+	}
+
+	button.chip {
+		@apply state-layer focus-ring min-h-8 cursor-pointer px-3 text-xs;
+	}
+
+	button.chip[aria-pressed='true'] {
+		@apply border-transparent bg-secondary-container text-on-secondary-container;
+	}
+
 	.banner-error {
 		@apply banner bg-error-container text-on-error-container;
 	}

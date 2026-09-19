@@ -18,6 +18,7 @@ val databaseModule = module {
     single { get<YuukaDatabase>().accountDao() }
     single { get<YuukaDatabase>().accountTypeDao() }
     single { get<YuukaDatabase>().categoryDao() }
+    single { get<YuukaDatabase>().tagDao() }
     single { get<YuukaDatabase>().settingsDao() }
     single { get<YuukaDatabase>().transactionDao() }
     single { get<YuukaDatabase>().budgetDao() }

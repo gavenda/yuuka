@@ -1,18 +1,24 @@
 package dev.gavenda.yuuka.ui.transactions
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
+import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
@@ -41,6 +47,7 @@ private data class FormFields(
     val time: LocalTime? = null,
     val payee: String = "",
     val notes: String = "",
+    val tagIds: List<String> = emptyList(),
 )
 
 private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, defaultAccountId: String?, accounts: List<Account>): FormFields {
@@ -69,15 +76,22 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
         time = time,
         payee = transaction.payee,
         notes = transaction.notes,
+        tagIds = transaction.tags.map { it.id },
     )
 }
 
+@Composable
+private fun tagColor(hex: String): Color =
+    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransactionForm(
     editing: Transaction?,
     transferToAccountId: String?,
     accounts: List<Account>,
     categories: List<Category>,
+    tags: List<Tag>,
     payees: List<Payee>,
     defaultAccountId: String?,
     submitting: Boolean,
@@ -258,6 +272,22 @@ fun TransactionForm(
             modifier = Modifier.fillMaxWidth(),
         )
 
+        // Tags, unlike the category, are any number of labels. They change no figure.
+        if (tags.isNotEmpty()) {
+            Text(stringResource(R.string.label_tags), style = MaterialTheme.typography.labelMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                tags.forEach { tag ->
+                    val selected = tag.id in fields.tagIds
+                    FilterChip(
+                        selected = selected,
+                        onClick = { fields = fields.copy(tagIds = if (selected) fields.tagIds - tag.id else fields.tagIds + tag.id) },
+                        label = { Text(tag.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingIcon = { Box(Modifier.size(8.dp).clip(CircleShape).background(tagColor(tag.color))) },
+                    )
+                }
+            }
+        }
+
         val shownError = localError ?: error
         if (shownError != null) {
             Text(shownError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -291,6 +321,9 @@ fun TransactionForm(
                     val datePart = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
                     val occurredOn = fields.time?.takeUnless { isAutomated }?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart
 
+                    // A tag deleted since the form opened would be refused by the API; drop it here instead.
+                    val tagIds = fields.tagIds.filter { id -> tags.any { it.id == id } }
+
                     val submission = when (fields.mode) {
                         FormMode.TRANSFER -> TransactionSubmission.Transfer(
                             fromAccountId = fields.accountId,
@@ -300,6 +333,7 @@ fun TransactionForm(
                             occurredOn = occurredOn,
                             payee = fields.payee,
                             notes = fields.notes,
+                            tagIds = tagIds,
                         )
                         else -> TransactionSubmission.Plain(
                             accountId = fields.accountId,
@@ -308,6 +342,7 @@ fun TransactionForm(
                             occurredOn = occurredOn,
                             payee = fields.payee,
                             notes = fields.notes,
+                            tagIds = tagIds,
                         )
                     }
                     onSubmit(submission)

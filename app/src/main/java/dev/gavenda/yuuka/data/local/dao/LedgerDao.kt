@@ -59,6 +59,24 @@ interface CategoryDao {
 }
 
 @Dao
+interface TagDao {
+    @Query("SELECT * FROM tags ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<TagEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(tags: List<TagEntity>)
+
+    @Query("DELETE FROM tags")
+    suspend fun clear()
+
+    @Transaction
+    suspend fun replaceAll(tags: List<TagEntity>) {
+        clear()
+        insertAll(tags)
+    }
+}
+
+@Dao
 interface SettingsDao {
     @Query("SELECT * FROM settings WHERE id = 0")
     fun observe(): Flow<SettingsEntity?>

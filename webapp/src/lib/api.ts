@@ -9,6 +9,7 @@ import type {
 	Settings,
 	Subscription,
 	Summary,
+	Tag,
 	Transaction,
 	TransactionFilters,
 	TransactionPage,
@@ -143,6 +144,11 @@ export const api = {
 	updateCategory: (id: string, input: Partial<Category>) =>
 		request<{ category: Category }>(`/categories/${id}`, { method: 'PATCH', body: body(input) }),
 	deleteCategory: (id: string) => request<void>(`/categories/${id}`, { method: 'DELETE' }),
+
+	listTags: () => request<{ tags: Tag[] }>('/tags'),
+	createTag: (input: Partial<Tag>) => request<{ tag: Tag }>('/tags', { method: 'POST', body: body(input) }),
+	updateTag: (id: string, input: Partial<Tag>) => request<{ tag: Tag }>(`/tags/${id}`, { method: 'PATCH', body: body(input) }),
+	deleteTag: (id: string) => request<void>(`/tags/${id}`, { method: 'DELETE' }),
 
 	listTransactions: (filters: TransactionFilters = {}) =>
 		request<TransactionPage>(`/transactions${queryString(filters as Record<string, string | number | undefined>)}`),

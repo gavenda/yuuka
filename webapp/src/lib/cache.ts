@@ -15,7 +15,7 @@ const PREFIX = 'yuuka.cache.';
 const OWNER_KEY = `${PREFIX}owner`;
 
 /** Bump when the shape of a stored value changes: entries written under another version read as missing. */
-const VERSION = 1;
+const VERSION = 2;
 
 interface Entry<T> {
 	v: number;

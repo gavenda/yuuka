@@ -16,8 +16,10 @@ import dev.gavenda.yuuka.data.local.entity.*
         AccountTypeEntity::class,
         AccountEntity::class,
         CategoryEntity::class,
+        TagEntity::class,
         SettingsEntity::class,
         TransactionEntity::class,
+        TransactionTagEntity::class,
         BudgetEntity::class,
         IncomePlanEntity::class,
         SummaryEntity::class,
@@ -25,13 +27,14 @@ import dev.gavenda.yuuka.data.local.entity.*
         RoundUpRuleEntity::class,
         SubscriptionEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun accountTypeDao(): AccountTypeDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun tagDao(): TagDao
     abstract fun settingsDao(): SettingsDao
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao

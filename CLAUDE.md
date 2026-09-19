@@ -103,6 +103,20 @@ percentage-based budget is a share of, so it would be inconsistent for it to sta
 per-month while the budgets built on it go fixed. How the mode is stored and
 resolved is in [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
+**Tags are labels beside the category, never instead of it.** A user manages
+their own tags (a name and a palette colour, unique per user whatever the case)
+from the Categories screen, and a transaction wears any number of them, up to
+ten. They are drawn as chips at the right end of the notes row of a transaction
+card. A category decides where money counts; a tag decides nothing, so no
+income, spending, budget, balance or summary figure ever reads them (which is
+why tagging never invalidates a cached summary). The two legs of a transfer wear
+the same tags, so it reads the same from either account. Saving a transaction
+sends the whole set, which replaces what it wore; an edit that leaves `tagIds`
+out keeps them. Deleting a tag only takes the label off — the transactions stay
+— and deleting a transaction leaves its tags. Search matches a tag's name as it
+matches a payee or notes. Round-ups and automated subscription rows wear none,
+and the payee history does not remember them.
+
 **Cashflow categories belong to transfers.** A category records where it may be
 used — `standard` for spending and income, `transfer` for movements between your
 own accounts — and the two sets never appear in the same picker. Because a
@@ -208,7 +222,7 @@ app and in the web app, which is installable and opens offline.**
 Pull-to-refresh is a full sync, not a top-up. The per-screen loads only ever
 fold rows in, so something deleted elsewhere (the web app, another device)
 would otherwise linger here indefinitely. A full sync replaces accounts, types,
-categories, settings, the round-up rule, subscriptions and payees from the API,
+categories, tags, settings, the round-up rule, subscriptions and payees from the API,
 and only once that has succeeded discards the cached transactions, budgets,
 income plans and summaries, so the screens on show load theirs again. A failed sync (offline,
 expired session) leaves the last-seen ledger untouched rather than empty.

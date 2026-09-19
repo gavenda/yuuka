@@ -2,6 +2,14 @@ package dev.gavenda.yuuka.data.model
 
 import kotlinx.serialization.Serializable
 
+/** The part of a [Tag] a transaction carries: enough to draw its chip. */
+@Serializable
+data class TransactionTag(
+    val id: String,
+    val name: String,
+    val color: String,
+)
+
 @Serializable
 data class Transaction(
     val id: String,
@@ -17,6 +25,8 @@ data class Transaction(
     val transferId: String? = null,
     /** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
     val automated: Boolean = false,
+    /** The tags it wears, in name order. Both legs of a transfer wear the same ones. */
+    val tags: List<TransactionTag> = emptyList(),
     /** This account's own balance immediately after the transaction posted. */
     val runningBalance: Long,
     val createdAt: String = "",

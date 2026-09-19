@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.repository
 
 import dev.gavenda.yuuka.data.local.dao.TransactionDao
 import dev.gavenda.yuuka.data.local.toDomain
+import dev.gavenda.yuuka.data.local.tagLinks
 import dev.gavenda.yuuka.data.local.toEntity
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
@@ -10,6 +11,9 @@ import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -18,6 +22,9 @@ class TransactionRepository(
     private val api: YuukaApi,
     private val dao: TransactionDao,
 ) {
+    /** Rows and the tags they wear go in together, so a chip never outlives its transaction or the reverse. */
+    private suspend fun store(transactions: List<Transaction>) = dao.upsert(transactions.map { it.toEntity() }, transactions.flatMap { it.tagLinks() })
+
     /** The cached page for these filters — populated by [refreshPage], observed live thereafter. */
     fun observePage(filters: TransactionFilters, limit: Int, offset: Int = 0): Flow<List<Transaction>> {
         val categoryNone = filters.categoryId == "none"
@@ -46,12 +53,20 @@ class TransactionRepository(
                 offset = offset,
             )
         }
-        dao.insertAll(page.transactions.map { it.toEntity() })
+        store(page.transactions)
         return page
     }
 
     /** Returns the "Save the Change" round-up this create triggered, if any — its destination-account leg, ready to surface as feedback. */
-    suspend fun createTransaction(accountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String): Transaction? {
+    suspend fun createTransaction(
+        accountId: String,
+        categoryId: String?,
+        amount: Long,
+        occurredOn: String,
+        payee: String,
+        notes: String,
+        tagIds: List<String>,
+    ): Transaction? {
         val body = buildJsonObject {
             put("accountId", accountId)
             put("categoryId", categoryId)
@@ -59,13 +74,23 @@ class TransactionRepository(
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
+            putTagIds(tagIds)
         }
         val response = apiCall { api.createTransaction(body) }
-        dao.insertAll(listOfNotNull(response.transaction, response.roundUp).map { it.toEntity() })
+        store(listOfNotNull(response.transaction, response.roundUp))
         return response.roundUp
     }
 
-    suspend fun updateTransaction(id: String, accountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String) {
+    suspend fun updateTransaction(
+        id: String,
+        accountId: String,
+        categoryId: String?,
+        amount: Long,
+        occurredOn: String,
+        payee: String,
+        notes: String,
+        tagIds: List<String>,
+    ) {
         val body = buildJsonObject {
             put("accountId", accountId)
             put("categoryId", categoryId)
@@ -73,9 +98,10 @@ class TransactionRepository(
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
+            putTagIds(tagIds)
         }
         val response = apiCall { api.updateTransaction(id, body) }
-        dao.insertAll(listOf(response.transaction.toEntity()))
+        store(listOf(response.transaction))
     }
 
     /**
@@ -92,7 +118,7 @@ class TransactionRepository(
             put("notes", notes)
         }
         val response = apiCall { api.adjustAccountBalance(accountId, body) }
-        dao.insertAll(listOf(response.transaction.toEntity()))
+        store(listOf(response.transaction))
     }
 
     suspend fun deleteTransaction(id: String) {
@@ -100,7 +126,16 @@ class TransactionRepository(
         dao.deleteById(id)
     }
 
-    suspend fun createTransfer(fromAccountId: String, toAccountId: String, categoryId: String?, amount: Long, occurredOn: String, payee: String, notes: String) {
+    suspend fun createTransfer(
+        fromAccountId: String,
+        toAccountId: String,
+        categoryId: String?,
+        amount: Long,
+        occurredOn: String,
+        payee: String,
+        notes: String,
+        tagIds: List<String>,
+    ) {
         val body = buildJsonObject {
             put("fromAccountId", fromAccountId)
             put("toAccountId", toAccountId)
@@ -109,9 +144,10 @@ class TransactionRepository(
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
+            putTagIds(tagIds)
         }
         val response = apiCall { api.createTransfer(body) }
-        dao.insertAll(response.transactions.map { it.toEntity() })
+        store(response.transactions)
     }
 
     suspend fun updateTransfer(
@@ -123,6 +159,7 @@ class TransactionRepository(
         occurredOn: String,
         payee: String,
         notes: String,
+        tagIds: List<String>,
     ) {
         val body = buildJsonObject {
             put("fromAccountId", fromAccountId)
@@ -132,9 +169,10 @@ class TransactionRepository(
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
+            putTagIds(tagIds)
         }
         val response = apiCall { api.updateTransfer(transferId, body) }
-        dao.insertAll(response.transactions.map { it.toEntity() })
+        store(response.transactions)
     }
 
     /** Deletes both legs of a transfer, or a single plain transaction — the caller knows which by whether `transferId` was set. */
@@ -143,4 +181,9 @@ class TransactionRepository(
         val transferId = transaction.transferId
         if (transferId != null) dao.deleteByTransferId(transferId) else dao.deleteById(transaction.id)
     }
+}
+
+/** Sent whole on every save: the API replaces a transaction's tags with exactly this set. */
+private fun JsonObjectBuilder.putTagIds(tagIds: List<String>) {
+    put("tagIds", buildJsonArray { tagIds.forEach { add(it) } })
 }

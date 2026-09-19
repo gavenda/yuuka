@@ -34,6 +34,7 @@ const form = reactive({
 	occurredTime: currentTime(),
 	payee: '',
 	notes: '',
+	tagIds: [] as string[],
 });
 
 const error = ref<string | null>(null);
@@ -73,6 +74,7 @@ watch(
 				occurredTime: currentTime(),
 				payee: '',
 				notes: '',
+				tagIds: [],
 			});
 			return;
 		}
@@ -91,6 +93,7 @@ watch(
 			occurredTime: hasTime ? transaction.occurredOn.slice(11, 16) : '',
 			payee: transaction.payee,
 			notes: transaction.notes,
+			tagIds: transaction.tags.map((tag) => tag.id),
 		});
 	},
 	{ immediate: true },
@@ -109,6 +112,10 @@ watch(
  * category and the notes. Switching mode first matters — the category picker
  * depends on it, and a category from another set would be dropped.
  */
+function toggleTag(id: string): void {
+	form.tagIds = form.tagIds.includes(id) ? form.tagIds.filter((tagId) => tagId !== id) : [...form.tagIds, id];
+}
+
 async function applyPayee(entry: Payee): Promise<void> {
 	// Switch mode first and let its watcher settle. That watcher clears a
 	// category belonging to another set, and it runs asynchronously — setting
@@ -147,6 +154,9 @@ async function submit(): Promise<void> {
 		// automated transaction never has one, and the API refuses it if it does.
 		const occurredOn = form.occurredTime && !isAutomated.value ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn;
 
+		// A tag deleted since the form opened would be refused by the API; drop it here instead.
+		const tagIds = form.tagIds.filter((id) => ledger.tags.some((tag) => tag.id === id));
+
 		// Direction lives in the sign, so the form's mode is what decides it.
 		const payload =
 			form.mode === 'transfer'
@@ -159,6 +169,7 @@ async function submit(): Promise<void> {
 						notes: form.notes,
 						categoryId: form.categoryId || null,
 						payee: form.payee,
+						tagIds,
 					}
 				: {
 						mode: form.mode,
@@ -168,6 +179,7 @@ async function submit(): Promise<void> {
 						occurredOn,
 						payee: form.payee,
 						notes: form.notes,
+						tagIds,
 					};
 
 		emit('submit', payload);
@@ -257,6 +269,24 @@ defineExpose({
 			<label class="label" for="notes">Notes</label>
 			<input id="notes" v-model="form.notes" class="input" placeholder="Optional" />
 		</div>
+
+		<!-- Tags, unlike the category, are any number of labels. They change no figure. -->
+		<fieldset v-if="ledger.tags.length" class="min-w-0">
+			<legend class="label">Tags</legend>
+			<div class="flex flex-wrap gap-2">
+				<button
+					v-for="tag in ledger.tags"
+					:key="tag.id"
+					type="button"
+					class="chip"
+					:aria-pressed="form.tagIds.includes(tag.id)"
+					@click="toggleTag(tag.id)"
+				>
+					<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
+					<span class="truncate">{{ tag.name }}</span>
+				</button>
+			</div>
+		</fieldset>
 
 		<p v-if="error" class="banner-error" role="alert">
 			{{ error }}

@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
 	listAccounts: vi.fn(),
 	listAccountTypes: vi.fn(),
 	listCategories: vi.fn(),
+	listTags: vi.fn(),
 	settings: vi.fn(),
 	getRoundUpRule: vi.fn(),
 	summary: vi.fn(),
@@ -52,6 +53,7 @@ describe('ledger', () => {
 		accounts: [{ id }],
 		accountTypes: [],
 		categories: [],
+		tags: [],
 		settings: { displayCurrency: 'USD', budgetMode: 'fixed', defaultAccountId: null },
 		roundUpRule: { enabled: false },
 	});
@@ -61,6 +63,7 @@ describe('ledger', () => {
 		api.listAccounts.mockResolvedValue({ accounts: fresh.accounts });
 		api.listAccountTypes.mockResolvedValue({ accountTypes: fresh.accountTypes });
 		api.listCategories.mockResolvedValue({ categories: fresh.categories });
+		api.listTags.mockResolvedValue({ tags: fresh.tags });
 		api.settings.mockResolvedValue({ settings: fresh.settings });
 		api.getRoundUpRule.mockResolvedValue({ roundUpRule: fresh.roundUpRule });
 	}
@@ -97,6 +100,7 @@ describe('ledger', () => {
 		api.listAccounts.mockRejectedValue(offline());
 		api.listAccountTypes.mockRejectedValue(offline());
 		api.listCategories.mockRejectedValue(offline());
+		api.listTags.mockRejectedValue(offline());
 		api.settings.mockRejectedValue(offline());
 		api.getRoundUpRule.mockRejectedValue(offline());
 
@@ -115,6 +119,7 @@ describe('ledger', () => {
 		api.listAccounts.mockRejectedValue(offline());
 		api.listAccountTypes.mockRejectedValue(offline());
 		api.listCategories.mockRejectedValue(offline());
+		api.listTags.mockRejectedValue(offline());
 		api.settings.mockRejectedValue(offline());
 		api.getRoundUpRule.mockRejectedValue(offline());
 
@@ -126,6 +131,7 @@ describe('ledger', () => {
 		api.listAccounts.mockRejectedValue(serverError());
 		api.listAccountTypes.mockResolvedValue({ accountTypes: [] });
 		api.listCategories.mockResolvedValue({ categories: [] });
+		api.listTags.mockResolvedValue({ tags: [] });
 		api.settings.mockResolvedValue({ settings: snapshot('x').settings });
 		api.getRoundUpRule.mockResolvedValue({ roundUpRule: snapshot('x').roundUpRule });
 

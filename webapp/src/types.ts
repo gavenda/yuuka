@@ -75,6 +75,18 @@ export interface Category {
 	updatedAt: string;
 }
 
+/** A user-defined label. Unlike a category it changes no figure — it is only there to read by. */
+export interface Tag {
+	id: string;
+	name: string;
+	color: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** The part of a tag a transaction carries: enough to draw its chip. */
+export type TransactionTag = Pick<Tag, 'id' | 'name' | 'color'>;
+
 export interface Transaction {
 	id: string;
 	accountId: string;
@@ -89,6 +101,8 @@ export interface Transaction {
 	transferId: string | null;
 	/** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
 	automated: boolean;
+	/** The tags it wears, in name order. Both legs of a transfer wear the same ones. */
+	tags: TransactionTag[];
 	/** This account's own balance immediately after the transaction posted. */
 	runningBalance: number;
 	createdAt: string;

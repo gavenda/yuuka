@@ -115,6 +115,27 @@ export const categoryUpdateSchema = z
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
+export const MAX_TAGS_PER_TRANSACTION = 10;
+
+export const tagCreateSchema = z.object({
+	name: label,
+	color: color.default('#64748b'),
+});
+
+export const tagUpdateSchema = z
+	.object({
+		name: label,
+		color,
+	})
+	.partial()
+	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
+
+/** The tags a transaction wears. Repeats collapse, since a transaction either has a tag or it does not. */
+const tagIds = z
+	.array(z.string().min(1))
+	.max(MAX_TAGS_PER_TRANSACTION, `A transaction takes at most ${MAX_TAGS_PER_TRANSACTION} tags.`)
+	.transform((ids) => [...new Set(ids)]);
+
 export const transactionCreateSchema = z.object({
 	accountId: z.string().min(1),
 	categoryId: z.string().min(1).nullable().default(null),
@@ -122,6 +143,7 @@ export const transactionCreateSchema = z.object({
 	occurredOn: dateTimeString,
 	payee: z.string().trim().max(120).default(''),
 	notes: z.string().trim().max(500).default(''),
+	tagIds: tagIds.default([]),
 });
 
 export const transactionUpdateSchema = z
@@ -132,6 +154,8 @@ export const transactionUpdateSchema = z
 		occurredOn: dateTimeString,
 		payee: z.string().trim().max(120),
 		notes: z.string().trim().max(500),
+		/** Replaces the whole set. Left out, the transaction's tags stay as they are. */
+		tagIds,
 	})
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
@@ -147,6 +171,8 @@ export const transferCreateSchema = z
 		categoryId: z.string().min(1).nullable().default(null),
 		/** Shown as the transfer's name. Blank becomes "From → To". */
 		payee: z.string().trim().max(120).default(''),
+		/** Worn by both legs, so the pair reads the same from either account. Left out on an edit, the tags stay as they are. */
+		tagIds: tagIds.optional(),
 	})
 	.refine((value) => value.fromAccountId !== value.toAccountId, {
 		message: 'Cannot transfer to the same account.',

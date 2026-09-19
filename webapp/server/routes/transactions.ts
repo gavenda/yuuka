@@ -23,7 +23,10 @@ const SELECT_ENRICHED = `
 	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.payee, t.notes,
 	       t.transfer_id, t.automated, t.created_at, t.updated_at,
 	       a.name AS account_name, c.name AS category_name, c.color AS category_color,
-	       b.running_balance
+	       b.running_balance,
+	       (SELECT json_group_array(json_object('id', g.id, 'name', g.name, 'color', g.color))
+	        FROM transaction_tags tt JOIN tags g ON g.id = tt.tag_id
+	        WHERE tt.transaction_id = t.id) AS tags_json
 	FROM transactions t
 	JOIN accounts a ON a.id = t.account_id
 	LEFT JOIN categories c ON c.id = t.category_id
@@ -41,6 +44,7 @@ const SELECT_ENRICHED = `
 `;
 
 const MISSING_REFERENCE = 'Unknown account or category.';
+const UNKNOWN_TAG = 'Unknown tag.';
 const WRONG_SCOPE = 'That category cannot be used here. Spending and income use standard categories; transfers use Cashflow categories.';
 
 /** The synthetic payee "Save the Change" round-ups are posted under. Never fed into `rememberPayee` — it's derived, not typed. */
@@ -110,6 +114,46 @@ const INSERT_GUARDED = `
 	  AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = ?))
 `;
 
+/**
+ * Throws unless every tag belongs to the caller. Checked before anything is
+ * written, so a request naming someone else's tag — indistinguishable from one
+ * that does not exist — leaves no half-saved transaction behind.
+ */
+async function assertOwnTags(db: D1Database, userId: string, tagIds: string[]): Promise<void> {
+	if (!tagIds.length) return;
+
+	const marks = tagIds.map(() => '?').join(', ');
+	const row = await db
+		.prepare(`SELECT COUNT(*) AS found FROM tags WHERE user_id = ? AND id IN (${marks})`)
+		.bind(userId, ...tagIds)
+		.first<{ found: number }>();
+
+	if (row?.found !== tagIds.length) throw badRequest(UNKNOWN_TAG);
+}
+
+/**
+ * Puts the tags on each transaction, dropping whatever they wore before when
+ * `replace` is set. The link is inserted from the tag's own row, so the owner is
+ * checked again in the statement that writes — a tag deleted since
+ * `assertOwnTags` simply is not linked.
+ */
+function tagStatements(
+	db: D1Database,
+	userId: string,
+	transactionIds: string[],
+	tagIds: string[],
+	replace: boolean,
+): D1PreparedStatement[] {
+	return transactionIds.flatMap((transactionId) => [
+		...(replace ? [db.prepare('DELETE FROM transaction_tags WHERE transaction_id = ?').bind(transactionId)] : []),
+		...tagIds.map((tagId) =>
+			db
+				.prepare('INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id) SELECT ?, id FROM tags WHERE id = ? AND user_id = ?')
+				.bind(transactionId, tagId, userId),
+		),
+	]);
+}
+
 /** Re-reads a row with its joined account and category labels. */
 export async function loadOne(db: D1Database, userId: string, id: string): Promise<TransactionRow | null> {
 	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(userId, id, userId).first<TransactionRow>();
@@ -147,9 +191,13 @@ export const transactionRoutes = new Hono<AppEnv>()
 			if (query.categoryId !== 'none') values.push(query.categoryId);
 		}
 		if (query.search) {
-			conditions.push('(t.payee LIKE ? OR t.notes LIKE ?)');
+			conditions.push(
+				`(t.payee LIKE ? OR t.notes LIKE ? OR EXISTS (
+					SELECT 1 FROM transaction_tags st JOIN tags sg ON sg.id = st.tag_id WHERE st.transaction_id = t.id AND sg.name LIKE ?
+				))`,
+			);
 			const pattern = `%${query.search}%`;
-			values.push(pattern, pattern);
+			values.push(pattern, pattern, pattern);
 		}
 
 		const where = `WHERE ${conditions.join(' AND ')}`;
@@ -177,6 +225,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const id = newId('txn');
 
+		await assertOwnTags(c.env.DB, userId, input.tagIds);
+
 		const result = await c.env.DB.prepare(INSERT_GUARDED)
 			.bind(
 				id,
@@ -198,6 +248,9 @@ export const transactionRoutes = new Hono<AppEnv>()
 			.run();
 
 		if (!result.meta.changes) throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
+
+		const tagWrites = tagStatements(c.env.DB, userId, [id], input.tagIds, false);
+		if (tagWrites.length) await c.env.DB.batch(tagWrites);
 
 		// Only an ordinary expense — never a transfer, an edit or a balance
 		// adjustment — can trigger "Save the Change"; this is the one place
@@ -289,6 +342,9 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const input = await parseJson(c, transferCreateSchema);
 		const userId = c.get('userId');
 		const transferId = newId('tfr');
+		const tagIds = input.tagIds ?? [];
+
+		await assertOwnTags(c.env.DB, userId, tagIds);
 
 		// A transfer's payee reads as its name. Left blank it describes itself,
 		// which is more use in a list than the word "Transfer" repeated.
@@ -345,6 +401,15 @@ export const transactionRoutes = new Hono<AppEnv>()
 			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
 		}
 
+		const tagWrites = tagStatements(
+			c.env.DB,
+			userId,
+			legs.map((leg) => leg.id),
+			tagIds,
+			false,
+		);
+		if (tagWrites.length) await c.env.DB.batch(tagWrites);
+
 		await invalidateSummaries(c.env.CACHE, userId, [monthOf(input.occurredOn)]);
 
 		// Only a name the user actually typed is worth remembering — the composed
@@ -370,6 +435,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const transferId = c.req.param('transferId');
 		const userId = c.get('userId');
 		const input = await parseJson(c, transferCreateSchema);
+
+		if (input.tagIds) await assertOwnTags(c.env.DB, userId, input.tagIds);
 
 		// Both legs, ordered outflow-then-inflow the same way creation leaves them.
 		// Kept in full so a rejected edit can restore them verbatim, not just their id.
@@ -450,6 +517,19 @@ export const transactionRoutes = new Hono<AppEnv>()
 			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
 		}
 
+		// Only when the request names tags: an edit that leaves them out keeps what the transfer wears.
+		if (input.tagIds) {
+			await c.env.DB.batch(
+				tagStatements(
+					c.env.DB,
+					userId,
+					existing.map((leg) => leg.id),
+					input.tagIds,
+					true,
+				),
+			);
+		}
+
 		await invalidateSummaries(c.env.CACHE, userId, [monthOf(outflow.occurred_on), monthOf(input.occurredOn)]);
 
 		if (input.payee) {
@@ -476,10 +556,12 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const input = await parseJson(c, transactionUpdateSchema);
 
-		const existing = await c.env.DB.prepare('SELECT occurred_on, automated FROM transactions WHERE id = ? AND user_id = ?')
+		const existing = await c.env.DB.prepare('SELECT occurred_on, automated, transfer_id FROM transactions WHERE id = ? AND user_id = ?')
 			.bind(id, userId)
-			.first<{ occurred_on: string; automated: number }>();
+			.first<{ occurred_on: string; automated: number; transfer_id: string | null }>();
 		if (!existing) throw notFound('Transaction not found.');
+
+		if (input.tagIds) await assertOwnTags(c.env.DB, userId, input.tagIds);
 
 		// A subscription posts at 00:00 UTC and nobody chooses that. The date can
 		// still move; a time of day cannot be added to it.
@@ -501,8 +583,9 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const accountGuard = input.accountId ?? null;
 		const categoryGuard = input.categoryId ?? null;
 
+		// A patch that only changes tags has no columns to set, so `updated_at` may be the whole clause.
 		const result = await c.env.DB.prepare(
-			`UPDATE transactions SET ${clause}, updated_at = ${NOW_SQL}
+			`UPDATE transactions SET ${[clause, `updated_at = ${NOW_SQL}`].filter(Boolean).join(', ')}
 			 WHERE id = ? AND user_id = ?
 			   AND (? IS NULL OR EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?))
 			   AND (
@@ -520,6 +603,19 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// The row exists and belongs to the caller, so a no-op means a reference
 		// pointed somewhere they cannot reach, or a category of the wrong scope.
 		if (!result.meta.changes) throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
+
+		if (input.tagIds) {
+			// One movement recorded twice reads the same from either account, so a transfer's tags go on both legs.
+			const legs = existing.transfer_id
+				? (
+						await c.env.DB.prepare('SELECT id FROM transactions WHERE transfer_id = ? AND user_id = ?')
+							.bind(existing.transfer_id, userId)
+							.all<{ id: string }>()
+					).results.map((leg) => leg.id)
+				: [id];
+
+			await c.env.DB.batch(tagStatements(c.env.DB, userId, legs, input.tagIds, true));
+		}
 
 		// Moving a transaction across a month boundary makes two months stale.
 		await invalidateSummaries(c.env.CACHE, userId, [monthOf(existing.occurred_on), monthOf(input.occurredOn ?? existing.occurred_on)]);

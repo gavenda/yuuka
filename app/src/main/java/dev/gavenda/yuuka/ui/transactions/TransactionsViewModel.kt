@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
+import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
 import dev.gavenda.yuuka.data.remote.ApiError
@@ -21,6 +22,7 @@ data class TransactionsUiState(
     val currency: String = DEFAULT_CURRENCY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
+    val tags: List<Tag> = emptyList(),
     val defaultAccountId: String? = null,
     val accountFilter: String? = null,
     val categoryFilter: String? = null,
@@ -35,8 +37,15 @@ data class TransactionsUiState(
 }
 
 sealed interface TransactionSubmission {
-    data class Plain(val accountId: String, val categoryId: String?, val amount: Long, val occurredOn: String, val payee: String, val notes: String) :
-        TransactionSubmission
+    data class Plain(
+        val accountId: String,
+        val categoryId: String?,
+        val amount: Long,
+        val occurredOn: String,
+        val payee: String,
+        val notes: String,
+        val tagIds: List<String>,
+    ) : TransactionSubmission
 
     data class Transfer(
         val fromAccountId: String,
@@ -46,6 +55,7 @@ sealed interface TransactionSubmission {
         val occurredOn: String,
         val payee: String,
         val notes: String,
+        val tagIds: List<String>,
     ) : TransactionSubmission
 }
 
@@ -89,6 +99,7 @@ class TransactionsViewModel(
     init {
         viewModelScope.launch { ledgerRepository.accounts.collect { list -> _uiState.update { it.copy(accounts = list) } } }
         viewModelScope.launch { ledgerRepository.categories.collect { list -> _uiState.update { it.copy(categories = list) } } }
+        viewModelScope.launch { ledgerRepository.tags.collect { list -> _uiState.update { it.copy(tags = list) } } }
         viewModelScope.launch {
             ledgerRepository.settings.collect { settings ->
                 _uiState.update { it.copy(currency = settings?.displayCurrency ?: DEFAULT_CURRENCY, defaultAccountId = settings?.defaultAccountId) }
@@ -202,6 +213,7 @@ class TransactionsViewModel(
                             submission.occurredOn,
                             submission.payee,
                             submission.notes,
+                            submission.tagIds,
                         )
                     } else {
                         roundUp = transactionRepository.createTransaction(
@@ -211,6 +223,7 @@ class TransactionsViewModel(
                             submission.occurredOn,
                             submission.payee,
                             submission.notes,
+                            submission.tagIds,
                         )
                     }
 
@@ -226,6 +239,7 @@ class TransactionsViewModel(
                                 submission.occurredOn,
                                 submission.payee,
                                 submission.notes,
+                                submission.tagIds,
                             )
                         } else {
                             transactionRepository.createTransfer(
@@ -236,6 +250,7 @@ class TransactionsViewModel(
                                 submission.occurredOn,
                                 submission.payee,
                                 submission.notes,
+                                submission.tagIds,
                             )
                         }
                     }

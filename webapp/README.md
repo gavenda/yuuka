@@ -137,6 +137,7 @@ access token in `Authorization: Bearer <token>`.
 | `GET/POST/PATCH/DELETE` | `/accounts`, `/accounts/:id` | Accounts, with derived balances                   |
 | `POST`                  | `/accounts/:id/adjust`       | Log the gap to a target balance as income/expense |
 | `GET/POST/PATCH/DELETE` | `/categories`                | Categories                                        |
+| `GET/POST/PATCH/DELETE` | `/tags`                      | Tags, the labels a transaction can wear           |
 | `GET/POST/PATCH/DELETE` | `/transactions`              | Transactions, filtered and paged                  |
 | `POST`                  | `/transactions/transfer`     | Write both legs of a transfer                     |
 | `GET/POST/PATCH/DELETE` | `/subscriptions`             | Monthly charges the daily cron posts for you      |

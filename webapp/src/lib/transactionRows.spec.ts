@@ -13,6 +13,7 @@ function tx(id: string, amount: number, transferId: string | null = null): Trans
 		notes: '',
 		categoryName: null,
 		categoryColor: null,
+		tags: [],
 	} as unknown as Transaction;
 }
 
@@ -74,6 +75,23 @@ describe('describeRow', () => {
 
 		expect(describeRow(unnamed[0]).title).toBe('Transfer');
 		expect(describeRow(named[0]).title).toBe('Rent pool');
+	});
+
+	it("carries a transaction's tags onto its card", () => {
+		const trip = { id: 'tag_1', name: 'Trip', color: '#2a78d6' };
+		const [row] = mergeTransferRows([{ ...tx('a', -100), tags: [trip] } as Transaction]);
+
+		expect(describeRow(row).tags).toEqual([trip]);
+	});
+
+	it('shows a transfer the tags of its outflow leg, which both legs share', () => {
+		const trip = { id: 'tag_1', name: 'Trip', color: '#2a78d6' };
+		const [row] = mergeTransferRows([
+			{ ...tx('out', -100, 't1'), tags: [trip] } as Transaction,
+			{ ...tx('in', 100, 't1'), tags: [trip] } as Transaction,
+		]);
+
+		expect(describeRow(row).tags).toEqual([trip]);
 	});
 
 	it('leaves a blank note out, so the card has no notes row for it', () => {

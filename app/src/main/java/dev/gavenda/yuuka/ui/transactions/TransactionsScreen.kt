@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.transactions
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Transaction
+import dev.gavenda.yuuka.data.model.TransactionTag
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
@@ -181,6 +184,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                     transferToAccountId = formState.transferToAccountId,
                     accounts = state.accounts.filter { !it.archived },
                     categories = state.categories,
+                    tags = state.tags,
                     payees = payees,
                     defaultAccountId = state.defaultAccountId,
                     submitting = formState.submitting,
@@ -247,6 +251,10 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
         is TransactionRow.Transfer -> row.notes
         is TransactionRow.Single -> row.transaction.notes
     }.trim()
+    val tags = when (row) {
+        is TransactionRow.Transfer -> row.tags
+        is TransactionRow.Single -> row.transaction.tags
+    }
 
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -316,23 +324,64 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                 }
             }
 
-            if (notes.isNotEmpty()) {
+            // Notes on the left, tags as chips at the right end of the same row.
+            if (notes.isNotEmpty() || tags.isNotEmpty()) {
                 HorizontalDivider()
-                Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(
-                        Icons.Filled.EditNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        notes,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
+                BoxWithConstraints {
+                    val maxChipsWidth = maxWidth * 0.6f
+                    Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (notes.isNotEmpty()) {
+                            Icon(
+                                Icons.Filled.EditNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        Text(
+                            notes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        // Sized to what they hold, but never past 60% of the row, so a long tag list wraps rather than crowding the notes out.
+                        if (tags.isNotEmpty()) TagChips(tags, modifier = Modifier.widthIn(max = maxChipsWidth))
+                    }
                 }
             }
+        }
+    }
+}
+
+/** A transaction's tags as small chips, wrapping onto further lines and packed toward the end of the row. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagChips(tags: List<TransactionTag>, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        tags.forEach { tag -> TagChip(tag.name, tag.color) }
+    }
+}
+
+/** Read-only on a card: it is a label, and a tap on the card still opens the transaction. */
+@Composable
+private fun TagChip(name: String, colorHex: String) {
+    val color = runCatching { Color(android.graphics.Color.parseColor(colorHex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

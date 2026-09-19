@@ -280,6 +280,39 @@ describe('categories are private', () => {
 	});
 });
 
+describe('tags are private', () => {
+	async function makeTag(as: Call, name: string): Promise<string> {
+		const response = await as('/tags', { method: 'POST', body: JSON.stringify({ name }) });
+		return (await json<{ tag: { id: string } }>(response)).tag.id;
+	}
+
+	it('cannot be listed, edited or deleted by another user', async () => {
+		const tagId = await makeTag(mine, 'Mine Only');
+
+		expect((await json<{ tags: unknown[] }>(await theirs('/tags'))).tags).toEqual([]);
+		expect((await theirs(`/tags/${tagId}`, { method: 'PATCH', body: JSON.stringify({ name: 'Stolen' }) })).status).toBe(404);
+		expect((await theirs(`/tags/${tagId}`, { method: 'DELETE' })).status).toBe(404);
+	});
+
+	it('cannot be put on another user’s transaction, or on your own from someone else', async () => {
+		const tagId = await makeTag(mine, 'Mine Only');
+		const theirAccountId = await makeAccount(theirs, { name: 'Theirs' });
+		const created = await theirs('/transactions', {
+			method: 'POST',
+			body: JSON.stringify({ accountId: theirAccountId, amount: -100, occurredOn: '2026-09-03' }),
+		});
+		const { transaction } = await json<{ transaction: { id: string } }>(created);
+
+		// Their transaction is not reachable at all, and my tag is not theirs to wear.
+		expect((await mine(`/transactions/${transaction.id}`, { method: 'PATCH', body: JSON.stringify({ tagIds: [tagId] }) })).status).toBe(
+			404,
+		);
+		expect((await theirs(`/transactions/${transaction.id}`, { method: 'PATCH', body: JSON.stringify({ tagIds: [tagId] }) })).status).toBe(
+			400,
+		);
+	});
+});
+
 describe('default account setting is private', () => {
 	it('cannot be pointed at another user’s account', async () => {
 		const theirAccountId = await makeAccount(theirs, { name: 'Not yours' });

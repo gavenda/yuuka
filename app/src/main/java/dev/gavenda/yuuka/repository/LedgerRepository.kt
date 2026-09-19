@@ -33,16 +33,19 @@ class LedgerRepository(
     private val categoryDao: CategoryDao,
     private val settingsDao: SettingsDao,
     private val roundUpRuleDao: RoundUpRuleDao,
+    private val tagDao: TagDao,
 ) {
     val accounts: Flow<List<Account>> = accountDao.observeAll().map { list -> list.map { it.toDomain() } }
     val accountTypes: Flow<List<AccountType>> = accountTypeDao.observeAll().map { list -> list.map { it.toDomain() } }
     val categories: Flow<List<Category>> = categoryDao.observeAll().map { list -> list.map { it.toDomain() } }
+    val tags: Flow<List<Tag>> = tagDao.observeAll().map { list -> list.map { it.toDomain() } }
     val settings: Flow<Settings?> = settingsDao.observe().map { it?.toDomain() }
     val roundUpRule: Flow<RoundUpRule?> = roundUpRuleDao.observe().map { it?.toDomain() }
 
     suspend fun refreshAll() = coroutineScope {
         launch { refreshAccounts() }
         launch { refreshCategories() }
+        launch { refreshTags() }
         launch { refreshSettings() }
         launch { refreshRoundUpRule() }
     }
@@ -58,6 +61,11 @@ class LedgerRepository(
     suspend fun refreshCategories() {
         val response = apiCall { api.listCategories(includeArchived = true) }
         categoryDao.replaceAll(response.categories.map { it.toEntity() })
+    }
+
+    suspend fun refreshTags() {
+        val response = apiCall { api.listTags() }
+        tagDao.replaceAll(response.tags.map { it.toEntity() })
     }
 
     suspend fun refreshSettings() {
@@ -201,5 +209,21 @@ class LedgerRepository(
     suspend fun deleteCategory(id: String) {
         apiCall { api.deleteCategory(id) }
         refreshCategories()
+    }
+
+    suspend fun createTag(name: String, color: String) {
+        apiCall { api.createTag(buildJsonObject { put("name", name); put("color", color) }) }
+        refreshTags()
+    }
+
+    suspend fun updateTag(id: String, name: String, color: String) {
+        apiCall { api.updateTag(id, buildJsonObject { put("name", name); put("color", color) }) }
+        refreshTags()
+    }
+
+    /** Only the labels come off: the API never touches the transactions, and the cached chips follow the tag list. */
+    suspend fun deleteTag(id: String) {
+        apiCall { api.deleteTag(id) }
+        refreshTags()
     }
 }

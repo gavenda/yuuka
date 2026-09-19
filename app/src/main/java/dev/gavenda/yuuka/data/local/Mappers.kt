@@ -30,6 +30,10 @@ fun CategoryEntity.toDomain() = Category(
 
 fun Category.toEntity() = CategoryEntity(id, name, kind.name, color, sortOrder, archived, parentId, appliesTo.name, createdAt, updatedAt)
 
+fun TagEntity.toDomain() = Tag(id, name, color, createdAt, updatedAt)
+
+fun Tag.toEntity() = TagEntity(id, name, color, createdAt, updatedAt)
+
 fun SettingsEntity.toDomain() = Settings(displayCurrency, enumValueOf<BudgetMode>(budgetMode), defaultAccountId, createdAt, updatedAt)
 
 fun Settings.toEntity() = SettingsEntity(0, displayCurrency, budgetMode.name, defaultAccountId, createdAt, updatedAt)
@@ -96,7 +100,13 @@ fun Transaction.toEntity() = TransactionEntity(
     updatedAt = updatedAt,
 )
 
-fun TransactionEntity.toDomain() = Transaction(
+/** The links that say which tags this transaction wears, written alongside its row. */
+fun Transaction.tagLinks() = tags.map { TransactionTagEntity(id, it.id) }
+
+/** Tags read in a steady order, so a transaction's chips do not shuffle between loads. */
+fun TransactionWithTags.toDomain() = transaction.toDomain(tags.sortedBy { it.name.lowercase() }.map { TransactionTag(it.id, it.name, it.color) })
+
+private fun TransactionEntity.toDomain(tags: List<TransactionTag>) = Transaction(
     id = id,
     accountId = accountId,
     accountName = accountName,
@@ -109,6 +119,7 @@ fun TransactionEntity.toDomain() = Transaction(
     notes = notes,
     transferId = transferId,
     automated = automated,
+    tags = tags,
     runningBalance = runningBalance,
     createdAt = createdAt,
     updatedAt = updatedAt,

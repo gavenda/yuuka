@@ -73,6 +73,18 @@ interface YuukaApi {
     @DELETE("categories/{id}")
     suspend fun deleteCategory(@Path("id") id: String)
 
+    @GET("tags")
+    suspend fun listTags(): TagsResponse
+
+    @POST("tags")
+    suspend fun createTag(@Body body: JsonObject): TagResponse
+
+    @PATCH("tags/{id}")
+    suspend fun updateTag(@Path("id") id: String, @Body body: JsonObject): TagResponse
+
+    @DELETE("tags/{id}")
+    suspend fun deleteTag(@Path("id") id: String)
+
     @GET("transactions")
     suspend fun listTransactions(
         @Query("month") month: String? = null,

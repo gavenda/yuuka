@@ -3,7 +3,7 @@ import { readCache, writeCache } from '@/lib/cache';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { Account, AccountType, Category, RoundUpRule, Settings } from '@/types';
+import type { Account, AccountType, Category, RoundUpRule, Settings, Tag } from '@/types';
 
 const CACHE_KEY = 'ledger';
 
@@ -12,6 +12,7 @@ interface LedgerSnapshot {
 	accounts: Account[];
 	accountTypes: AccountType[];
 	categories: Category[];
+	tags: Tag[];
 	settings: Settings;
 	roundUpRule: RoundUpRule;
 }
@@ -22,6 +23,7 @@ function isLedgerSnapshot(data: unknown): data is LedgerSnapshot {
 		Array.isArray(snapshot?.accounts) &&
 		Array.isArray(snapshot.accountTypes) &&
 		Array.isArray(snapshot.categories) &&
+		Array.isArray(snapshot.tags) &&
 		typeof snapshot.settings === 'object' &&
 		snapshot.settings !== null &&
 		typeof snapshot.roundUpRule === 'object' &&
@@ -41,6 +43,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 	const accounts = ref<Account[]>([]);
 	const accountTypes = ref<AccountType[]>([]);
 	const categories = ref<Category[]>([]);
+	const tags = ref<Tag[]>([]);
 	const settings = ref<Settings | null>(null);
 	const roundUpRule = ref<RoundUpRule | null>(null);
 	/** Whether there is a ledger to show — from the API, or from the local copy while it is out of reach. */
@@ -107,6 +110,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		accounts.value = snapshot.accounts;
 		accountTypes.value = snapshot.accountTypes;
 		categories.value = snapshot.categories;
+		tags.value = snapshot.tags;
 		settings.value = snapshot.settings;
 		roundUpRule.value = snapshot.roundUpRule;
 		loaded.value = true;
@@ -120,6 +124,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 			accounts: accounts.value,
 			accountTypes: accountTypes.value,
 			categories: categories.value,
+			tags: tags.value,
 			settings: settings.value,
 			roundUpRule: roundUpRule.value,
 		} satisfies LedgerSnapshot);
@@ -131,16 +136,18 @@ export const useLedgerStore = defineStore('ledger', () => {
 		loading.value = true;
 
 		try {
-			const [accountsResponse, typesResponse, categoriesResponse, settingsResponse, roundUpResponse] = await Promise.all([
+			const [accountsResponse, typesResponse, categoriesResponse, tagsResponse, settingsResponse, roundUpResponse] = await Promise.all([
 				api.listAccounts(true),
 				api.listAccountTypes(true),
 				api.listCategories(true),
+				api.listTags(),
 				api.settings(),
 				api.getRoundUpRule(),
 			]);
 			accounts.value = accountsResponse.accounts;
 			accountTypes.value = typesResponse.accountTypes;
 			categories.value = categoriesResponse.categories;
+			tags.value = tagsResponse.tags;
 			settings.value = settingsResponse.settings;
 			roundUpRule.value = roundUpResponse.roundUpRule;
 			loaded.value = true;
@@ -167,6 +174,11 @@ export const useLedgerStore = defineStore('ledger', () => {
 		persist();
 	}
 
+	async function refreshTags(): Promise<void> {
+		tags.value = (await api.listTags()).tags;
+		persist();
+	}
+
 	async function updateSettings(input: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
 		settings.value = (await api.updateSettings(input)).settings;
 		persist();
@@ -185,6 +197,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		accounts.value = [];
 		accountTypes.value = [];
 		categories.value = [];
+		tags.value = [];
 		loaded.value = false;
 		synced = false;
 	}
@@ -201,6 +214,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		updateSettings,
 		updateRoundUpRule,
 		categories,
+		tags,
 		loaded,
 		loading,
 		activeAccounts,
@@ -215,6 +229,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		load,
 		refreshAccounts,
 		refreshCategories,
+		refreshTags,
 		reset,
 	};
 });

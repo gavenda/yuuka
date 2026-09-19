@@ -73,6 +73,16 @@ data class Account(
     val updatedAt: String = "",
 )
 
+/** A user-defined label. Unlike a category it changes no figure — it is only there to read a transaction by. */
+@Serializable
+data class Tag(
+    val id: String,
+    val name: String,
+    val color: String,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+)
+
 @Serializable
 enum class CategoryKind {
     income,

@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.domain
 
 import dev.gavenda.yuuka.data.model.Transaction
+import dev.gavenda.yuuka.data.model.TransactionTag
 import kotlin.math.abs
 
 /** A transfer is two linked rows; every list shows them as the single movement they represent. Mirrors `src/lib/transactionRows.ts`. */
@@ -16,6 +17,7 @@ sealed interface TransactionRow {
         val categoryName: String?,
         val categoryColor: String?,
         val notes: String,
+        val tags: List<TransactionTag>,
         val amount: Long,
         /** The outflow leg — the row that carries the shared id and category. */
         val leg: Transaction,
@@ -48,6 +50,7 @@ fun mergeTransferRows(group: List<Transaction>): List<TransactionRow> {
                         categoryName = transaction.categoryName,
                         categoryColor = transaction.categoryColor,
                         notes = transaction.notes,
+                        tags = outflow.tags,
                         amount = abs(transaction.amount),
                         leg = outflow,
                     ),

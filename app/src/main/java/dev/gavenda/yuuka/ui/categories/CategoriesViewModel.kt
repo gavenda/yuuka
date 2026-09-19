@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
+import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.domain.nextColor
 import dev.gavenda.yuuka.repository.LedgerRepository
 import kotlinx.coroutines.flow.*
@@ -21,7 +22,11 @@ data class CategorySection(
     val families: List<CategoryFamily>,
 )
 
-data class CategoriesUiState(val categories: List<Category> = emptyList(), val showArchived: Boolean = false) {
+data class CategoriesUiState(
+    val categories: List<Category> = emptyList(),
+    val tags: List<Tag> = emptyList(),
+    val showArchived: Boolean = false,
+) {
     val archivedCount: Int get() = categories.count { it.archived }
 
     /**
@@ -70,11 +75,12 @@ data class CategoriesUiState(val categories: List<Category> = emptyList(), val s
 class CategoriesViewModel(private val ledgerRepository: LedgerRepository) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
 
-    val uiState: StateFlow<CategoriesUiState> = combine(ledgerRepository.categories, showArchived, ::CategoriesUiState)
+    val uiState: StateFlow<CategoriesUiState> = combine(ledgerRepository.categories, ledgerRepository.tags, showArchived, ::CategoriesUiState)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CategoriesUiState())
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshCategories() } }
+        viewModelScope.launch { runCatching { ledgerRepository.refreshTags() } }
     }
 
     fun toggleShowArchived() {
@@ -98,4 +104,13 @@ class CategoriesViewModel(private val ledgerRepository: LedgerRepository) : View
     suspend fun setArchived(id: String, archived: Boolean) = ledgerRepository.setCategoryArchived(id, archived)
 
     suspend fun deleteCategory(id: String) = ledgerRepository.deleteCategory(id)
+
+    /** The slot a new tag should take, so defaults spread across the palette. */
+    fun nextTagColor(): String = nextColor(uiState.value.tags.size)
+
+    suspend fun createTag(name: String, color: String) = ledgerRepository.createTag(name, color)
+
+    suspend fun updateTag(id: String, name: String, color: String) = ledgerRepository.updateTag(id, name, color)
+
+    suspend fun deleteTag(id: String) = ledgerRepository.deleteTag(id)
 }

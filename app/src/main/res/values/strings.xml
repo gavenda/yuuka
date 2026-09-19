@@ -148,6 +148,17 @@
     <string name="hex_colour_hint">Enter a 6-digit hex colour, e.g. #64748b</string>
     <string name="add_category">Add category</string>
     <string name="add_sub">+ Sub</string>
+
+    <!-- Tags -->
+    <string name="label_tags">Tags</string>
+    <string name="tags_description">Labels to put on a transaction, shown beside its notes. They sit alongside its category and change no total.</string>
+    <string name="no_tags_yet">No tags yet. Add one, then put it on a transaction.</string>
+    <string name="new_tag">New tag</string>
+    <string name="edit_tag">Edit tag</string>
+    <string name="add_tag">Add tag</string>
+    <string name="tag_added">Tag added</string>
+    <string name="tag_updated">Tag updated</string>
+    <string name="tag_deleted">Tag deleted</string>
     <string name="nested_under">Nested under: %1$s</string>
 
     <!-- Accounts screen -->
@@ -246,7 +257,7 @@
 
     <!-- Transactions screen -->
     <string name="new_transaction">New transaction</string>
-    <string name="search_payee_notes">Search payee or notes</string>
+    <string name="search_payee_notes">Search payee, notes or tag</string>
     <string name="all_accounts">All accounts</string>
     <string name="all_categories">All categories</string>
     <string name="transactions_empty_title">No transactions here</string>

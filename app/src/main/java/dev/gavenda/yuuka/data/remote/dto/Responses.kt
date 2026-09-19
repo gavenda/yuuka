@@ -32,6 +32,12 @@ data class CategoriesResponse(val categories: List<Category>)
 @Serializable
 data class CategoryResponse(val category: Category)
 
+@Serializable
+data class TagsResponse(val tags: List<Tag>)
+
+@Serializable
+data class TagResponse(val tag: Tag)
+
 /** `roundUp`, when present, is only ever set on `POST /transactions`'s create response — the destination leg of an auto-generated linked transfer. */
 @Serializable
 data class TransactionResponse(val transaction: Transaction, val roundUp: Transaction? = null)

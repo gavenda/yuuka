@@ -134,7 +134,7 @@ async function remove(): Promise<void> {
 		<div class="grid gap-3 sm:grid-cols-3">
 			<div class="field">
 				<label class="label" for="filter-search">Search</label>
-				<input id="filter-search" v-model="search" class="input" type="search" placeholder="Payee or notes" />
+				<input id="filter-search" v-model="search" class="input" type="search" placeholder="Payee, notes or tag" />
 			</div>
 
 			<div class="field">
@@ -238,11 +238,22 @@ async function remove(): Promise<void> {
 								</span>
 							</span>
 
-							<span v-if="card.notes" class="flex items-start gap-2 border-t border-outline-variant p-3">
-								<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
-									<path :d="EDIT_NOTE" />
-								</svg>
-								<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
+							<!-- Notes on the left, tags as chips at the right end of the same row. -->
+							<span v-if="card.notes || card.tags.length" class="flex items-start gap-2 border-t border-outline-variant p-3">
+								<template v-if="card.notes">
+									<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
+										<path :d="EDIT_NOTE" />
+									</svg>
+									<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
+								</template>
+								<span v-else class="flex-1" />
+
+								<span v-if="card.tags.length" class="flex max-w-[60%] shrink-0 flex-wrap justify-end gap-1.5">
+									<span v-for="tag in card.tags" :key="tag.id" class="chip">
+										<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
+										<span class="truncate">{{ tag.name }}</span>
+									</span>
+								</span>
 							</span>
 						</button>
 					</li>

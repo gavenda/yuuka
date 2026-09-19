@@ -61,6 +61,21 @@ export interface CategoryRow {
 	updated_at: string;
 }
 
+export interface TagRow {
+	id: string;
+	name: string;
+	color: string;
+	created_at: string;
+	updated_at: string;
+}
+
+/** The slice of a tag a transaction carries — enough to draw its chip. */
+export interface TransactionTag {
+	id: string;
+	name: string;
+	color: string;
+}
+
 export interface TransactionRow {
 	id: string;
 	account_id: string;
@@ -79,6 +94,8 @@ export interface TransactionRow {
 	category_color?: string | null;
 	/** The account's own balance immediately after this transaction posted. */
 	running_balance: number;
+	/** JSON array of the tags it wears, from a subquery; absent where a row is read without them. */
+	tags_json?: string | null;
 }
 
 export interface BudgetRow {
@@ -159,6 +176,20 @@ export const toCategory = (row: CategoryRow) => ({
 	updatedAt: row.updated_at,
 });
 
+export const toTag = (row: TagRow) => ({
+	id: row.id,
+	name: row.name,
+	color: row.color,
+	createdAt: row.created_at,
+	updatedAt: row.updated_at,
+});
+
+/** Chips read in a steady order, so a transaction's tags do not shuffle between loads. */
+function parseTags(json: string | null | undefined): TransactionTag[] {
+	if (!json) return [];
+	return (JSON.parse(json) as TransactionTag[]).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
 export const toTransaction = (row: TransactionRow) => ({
 	id: row.id,
 	accountId: row.account_id,
@@ -173,6 +204,7 @@ export const toTransaction = (row: TransactionRow) => ({
 	transferId: row.transfer_id,
 	/** Posted by a subscription at 00:00 UTC — its time of day is not the user's to change. */
 	automated: row.automated === 1,
+	tags: parseTags(row.tags_json),
 	runningBalance: row.running_balance,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,

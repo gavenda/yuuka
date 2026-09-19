@@ -1,4 +1,4 @@
-import type { Transaction } from '@/types';
+import type { Transaction, TransactionTag } from '@/types';
 
 /** A transfer is two linked rows; every list shows them as the single movement they represent. */
 export interface TransferRow {
@@ -11,6 +11,7 @@ export interface TransferRow {
 	categoryName: string | null;
 	categoryColor: string | null;
 	notes: string;
+	tags: TransactionTag[];
 	amount: number;
 	leg: Transaction;
 }
@@ -42,6 +43,7 @@ export function mergeTransferRows(group: Transaction[]): TransactionRow[] {
 					categoryName: transaction.categoryName,
 					categoryColor: transaction.categoryColor,
 					notes: transaction.notes,
+					tags: outflow.tags,
 					amount: Math.abs(transaction.amount),
 					leg: outflow,
 				});
@@ -75,6 +77,7 @@ export interface RowCard {
 	balanceAccountId: string;
 	category: { name: string; color: string | null } | null;
 	notes: string;
+	tags: TransactionTag[];
 }
 
 export function describeRow(row: TransactionRow): RowCard {
@@ -95,6 +98,7 @@ export function describeRow(row: TransactionRow): RowCard {
 			balanceAccountId: row.leg.accountId,
 			category: row.categoryName ? { name: row.categoryName, color: row.categoryColor } : null,
 			notes: row.notes.trim(),
+			tags: row.tags,
 		};
 	}
 
@@ -112,5 +116,6 @@ export function describeRow(row: TransactionRow): RowCard {
 		balanceAccountId: transaction.accountId,
 		category: transaction.categoryName ? { name: transaction.categoryName, color: transaction.categoryColor } : null,
 		notes: transaction.notes.trim(),
+		tags: transaction.tags,
 	};
 }
