@@ -2,8 +2,8 @@
 
 Multi-user budgeting and financial tracking, running entirely on Cloudflare.
 
-- **Cloudflare Pages** — one project serving the whole app
-- **Pages Functions** — the API, in `/functions`, built with [Hono](https://hono.dev)
+- **Cloudflare Workers** — one Worker serving the whole app, with the built site as Static Assets
+- **The API** — the Worker script, in `/server`, built with [Hono](https://hono.dev)
 - **Auth0** — sign-in and user identity, at `auth.gavenda.dev`
 - **Cloudflare D1** — SQLite for accounts, categories, transactions and budgets
 - **Cloudflare Workers KV** — Auth0 signing keys and cached monthly summaries
@@ -16,18 +16,17 @@ Bun is the package manager; Wrangler drives everything on the Cloudflare side.
 
 ```
 yuuka/
-├── functions/
-│   └── api/
-│       ├── [[route]].ts   catch-all: mounts the Hono app on /api/*
-│       └── _lib/          the API itself — routes, schemas, helpers
+├── server/
+│   ├── index.ts           Worker entry: the Hono app, answering /api/*
+│   └── …                  routes, schemas, helpers
 ├── src/                   Vue app
 ├── migrations/            D1 schema
 ├── public/                static assets copied verbatim
-└── wrangler.jsonc         Pages config: bindings + build output
+└── wrangler.jsonc         Worker config: bindings, assets, routes
 ```
 
-Pages compiles everything under `functions/` into one Function and serves
-`dist/` as the static site, from a single origin. The frontend calls `/api` as a
+The Worker runs `server/index.ts` for `/api/*` and serves `dist/` as the static
+site for everything else, from a single origin. The frontend calls `/api` as a
 relative path: there is no CORS layer, no API base URL to configure, and no
 second deployment to keep in step.
 
@@ -48,7 +47,7 @@ At Auth0, create two things:
   Auth0 returns to the site root, so they carry no path:
 
   ```
-  http://localhost:5173        https://<project>.pages.dev
+  http://localhost:5173        https://yuuka.gavenda.dev
   ```
 
 The browser's half goes in `.env` (`cp .env.example .env`):
@@ -91,20 +90,19 @@ start from an empty book with only the categories.
 bun run dev
 ```
 
-This starts both halves: Pages Functions on `:8788` for `/api`, and Vite on
-`:5173` with HMR. Vite proxies `/api` through to the Functions runtime, so
+This starts both halves: the Worker on `:8788` for `/api`, and Vite on
+`:5173` with HMR. Vite proxies `/api` through to the Worker, so
 development matches production — same relative paths, same single origin. Open
 <http://localhost:5173>.
 
 To check the real thing end to end, `bun run preview` builds and serves the
-built site and the Functions together on `:8788`, exactly as Pages will.
+built site and the Worker together on `:8788`, exactly as Workers will.
 
 ## Deploying
 
 Create the Cloudflare resources once, then paste the IDs into `wrangler.jsonc`:
 
 ```bash
-bunx wrangler pages project create yuuka
 bunx wrangler d1 create yuuka
 bunx wrangler kv namespace create CACHE
 ```
@@ -150,16 +148,16 @@ endpoint: the API only ever verifies the access token a request carries.
 
 ## Scripts
 
-| Command                    | What it does                                     |
-| -------------------------- | ------------------------------------------------ |
-| `bun run dev`              | Functions on :8788 and Vite on :5173             |
-| `bun run preview`          | Build, then serve site + Functions as Pages does |
-| `bun run test`             | Both test suites                                 |
-| `bun run typecheck`        | Typecheck the browser and server halves          |
-| `bun run build`            | Build the static site                            |
-| `bun run format`           | Prettier over the repo                           |
-| `bun run db:migrate:local` | Apply migrations to the local D1                 |
-| `bun run deploy`           | Build and deploy to Pages                        |
+| Command                    | What it does                                    |
+| -------------------------- | ----------------------------------------------- |
+| `bun run dev`              | Worker on :8788 and Vite on :5173               |
+| `bun run preview`          | Build, then serve site + Worker as Workers does |
+| `bun run test`             | Both test suites                                |
+| `bun run typecheck`        | Typecheck the browser and server halves         |
+| `bun run build`            | Build the static site                           |
+| `bun run format`           | Prettier over the repo                          |
+| `bun run db:migrate:local` | Apply migrations to the local D1                |
+| `bun run deploy`           | Build and deploy the Worker                     |
 
 ## Tests
 
@@ -169,7 +167,7 @@ bun run test
 
 The server suite runs in the real `workerd` runtime via
 `@cloudflare/vitest-plugin`, against a migrated D1 database, mounting the same
-Hono app the Pages Function does through a thin entry in `test/worker-entry.ts`.
+Hono app the Worker ships, `server/index.ts`, as its entry.
 It covers each resource, first-sign-in provisioning, token verification against
 a JWKS the tests publish themselves, and a dedicated isolation suite that
 attacks every route from the wrong side of the fence. The browser suite covers

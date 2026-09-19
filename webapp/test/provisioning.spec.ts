@@ -1,8 +1,8 @@
 import { env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CATEGORY_COUNT, DEMO_ACCOUNTS, DEMO_BUDGETS, DEMO_TRANSACTIONS } from '../functions/api/_lib/defaults';
-import { ensureUser } from '../functions/api/_lib/users';
-import { currentMonth } from '../functions/api/_lib/dates';
+import { DEFAULT_CATEGORY_COUNT, DEMO_ACCOUNTS, DEMO_BUDGETS, DEMO_TRANSACTIONS } from '../server/defaults';
+import { ensureUser } from '../server/users';
+import { currentMonth } from '../server/dates';
 
 /**
  * The rest of the suite runs with `SEED_DEMO_DATA` off so specs can assert on

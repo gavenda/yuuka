@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_ACCOUNT_TYPES } from '../functions/api/_lib/defaults';
+import { DEFAULT_ACCOUNT_TYPES } from '../server/defaults';
 import { accountTypeId, authedClient, json, makeAccount, otherClient, type Call } from './helpers';
 
 let call: Call;

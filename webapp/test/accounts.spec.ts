@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_CURRENCY } from '../functions/api/_lib/defaults';
+import { DEFAULT_CURRENCY } from '../server/defaults';
 import { accountTypeId, authedClient, json, makeAccount, type Call } from './helpers';
 
 let call: Call;

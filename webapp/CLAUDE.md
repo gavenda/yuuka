@@ -9,9 +9,9 @@ root [CLAUDE.md](../CLAUDE.md), and applies here as much as to the Android app.
 ## Commands
 
 ```bash
-bun run dev         # Functions on :8788, Vite on :5173
+bun run dev         # Worker on :8788, Vite on :5173
 bun run test        # both suites: browser (vitest) and API (workerd + D1)
-bun run typecheck   # vue-tsc for the browser half, tsc for functions/
+bun run typecheck   # vue-tsc for the browser half, tsc for server/
 bun run format      # prettier; tabs, single quotes, 140 columns
 ```
 
@@ -20,13 +20,18 @@ owns formatting — do not hand-align anything it will rewrite.
 
 ## Shape of the app
 
-One Pages project serves both halves from a single origin. `functions/api/[[route]].ts`
-is a catch-all that mounts the Hono app on `/api/*`, so routing lives in Hono
+One Worker serves both halves from a single origin. `server/index.ts` is its entry
+and exports the Hono app, which owns every `/api/*` route, so routing lives in Hono
 rather than in the filesystem: adding an endpoint means adding a route in
-`functions/api/_lib/routes/`, not a file at a path. Its siblings live under
-`_lib/`, and the leading underscore is what keeps Pages from publishing them as
-routes of their own. The frontend calls `/api` relatively — there is no base URL
-to configure and no CORS layer to maintain.
+`server/routes/`, not a file at a path. `wrangler.jsonc` serves the Vite build in
+`dist/` as Static Assets, with `run_worker_first: ["/api/*"]` sending only API
+paths to the Worker and `not_found_handling: "single-page-application"` handing
+every other non-file path to the SPA shell. Both are load-bearing: without the
+first, a missing `/api/*` path would get the SPA shell instead of the API's JSON
+404; without the second, deep links would 404 on reload. There is no
+`public/_redirects` — it would conflict with the SPA fallback. The frontend calls
+`/api` relatively — there is no base URL to configure and no CORS layer to
+maintain.
 
 Frontend state is three Pinia stores in `src/stores`: `ledger` (accounts, types,
 categories, settings — loaded once and shared), `budget` and `transactions`.
@@ -145,8 +150,8 @@ carries a visible text label — colour never carries meaning alone.
 `*.spec.ts` beside the code they cover.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the
-same Hono app the Pages Function does, through `test/worker-entry.ts`, so routing
-is exercised as it ships. `test/helpers.ts` gives you an authed client;
+same Hono app the Worker ships, `server/index.ts` being its `main`, so routing is
+exercised as it ships. `test/helpers.ts` gives you an authed client;
 `test/tokens.ts` mints RS256 tokens and publishes the matching JWKS into KV, so
 expiry, audience, issuer, tampering and unknown signing keys are all exercised
 without network access.

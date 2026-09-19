@@ -1,5 +1,5 @@
 {
-	/* The server half: Pages Functions and the tests that exercise them. These
+	/* The server half: the Worker and the tests that exercise it. These
 	   run in workerd, not the browser, so they get the Workers runtime types
 	   rather than the DOM ones. */
 	"compilerOptions": {
@@ -16,7 +16,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
-		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.functions.tsbuildinfo"
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo"
 	},
-	"include": ["functions/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "worker-configuration.d.ts"]
+	"include": ["server/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "worker-configuration.d.ts"]
 }

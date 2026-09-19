@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, currentMonth, isDate, isMonth, monthOf, monthRange } from '../functions/api/_lib/dates';
-import { buildUpdate, toSqliteBool } from '../functions/api/_lib/sql';
-import { bearerToken } from '../functions/api/_lib/middleware/auth';
+import { addMonths, currentMonth, isDate, isMonth, monthOf, monthRange } from '../server/dates';
+import { buildUpdate, toSqliteBool } from '../server/sql';
+import { bearerToken } from '../server/middleware/auth';
 
 describe('date helpers', () => {
 	it('validates months and dates', () => {

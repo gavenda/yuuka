@@ -7,14 +7,14 @@ const migrations = await readD1Migrations(fileURLToPath(new URL('./migrations', 
 /**
  * The API runs inside workerd for real, against a migrated D1 database.
  *
- * Pages Functions have no Worker config for the pool to read, so the bindings
- * are declared here instead and `main` points at a thin entry that exposes the
- * same Hono app the Pages Function mounts.
+ * The bindings are declared here rather than read from `wrangler.jsonc`, so the
+ * tests get a stand-in Auth0 tenant and need no built `dist/`. `main` is the
+ * production Worker entry, so routing is exercised as it ships.
  */
 export default defineConfig({
 	plugins: [
 		cloudflareTest({
-			main: './test/worker-entry.ts',
+			main: './server/index.ts',
 			miniflare: {
 				compatibilityDate: '2026-09-11',
 				compatibilityFlags: ['nodejs_compat'],

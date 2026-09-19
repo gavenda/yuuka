@@ -15,14 +15,15 @@ import { transactionRoutes } from './routes/transactions';
 import type { AppEnv } from './types';
 
 /**
- * The API, mounted by `functions/api/[[route]].ts`.
+ * The Worker's entry point: a Hono app is already a `fetch` handler, so it is
+ * exported as-is (`main` in `wrangler.jsonc`).
  *
- * Routes are declared with their full `/api/...` paths because the Pages
- * adapter hands the original request straight through — the catch-all filename
- * decides what reaches this app, not what the app strips off the front.
+ * Routes are declared with their full `/api/...` paths because the request
+ * arrives untouched. `assets.run_worker_first` in `wrangler.jsonc` is what sends
+ * `/api/*` here; everything else is answered by the static assets.
  *
  * There is no CORS layer: the API and the frontend are served from the same
- * Pages deployment, so requests are same-origin by construction.
+ * Worker, so requests are same-origin by construction.
  *
  * Authentication is Auth0: every protected route verifies the bearer access
  * token the browser obtained, rather than any session this app issues itself.

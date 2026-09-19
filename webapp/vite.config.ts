@@ -25,8 +25,8 @@ export default defineConfig({
 			ignored: ['**/.wrangler/**'],
 		},
 		proxy: {
-			// In production the API is served from the same origin by the Pages
-			// Function. This proxy reproduces that during development, so the
+			// In production the API is served from the same origin by the Worker.
+			// This proxy reproduces that during development, so the
 			// frontend always calls a relative `/api` path and never needs to know
 			// where the API lives.
 			'/api': {
