@@ -231,7 +231,7 @@ onMounted(() => ledger.load());
 			</div>
 		</header>
 
-		<StatCard label="Net worth" :amount="ledger.netWorth" :currency="ledger.displayCurrency" hero />
+		<StatCard label="Net worth" :amount="ledger.netWorth" :currency="ledger.displayCurrency" />
 
 		<EmptyState v-if="!ledger.loading && !visible.length" title="No accounts yet" description="Add the accounts you want to track.">
 			<button type="button" class="btn-primary" @click="openCreate">Add an account</button>
