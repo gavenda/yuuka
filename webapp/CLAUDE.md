@@ -252,7 +252,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-456 tests: 333 against the API in `test/`, 123 over the browser helpers as
+459 tests: 333 against the API in `test/`, 126 over the browser helpers as
 `*.spec.ts` beside the code they cover. `src/testing/memoryStorage.ts` gives a
 spec an in-memory `localStorage` to install — Node's own needs a backing file.
 

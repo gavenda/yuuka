@@ -7,7 +7,7 @@ import PayeeInput from '@/components/PayeeInput.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate } from '@/lib/dates';
 import { parseMoney, toDecimalString } from '@/lib/money';
-import { nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
+import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import type { Payee, Subscription } from '@/types';
@@ -43,6 +43,10 @@ const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
 );
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
+
+/** What the active subscriptions come to each month; shown in the display currency, like every other aggregate. */
+const total = computed(() => monthlyTotal(store.subscriptions));
+const pausedCount = computed(() => store.subscriptions.filter((subscription) => !subscription.enabled).length);
 
 /** A subscription's amount is in its own account's currency, the same as that account's balance. */
 function currencyOf(subscription: Subscription): string {
@@ -174,6 +178,12 @@ async function remove(subscription: Subscription): Promise<void> {
 			</div>
 			<button type="button" class="btn-primary" :disabled="!ledger.activeAccounts.length" @click="openCreate">Add subscription</button>
 		</header>
+
+		<p v-if="store.subscriptions.length" class="text-sm text-slate-600 dark:text-slate-400">
+			Total per month
+			<MoneyText :amount="total" :currency="ledger.displayCurrency" signed explicit class="ml-1 text-base font-semibold" />
+			<template v-if="pausedCount"> · {{ pausedCount }} paused, not counted</template>
+		</p>
 
 		<p v-if="store.error" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
 			{{ store.error }}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextDay, ordinal, scheduleLabel, utcToday } from './subscriptions';
+import { monthlyTotal, nextDay, ordinal, scheduleLabel, utcToday } from './subscriptions';
 
 describe('ordinal', () => {
 	it('suffixes each day of the month', () => {
@@ -42,5 +42,31 @@ describe('nextDay', () => {
 		expect(nextDay('2026-09-30')).toBe('2026-10-01');
 		expect(nextDay('2026-12-31')).toBe('2027-01-01');
 		expect(nextDay('2028-02-28')).toBe('2028-02-29');
+	});
+});
+
+describe('monthlyTotal', () => {
+	it('adds up what the subscriptions post in a month, outflows negative', () => {
+		expect(
+			monthlyTotal([
+				{ amount: -1_500_00, enabled: true },
+				{ amount: -499_99, enabled: true },
+				{ amount: 20_000_00, enabled: true },
+			]),
+		).toBe(18_000_01);
+	});
+
+	it('leaves out paused subscriptions, which post nothing', () => {
+		expect(
+			monthlyTotal([
+				{ amount: -1_500_00, enabled: true },
+				{ amount: -9_999_00, enabled: false },
+			]),
+		).toBe(-1_500_00);
+	});
+
+	it('is zero when there is nothing active', () => {
+		expect(monthlyTotal([])).toBe(0);
+		expect(monthlyTotal([{ amount: -100, enabled: false }])).toBe(0);
 	});
 });

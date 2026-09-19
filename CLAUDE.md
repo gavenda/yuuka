@@ -147,6 +147,12 @@ honest:
   not trigger "Save the Change" and do not teach the payee history: both follow
   what a person enters, not what a schedule does.
 
+The Subscriptions screen states what the active subscriptions come to in a month
+(`monthlyTotal`, in both apps), signed like the amounts: a net outflow is
+negative. A paused subscription posts nothing, so it is left out and the screen
+says how many were. Like net worth it is added up as it stands and shown in the
+display currency — amounts are not converted between currencies.
+
 **Deleting a category never destroys history.** Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
 _would_ take its transactions with it, so the API answers `409` until the caller

@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.domain
 
+import dev.gavenda.yuuka.data.model.Subscription
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -22,3 +23,11 @@ fun ordinal(day: Int): String {
  * against this rather than the device's own calendar day.
  */
 fun utcToday(now: Instant = Instant.now()): LocalDate = now.atZone(ZoneOffset.UTC).toLocalDate()
+
+/**
+ * What the active subscriptions come to in a month, signed like the amounts themselves: a net
+ * outflow is negative. Paused ones post nothing, so they are left out. Like every aggregate figure
+ * it is added up as it stands and shown in the display currency; amounts are not converted between
+ * currencies. Mirrors `monthlyTotal` in the web app's `lib/subscriptions.ts`.
+ */
+fun monthlyTotal(subscriptions: List<Subscription>): Long = subscriptions.filter { it.enabled }.sumOf { it.amount }

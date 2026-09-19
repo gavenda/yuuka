@@ -89,6 +89,35 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                 )
             }
 
+            if (state.subscriptions.isNotEmpty()) {
+                item {
+                    val pausedCount = state.subscriptions.count { !it.enabled }
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(stringResource(R.string.subscriptions_total_per_month), style = MaterialTheme.typography.bodyMedium)
+                            MoneyText(
+                                monthlyTotal(state.subscriptions),
+                                currency = state.displayCurrency,
+                                tone = MoneyTone.SIGNED,
+                                explicit = true,
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                        if (pausedCount > 0) {
+                            Text(
+                                stringResource(R.string.subscriptions_total_paused, pausedCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
             if (state.subscriptions.isEmpty()) {
                 item {
                     EmptyState(

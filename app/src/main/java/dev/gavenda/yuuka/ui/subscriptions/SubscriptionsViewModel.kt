@@ -6,6 +6,7 @@ import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.Subscription
+import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.repository.LedgerRepository
 import dev.gavenda.yuuka.repository.PayeeRepository
 import dev.gavenda.yuuka.repository.SubscriptionRepository
@@ -21,6 +22,8 @@ data class SubscriptionsUiState(
     val categories: List<Category> = emptyList(),
     val payees: List<Payee> = emptyList(),
     val defaultAccountId: String? = null,
+    /** The currency the total is shown in, like every other aggregate figure. */
+    val displayCurrency: String = DEFAULT_CURRENCY,
 )
 
 /** Mirrors the web app's `subscriptions` store plus `SubscriptionsView.vue`. */
@@ -36,7 +39,7 @@ class SubscriptionsViewModel(
         payeeRepository.payees,
         ledgerRepository.settings,
     ) { subscriptions, accounts, categories, payees, settings ->
-        SubscriptionsUiState(subscriptions, accounts, categories, payees, settings?.defaultAccountId)
+        SubscriptionsUiState(subscriptions, accounts, categories, payees, settings?.defaultAccountId, settings?.displayCurrency ?: DEFAULT_CURRENCY)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SubscriptionsUiState())
 
     init {

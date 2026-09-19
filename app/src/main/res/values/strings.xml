@@ -264,6 +264,8 @@
     <string name="subscription_added">Subscription added</string>
     <string name="subscription_updated">Subscription updated</string>
     <string name="subscription_deleted">Subscription deleted</string>
+    <string name="subscriptions_total_per_month">Total per month</string>
+    <string name="subscriptions_total_paused">%1$d paused, not counted</string>
     <string name="subscription_paused">Subscription paused</string>
     <string name="subscription_resumed">Subscription resumed</string>
     <string name="subscription_paused_badge">Paused</string>
