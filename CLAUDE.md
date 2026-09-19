@@ -19,6 +19,9 @@ The following bullets and sections are important and should be adhered:
 - A separate commit bump before the actual version tagging.
 - If a change in the database or api changes, always run `bun run db:migrate && bun run deploy` after pushing the tags to origin.
 
+#### Version Bumping
+- A working-tree commit, then a separate version-bump commit, then a lightweight tag.
+
 ### Android
 If Idea MCP is available, use `execute_run_configuration` to run the application, 
 configuration name is `app` for running the application in the emulator.

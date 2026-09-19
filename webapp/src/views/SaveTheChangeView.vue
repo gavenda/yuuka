@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
+import SettingRow from '@/components/SettingRow.vue';
+import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { ApiError } from '@/lib/api';
 import { SAVE } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
@@ -67,57 +69,61 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="max-w-xl space-y-5" @submit.prevent="save">
-		<section class="card space-y-4 p-5">
-			<div>
-				<label class="flex items-center gap-2 text-sm text-on-surface">
-					<input v-model="roundUpEnabledDraft" type="checkbox" class="size-4 rounded border-outline accent-primary" />
-					Round up purchases
-				</label>
-				<p class="mt-1.5 text-xs text-on-surface-variant">
-					Rounds up expenses on accounts you've opted into, and deposits the spare change into the account you choose here.
-				</p>
-			</div>
+	<form class="max-w-3xl space-y-5" @submit.prevent="save">
+		<section class="card">
+			<h2 class="type-title-small px-5 pt-4 text-primary">Round-ups</h2>
+			<div class="divide-y divide-outline-variant px-5">
+				<SettingRow
+					title="Round up purchases"
+					description="Rounds up expenses on the accounts you've opted in, and deposits the spare change into the account you choose below."
+					inline
+				>
+					<ToggleSwitch v-model="roundUpEnabledDraft" label="Round up purchases" />
+				</SettingRow>
 
-			<div>
-				<label class="label">Round up to the nearest</label>
-				<ConnectedButtonGroup
-					v-model="roundToDraft"
-					label="Round up to the nearest"
-					:options="[
-						{ value: 1000, label: '₱10' },
-						{ value: 10000, label: '₱100' },
-					]"
-				/>
+				<SettingRow title="Round up to the nearest" description="The spare change is the gap to the next multiple of this.">
+					<ConnectedButtonGroup
+						v-model="roundToDraft"
+						label="Round up to the nearest"
+						:options="[
+							{ value: 1000, label: '₱10' },
+							{ value: 10000, label: '₱100' },
+						]"
+					/>
+				</SettingRow>
 			</div>
-
-			<div class="field">
-				<label class="label" for="round-up-destination">Destination account</label>
-				<select id="round-up-destination" v-model="roundUpDestinationDraft" class="input">
-					<option value="" disabled>Choose an account</option>
-					<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-				</select>
-				<p class="mt-1.5 text-xs text-on-surface-variant">Where the rounded-up spare change is deposited.</p>
-			</div>
-
-			<div class="field">
-				<label class="label" for="round-up-category">Cashflow category</label>
-				<select id="round-up-category" v-model="roundUpCategoryDraft" class="input">
-					<option value="">Uncategorized</option>
-					<template v-for="group in roundUpCategoryGroups" :key="group.parent.id">
-						<option :value="group.parent.id">{{ group.parent.name }}</option>
-						<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
-					</template>
-				</select>
-				<p class="mt-1.5 text-xs text-on-surface-variant">Optional. Lets you budget the round-ups, the same as a plain transfer.</p>
-			</div>
-
-			<p v-if="roundUpEnabledDraft && !roundUpDestinationDraft" class="text-sm text-warning" role="alert">
-				Choose a destination account to enable Save the Change.
-			</p>
 		</section>
 
-		<p class="text-xs text-on-surface-variant">
+		<section class="card">
+			<h2 class="type-title-small px-5 pt-4 text-primary">Where it goes</h2>
+			<div class="divide-y divide-outline-variant px-5">
+				<SettingRow title="Destination account" description="Where the rounded-up spare change is deposited." for="round-up-destination">
+					<select id="round-up-destination" v-model="roundUpDestinationDraft" class="input input-sm">
+						<option value="" disabled>Choose an account</option>
+						<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+					</select>
+					<p v-if="roundUpEnabledDraft && !roundUpDestinationDraft" class="mt-2 text-xs text-warning" role="alert">
+						Choose a destination account to enable Save the Change.
+					</p>
+				</SettingRow>
+
+				<SettingRow
+					title="Cashflow category"
+					description="Optional. Lets you budget the round-ups, the same as a plain transfer."
+					for="round-up-category"
+				>
+					<select id="round-up-category" v-model="roundUpCategoryDraft" class="input input-sm">
+						<option value="">Uncategorized</option>
+						<template v-for="group in roundUpCategoryGroups" :key="group.parent.id">
+							<option :value="group.parent.id">{{ group.parent.name }}</option>
+							<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
+						</template>
+					</select>
+				</SettingRow>
+			</div>
+		</section>
+
+		<p class="rounded-md bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
 			Which accounts round up their own purchases is set per account, from that account's edit form under Accounts.
 		</p>
 

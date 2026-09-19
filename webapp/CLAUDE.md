@@ -254,7 +254,9 @@ a nearly-spent budget is `warning`. Dynamic colour is an Android 12+ feature, so
 the web app uses the static scheme.
 
 **Settings and Save the Change are screens, not a popup**, as on Android (`/settings` and
-`/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). Each keeps drafts
+`/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). They are titled cards of `SettingRow`s (label and
+explanation left, control right on a wide screen, stacked on a phone; a `ToggleSwitch` for on/off), the layout that
+suits a desktop, not a phone form stretched out. Each keeps drafts
 of what it edits and follows the ledger, so it always shows what is saved; and each saves through a Save FAB
 (`FabButton` with the save `icon`) that is disabled until something has changed and is valid, then confirms with a
 snackbar and stays on the screen. A screen that leads with a non-add action passes `icon` to `FabButton`; the

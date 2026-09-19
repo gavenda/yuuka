@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
+import SettingRow from '@/components/SettingRow.vue';
 import { ApiError } from '@/lib/api';
 import { SAVE } from '@/lib/icons';
 import { formatMoney } from '@/lib/money';
@@ -67,61 +68,68 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="max-w-xl space-y-5" @submit.prevent="save">
-		<section class="card space-y-4 p-5">
-			<div class="field">
-				<label class="label" for="display-currency">Display currency</label>
-				<input
-					id="display-currency"
-					v-model="draft"
-					class="input uppercase"
-					maxlength="3"
-					list="currency-suggestions"
-					autocomplete="off"
-					required
-				/>
-				<datalist id="currency-suggestions">
-					<option v-for="code in SUGGESTIONS" :key="code" :value="code" />
-				</datalist>
+	<form class="max-w-3xl space-y-5" @submit.prevent="save">
+		<section class="card">
+			<h2 class="type-title-small px-5 pt-4 text-primary">Currency</h2>
+			<div class="divide-y divide-outline-variant px-5">
+				<SettingRow
+					title="Display currency"
+					description="Used for net worth, the monthly summary and budgets. Each account keeps its own currency for what it holds."
+					for="display-currency"
+				>
+					<input
+						id="display-currency"
+						v-model="draft"
+						class="input input-sm uppercase"
+						maxlength="3"
+						list="currency-suggestions"
+						autocomplete="off"
+						required
+					/>
+					<datalist id="currency-suggestions">
+						<option v-for="code in SUGGESTIONS" :key="code" :value="code" />
+					</datalist>
+					<p v-if="draft.trim() && !isValid" class="mt-2 text-xs text-warning" role="alert">Use a 3-letter currency code, such as PHP.</p>
+				</SettingRow>
 
-				<p class="mt-1.5 text-xs text-on-surface-variant">
-					Used for net worth, the monthly summary and budgets. Each account keeps its own currency for what it holds.
-				</p>
+				<SettingRow title="Preview" description="How an amount will read in this currency.">
+					<p class="tabular text-lg text-on-surface sm:text-right">{{ preview }}</p>
+				</SettingRow>
 			</div>
-
-			<div class="rounded-sm bg-surface-container px-3 py-2">
-				<p class="text-xs text-on-surface-variant">Preview</p>
-				<p class="tabular mt-0.5 text-lg font-medium text-on-surface">{{ preview }}</p>
-			</div>
-
-			<p v-if="draft.trim() && !isValid" class="text-sm text-warning" role="alert">Use a 3-letter currency code, such as PHP.</p>
 		</section>
 
-		<section class="card space-y-4 p-5">
-			<div>
-				<label class="label">Budget mode</label>
-				<ConnectedButtonGroup
-					v-model="budgetModeDraft"
-					label="Budget mode"
-					:options="[
-						{ value: 'fixed', label: 'Fixed' },
-						{ value: 'monthly', label: 'Monthly' },
-					]"
-				/>
-
-				<p class="mt-1.5 text-xs text-on-surface-variant">
-					<template v-if="budgetModeDraft === 'fixed'"> A category's planned amount applies to every month, until changed again. </template>
-					<template v-else> Each month keeps its own planned amount, set separately. </template>
-				</p>
+		<section class="card">
+			<h2 class="type-title-small px-5 pt-4 text-primary">Budgets</h2>
+			<div class="px-5">
+				<SettingRow
+					title="Budget mode"
+					:description="
+						budgetModeDraft === 'fixed'
+							? 'A category\'s planned amount applies to every month, until changed again.'
+							: 'Each month keeps its own planned amount, set separately.'
+					"
+				>
+					<ConnectedButtonGroup
+						v-model="budgetModeDraft"
+						label="Budget mode"
+						:options="[
+							{ value: 'fixed', label: 'Fixed' },
+							{ value: 'monthly', label: 'Monthly' },
+						]"
+					/>
+				</SettingRow>
 			</div>
+		</section>
 
-			<div class="field">
-				<label class="label" for="default-account">Default account</label>
-				<select id="default-account" v-model="defaultAccountDraft" class="input">
-					<option value="">First active account</option>
-					<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-				</select>
-				<p class="mt-1.5 text-xs text-on-surface-variant">Which account a new transaction opens on.</p>
+		<section class="card">
+			<h2 class="type-title-small px-5 pt-4 text-primary">Transactions</h2>
+			<div class="px-5">
+				<SettingRow title="Default account" description="Which account a new transaction opens on." for="default-account">
+					<select id="default-account" v-model="defaultAccountDraft" class="input input-sm">
+						<option value="">First active account</option>
+						<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+					</select>
+				</SettingRow>
 			</div>
 		</section>
 

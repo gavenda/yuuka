@@ -1,8 +1,8 @@
 {
   "app/build.gradle.kts": {
-    "mtime": 1789782835.6307962,
-    "seen": 1789784477.9407563,
-    "ast_hash": "a413b8fb8a2fb78ae91987e6bf21801c",
+    "mtime": 1789791250.3978124,
+    "seen": 1789791489.5002332,
+    "ast_hash": "56c4abcf1cffeece437f3cde04f0ca06",
     "semantic_hash": ""
   },
   "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/1.json": {
@@ -522,9 +522,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789782927.4889433,
-    "seen": 1789784477.9431882,
-    "ast_hash": "e76c98b11489be940d5519566e8017e2",
+    "mtime": 1789791311.68,
+    "seen": 1789791489.5032802,
+    "ast_hash": "fdb1bceeeb4ed1d95f8659a1df36b385",
     "semantic_hash": ""
   },
   ".vscode/extensions.json": {
@@ -534,9 +534,9 @@
     "semantic_hash": ""
   },
   "webapp/package.json": {
-    "mtime": 1789782835.6315267,
-    "seen": 1789784477.9422803,
-    "ast_hash": "aab989cee9249568af37ea7e46cf2acf",
+    "mtime": 1789791250.3970945,
+    "seen": 1789791489.5019505,
+    "ast_hash": "ddbe5b2d50070ec7ad649be4beb9f980",
     "semantic_hash": ""
   },
   "webapp/src/App.vue": {
@@ -984,9 +984,9 @@
     "semantic_hash": ""
   },
   "webapp/CLAUDE.md": {
-    "mtime": 1789790258.4145694,
-    "seen": 1789790260.8075647,
-    "ast_hash": "5edb18768bb03332a78d1323582be0d2",
+    "mtime": 1789791487.0778642,
+    "seen": 1789791489.5032806,
+    "ast_hash": "8ffe5abf7efacf4562eb34cb05583785",
     "semantic_hash": ""
   },
   "webapp/README.md": {
@@ -1584,15 +1584,27 @@
     "semantic_hash": ""
   },
   "webapp/src/views/SaveTheChangeView.vue": {
-    "mtime": 1789790181.3006158,
-    "seen": 1789790260.8072581,
-    "ast_hash": "81a1c78c5deaeee7fe7956df1bddfae5",
+    "mtime": 1789791447.0735233,
+    "seen": 1789791489.5029843,
+    "ast_hash": "8890c5a41c473da35e1193490879ba17",
     "semantic_hash": ""
   },
   "webapp/src/views/SettingsView.vue": {
-    "mtime": 1789790181.30006,
-    "seen": 1789790260.807259,
-    "ast_hash": "9422888a0227584ff1aefe2585d962e1",
+    "mtime": 1789791447.0733726,
+    "seen": 1789791489.5029845,
+    "ast_hash": "5c4930701d3b0ad199ef31cee354995a",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/SettingRow.vue": {
+    "mtime": 1789791447.537711,
+    "seen": 1789791489.5024407,
+    "ast_hash": "0542f8c5b718a602514e43a5452d02c5",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/ToggleSwitch.vue": {
+    "mtime": 1789791447.0616395,
+    "seen": 1789791489.5024729,
+    "ast_hash": "4f9f9a9952bce167b6bbbc09abdd9ae6",
     "semantic_hash": ""
   }
 }

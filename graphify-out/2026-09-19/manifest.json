@@ -744,9 +744,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/transactionRows.ts": {
-    "mtime": 1789755694.3724267,
-    "seen": 1789757107.0348718,
-    "ast_hash": "c1ca5545e31625ae7575b1ab3b5639c3",
+    "mtime": 1789790474.7329898,
+    "seen": 1789790533.3198783,
+    "ast_hash": "32507ae211e38544e670f0efc32dc6a9",
     "semantic_hash": ""
   },
   "webapp/src/main.ts": {
@@ -828,9 +828,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/TransactionsView.vue": {
-    "mtime": 1789786713.6096091,
-    "seen": 1789786732.7434106,
-    "ast_hash": "e353d70b0be30556c146231b78803bee",
+    "mtime": 1789790494.8392417,
+    "seen": 1789790533.3200648,
+    "ast_hash": "b2bfa04d6d6d048af32a0f629ca9aecb",
     "semantic_hash": ""
   },
   "webapp/src/vite-env.d.ts": {
@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/transactionRows.spec.ts": {
-    "mtime": 1789755694.5734303,
-    "seen": 1789757107.0348709,
-    "ast_hash": "daedf4df726f633d5b6bcf4418b1e0d8",
+    "mtime": 1789790475.399999,
+    "seen": 1789790533.3198779,
+    "ast_hash": "e1e1862bc277d387b49eeedd26eddfbc",
     "semantic_hash": ""
   },
   "webapp/server/auth0.ts": {
@@ -1566,9 +1566,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/icons.ts": {
-    "mtime": 1789790200.0852995,
-    "seen": 1789790260.8068779,
-    "ast_hash": "9b412b41e569c83a631e5a109057ad9c",
+    "mtime": 1789790474.745288,
+    "seen": 1789790533.3196692,
+    "ast_hash": "1aa8b74c09158bdb01d9be4ae5355051",
     "semantic_hash": ""
   },
   "webapp/src/components/ConnectedButtonGroup.vue": {
