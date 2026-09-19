@@ -3,7 +3,6 @@ import ActionIcon from '@/components/ActionIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
-import TagManager from '@/components/TagManager.vue';
 import { api, ApiError } from '@/lib/api';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
@@ -238,18 +237,6 @@ onMounted(() => ledger.load());
 		<button v-if="archivedCount" type="button" class="btn-text" @click="showArchived = !showArchived">
 			{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
 		</button>
-
-		<!-- Tags are labels to read a transaction by. They change no figure, so unlike a category none is budgeted. -->
-		<section class="card p-5">
-			<header class="mb-1">
-				<h2 class="text-sm font-medium text-on-surface">Tags</h2>
-				<p class="mt-0.5 text-xs text-on-surface-variant">
-					Labels to put on a transaction, shown beside its notes. They sit alongside its category and change no total.
-				</p>
-			</header>
-
-			<TagManager />
-		</section>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit category' : 'New category'" @close="dialogOpen = false">
 			<form class="space-y-4" @submit.prevent="save">

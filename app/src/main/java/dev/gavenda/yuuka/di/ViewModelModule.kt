@@ -7,6 +7,7 @@ import dev.gavenda.yuuka.ui.dashboard.DashboardViewModel
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeViewModel
 import dev.gavenda.yuuka.ui.settings.SettingsViewModel
 import dev.gavenda.yuuka.ui.subscriptions.SubscriptionsViewModel
+import dev.gavenda.yuuka.ui.tags.TagsViewModel
 import dev.gavenda.yuuka.ui.transactions.TransactionsViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -17,6 +18,7 @@ val viewModelModule = module {
     viewModel { BudgetViewModel(get(), get(), get()) }
     viewModel { AccountsViewModel(get(), get(), get()) }
     viewModel { CategoriesViewModel(get()) }
+    viewModel { TagsViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }
     viewModel { SaveTheChangeViewModel(get()) }
     viewModel { SubscriptionsViewModel(get(), get(), get()) }

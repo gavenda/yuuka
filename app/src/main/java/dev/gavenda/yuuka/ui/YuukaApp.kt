@@ -43,6 +43,7 @@ import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
 import dev.gavenda.yuuka.ui.settings.SettingsScreen
 import dev.gavenda.yuuka.ui.subscriptions.SubscriptionsScreen
+import dev.gavenda.yuuka.ui.tags.TagsScreen
 import dev.gavenda.yuuka.ui.transactions.TransactionsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -331,6 +332,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         composable(YuukaDestination.BUDGET.route) { BudgetScreen() }
                         composable(YuukaDestination.ACCOUNTS.route) { AccountsScreen() }
                         composable(YuukaDestination.CATEGORIES.route) { CategoriesScreen() }
+                        composable(YuukaDestination.TAGS.route) { TagsScreen() }
                         composable(YuukaDestination.SUBSCRIPTIONS.route) { SubscriptionsScreen() }
                         composable(SETTINGS_ROUTE) {
                             SettingsScreen(

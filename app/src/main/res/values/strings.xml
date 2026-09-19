@@ -76,6 +76,7 @@
     <string name="destination_budget">Budget</string>
     <string name="destination_accounts">Accounts</string>
     <string name="destination_categories">Categories</string>
+    <string name="destination_tags">Tags</string>
     <string name="destination_settings">Settings</string>
     <string name="destination_subscriptions">Subscriptions</string>
 
@@ -152,7 +153,10 @@
     <!-- Tags -->
     <string name="label_tags">Tags</string>
     <string name="tags_description">Labels to put on a transaction, shown beside its notes. They sit alongside its category and change no total.</string>
-    <string name="no_tags_yet">No tags yet. Add one, then put it on a transaction.</string>
+    <string name="no_tags_yet">No tags yet</string>
+    <string name="tags_empty_description">Add one, then put it on a transaction to find it by that label later.</string>
+    <string name="search_tags">Search tags</string>
+    <string name="no_tag_matches">No tag matches “%1$s”.</string>
     <string name="new_tag">New tag</string>
     <string name="edit_tag">Edit tag</string>
     <string name="add_tag">Add tag</string>

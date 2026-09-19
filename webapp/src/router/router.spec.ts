@@ -50,7 +50,7 @@ describe('signed out', () => {
 	});
 
 	it('sends every protected route to the sign-in screen', async () => {
-		for (const path of ['/', '/transactions', '/budget', '/accounts', '/categories', '/subscriptions']) {
+		for (const path of ['/', '/transactions', '/budget', '/accounts', '/categories', '/tags', '/subscriptions']) {
 			await router.push(path);
 			expect(router.currentRoute.value.name, path).toBe('login');
 		}
@@ -90,6 +90,7 @@ describe('signed in', () => {
 			['/budget', 'budget'],
 			['/accounts', 'accounts'],
 			['/categories', 'categories'],
+			['/tags', 'tags'],
 		]) {
 			await router.push(path);
 			expect(router.currentRoute.value.name, path).toBe(name);

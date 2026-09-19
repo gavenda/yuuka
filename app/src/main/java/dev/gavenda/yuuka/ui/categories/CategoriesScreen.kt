@@ -28,7 +28,6 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.data.model.CategoryScope
-import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.domain.CollapsedSections
 import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.ui.common.*
@@ -45,9 +44,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
-    // A tag being made or edited: `creatingTag` opens the sheet, `editingTag` fills it.
-    var creatingTag by remember { mutableStateOf(false) }
-    var editingTag by remember { mutableStateOf<Tag?>(null) }
     val sectionState = koinInject<CollapsedSections>()
     val collapsedSections by sectionState.categories.collectAsStateWithLifecycle()
 
@@ -56,9 +52,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     val categoryDeletedMessage = stringResource(R.string.category_deleted)
     val categoryUpdatedMessage = stringResource(R.string.category_updated)
     val categoryAddedMessage = stringResource(R.string.category_added)
-    val tagAddedMessage = stringResource(R.string.tag_added)
-    val tagUpdatedMessage = stringResource(R.string.tag_updated)
-    val tagDeletedMessage = stringResource(R.string.tag_deleted)
 
     Scaffold(
         modifier = modifier,
@@ -166,48 +159,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                 }
             }
 
-            // Tags are labels to read a transaction by. They change no figure, so unlike a category none is budgeted.
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.label_tags), style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    stringResource(R.string.tags_description),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            TextButton(onClick = { creatingTag = true }) { Text(stringResource(R.string.action_add)) }
-                        }
-
-                        if (state.tags.isEmpty()) {
-                            Text(
-                                stringResource(R.string.no_tags_yet),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 12.dp),
-                            )
-                        } else {
-                            Column(modifier = Modifier.padding(top = 12.dp)) {
-                                state.tags.forEach { tag ->
-                                    val deleteKey = "delete-tag:${tag.id}"
-                                    TagRow(
-                                        tag,
-                                        deleting = busy.isBusy(deleteKey),
-                                        onEdit = { editingTag = tag },
-                                        onDelete = {
-                                            busy.run(deleteKey, snackbarHostState, successMessage = tagDeletedMessage) { viewModel.deleteTag(tag.id) }
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             if (state.archivedCount > 0) {
                 item {
                     TextButton(onClick = viewModel::toggleShowArchived) {
@@ -219,32 +170,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                         )
                     }
                 }
-            }
-        }
-    }
-
-    if (creatingTag || editingTag != null) {
-        val formKey = "tag-form"
-        val submitting = busy.isBusy(formKey)
-        ModalBottomSheet(onDismissRequest = { if (!submitting) { creatingTag = false; editingTag = null } }) {
-            WithSnackbarOverlay {
-                TagFormContent(
-                    editing = editingTag,
-                    initialColor = viewModel.nextTagColor(),
-                    submitting = submitting,
-                    onSave = { name, color ->
-                        busy.run(
-                            formKey,
-                            snackbarHostState,
-                            successMessage = if (editingTag != null) tagUpdatedMessage else tagAddedMessage,
-                            onSuccess = { creatingTag = false; editingTag = null },
-                        ) {
-                            val tag = editingTag
-                            if (tag != null) viewModel.updateTag(tag.id, name, color) else viewModel.createTag(name, color)
-                        }
-                    },
-                    onCancel = { creatingTag = false; editingTag = null },
-                )
             }
         }
     }
@@ -277,29 +202,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                     onCancel = { creatingIn = null; editing = null },
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun TagRow(tag: Tag, deleting: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
-    SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth(),
-        actions = {
-            ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, tag.name), onDelete, danger = true, loading = deleting)
-        },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .clickable(onClick = onEdit)
-                .padding(vertical = 6.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(colorFromHex(tag.color)))
-            Text(tag.name, modifier = Modifier.padding(start = 8.dp).weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -485,62 +387,6 @@ private fun CategoryFormContent(
                     MutationLoadingIndicator()
                 } else {
                     Text(if (editing != null) stringResource(R.string.save_changes) else stringResource(R.string.add_category))
-                }
-            }
-        }
-    }
-}
-
-/** A tag is a name and one of the palette's colours — the same validated set a category takes. */
-@Composable
-private fun TagFormContent(
-    editing: Tag?,
-    initialColor: String,
-    submitting: Boolean,
-    onSave: (String, String) -> Unit,
-    onCancel: () -> Unit,
-) {
-    var name by remember { mutableStateOf(editing?.name ?: "") }
-    var color by remember { mutableStateOf(editing?.color ?: initialColor) }
-
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (editing != null) stringResource(R.string.edit_tag) else stringResource(R.string.new_tag), style = MaterialTheme.typography.titleMedium)
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it.take(80) },
-            label = { Text(stringResource(R.string.label_name)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Text(stringResource(R.string.label_colour), style = MaterialTheme.typography.labelMedium)
-        Row(modifier = Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PALETTE.forEach { slot ->
-                val selected = color.equals(slot.light, ignoreCase = true)
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(colorFromHex(slot.light))
-                        .then(if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                        .semantics { contentDescription = slot.name }
-                        .selectable(selected = selected, role = Role.RadioButton) { color = slot.light },
-                )
-            }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = { if (name.isNotBlank()) onSave(name.trim(), color) },
-                enabled = name.isNotBlank() && !submitting,
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(if (editing != null) stringResource(R.string.save_changes) else stringResource(R.string.add_tag))
                 }
             }
         }

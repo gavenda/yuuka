@@ -13,6 +13,7 @@ import {
 	MONEY_OFF,
 	PIE_CHART,
 	RECEIPT,
+	SELL,
 } from '@/lib/icons';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
@@ -48,6 +49,7 @@ const links = [
 	{ to: '/budget', label: 'Budget', icon: PIE_CHART, phoneMenu: true },
 	{ to: '/accounts', label: 'Accounts', icon: ACCOUNT_BALANCE_WALLET },
 	{ to: '/categories', label: 'Categories', icon: CATEGORY, phoneMenu: true },
+	{ to: '/tags', label: 'Tags', icon: SELL, phoneMenu: true },
 ];
 
 const phoneBarLinks = links.filter((link) => !link.phoneMenu);

@@ -9,6 +9,7 @@ const routes: RouteRecordRaw[] = [
 	{ path: '/budget', name: 'budget', component: () => import('@/views/BudgetView.vue'), meta: { title: 'Budget' } },
 	{ path: '/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { title: 'Accounts' } },
 	{ path: '/categories', name: 'categories', component: () => import('@/views/CategoriesView.vue'), meta: { title: 'Categories' } },
+	{ path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue'), meta: { title: 'Tags' } },
 	{
 		path: '/subscriptions',
 		name: 'subscriptions',

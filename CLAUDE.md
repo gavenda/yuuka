@@ -105,7 +105,8 @@ resolved is in [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
 **Tags are labels beside the category, never instead of it.** A user manages
 their own tags (a name and a palette colour, unique per user whatever the case)
-from the Categories screen, and a transaction wears any number of them, up to
+on a Tags screen of their own — a long list would otherwise drown the
+categories, so it is searchable once it grows — and a transaction wears any number of them, up to
 ten. They are drawn as chips at the right end of the notes row of a transaction
 card. A category decides where money counts; a tag decides nothing, so no
 income, spending, budget, balance or summary figure ever reads them (which is
