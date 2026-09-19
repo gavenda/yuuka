@@ -44,6 +44,12 @@
 		// the default categories.
 		"SEED_DEMO_DATA": "true",
 	},
+	// Posts due subscriptions. Cron Triggers always run in UTC, and every
+	// subscription posts at 00:00 UTC — the user never picks a time.
+	// https://developers.cloudflare.com/workers/configuration/cron-triggers/
+	"triggers": {
+		"crons": ["0 0 * * *"],
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",

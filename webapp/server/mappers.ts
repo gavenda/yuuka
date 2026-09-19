@@ -70,6 +70,8 @@ export interface TransactionRow {
 	payee: string;
 	notes: string;
 	transfer_id: string | null;
+	/** 1 when a subscription's cron posted this row rather than the user. */
+	automated: number;
 	created_at: string;
 	updated_at: string;
 	account_name?: string;
@@ -169,6 +171,8 @@ export const toTransaction = (row: TransactionRow) => ({
 	payee: row.payee,
 	notes: row.notes,
 	transferId: row.transfer_id,
+	/** Posted by a subscription at 00:00 UTC — its time of day is not the user's to change. */
+	automated: row.automated === 1,
 	runningBalance: row.running_balance,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
@@ -226,4 +230,42 @@ export const toPayee = (row: PayeeRow) => ({
 	notes: row.notes,
 	usedCount: row.used_count,
 	lastUsedAt: row.last_used_at,
+});
+
+export interface SubscriptionRow {
+	id: string;
+	account_id: string;
+	category_id: string | null;
+	amount: number;
+	payee: string;
+	notes: string;
+	start_on: string;
+	day_of_month: number;
+	next_run_on: string;
+	last_run_on: string | null;
+	enabled: number;
+	created_at: string;
+	updated_at: string;
+	account_name?: string;
+	category_name?: string | null;
+	category_color?: string | null;
+}
+
+export const toSubscription = (row: SubscriptionRow) => ({
+	id: row.id,
+	accountId: row.account_id,
+	accountName: row.account_name ?? null,
+	categoryId: row.category_id,
+	categoryName: row.category_name ?? null,
+	categoryColor: row.category_color ?? null,
+	amount: row.amount,
+	payee: row.payee,
+	notes: row.notes,
+	startOn: row.start_on,
+	dayOfMonth: row.day_of_month,
+	nextRunOn: row.next_run_on,
+	lastRunOn: row.last_run_on,
+	enabled: row.enabled === 1,
+	createdAt: row.created_at,
+	updatedAt: row.updated_at,
 });

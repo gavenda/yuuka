@@ -21,7 +21,7 @@ import type { AppEnv } from '../types';
  */
 const SELECT_ENRICHED = `
 	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.payee, t.notes,
-	       t.transfer_id, t.created_at, t.updated_at,
+	       t.transfer_id, t.automated, t.created_at, t.updated_at,
 	       a.name AS account_name, c.name AS category_name, c.color AS category_color,
 	       b.running_balance
 	FROM transactions t
@@ -476,10 +476,16 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const input = await parseJson(c, transactionUpdateSchema);
 
-		const existing = await c.env.DB.prepare('SELECT occurred_on FROM transactions WHERE id = ? AND user_id = ?')
+		const existing = await c.env.DB.prepare('SELECT occurred_on, automated FROM transactions WHERE id = ? AND user_id = ?')
 			.bind(id, userId)
-			.first<{ occurred_on: string }>();
+			.first<{ occurred_on: string; automated: number }>();
 		if (!existing) throw notFound('Transaction not found.');
+
+		// A subscription posts at 00:00 UTC and nobody chooses that. The date can
+		// still move; a time of day cannot be added to it.
+		if (existing.automated === 1 && input.occurredOn !== undefined && input.occurredOn.length > 10) {
+			throw badRequest('The time of an automated transaction cannot be changed.');
+		}
 
 		const { clause, values } = buildUpdate({
 			account_id: input.accountId,

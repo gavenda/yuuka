@@ -15,6 +15,8 @@ data class Transaction(
     val payee: String,
     val notes: String = "",
     val transferId: String? = null,
+    /** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
+    val automated: Boolean = false,
     /** This account's own balance immediately after the transaction posted. */
     val runningBalance: Long,
     val createdAt: String = "",

@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE, ADJUST }
+enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE, ADJUST, PAUSE, RESUME }
 
 /** A row of icon-only actions sharing one visual language, mirroring `ActionIcon.vue`. */
 @Composable
@@ -27,6 +27,8 @@ fun ActionIconButton(
         ActionIcon.RESTORE -> Icons.Filled.Unarchive
         ActionIcon.DELETE -> Icons.Filled.Delete
         ActionIcon.ADJUST -> Icons.Filled.Balance
+        ActionIcon.PAUSE -> Icons.Filled.Pause
+        ActionIcon.RESUME -> Icons.Filled.PlayArrow
     }
     val tint = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
 

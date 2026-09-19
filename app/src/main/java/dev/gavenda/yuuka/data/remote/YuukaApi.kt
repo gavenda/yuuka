@@ -100,6 +100,18 @@ interface YuukaApi {
     @PATCH("transactions/transfer/{transferId}")
     suspend fun updateTransfer(@Path("transferId") transferId: String, @Body body: JsonObject): TransferResponse
 
+    @GET("subscriptions")
+    suspend fun listSubscriptions(): SubscriptionsResponse
+
+    @POST("subscriptions")
+    suspend fun createSubscription(@Body body: JsonObject): SubscriptionResponse
+
+    @PATCH("subscriptions/{id}")
+    suspend fun updateSubscription(@Path("id") id: String, @Body body: JsonObject): SubscriptionResponse
+
+    @DELETE("subscriptions/{id}")
+    suspend fun deleteSubscription(@Path("id") id: String)
+
     @GET("budgets")
     suspend fun listBudgets(@Query("month") month: String): BudgetsResponse
 

@@ -1,4 +1,6 @@
+import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { runDueSubscriptions } from '../server/subscriptions';
 import { authedClient, json, makeAccount, makeCategory, otherClient, type Call } from './helpers';
 
 /**
@@ -341,5 +343,53 @@ describe('summaries are private', () => {
 
 		// And ours is still ours after theirs was cached.
 		expect((await json<{ netWorth: number }>(await mine('/summary?month=2026-09'))).netWorth).toBe(75000);
+	});
+});
+
+describe('subscriptions are private', () => {
+	let subscriptionId: string;
+	const startOn = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+
+	beforeEach(async () => {
+		const accountId = await makeAccount(mine, { name: 'Private' });
+		const response = await mine('/subscriptions', {
+			method: 'POST',
+			body: JSON.stringify({ accountId, amount: -1500, payee: 'Netflix', startOn }),
+		});
+		subscriptionId = (await json<{ subscription: { id: string } }>(response)).subscription.id;
+	});
+
+	it('are not listed for another user', async () => {
+		const body = await json<{ subscriptions: unknown[] }>(await theirs('/subscriptions'));
+		expect(body.subscriptions).toEqual([]);
+	});
+
+	it('cannot be changed or deleted by another user, and answer 404 not 403', async () => {
+		const patched = await theirs(`/subscriptions/${subscriptionId}`, { method: 'PATCH', body: JSON.stringify({ amount: -1 }) });
+		const deleted = await theirs(`/subscriptions/${subscriptionId}`, { method: 'DELETE' });
+		expect(patched.status).toBe(404);
+		expect(deleted.status).toBe(404);
+
+		const { subscriptions } = await json<{ subscriptions: { amount: number }[] }>(await mine('/subscriptions'));
+		expect(subscriptions).toMatchObject([{ amount: -1500 }]);
+	});
+
+	it('cannot be pointed at another user’s account or category', async () => {
+		const theirAccountId = await makeAccount(theirs, { name: 'Not yours' });
+		const theirCategoryId = await makeCategory(theirs, { name: 'Not yours', kind: 'expense' });
+		const patch = (body: Record<string, unknown>) =>
+			mine(`/subscriptions/${subscriptionId}`, { method: 'PATCH', body: JSON.stringify(body) });
+
+		expect((await patch({ accountId: theirAccountId })).status).toBe(400);
+		expect((await patch({ categoryId: theirCategoryId })).status).toBe(400);
+	});
+
+	it('post only to their owner’s account', async () => {
+		await runDueSubscriptions(env, new Date(`${startOn}T00:00:00Z`));
+
+		const mineRows = await json<{ total: number }>(await mine('/transactions'));
+		const theirRows = await json<{ total: number }>(await theirs('/transactions'));
+		expect(mineRows.total).toBe(1);
+		expect(theirRows.total).toBe(0);
 	});
 });

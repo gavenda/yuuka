@@ -23,8 +23,9 @@ import dev.gavenda.yuuka.data.local.entity.*
         SummaryEntity::class,
         PayeeEntity::class,
         RoundUpRuleEntity::class,
+        SubscriptionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {
@@ -38,4 +39,5 @@ abstract class YuukaDatabase : RoomDatabase() {
     abstract fun summaryDao(): SummaryDao
     abstract fun payeeDao(): PayeeDao
     abstract fun roundUpRuleDao(): RoundUpRuleDao
+    abstract fun subscriptionDao(): SubscriptionDao
 }

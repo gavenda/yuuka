@@ -21,8 +21,9 @@ owns formatting — do not hand-align anything it will rewrite.
 ## Shape of the app
 
 One Worker serves both halves from a single origin. `server/index.ts` is its entry
-and exports the Hono app, which owns every `/api/*` route, so routing lives in Hono
-rather than in the filesystem: adding an endpoint means adding a route in
+and exports a `fetch` handler (the Hono app, which owns every `/api/*` route) plus
+a `scheduled` handler for the cron trigger (see Subscriptions below). Routing
+lives in Hono rather than in the filesystem: adding an endpoint means adding a route in
 `server/routes/`, not a file at a path. `wrangler.jsonc` serves the Vite build in
 `dist/` as Static Assets, with `run_worker_first: ["/api/*"]` sending only API
 paths to the Worker and `not_found_handling: "single-page-application"` handing
@@ -64,6 +65,37 @@ cached summary for that user, not just the current month, because it changes wha
 **Some per-user tables have no guaranteed row.** `round_up_rules` is not
 provisioned on sign-in — it follows the same GET-with-default / upsert pattern as
 `income_plans` and `payee_history`, since most users never touch the feature.
+
+**Subscriptions are posted by a cron, and every run must be safe to repeat.**
+`wrangler.jsonc` declares `triggers.crons: ["0 0 * * *"]`, which calls the
+`scheduled` handler in `server/index.ts` → `runDueSubscriptions`
+(`server/subscriptions.ts`). Cron Triggers run in UTC, which is why an automated
+transaction is stored as a bare `YYYY-MM-DD` and the flag `transactions.automated`
+— not the string — is what tells the UI to lock the time; `PATCH /transactions/:id`
+refuses to give an automated row a time of day. The handler uses
+`controller.scheduledTime`, not the wall clock, so a late tick still posts for the
+day it was meant for.
+
+A tick can be retried or overlap another, so a run cannot be allowed to post
+twice: each occurrence is one atomic `DB.batch` of an `INSERT OR IGNORE … SELECT
+… FROM subscriptions WHERE next_run_on = ?` followed by the `UPDATE` that
+advances `next_run_on`. That column is the compare-and-swap token — whichever
+invocation loses finds it already moved and writes nothing — and the transaction
+id is derived from the subscription and the date (`stableId`), so even a
+bypassed guard would collide on the primary key. Because the insert copies the
+subscription's own row, what posts is what it holds at that instant. It also
+means a user deleting an automated transaction sticks: the schedule has moved on.
+`day_of_month` is stored rather than derived from `next_run_on`, so a clamped
+month (31 → 28) does not drag the schedule down with it. A tick catches up at
+most `MAX_CATCH_UP` missed runs per subscription; one failing subscription is
+logged and does not stop the rest.
+
+`server/routes/subscriptions.ts` only manages the schedule and never writes a
+transaction. Its writes check ownership of the account and category in the same
+statement (`applies_to = 'standard'`), like `POST /transactions`. The cron is
+covered by calling `runDueSubscriptions(env, now)` with a fixed clock, plus one
+test through the real `scheduled` export; seed rows directly for dates in the
+past, since the API refuses a start date before today.
 
 **Account logos load with `referrerpolicy="no-referrer"`.** The URL lands in an
 `<img src>`, and the policy stops browsing from leaking which account is being
@@ -146,7 +178,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-292 tests: 225 against the API in `test/`, 67 over the browser helpers as
+408 tests: 333 against the API in `test/`, 75 over the browser helpers as
 `*.spec.ts` beside the code they cover.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the

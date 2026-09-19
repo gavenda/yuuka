@@ -14,6 +14,8 @@ const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; c
 
 const ledger = useLedgerStore();
 const isEditing = computed(() => Boolean(props.transaction));
+/** Posted by a subscription's cron at 00:00 UTC — its time of day is not the user's to set. */
+const isAutomated = computed(() => props.transaction?.automated === true);
 
 const form = reactive({
 	mode: 'expense' as Mode,
@@ -134,8 +136,9 @@ async function submit(): Promise<void> {
 	submitting.value = true;
 
 	try {
-		// A time is optional; omitting it leaves the date to stand on its own.
-		const occurredOn = form.occurredTime ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn;
+		// A time is optional; omitting it leaves the date to stand on its own. An
+		// automated transaction never has one, and the API refuses it if it does.
+		const occurredOn = form.occurredTime && !isAutomated.value ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn;
 
 		// Direction lives in the sign, so the form's mode is what decides it.
 		const payload =
@@ -249,9 +252,14 @@ defineExpose({
 
 			<div>
 				<label class="label" for="time">Time</label>
-				<input id="time" v-model="form.occurredTime" type="time" class="input" />
+				<!-- A subscription posts at 00:00 UTC, so there is no time here for anyone to set. -->
+				<input id="time" v-model="form.occurredTime" type="time" class="input" :disabled="isAutomated" />
 			</div>
 		</div>
+
+		<p v-if="isAutomated" class="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+			Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.
+		</p>
 
 		<div>
 			<label class="label" for="notes">Notes</label>

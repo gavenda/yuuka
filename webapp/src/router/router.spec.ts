@@ -36,7 +36,7 @@ beforeEach(async () => {
 
 describe('signed out', () => {
 	it('sends every protected route to the sign-in screen', async () => {
-		for (const path of ['/', '/transactions', '/budget', '/accounts', '/categories']) {
+		for (const path of ['/', '/transactions', '/budget', '/accounts', '/categories', '/subscriptions']) {
 			await router.push(path);
 			expect(router.currentRoute.value.name, path).toBe('login');
 		}

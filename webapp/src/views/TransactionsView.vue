@@ -255,6 +255,12 @@ async function remove(): Promise<void> {
 								<p class="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
 									<span class="min-w-0 truncate">{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorized' }}</span>
 									<span
+										v-if="row.transaction.automated"
+										class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+										title="Posted automatically by a subscription"
+										>Subscription</span
+									>
+									<span
 										v-if="row.transaction.payee && row.transaction.categoryName"
 										class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
 										:style="{

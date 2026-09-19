@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BUDGET_MODES } from './budget-mode';
-import { DATE_PATTERN, DATE_TIME_PATTERN, MONTH_PATTERN } from './dates';
+import { DATE_PATTERN, DATE_TIME_PATTERN, isRealDate, MONTH_PATTERN } from './dates';
 import { DEFAULT_CURRENCY } from './defaults';
 
 export const CATEGORY_KINDS = ['income', 'expense'] as const;
@@ -152,6 +152,38 @@ export const transferCreateSchema = z
 		message: 'Cannot transfer to the same account.',
 		path: ['toAccountId'],
 	});
+
+/** A subscription's payee is required — it is the only label the subscription has in a list. */
+const subscriptionPayee = z.string().trim().min(1, 'Required.').max(120);
+
+/** A day that exists on the calendar — `DATE_PATTERN` alone would accept `2026-02-31`. */
+const realDate = dateString.refine(isRealDate, 'Must be a real calendar date.');
+
+export const subscriptionCreateSchema = z.object({
+	accountId: z.string().min(1),
+	/** Must be a standard-scope category — a subscription posts an ordinary transaction, never a transfer. */
+	categoryId: z.string().min(1).nullable().default(null),
+	amount: money.refine((value) => value !== 0, 'Amount cannot be zero.'),
+	payee: subscriptionPayee,
+	notes: z.string().trim().max(500).default(''),
+	/** The first run. Its day of the month anchors every later one. */
+	startOn: realDate,
+});
+
+export const subscriptionUpdateSchema = z
+	.object({
+		accountId: z.string().min(1),
+		categoryId: z.string().min(1).nullable(),
+		amount: money.refine((value) => value !== 0, 'Amount cannot be zero.'),
+		payee: subscriptionPayee,
+		notes: z.string().trim().max(500),
+		/** Restarts the schedule: this becomes the next run, and its day the new anchor. */
+		startOn: realDate,
+		/** Paused subscriptions post nothing. Resuming skips whatever fell due while paused. */
+		enabled: z.boolean(),
+	})
+	.partial()
+	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
 /** A share of the month's planned income, in whole or fractional percent (e.g. 12.5). */
 const percent = z.number().min(0).max(100);

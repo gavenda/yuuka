@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, currentMonth, isDate, isMonth, monthOf, monthRange } from '../server/dates';
+import {
+	addMonths,
+	currentMonth,
+	dateInMonth,
+	dayOf,
+	daysInMonth,
+	firstOccurrenceOnOrAfter,
+	isDate,
+	isMonth,
+	isRealDate,
+	monthOf,
+	monthRange,
+	nextOccurrence,
+} from '../server/dates';
 import { buildUpdate, toSqliteBool } from '../server/sql';
 import { bearerToken } from '../server/middleware/auth';
 
@@ -28,6 +41,45 @@ describe('date helpers', () => {
 	it('derives the month a date falls in', () => {
 		expect(monthOf('2026-09-15')).toBe('2026-09');
 		expect(currentMonth(new Date('2026-03-08T00:00:00Z'))).toBe('2026-03');
+	});
+});
+
+describe('monthly schedule helpers', () => {
+	it('tells a real day from one that only looks like a date', () => {
+		expect(isRealDate('2028-02-29')).toBe(true);
+		expect(isRealDate('2027-02-29')).toBe(false);
+		expect(isRealDate('2026-04-31')).toBe(false);
+		expect(isRealDate('2026-4-3')).toBe(false);
+	});
+
+	it('knows how long a month is, leap years included', () => {
+		expect(daysInMonth('2026-09')).toBe(30);
+		expect(daysInMonth('2026-12')).toBe(31);
+		expect(daysInMonth('2027-02')).toBe(28);
+		expect(daysInMonth('2028-02')).toBe(29);
+		expect(daysInMonth('2100-02')).toBe(28);
+	});
+
+	it('clamps a day to the end of a short month', () => {
+		expect(dateInMonth('2026-09', 15)).toBe('2026-09-15');
+		expect(dateInMonth('2026-09', 31)).toBe('2026-09-30');
+		expect(dateInMonth('2027-02', 30)).toBe('2027-02-28');
+		expect(dayOf('2026-09-05')).toBe(5);
+	});
+
+	it('finds the occurrence in the following month, keeping the anchor day', () => {
+		expect(nextOccurrence(15, '2026-09-15')).toBe('2026-10-15');
+		expect(nextOccurrence(31, '2026-12-31')).toBe('2027-01-31');
+		expect(nextOccurrence(31, '2027-01-31')).toBe('2027-02-28');
+		expect(nextOccurrence(31, '2027-02-28')).toBe('2027-03-31');
+	});
+
+	it('finds the first occurrence on or after a date', () => {
+		expect(firstOccurrenceOnOrAfter(15, '2026-09-10')).toBe('2026-09-15');
+		expect(firstOccurrenceOnOrAfter(15, '2026-09-15')).toBe('2026-09-15');
+		expect(firstOccurrenceOnOrAfter(15, '2026-09-16')).toBe('2026-10-15');
+		expect(firstOccurrenceOnOrAfter(31, '2026-09-01')).toBe('2026-09-30');
+		expect(firstOccurrenceOnOrAfter(5, '2026-12-20')).toBe('2027-01-05');
 	});
 });
 

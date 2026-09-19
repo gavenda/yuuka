@@ -120,6 +120,33 @@ the question is "what did I do last time", and a half-updated row answers it
 wrongly. Names match case-insensitively. A transfer left unnamed describes itself
 (`Checking → Savings`); that composed name is derived, so it is never remembered.
 
+**Subscriptions post ordinary transactions, once a month, at 00:00 UTC.** A
+subscription is an account, a payee, a category, notes, a signed amount and a
+start date — no more; it is not a new kind of transaction. The start date's day
+of the month is the anchor for every later run, and a month too short for it
+posts on its last day (the anchor is kept, so 31 January runs on 28 February and
+then 31 March again). The Worker's cron does the posting, never the client, and
+what it writes is a plain single-account row flagged `automated`: it counts in
+income, spending and balances like any other, and can be edited or deleted like
+one. Every run is at 00:00 UTC, so nobody chooses a time of day — the flag is
+what lets both apps lock the time field, and the API refuses to give an
+automated row a time. The date can still be edited. The rules that keep it
+honest:
+
+- A start date must be today (UTC) or later. Past dates are refused, so setting
+  one up never backfills history; a run that was missed catches up on the next
+  tick, bounded, and resuming a paused subscription skips whatever fell due
+  while it was paused rather than posting a backlog.
+- A run is posted at most once. Deleting an automated transaction is a decision
+  the schedule respects — it has already moved on and does not bring it back.
+- Deleting a subscription keeps everything it already posted (history), and the
+  same goes for its category being deleted (the subscription becomes
+  uncategorised). Deleting its account deletes it — it is configuration, not
+  history.
+- Categories are standard-scope only, as for any transaction. Automated rows do
+  not trigger "Save the Change" and do not teach the payee history: both follow
+  what a person enters, not what a schedule does.
+
 **Deleting a category never destroys history.** Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
 _would_ take its transactions with it, so the API answers `409` until the caller
@@ -167,9 +194,9 @@ inverted the same way would come out wrong.
 Pull-to-refresh is a full sync, not a top-up. The per-screen loads only ever
 fold rows in, so something deleted elsewhere (the web app, another device)
 would otherwise linger here indefinitely. A full sync replaces accounts, types,
-categories, settings, the round-up rule and payees from the API, and only once
-that has succeeded discards the cached transactions, budgets, income plans and
-summaries, so the screens on show load theirs again. A failed sync (offline,
+categories, settings, the round-up rule, subscriptions and payees from the API,
+and only once that has succeeded discards the cached transactions, budgets,
+income plans and summaries, so the screens on show load theirs again. A failed sync (offline,
 expired session) leaves the last-seen ledger untouched rather than empty.
 
 ## Provisioning

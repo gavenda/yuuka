@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/theme';
 import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
+import { useSubscriptionStore } from '@/stores/subscriptions';
 import { useTransactionStore } from '@/stores/transactions';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
@@ -14,6 +15,7 @@ const { isAuthenticated, isLoading, user, error, logout } = useAuth0();
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
 const transactions = useTransactionStore();
+const subscriptions = useSubscriptionStore();
 const router = useRouter();
 const { theme, toggle } = useTheme();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
@@ -49,6 +51,7 @@ async function signOut(): Promise<void> {
 	ledger.reset();
 	budget.reset();
 	transactions.reset();
+	subscriptions.reset();
 
 	// Ends the Auth0 session too, not just the local one.
 	await logout({ logoutParams: { returnTo: window.location.origin } });
@@ -182,6 +185,17 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 									user.email
 								}}</span>
 							</div>
+
+							<!-- Reached from here rather than the tab bar: it is set up once and
+							     then left alone, unlike the pages that are visited every day. -->
+							<RouterLink
+								to="/subscriptions"
+								role="menuitem"
+								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+								@click="userMenuOpen = false"
+							>
+								Subscriptions
+							</RouterLink>
 
 							<button
 								type="button"

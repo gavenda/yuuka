@@ -87,8 +87,34 @@ export interface Transaction {
 	payee: string;
 	notes: string;
 	transferId: string | null;
+	/** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
+	automated: boolean;
 	/** This account's own balance immediately after the transaction posted. */
 	runningBalance: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** A monthly charge (or credit) the Worker posts as an ordinary transaction at 00:00 UTC. */
+export interface Subscription {
+	id: string;
+	accountId: string;
+	accountName: string | null;
+	categoryId: string | null;
+	categoryName: string | null;
+	categoryColor: string | null;
+	/** Signed minor units: negative is an outflow. */
+	amount: number;
+	payee: string;
+	notes: string;
+	/** The date the schedule was started from; its day of the month is the anchor. */
+	startOn: string;
+	dayOfMonth: number;
+	/** The next date it posts. A short month clamps the day, so this is not always `dayOfMonth`. */
+	nextRunOn: string;
+	lastRunOn: string | null;
+	/** Paused subscriptions post nothing. */
+	enabled: boolean;
 	createdAt: string;
 	updatedAt: string;
 }

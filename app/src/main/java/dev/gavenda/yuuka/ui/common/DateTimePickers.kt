@@ -4,6 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
@@ -23,8 +24,21 @@ fun YuukaDatePickerDialog(
     initial: LocalDate,
     onDismiss: () -> Unit,
     onPicked: (LocalDate) -> Unit,
+    /** When set, days before it cannot be picked. */
+    earliest: LocalDate? = null,
 ) {
-    val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+    val selectableDates = remember(earliest) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                earliest == null || utcTimeMillis >= earliest.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+            override fun isSelectableYear(year: Int): Boolean = earliest == null || year >= earliest.year
+        }
+    }
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        selectableDates = selectableDates,
+    )
 
     DatePickerDialog(
         onDismissRequest = onDismiss,

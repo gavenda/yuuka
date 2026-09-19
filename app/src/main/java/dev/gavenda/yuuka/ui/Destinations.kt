@@ -6,13 +6,18 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.gavenda.yuuka.R
 
-/** The five tabs the web app's bottom nav and top links carry — `App.vue`'s `links`. */
+/**
+ * The web app's bottom nav and top links — `App.vue`'s `links` — plus Subscriptions, which the web app
+ * keeps under the avatar menu and this app keeps in the navigation drawer. Only some of these are
+ * bottom-nav tabs; `YuukaApp` puts the rest in the drawer.
+ */
 enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
     DASHBOARD("dashboard", R.string.destination_dashboard, Icons.Filled.Dashboard),
     TRANSACTIONS("transactions", R.string.destination_transactions, Icons.Filled.Receipt),
     BUDGET("budget", R.string.destination_budget, Icons.Filled.PieChart),
     ACCOUNTS("accounts", R.string.destination_accounts, Icons.Filled.AccountBalanceWallet),
     CATEGORIES("categories", R.string.destination_categories, Icons.Filled.Category),
+    SUBSCRIPTIONS("subscriptions", R.string.destination_subscriptions, Icons.Filled.Autorenew),
 }
 
 /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */

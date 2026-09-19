@@ -7,6 +7,7 @@ import type {
 	Payee,
 	RoundUpRule,
 	Settings,
+	Subscription,
 	Summary,
 	Transaction,
 	TransactionFilters,
@@ -138,6 +139,13 @@ export const api = {
 			method: 'PATCH',
 			body: body(input),
 		}),
+
+	listSubscriptions: () => request<{ subscriptions: Subscription[] }>('/subscriptions'),
+	createSubscription: (input: Record<string, unknown>) =>
+		request<{ subscription: Subscription }>('/subscriptions', { method: 'POST', body: body(input) }),
+	updateSubscription: (id: string, input: Record<string, unknown>) =>
+		request<{ subscription: Subscription }>(`/subscriptions/${id}`, { method: 'PATCH', body: body(input) }),
+	deleteSubscription: (id: string) => request<void>(`/subscriptions/${id}`, { method: 'DELETE' }),
 
 	listBudgets: (month: string) => request<{ budgets: Budget[] }>(`/budgets${queryString({ month })}`),
 	setBudget: (input: { categoryId: string; month: string; amount: number } | { categoryId: string; month: string; percent: number }) =>

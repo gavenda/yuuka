@@ -8,6 +8,12 @@ const routes: RouteRecordRaw[] = [
 	{ path: '/budget', name: 'budget', component: () => import('@/views/BudgetView.vue'), meta: { title: 'Budget' } },
 	{ path: '/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { title: 'Accounts' } },
 	{ path: '/categories', name: 'categories', component: () => import('@/views/CategoriesView.vue'), meta: { title: 'Categories' } },
+	{
+		path: '/subscriptions',
+		name: 'subscriptions',
+		component: () => import('@/views/SubscriptionsView.vue'),
+		meta: { title: 'Subscriptions' },
+	},
 	{ path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 

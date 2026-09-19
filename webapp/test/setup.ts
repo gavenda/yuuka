@@ -21,6 +21,7 @@ async function clearNamespace(namespace: KVNamespace): Promise<void> {
 beforeEach(async () => {
 	await env.DB.batch([
 		env.DB.prepare('DELETE FROM transactions'),
+		env.DB.prepare('DELETE FROM subscriptions'),
 		env.DB.prepare('DELETE FROM budgets'),
 		env.DB.prepare('DELETE FROM categories'),
 		env.DB.prepare('DELETE FROM accounts'),

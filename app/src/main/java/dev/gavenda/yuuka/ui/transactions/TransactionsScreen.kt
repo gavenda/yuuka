@@ -292,6 +292,13 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            if (transaction.automated) {
+                                Text(
+                                    stringResource(R.string.automated_badge),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                             formatTime(transaction.occurredOn)?.let { time ->
                                 Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

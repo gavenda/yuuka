@@ -1,7 +1,5 @@
 package dev.gavenda.yuuka.ui.transactions
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +18,7 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
+import dev.gavenda.yuuka.ui.common.PickerField
 import dev.gavenda.yuuka.ui.common.YuukaDatePickerDialog
 import dev.gavenda.yuuka.ui.common.YuukaTimePickerDialog
 import java.time.LocalDate
@@ -52,7 +51,9 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
 
     val isTransfer = transaction.transferId != null
     val date = LocalDate.parse(transaction.occurredOn.take(10))
-    val time = if (transaction.occurredOn.length > 10) runCatching { LocalTime.parse(transaction.occurredOn.substring(11, 16)) }.getOrNull() else null
+    // An automated transaction has no time of day, whatever a stray string might say: a subscription
+    // posts it at 00:00 UTC and the API refuses to give it one.
+    val time = if (transaction.occurredOn.length > 10 && !transaction.automated) runCatching { LocalTime.parse(transaction.occurredOn.substring(11, 16)) }.getOrNull() else null
 
     return FormFields(
         mode = when {
@@ -89,6 +90,8 @@ fun TransactionForm(
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val isEditing = editing != null
+    // Posted by a subscription at 00:00 UTC: the date can move, the time of day is not anyone's to set.
+    val isAutomated = editing?.automated == true
 
     val categoryGroups = remember(fields.mode, categories) {
         groupForPicker(
@@ -208,10 +211,11 @@ fun TransactionForm(
                 modifier = Modifier.weight(1f),
             )
             PickerField(
-                value = fields.time?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
+                value = if (isAutomated) stringResource(R.string.automated_time_value) else fields.time?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "",
                 label = stringResource(R.string.label_time),
                 placeholder = optionalPlaceholder,
                 onClick = { pickingTime = true },
+                enabled = !isAutomated,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -227,7 +231,15 @@ fun TransactionForm(
             )
         }
 
-        if (pickingTime) {
+        if (isAutomated) {
+            Text(
+                stringResource(R.string.automated_transaction_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (pickingTime && !isAutomated) {
             YuukaTimePickerDialog(
                 initial = fields.time ?: LocalTime.now(),
                 onDismiss = { pickingTime = false },
@@ -277,7 +289,7 @@ fun TransactionForm(
                     localError = null
 
                     val datePart = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    val occurredOn = fields.time?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart
+                    val occurredOn = fields.time?.takeUnless { isAutomated }?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart
 
                     val submission = when (fields.mode) {
                         FormMode.TRANSFER -> TransactionSubmission.Transfer(
@@ -309,34 +321,4 @@ fun TransactionForm(
             }
         }
     }
-}
-
-/**
- * A read-only field that opens a picker instead of a keyboard, used for date/time entry. It stays
- * an enabled field, so it keeps its focus and accessibility semantics; the tap is read off its
- * interaction source because the field's own gesture handling would otherwise swallow a `clickable`.
- */
-@Composable
-private fun PickerField(
-    value: String,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String? = null,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val currentOnClick by rememberUpdatedState(onClick)
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { if (it is PressInteraction.Release) currentOnClick() }
-    }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(label) },
-        placeholder = placeholder?.let { { Text(it) } },
-        interactionSource = interactionSource,
-        modifier = modifier,
-    )
 }

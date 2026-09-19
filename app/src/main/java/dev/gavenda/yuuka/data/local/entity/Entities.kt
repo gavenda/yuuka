@@ -88,6 +88,8 @@ data class TransactionEntity(
     val payee: String,
     val notes: String,
     val transferId: String?,
+    /** Posted by a subscription's cron at 00:00 UTC, so its time of day is not the user's to change. */
+    val automated: Boolean,
     val runningBalance: Long,
     val createdAt: String,
     val updatedAt: String,
@@ -151,4 +153,24 @@ data class PayeeEntity(
     val notes: String,
     val usedCount: Int,
     val lastUsedAt: String,
+)
+
+@Entity(tableName = "subscriptions")
+data class SubscriptionEntity(
+    @PrimaryKey val id: String,
+    val accountId: String,
+    val accountName: String?,
+    val categoryId: String?,
+    val categoryName: String?,
+    val categoryColor: String?,
+    val amount: Long,
+    val payee: String,
+    val notes: String,
+    val startOn: String,
+    val dayOfMonth: Int,
+    val nextRunOn: String,
+    val lastRunOn: String?,
+    val enabled: Boolean,
+    val createdAt: String,
+    val updatedAt: String,
 )

@@ -22,6 +22,7 @@ class SyncRepository(
     private val database: YuukaDatabase,
     private val ledgerRepository: LedgerRepository,
     private val payeeRepository: PayeeRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     private val transactionDao: TransactionDao,
     private val budgetDao: BudgetDao,
     private val incomePlanDao: IncomePlanDao,
@@ -41,6 +42,7 @@ class SyncRepository(
     suspend fun fullSync() {
         ledgerRepository.refreshAll()
         payeeRepository.refresh()
+        subscriptionRepository.refresh()
 
         database.withTransaction {
             transactionDao.clear()

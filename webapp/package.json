@@ -14,7 +14,7 @@
 	"packageManager": "bun@1.4.2",
 	"scripts": {
 		"dev": "concurrently --kill-others --names api,web --prefix-colors cyan,magenta \"bun run dev:api\" \"bun run dev:web\"",
-		"dev:api": "wrangler dev --port 8788 --assets public",
+		"dev:api": "wrangler dev --port 8788 --assets public --test-scheduled",
 		"dev:web": "vite",
 		"build": "vite build",
 		"preview": "bun run build && wrangler dev --port 8788",

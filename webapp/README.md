@@ -7,6 +7,7 @@ Multi-user budgeting and financial tracking, running entirely on Cloudflare.
 - **Auth0** — sign-in and user identity, at `auth.gavenda.dev`
 - **Cloudflare D1** — SQLite for accounts, categories, transactions and budgets
 - **Cloudflare Workers KV** — Auth0 signing keys and cached monthly summaries
+- **Cron Triggers** — a daily run at 00:00 UTC that posts due subscriptions
 - **Vue 3 + Pinia + Tailwind CSS v4** — the frontend, with `@auth0/auth0-vue` for sign-in
 - **Chart.js** — the dashboard charts
 
@@ -17,7 +18,7 @@ Bun is the package manager; Wrangler drives everything on the Cloudflare side.
 ```
 yuuka/
 ├── server/
-│   ├── index.ts           Worker entry: the Hono app, answering /api/*
+│   ├── index.ts           Worker entry: the Hono app answering /api/*, and the cron handler
 │   └── …                  routes, schemas, helpers
 ├── src/                   Vue app
 ├── migrations/            D1 schema
@@ -137,11 +138,28 @@ access token in `Authorization: Bearer <token>`.
 | `GET/POST/PATCH/DELETE` | `/categories`                | Categories                                        |
 | `GET/POST/PATCH/DELETE` | `/transactions`              | Transactions, filtered and paged                  |
 | `POST`                  | `/transactions/transfer`     | Write both legs of a transfer                     |
+| `GET/POST/PATCH/DELETE` | `/subscriptions`             | Monthly charges the daily cron posts for you      |
 | `GET/PUT/DELETE`        | `/budgets`                   | Per-category monthly budgets                      |
 | `GET`                   | `/summary?month=YYYY-MM`     | Totals, balances, budget vs actual, by day        |
 
 `GET /transactions` accepts `month`, `from`, `to`, `accountId`, `categoryId`
 (or `none` for uncategorised), `search`, `limit` and `offset`.
+
+### Subscriptions
+
+A subscription is a monthly charge (or credit) on an account of the user's
+choosing, with a payee, category and notes. The Worker's `scheduled` handler
+runs from a [Cron Trigger](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+(`triggers.crons` in `wrangler.jsonc`, `0 0 * * *`) and posts each due
+subscription as an ordinary transaction, flagged `automated: true`. Every run is
+at 00:00 UTC, so there is no time of day to choose and the API refuses to give an
+automated transaction one. Its day of the month is the start date's; a month too
+short for it posts on the last day. To try it locally, `bun run dev` serves
+`GET /__scheduled` on the Worker:
+
+```bash
+curl "http://localhost:8788/__scheduled?cron=0+0+*+*+*"
+```
 
 Signing in and out happen against Auth0 in the browser, so there is no login
 endpoint: the API only ever verifies the access token a request carries.

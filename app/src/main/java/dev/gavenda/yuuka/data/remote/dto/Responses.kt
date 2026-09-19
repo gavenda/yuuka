@@ -50,3 +50,9 @@ data class BudgetResponse(val budget: Budget)
 
 @Serializable
 data class IncomePlanResponse(val incomePlan: IncomePlan)
+
+@Serializable
+data class SubscriptionsResponse(val subscriptions: List<Subscription>)
+
+@Serializable
+data class SubscriptionResponse(val subscription: Subscription)

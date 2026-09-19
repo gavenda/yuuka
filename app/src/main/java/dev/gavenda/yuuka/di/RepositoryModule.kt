@@ -8,5 +8,6 @@ val repositoryModule = module {
     single { TransactionRepository(get(), get()) }
     single { BudgetRepository(get(), get(), get(), get()) }
     single { PayeeRepository(get(), get()) }
-    single { SyncRepository(get(), get(), get(), get(), get(), get(), get()) }
+    single { SubscriptionRepository(get(), get()) }
+    single { SyncRepository(get(), get(), get(), get(), get(), get(), get(), get()) }
 }
