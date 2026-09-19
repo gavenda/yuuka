@@ -99,7 +99,7 @@ async function remove(type: AccountType): Promise<void> {
 						{{ type.accountCount }} {{ type.accountCount === 1 ? 'account' : 'accounts' }}
 					</span>
 
-					<div class="row-actions">
+					<div class="row-actions row-actions-visible">
 						<ActionIcon icon="edit" :label="`Rename ${type.name}`" @click="startRename(type)" />
 						<ActionIcon
 							:icon="type.archived ? 'restore' : 'archive'"

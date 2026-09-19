@@ -216,6 +216,25 @@ dark mode is a per-account opt-in (`logoInvertDark`), not a blanket filter — a
 dark mark on a transparent background needs it to stay visible, but a colour logo
 inverted the same way would come out wrong.
 
+## Navigation
+
+**Navigation follows the window, in both apps.** From 600dp / the `sm` breakpoint up (on Android, any
+window width class but Compact, from `calculateWindowSizeClass`) it is a
+rail that opens into a labelled drawer (a "More" group holding the destinations that are not
+daily ones, Save the Change, Settings and Sign out, plus the signed-in account); below that a
+phone keeps its bottom bar and avatar or hamburger menu. In both apps the rail lists the same
+three destinations as the phone's bottom bar (Dashboard, Transactions, Accounts) and keeps Budget,
+Categories and Tags under "More", ahead of Subscriptions. An open rail sits beside the page from 1024 (on Android, an Expanded width class, 840dp) and floats over a scrim
+below it, and the open/closed choice is remembered locally — but a narrow window never starts
+with it floating. The rail marks the current destination, so a wide window has no top bar; it also carries the
+screen's leading action as its FAB, under the menu button (an icon while slim, extended when open),
+Save on Settings and Save the Change included. The hide-amounts switch and the account sit at the
+foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material 3
+`WideNavigationRail`, or its modal variant when floating) hosted by `YuukaApp`; a screen's leading
+action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
+action to the rail, so a new screen never places its own. The web side is in
+[webapp/CLAUDE.md](webapp/CLAUDE.md).
+
 ## Sync
 
 **The server is the source of truth; the local copy is a cache — in the Android

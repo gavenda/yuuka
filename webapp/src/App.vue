@@ -42,18 +42,21 @@ const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
 
-/** Every destination, as the rail lists them. A phone's bar has room for fewer; `phoneMenu: true` sends one to the avatar menu instead. */
+/**
+ * Every destination. The daily ones sit in the rail and the phone's bar; `more: true` sends one to the rail's "More"
+ * group and, on a phone, to the avatar menu instead.
+ */
 const links = [
 	{ to: '/', label: 'Dashboard', icon: DASHBOARD },
 	{ to: '/transactions', label: 'Transactions', icon: RECEIPT },
-	{ to: '/budget', label: 'Budget', icon: PIE_CHART, phoneMenu: true },
+	{ to: '/budget', label: 'Budget', icon: PIE_CHART, more: true },
 	{ to: '/accounts', label: 'Accounts', icon: ACCOUNT_BALANCE_WALLET },
-	{ to: '/categories', label: 'Categories', icon: CATEGORY, phoneMenu: true },
-	{ to: '/tags', label: 'Tags', icon: SELL, phoneMenu: true },
+	{ to: '/categories', label: 'Categories', icon: CATEGORY, more: true },
+	{ to: '/tags', label: 'Tags', icon: SELL, more: true },
 ];
 
-const phoneBarLinks = links.filter((link) => !link.phoneMenu);
-const phoneMenuLinks = links.filter((link) => link.phoneMenu);
+const dailyLinks = links.filter((link) => !link.more);
+const moreLinks = links.filter((link) => link.more);
 
 const showShell = computed(() => isAuthenticated.value);
 
@@ -142,10 +145,11 @@ onBeforeUnmount(() => {
 	<div class="min-h-dvh transition-[padding] duration-300 ease-emphasized-decelerate" :class="contentInset">
 		<!-- With room for it, navigation moves to a rail down the side, and the bottom bar below
 		     takes over on a phone. The rail opens into a drawer that also holds what is not a daily
-		     destination: subscriptions, settings and signing out. -->
+		     destination: budget, categories, tags, subscriptions, settings and signing out. -->
 		<NavRail
 			v-if="showShell && !isLoading"
-			:links="links"
+			:links="dailyLinks"
+			:more-links="moreLinks"
 			:version="appVersion"
 			:account="{ name: displayName, email: user?.email ?? null, picture: user?.picture ?? null, initial: avatarInitial }"
 			@sign-out="signOut"
@@ -160,7 +164,7 @@ onBeforeUnmount(() => {
 			class="sticky top-0 z-30 transition-colors sm:hidden"
 			:class="scrolled ? 'bg-surface-container' : 'bg-surface'"
 		>
-			<div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4">
+			<div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4">
 				<RouterLink to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
@@ -218,7 +222,7 @@ onBeforeUnmount(() => {
 							     then left alone, unlike the pages that are visited every day. -->
 							<!-- What the phone's bar has no room for. -->
 							<RouterLink
-								v-for="(link, index) in phoneMenuLinks"
+								v-for="(link, index) in moreLinks"
 								:key="link.to"
 								:to="link.to"
 								role="menuitem"
@@ -264,7 +268,7 @@ onBeforeUnmount(() => {
 			</div>
 		</div>
 
-		<main v-else :class="showShell ? 'mx-auto max-w-6xl px-4 pt-2 pb-28 sm:pt-6 sm:pb-10' : ''">
+		<main v-else :class="showShell ? 'mx-auto max-w-7xl px-4 pt-2 pb-28 sm:pt-6 sm:pb-10' : ''">
 			<RouterView v-slot="{ Component }">
 				<Transition name="fade-through" mode="out-in">
 					<component :is="Component" />
@@ -278,7 +282,7 @@ onBeforeUnmount(() => {
 			aria-label="Primary"
 			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
 		>
-			<NavDestination v-for="link in phoneBarLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
+			<NavDestination v-for="link in dailyLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
 		</nav>
 
 		<SnackbarHost />

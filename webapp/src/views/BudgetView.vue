@@ -6,7 +6,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import PhilippinesIncomeCalculator from '@/components/PhilippinesIncomeCalculator.vue';
 import StatCard from '@/components/StatCard.vue';
-import { parseMoney, percentOf, toDecimalString } from '@/lib/money';
+import { currencySymbol, parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
@@ -89,6 +89,18 @@ function startEditingIncome(): void {
 	editingIncome.value = true;
 }
 
+/** Closing without saving drops what was typed, so the figure shown is always one that was saved. */
+function cancelEditingIncome(): void {
+	editingIncome.value = false;
+	syncIncomeDraft();
+}
+
+const incomeHint = computed(() =>
+	usingGross.value
+		? 'Enter your gross monthly pay.\nThe take-home net is what you budget from.'
+		: 'Set what you expect to bring in.\nBudget a category as a percentage of it.',
+);
+
 async function commitIncome(): Promise<void> {
 	const amount = incomeDraft.value.trim() === '' ? 0 : parseMoney(incomeDraft.value);
 	if (amount === null || amount < 0) return;
@@ -114,60 +126,89 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			<MonthSwitcher v-model="month" />
 		</header>
 
-		<section class="card p-5">
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<p class="type-title-small text-on-surface-variant">Planned income</p>
-					<p class="mt-1 text-sm text-on-surface-variant">
-						<template v-if="usingGross"> Enter your gross monthly pay — the take-home net is what you budget from. </template>
-						<template v-else>
-							Set what you expect to bring in, then budget a category as a percentage of it instead of a fixed amount.
-						</template>
-					</p>
-				</div>
+		<!-- Planned income, laid out as on Android: the label, then the figure large and centred, tapped to edit in place,
+		     the Gross/Fixed toggle beneath it, and its hint. Lists underneath read from the left. -->
+		<section class="card p-5 text-center">
+			<p class="type-label-medium mt-3 text-on-surface-variant uppercase">Planned income</p>
 
-				<div class="flex shrink-0 items-center gap-2">
-					<!-- Switching modes changes what the same draft means, not what's shown while editing it. -->
-					<ConnectedButtonGroup
-						v-if="isPhp"
-						v-model="incomeMode"
-						class="shrink-0"
-						label="Income entered as"
-						dense
-						:options="[
-							{ value: 'gross', label: 'Gross' },
-							{ value: 'fixed', label: 'Fixed' },
-						]"
+			<form v-if="editingIncome" class="mt-3 space-y-2" @submit.prevent="commitIncome">
+				<div class="relative">
+					<span
+						class="pointer-events-none absolute inset-y-0 left-4 grid place-items-center text-2xl text-on-surface-variant"
+						aria-hidden="true"
+					>
+						{{ currencySymbol(usingGross ? 'PHP' : currency) }}
+					</span>
+					<input
+						v-model="incomeDraft"
+						class="input tabular pr-12 pl-12 text-2xl"
+						inputmode="decimal"
+						aria-label="Planned income"
+						:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
+						:disabled="savingIncome"
+						autofocus
+						@keydown.esc="cancelEditingIncome"
 					/>
-
-					<form v-if="editingIncome" class="flex items-center gap-1" @submit.prevent="commitIncome">
-						<input
-							v-model="incomeDraft"
-							class="input input-sm tabular w-32 text-right"
-							inputmode="decimal"
-							:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
-							autofocus
-							@keydown.esc="editingIncome = false"
-						/>
-						<button type="submit" class="btn-primary btn-sm" :disabled="savingIncome">Save</button>
-					</form>
-					<button v-else type="button" class="btn-secondary btn-sm tabular" @click="startEditingIncome">
-						<template v-if="usingGross">{{ grossDraft > 0 ? displayMoney(grossDraft, 'PHP') : 'Set gross income' }}</template>
-						<template v-else>{{ budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency) : 'Set income' }}</template>
+					<button
+						v-if="incomeDraft"
+						type="button"
+						class="btn-icon-sm absolute top-1/2 right-2 -translate-y-1/2"
+						aria-label="Clear"
+						:disabled="savingIncome"
+						@click="incomeDraft = ''"
+					>
+						<svg viewBox="0 0 20 20" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+							<path d="M5 5l10 10M15 5L5 15" stroke-linecap="round" />
+						</svg>
 					</button>
 				</div>
-			</div>
 
-			<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
+				<div class="grid grid-cols-2 gap-2">
+					<button type="button" class="btn-text" :disabled="savingIncome" @click="cancelEditingIncome">Cancel</button>
+					<button type="submit" class="btn-primary" :disabled="savingIncome">{{ savingIncome ? 'Saving…' : 'Save' }}</button>
+				</div>
+			</form>
 
-			<div v-if="budget.incomeBreakdown.length" class="mt-4">
-				<p class="type-title-small text-on-surface-variant">Income</p>
-				<ul class="mt-2 divide-y divide-outline-variant">
-					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex items-center justify-between gap-3 py-2 text-sm">
-						<span class="text-on-surface-variant">{{ entry.name }}</span>
-						<span class="tabular text-on-surface">{{ displayMoney(entry.actual, currency) }}</span>
-					</li>
-				</ul>
+			<button
+				v-else
+				type="button"
+				class="state-layer focus-ring tabular mt-3 w-full cursor-pointer rounded-md px-3 py-2 text-3xl text-primary"
+				@click="startEditingIncome"
+			>
+				<template v-if="usingGross">{{ grossDraft > 0 ? displayMoney(grossDraft, 'PHP') : 'Set gross income' }}</template>
+				<template v-else>{{ budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency) : 'Set income' }}</template>
+			</button>
+
+			<!-- Switching modes changes what the same draft means, so it closes the editor rather than reinterpreting what is typed. -->
+			<ConnectedButtonGroup
+				v-if="isPhp"
+				v-model="incomeMode"
+				class="mx-auto mt-2 max-w-xs"
+				label="Income entered as"
+				:options="[
+					{ value: 'gross', label: 'Gross' },
+					{ value: 'fixed', label: 'Fixed' },
+				]"
+			/>
+
+			<p class="mt-1 text-xs whitespace-pre-line text-on-surface-variant">{{ incomeHint }}</p>
+
+			<div class="text-left">
+				<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
+
+				<div v-if="budget.incomeBreakdown.length" class="mt-4">
+					<p class="type-title-small text-on-surface-variant">Income</p>
+					<ul class="mt-2 divide-y divide-outline-variant">
+						<li
+							v-for="entry in budget.incomeBreakdown"
+							:key="entry.categoryId"
+							class="flex items-center justify-between gap-3 py-2 text-sm"
+						>
+							<span class="text-on-surface-variant">{{ entry.name }}</span>
+							<span class="tabular text-on-surface">{{ displayMoney(entry.actual, currency) }}</span>
+						</li>
+					</ul>
+				</div>
 			</div>
 		</section>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BAR_SPEC, chartInk, monthSeries, rankAndFold, SERIES_ONE } from './chart';
+import { axisScale, BAR_SPEC, chartInk, compactAmount, dailyAverage, monthSeries, rankAndFold, scallopPath } from './chart';
 
 describe('monthSeries', () => {
 	it('fills every day of the month, zeroing the quiet ones', () => {
@@ -84,14 +84,71 @@ describe('chart chrome', () => {
 		expect(dark.tooltipBackground).toBeTruthy();
 	});
 
-	it('keeps the single-series hue stepped per theme', () => {
-		expect(SERIES_ONE.light).not.toBe(SERIES_ONE.dark);
-	});
-
 	it('caps bar thickness and rounds only the data-end', () => {
 		expect(BAR_SPEC.maxBarThickness).toBeLessThanOrEqual(24);
 		expect(BAR_SPEC.borderRadius).toBe(4);
 		// `borderSkipped: false` is what keeps the baseline square.
 		expect(BAR_SPEC.borderSkipped).toBe(false);
+	});
+});
+
+describe('dailyAverage', () => {
+	it('leaves out days with nothing spent', () => {
+		expect(dailyAverage([{ amount: 2000 }, { amount: 0 }, { amount: 4000 }, { amount: 0 }])).toBe(3000);
+	});
+
+	it('is null when nothing was spent', () => {
+		expect(dailyAverage([{ amount: 0 }, { amount: 0 }])).toBeNull();
+		expect(dailyAverage([])).toBeNull();
+	});
+});
+
+describe('axisScale', () => {
+	it('reaches a round number above the tallest bar', () => {
+		expect(axisScale(4599)).toEqual({ top: 6000, step: 2000, ticks: [0, 2000, 4000, 6000] });
+	});
+
+	it('never falls below the tallest bar and stays within a few steps', () => {
+		for (const max of [1, 99, 100, 4599, 12_345, 250_000, 9_999_999, 123_456_789]) {
+			const scale = axisScale(max);
+
+			expect(scale.top).toBeGreaterThanOrEqual(max);
+			expect(scale.top % scale.step).toBe(0);
+			expect(scale.ticks.length).toBeGreaterThanOrEqual(2);
+			expect(scale.ticks.length).toBeLessThanOrEqual(5);
+			expect(scale.ticks.at(-1)).toBe(scale.top);
+		}
+	});
+
+	it('still has a usable axis for an empty chart', () => {
+		const scale = axisScale(0);
+
+		expect(scale.top).toBeGreaterThan(0);
+		expect(scale.step).toBeGreaterThan(0);
+	});
+});
+
+describe('compactAmount', () => {
+	it('shortens the figure for the axis', () => {
+		expect(compactAmount(0, 'en-US')).toBe('0');
+		expect(compactAmount(250, 'en-US')).toBe('2.5');
+		expect(compactAmount(1_500_000, 'en-US')).toBe('15k');
+		expect(compactAmount(150_000, 'en-US')).toBe('1.5k');
+		expect(compactAmount(230_000_000, 'en-US')).toBe('2.3M');
+	});
+});
+
+describe('scallopPath', () => {
+	it('draws one closed outline that stays within its radius', () => {
+		const path = scallopPath(50, 50, 10);
+		const points = [...path.matchAll(/(-?\d+\.\d+) (-?\d+\.\d+)/g)].map((match) => [Number(match[1]), Number(match[2])]);
+
+		expect(path.startsWith('M')).toBe(true);
+		expect(path.endsWith('Z')).toBe(true);
+		expect(points).toHaveLength(12 * 10);
+		for (const [x, y] of points) {
+			expect(Math.hypot(x - 50, y - 50)).toBeLessThanOrEqual(10.01);
+			expect(Math.hypot(x - 50, y - 50)).toBeGreaterThan(8);
+		}
 	});
 });

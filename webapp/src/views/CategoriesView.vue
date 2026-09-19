@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { namedOptions } from '@/lib/selectOptions';
 import ActionIcon from '@/components/ActionIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
@@ -69,7 +71,7 @@ const sections = computed<Section[]>(() => {
 		{
 			key: 'cashflow',
 			title: 'Cashflow',
-			description: 'For transfers between your own accounts — investments, savings, debt repayment.',
+			description: 'For transfers between your own accounts.',
 			kind: 'expense',
 			appliesTo: 'transfer',
 			families: familiesFor((c) => c.appliesTo === 'transfer'),
@@ -83,6 +85,12 @@ const parentOptions = computed(() =>
 		(category) => category.parentId === null && !category.archived && category.appliesTo === form.appliesTo && category.kind === form.kind,
 	),
 );
+
+const parentChoices = computed(() => namedOptions(parentOptions.value, { value: '', label: 'Nothing — this is a top-level category' }));
+const KIND_CHOICES = [
+	{ value: 'expense', label: 'Expense' },
+	{ value: 'income', label: 'Income' },
+];
 
 const archivedCount = computed(() => ledger.categories.filter((category) => category.archived).length);
 
@@ -247,10 +255,7 @@ onMounted(() => ledger.load());
 
 				<div v-if="!editing" class="field">
 					<label class="label" for="category-parent">Nest under</label>
-					<select id="category-parent" v-model="form.parentId" class="input">
-						<option value="">Nothing — this is a top-level category</option>
-						<option v-for="parent in parentOptions" :key="parent.id" :value="parent.id">{{ parent.name }}</option>
-					</select>
+					<SelectField id="category-parent" v-model="form.parentId" :options="parentChoices" />
 					<p class="mt-1 text-xs text-on-surface-variant">
 						A subcategory inherits its parent's kind, and its spending counts towards the parent's budget. Nesting stops at one level.
 					</p>
@@ -258,10 +263,7 @@ onMounted(() => ledger.load());
 
 				<div v-if="form.appliesTo === 'standard' && !form.parentId" class="field">
 					<label class="label" for="category-kind">Kind</label>
-					<select id="category-kind" v-model="form.kind" class="input">
-						<option value="expense">Expense</option>
-						<option value="income">Income</option>
-					</select>
+					<SelectField id="category-kind" v-model="form.kind" :options="KIND_CHOICES" />
 				</div>
 
 				<fieldset>

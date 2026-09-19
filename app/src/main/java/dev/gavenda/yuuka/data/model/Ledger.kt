@@ -79,6 +79,8 @@ data class Tag(
     val id: String,
     val name: String,
     val color: String,
+    /** How many transactions wear it. A transfer counts once, not once per leg. */
+    val transactionCount: Int = 0,
     val createdAt: String = "",
     val updatedAt: String = "",
 )

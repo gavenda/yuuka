@@ -29,6 +29,19 @@ export function formatMoney(minor: number, currency = DEFAULT_CURRENCY): string 
 }
 
 /** Formats without the currency symbol, for tables that label the currency once. */
+/**
+ * The symbol a currency is written with (₱, $, €), or the code itself when the platform does not know it — the
+ * same fallback `formatMoney` takes, so an unfamiliar code degrades instead of throwing.
+ */
+export function currencySymbol(currency = DEFAULT_CURRENCY): string {
+	try {
+		const parts = new Intl.NumberFormat(undefined, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0);
+		return parts.find((part) => part.type === 'currency')?.value ?? currency;
+	} catch {
+		return currency;
+	}
+}
+
 export function formatAmount(minor: number): string {
 	return new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(minor / 100);
 }

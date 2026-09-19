@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CURRENCY, formatMoney, parseMoney, percentOf, toDecimalString } from './money';
+import { currencySymbol, DEFAULT_CURRENCY, formatMoney, parseMoney, percentOf, toDecimalString } from './money';
+
+describe('currencySymbol', () => {
+	it('writes a known currency with its symbol', () => {
+		expect(currencySymbol('USD')).toContain('$');
+		expect(currencySymbol('PHP')).toContain('₱');
+	});
+
+	it('degrades to the code for one the platform does not know, or a malformed one', () => {
+		expect(currencySymbol('XYZ')).toBe('XYZ');
+		expect(currencySymbol('x')).toBe('x');
+	});
+});
 
 describe('parseMoney', () => {
 	it('reads whole and fractional amounts as minor units', () => {

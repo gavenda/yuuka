@@ -97,6 +97,7 @@ dependencies {
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.compose.material3.window.size.class1)
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.koin.android)

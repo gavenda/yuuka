@@ -65,6 +65,8 @@ export interface TagRow {
 	id: string;
 	name: string;
 	color: string;
+	/** How many transactions wear it, from a subquery; a transfer counts once, not once per leg. */
+	transaction_count?: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -180,6 +182,7 @@ export const toTag = (row: TagRow) => ({
 	id: row.id,
 	name: row.name,
 	color: row.color,
+	transactionCount: row.transaction_count ?? 0,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

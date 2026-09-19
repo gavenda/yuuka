@@ -57,7 +57,7 @@ fun SaveTheChangeScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
@@ -130,33 +130,13 @@ fun SaveTheChangeScreen(
             }
 
             if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
-        }
 
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(stringResource(R.string.save_the_change_accounts_title), style = MaterialTheme.typography.labelMedium)
-            state.accounts.forEach { account ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(account.name, modifier = Modifier.weight(1f))
-                    YuukaSwitch(
-                        checked = account.roundUpSource,
-                        onCheckedChange = { checked ->
-                            scope.launch {
-                                try {
-                                    viewModel.setAccountParticipation(account, checked)
-                                } catch (e: ApiError) {
-                                    snackbarHostState.showSnackbar(e.message ?: couldNotSaveMessage)
-                                }
-                            }
-                        },
-                    )
-                }
-            }
+            // Which accounts take part is a per-account choice, made on the account's own form rather than listed here.
+            Text(
+                stringResource(R.string.save_the_change_accounts_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 

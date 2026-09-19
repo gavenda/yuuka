@@ -10,6 +10,7 @@ import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiJson
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.CollapsedSections
+import dev.gavenda.yuuka.domain.RailPreference
 import dev.gavenda.yuuka.domain.ThemePreference
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -21,6 +22,7 @@ import retrofit2.Retrofit
 val networkModule = module {
     single { AuthManager(androidContext()) }
     single { AmountVisibility(androidContext()) }
+    single { RailPreference(androidContext()) }
     single { CollapsedSections(androidContext()) }
     single { ThemePreference(androidContext()) }
 

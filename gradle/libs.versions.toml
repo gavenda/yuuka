@@ -25,6 +25,7 @@ retrofitKotlinxSerializationConverter = "1.0.0"
 kotlinxSerializationJson = "1.11.0"
 okhttp = "5.5.0"
 coil = "3.6.2"
+material3WindowSizeClass = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +61,7 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
+androidx-compose-material3-window-size-class1 = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3WindowSizeClass" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

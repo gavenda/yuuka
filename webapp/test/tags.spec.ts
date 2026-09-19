@@ -187,6 +187,70 @@ describe('tags on a transaction', () => {
 	});
 });
 
+describe('transaction count', () => {
+	const countOf = async (id: string) =>
+		(await json<{ tags: { id: string; transactionCount: number }[] }>(await call('/tags'))).tags.find((tag) => tag.id === id)!
+			.transactionCount;
+
+	it('is zero for a tag nothing wears', async () => {
+		const trip = await makeTag(call, 'Trip');
+
+		expect(
+			(await json<{ tag: { transactionCount: number } }>(await call('/tags', { method: 'POST', body: JSON.stringify({ name: 'Fresh' }) })))
+				.tag.transactionCount,
+		).toBe(0);
+		expect(await countOf(trip)).toBe(0);
+	});
+
+	it('counts each transaction wearing the tag', async () => {
+		const trip = await makeTag(call, 'Trip');
+		const work = await makeTag(call, 'Work');
+		await post({ accountId, amount: -1000, occurredOn: '2026-09-03', tagIds: [trip, work] });
+		await post({ accountId, amount: -2000, occurredOn: '2026-09-04', tagIds: [trip] });
+		await post({ accountId, amount: -3000, occurredOn: '2026-09-05' });
+
+		expect(await countOf(trip)).toBe(2);
+		expect(await countOf(work)).toBe(1);
+	});
+
+	it('counts a transfer once, not once per leg', async () => {
+		const trip = await makeTag(call, 'Trip');
+		const savingsId = await makeAccount(call, { name: 'Savings' });
+		await call('/transactions/transfer', {
+			method: 'POST',
+			body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 5000, occurredOn: '2026-09-03', tagIds: [trip] }),
+		});
+		await post({ accountId, amount: -1000, occurredOn: '2026-09-04', tagIds: [trip] });
+
+		expect(await countOf(trip)).toBe(2);
+	});
+
+	it('follows an edit and a delete', async () => {
+		const trip = await makeTag(call, 'Trip');
+		const { transaction } = await json<{ transaction: { id: string } }>(
+			await post({ accountId, amount: -1000, occurredOn: '2026-09-03', tagIds: [trip] }),
+		);
+		expect(await countOf(trip)).toBe(1);
+
+		await patch(transaction.id, { tagIds: [] });
+		expect(await countOf(trip)).toBe(0);
+
+		await patch(transaction.id, { tagIds: [trip] });
+		await call(`/transactions/${transaction.id}`, { method: 'DELETE' });
+		expect(await countOf(trip)).toBe(0);
+	});
+
+	it('only counts your own transactions', async () => {
+		const trip = await makeTag(call, 'Trip');
+		await post({ accountId, amount: -1000, occurredOn: '2026-09-03', tagIds: [trip] });
+		const theirs = await otherClient();
+		await makeTag(theirs, 'Trip');
+
+		const { tags } = await json<{ tags: { transactionCount: number }[] }>(await theirs('/tags'));
+		expect(tags.map((tag) => tag.transactionCount)).toEqual([0]);
+	});
+});
+
 describe('tags on a transfer', () => {
 	let savingsId: string;
 

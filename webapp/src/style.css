@@ -395,6 +395,31 @@
 	}
 
 	/*
+	 * An option in an exposed dropdown menu: a menu item that can be the highlighted one (keyboard or pointer,
+	 * the focus wash) and the chosen one, which fills with the secondary container as M3 selected items do.
+	 * The chosen one also carries a check mark, so the state never rests on colour alone.
+	 */
+	.menu-option {
+		@apply state-layer type-label-large flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-3 text-left text-on-surface;
+	}
+
+	.menu-option[data-active='true']::after {
+		opacity: 0.1;
+	}
+
+	.menu-option[aria-selected='true'] {
+		@apply bg-secondary-container text-on-secondary-container;
+	}
+
+	.menu-option[aria-disabled='true'] {
+		@apply cursor-default text-on-surface/38;
+	}
+
+	.menu-option[aria-disabled='true']::after {
+		opacity: 0;
+	}
+
+	/*
 	 * A chip: a compact label at 8dp corners. Read-only on a card; a toggle
 	 * (`aria-pressed`) in a form, where the selected one fills with the
 	 * secondary container the way an M3 filter chip does.
@@ -433,7 +458,9 @@
 		}
 
 		.group:hover .row-actions,
-		.row-actions:focus-within {
+		.row-actions:focus-within,
+		/* For a row that has something else to line up beside its actions, which would look adrift if they came and went. */
+		.row-actions.row-actions-visible {
 			opacity: 1;
 		}
 	}

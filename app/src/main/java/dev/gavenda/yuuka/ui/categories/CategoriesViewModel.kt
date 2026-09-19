@@ -57,7 +57,7 @@ data class CategoriesUiState(val categories: List<Category> = emptyList(), val s
                 CategorySection(
                     "cashflow",
                     "Cashflow",
-                    "For transfers between your own accounts — investments, savings, debt repayment.",
+                    "For transfers between your own accounts.",
                     CategoryKind.expense,
                     CategoryScope.transfer,
                     familiesFor { it.appliesTo == CategoryScope.transfer },

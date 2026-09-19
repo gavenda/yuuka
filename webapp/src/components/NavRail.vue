@@ -13,8 +13,10 @@ export interface RailLink {
 	icon: string;
 }
 
-defineProps<{
+const props = defineProps<{
 	links: RailLink[];
+	/** The destinations that are not daily ones, first in the open rail's "More" group, ahead of the ones set up once. */
+	moreLinks: RailLink[];
 	/** The app's version, shown small after the title once the rail is open. */
 	version: string;
 	/** Who is signed in, for the account block that shows once the rail is open. */
@@ -104,14 +106,16 @@ const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
 
 /**
  * Set up once and then left alone, so they live behind the menu rather than in the row of daily
- * destinations. Save the Change sits with the screens, as in the Android drawer, and Settings is its own
- * screen too.
+ * destinations, and follow the less-visited screens passed as `moreLinks`. Save the Change sits with the
+ * screens, as in the Android drawer, and Settings is its own screen too.
  */
 const MORE_LINKS: RailLink[] = [
 	{ to: '/subscriptions', label: 'Subscriptions', icon: EVENT_REPEAT },
 	{ to: '/save-the-change', label: 'Save the Change', icon: SAVINGS },
 	{ to: '/settings', label: 'Settings', icon: SETTINGS },
 ];
+const allMoreLinks = computed(() => [...props.moreLinks, ...MORE_LINKS]);
+
 /** A floating rail is in the way once it has done its job; a docked one stays put. */
 function afterChoice(): void {
 	if (!railPushesContent()) collapse();
@@ -237,7 +241,7 @@ function onKeydown(event: KeyboardEvent): void {
 				<h2 class="type-title-small pt-4 pb-2 pl-7 whitespace-nowrap text-on-surface-variant">More</h2>
 
 				<RailItem
-					v-for="link in MORE_LINKS"
+					v-for="link in allMoreLinks"
 					:key="link.to"
 					:to="link.to"
 					:label="link.label"

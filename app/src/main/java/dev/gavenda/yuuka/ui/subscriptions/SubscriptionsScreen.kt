@@ -68,10 +68,10 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
         floatingActionButton = {
             // Nowhere to post to until there is an account.
             if (activeAccounts.isNotEmpty()) {
-                ExtendedFloatingActionButton(
+                ScreenFab(
+                    label = stringResource(R.string.new_subscription),
+                    icon = Icons.Filled.Add,
                     onClick = { creating = true },
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.new_subscription)) },
                 )
             }
         },

@@ -24,7 +24,7 @@ data class SaveTheChangeUiState(
     val categoryGroups: List<CategoryGroup> = emptyList(),
 )
 
-/** Mirrors `SettingsScreen`/`SettingsViewModel`, plus a per-account opt-in list the web app keeps on the account form instead. */
+/** Mirrors `SaveTheChangeView.vue`. Which accounts round up is set on each account's own form, not here. */
 class SaveTheChangeViewModel(private val ledgerRepository: LedgerRepository) : ViewModel() {
     val uiState: StateFlow<SaveTheChangeUiState> =
         combine(ledgerRepository.roundUpRule, ledgerRepository.accounts, ledgerRepository.categories) { rule, accounts, categories ->
@@ -48,19 +48,5 @@ class SaveTheChangeViewModel(private val ledgerRepository: LedgerRepository) : V
 
     suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) {
         ledgerRepository.updateRoundUpRule(enabled, roundTo, destinationAccountId, clearDestination, categoryId, clearCategory)
-    }
-
-    /** Toggling participation on an account is a plain account update — the same field an account's own edit form also carries. */
-    suspend fun setAccountParticipation(account: Account, participates: Boolean) {
-        ledgerRepository.updateAccount(
-            id = account.id,
-            name = account.name,
-            typeId = account.typeId,
-            currency = account.currency,
-            startingBalance = account.startingBalance,
-            logoUrl = account.logoUrl ?: "",
-            logoInvertDark = account.logoInvertDark,
-            roundUpSource = participates,
-        )
     }
 }

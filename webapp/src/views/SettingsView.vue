@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { namedOptions } from '@/lib/selectOptions';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
 import SettingRow from '@/components/SettingRow.vue';
@@ -19,6 +21,7 @@ const SUGGESTIONS = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'SGD', 'HK
 const draft = ref(ledger.displayCurrency);
 const budgetModeDraft = ref(ledger.budgetMode);
 const defaultAccountDraft = ref(ledger.defaultAccountId ?? '');
+const defaultAccountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'First active account' }));
 const error = ref<string | null>(null);
 const saving = ref(false);
 
@@ -68,7 +71,7 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="max-w-3xl space-y-5" @submit.prevent="save">
+	<form class="space-y-5" @submit.prevent="save">
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Currency</h2>
 			<div class="divide-y divide-outline-variant px-5">
@@ -125,10 +128,7 @@ async function save(): Promise<void> {
 			<h2 class="type-title-small px-5 pt-4 text-primary">Transactions</h2>
 			<div class="px-5">
 				<SettingRow title="Default account" description="Which account a new transaction opens on." for="default-account">
-					<select id="default-account" v-model="defaultAccountDraft" class="input input-sm">
-						<option value="">First active account</option>
-						<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-					</select>
+					<SelectField id="default-account" v-model="defaultAccountDraft" :options="defaultAccountChoices" dense />
 				</SettingRow>
 			</div>
 		</section>

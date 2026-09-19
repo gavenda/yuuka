@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import PayeeInput from '@/components/PayeeInput.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import { currentTime, today } from '@/lib/dates';
@@ -49,6 +51,9 @@ const categoryGroups = computed(() => {
 	if (form.mode === 'transfer') return ledger.groupForPicker(ledger.transferCategories);
 	return ledger.groupForPicker(form.mode === 'income' ? ledger.incomeCategories : ledger.expenseCategories);
 });
+
+const accountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Select an account', disabled: true }));
+const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
 
 /** Flattened, for checking whether the current selection is still valid. */
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
@@ -217,18 +222,12 @@ defineExpose({
 		<div class="grid gap-4 sm:grid-cols-2">
 			<div class="field">
 				<label class="label" for="account">{{ form.mode === 'transfer' ? 'From account' : 'Account' }}</label>
-				<select id="account" v-model="form.accountId" class="input" required>
-					<option value="" disabled>Select an account</option>
-					<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-				</select>
+				<SelectField id="account" v-model="form.accountId" :options="accountChoices" required />
 			</div>
 
 			<div v-if="form.mode === 'transfer'" class="field">
 				<label class="label" for="to-account">To account</label>
-				<select id="to-account" v-model="form.toAccountId" class="input" required>
-					<option value="" disabled>Select an account</option>
-					<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-				</select>
+				<SelectField id="to-account" v-model="form.toAccountId" :options="accountChoices" required />
 			</div>
 		</div>
 
@@ -236,13 +235,7 @@ defineExpose({
 			<label class="label" for="category">{{ form.mode === 'transfer' ? 'Cashflow category' : 'Category' }}</label>
 			<!-- Parents and their children are both selectable, but only one at a
 			     time: a transaction carries a single category, never both. -->
-			<select id="category" v-model="form.categoryId" class="input">
-				<option value="">Uncategorized</option>
-				<template v-for="group in categoryGroups" :key="group.parent.id">
-					<option :value="group.parent.id">{{ group.parent.name }}</option>
-					<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
-				</template>
-			</select>
+			<SelectField id="category" v-model="form.categoryId" :options="categoryChoices" />
 			<p v-if="form.mode === 'transfer'" class="mt-1 text-xs text-on-surface-variant">
 				Optional. Categorising a transfer lets you budget it — an investment contribution is a movement, not spending.
 			</p>

@@ -52,6 +52,9 @@
 
     <!-- Content descriptions -->
     <string name="cd_menu">Menu</string>
+    <string name="cd_expand_navigation">Expand navigation</string>
+    <string name="cd_collapse_navigation">Collapse navigation</string>
+    <string name="nav_more">More</string>
     <string name="cd_back">Back</string>
     <string name="cd_show_amounts">Show amounts</string>
     <string name="cd_hide_amounts">Hide amounts</string>
@@ -92,6 +95,8 @@
     <string name="dashboard_over_budget">Over budget</string>
     <string name="dashboard_needs_attention">Needs attention</string>
     <string name="dashboard_nothing_overspent">Nothing overspent</string>
+    <string name="chart_average_per_day">Daily average</string>
+    <string name="chart_at_or_above_average">At or above average</string>
     <string name="dashboard_spending_by_day">Spending by day</string>
     <string name="dashboard_spend_summary">%1$s across %2$s</string>
     <string name="dashboard_no_spending">No spending recorded this month.</string>
@@ -152,10 +157,14 @@
 
     <!-- Tags -->
     <string name="label_tags">Tags</string>
-    <string name="tags_description">Labels to put on a transaction, shown beside its notes. They sit alongside its category and change no total.</string>
+    <string name="tags_description">Labels to put on a transaction, shown beside its notes.</string>
     <string name="no_tags_yet">No tags yet</string>
     <string name="tags_empty_description">Add one, then put it on a transaction to find it by that label later.</string>
     <string name="search_tags">Search tags</string>
+    <plurals name="tag_transaction_count">
+        <item quantity="one">%1$s transaction</item>
+        <item quantity="other">%1$s transactions</item>
+    </plurals>
     <string name="no_tag_matches">No tag matches “%1$s”.</string>
     <string name="new_tag">New tag</string>
     <string name="edit_tag">Edit tag</string>
@@ -233,13 +242,15 @@
     <!-- Save the Change -->
     <string name="destination_save_the_change">Save the Change</string>
     <string name="save_the_change_enabled">Round up purchases</string>
-    <string name="save_the_change_description">Rounds up ordinary expenses on accounts you\'ve opted into below, and moves the difference into your chosen account.</string>
+    <string name="save_the_change_description">Rounds up ordinary expenses on the accounts you\'ve opted in, and moves the difference into your chosen account.</string>
+    <string name="save_the_change_accounts_hint">Which accounts round up their own purchases is set per account, from that account\'s edit form under Accounts.</string>
+    <string name="round_up_purchases_account_label">Round up purchases (Save the Change)</string>
+    <string name="round_up_purchases_account_hint">Every expense on this account rounds up to the nearest ₱10 or ₱100.</string>
     <string name="round_to_label">Round up to the nearest</string>
     <string name="round_to_ten">₱10</string>
     <string name="round_to_hundred">₱100</string>
     <string name="destination_account">Destination account</string>
     <string name="choose_an_account">Choose an account</string>
-    <string name="save_the_change_accounts_title">Accounts</string>
     <string name="save_the_change_saved">Save the Change updated</string>
     <string name="could_not_save_round_up_rule">Could not save Save the Change.</string>
 
@@ -278,7 +289,7 @@
     <string name="edit_subscription">Edit subscription</string>
     <string name="add_subscription">Add subscription</string>
     <string name="no_subscriptions_yet">No subscriptions yet</string>
-    <string name="subscriptions_empty_description">Set up rent, streaming or a loan payment once and it will be posted for you every month.</string>
+    <string name="subscriptions_empty_description">Set up rent, streaming or a loan payment once, and it will be posted for you every month.</string>
     <string name="subscription_added">Subscription added</string>
     <string name="subscription_updated">Subscription updated</string>
     <string name="subscription_deleted">Subscription deleted</string>

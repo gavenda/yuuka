@@ -80,6 +80,8 @@ export interface Tag {
 	id: string;
 	name: string;
 	color: string;
+	/** How many transactions wear it. A transfer counts once, not once per leg. */
+	transactionCount: number;
 	createdAt: string;
 	updatedAt: string;
 }

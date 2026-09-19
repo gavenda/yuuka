@@ -81,6 +81,7 @@ data class TagEntity(
     @PrimaryKey val id: String,
     val name: String,
     val color: String,
+    val transactionCount: Int,
     val createdAt: String,
     val updatedAt: String,
 )

@@ -27,7 +27,7 @@ import dev.gavenda.yuuka.data.local.entity.*
         RoundUpRuleEntity::class,
         SubscriptionEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

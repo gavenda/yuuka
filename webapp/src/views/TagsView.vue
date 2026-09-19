@@ -5,6 +5,7 @@ import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import { api, ApiError } from '@/lib/api';
 import { nextColor, PALETTE } from '@/lib/palette';
+import { formatCount } from '@/lib/count';
 import { showSnackbar } from '@/lib/snackbar';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Tag } from '@/types';
@@ -22,6 +23,13 @@ const form = reactive({ name: '', color: PALETTE[0].light });
 
 /** A long list is searched rather than scrolled; the box only appears once there is enough to lose something in. */
 const SEARCH_FROM = 8;
+
+/** True once the colour has strayed from the validated palette onto a hand-picked hex. */
+const isCustomColor = computed(() => !PALETTE.some((slot) => slot.light === form.color));
+
+function pickCustomColor(event: Event): void {
+	form.color = (event.target as HTMLInputElement).value;
+}
 
 const visible = computed(() => {
 	const needle = search.value.trim().toLowerCase();
@@ -76,7 +84,15 @@ async function remove(tag: Tag): Promise<void> {
 	}
 }
 
-onMounted(() => ledger.load());
+// The counts move whenever a transaction is saved, and `load` is done once the ledger has been fetched, so ask again.
+onMounted(async () => {
+	await ledger.load();
+	await ledger.refreshTags().catch(() => undefined);
+});
+
+/** A copy saved before counts existed has none, so read a missing one as zero until the API answers. */
+const countOf = (tag: Tag) => tag.transactionCount ?? 0;
+const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) === 1 ? 'transaction' : 'transactions'}`;
 </script>
 
 <template>
@@ -99,21 +115,27 @@ onMounted(() => ledger.load());
 				<input id="tag-search" v-model="search" class="input" type="search" placeholder="Tag name" />
 			</div>
 
-			<section class="card p-5">
-				<p v-if="!visible.length" class="py-4 text-center text-sm text-on-surface-variant">No tag matches “{{ search.trim() }}”.</p>
+			<p v-if="!visible.length" class="py-4 text-center text-sm text-on-surface-variant">No tag matches “{{ search.trim() }}”.</p>
 
-				<ul v-else class="divide-y divide-outline-variant">
-					<li v-for="tag in visible" :key="tag.id" class="group flex items-center gap-3 py-2">
-						<span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
-						<span class="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">{{ tag.name }}</span>
+			<!-- One card per tag, its count at the end. Actions come first: they only show on hover, so the count keeps its place. -->
+			<ul v-else class="space-y-2">
+				<li v-for="tag in visible" :key="tag.id" class="card group flex items-center gap-3 px-4 py-3">
+					<span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
+					<span class="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">{{ tag.name }}</span>
 
-						<div class="row-actions">
-							<ActionIcon icon="edit" :label="`Edit ${tag.name}`" @click="openEdit(tag)" />
-							<ActionIcon icon="delete" :label="`Delete ${tag.name}`" danger @click="remove(tag)" />
-						</div>
-					</li>
-				</ul>
-			</section>
+					<div class="row-actions">
+						<ActionIcon icon="edit" :label="`Edit ${tag.name}`" @click="openEdit(tag)" />
+						<ActionIcon icon="delete" :label="`Delete ${tag.name}`" danger @click="remove(tag)" />
+					</div>
+
+					<span
+						class="tabular shrink-0 text-xs text-on-surface-variant"
+						:title="`${countOf(tag).toLocaleString()} ${countOf(tag) === 1 ? 'transaction' : 'transactions'}`"
+					>
+						{{ countLabel(tag) }}
+					</span>
+				</li>
+			</ul>
 		</template>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit tag' : 'New tag'" @close="dialogOpen = false">
@@ -125,7 +147,8 @@ onMounted(() => ledger.load());
 
 				<fieldset>
 					<legend class="label">Colour</legend>
-					<!-- The validated palette, the same eight slots a category takes. -->
+					<!-- The eight slots are a validated set, the same a category takes. A custom hex opts out of that guarantee,
+					     so it stays a deliberate extra step rather than a ninth slot in the same row. -->
 					<div class="flex flex-wrap items-center gap-2">
 						<button
 							v-for="slot in PALETTE"
@@ -137,6 +160,37 @@ onMounted(() => ledger.load());
 							:aria-label="slot.name"
 							:aria-pressed="form.color === slot.light"
 							@click="form.color = slot.light"
+						/>
+
+						<label
+							class="relative grid h-8 w-8 cursor-pointer place-items-center rounded-full text-outline ring-offset-2 transition-transform hover:scale-110"
+							:class="
+								isCustomColor
+									? 'ring-2 ring-on-surface'
+									: 'bg-[repeating-conic-gradient(var(--color-outline-variant)_0_25%,transparent_0_50%)] bg-[length:8px_8px] ring-1 ring-outline'
+							"
+							:style="isCustomColor ? { backgroundColor: form.color } : {}"
+							title="Custom colour"
+						>
+							<span v-if="!isCustomColor" aria-hidden="true">+</span>
+							<input
+								type="color"
+								class="sr-only"
+								:value="isCustomColor ? form.color : '#64748b'"
+								aria-label="Pick a custom colour"
+								@input="pickCustomColor"
+							/>
+						</label>
+
+						<input
+							v-if="isCustomColor"
+							v-model="form.color"
+							class="input input-sm w-28 font-mono"
+							required
+							pattern="^#[0-9a-fA-F]{6}$"
+							maxlength="7"
+							placeholder="#64748b"
+							aria-label="Custom colour hex value"
 						/>
 					</div>
 				</fieldset>

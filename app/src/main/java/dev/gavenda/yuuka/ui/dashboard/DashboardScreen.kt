@@ -102,7 +102,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            DailySpendChart(series, modifier = Modifier.padding(top = 12.dp))
+                            DailySpendChart(series, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
                         } else {
                             Text(
                                 stringResource(R.string.dashboard_no_spending),

@@ -59,10 +59,10 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = WindowInsets(0),
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            ScreenFab(
+                label = stringResource(R.string.new_category),
+                icon = Icons.Filled.Add,
                 onClick = { creatingIn = state.sections.first(); creatingParentId = null },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.new_category)) },
             )
         },
     ) { padding ->

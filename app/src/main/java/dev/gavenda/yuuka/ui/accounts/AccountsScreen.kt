@@ -61,36 +61,52 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         floatingActionButton = {
-            BackHandler(fabMenuExpanded) { fabMenuExpanded = false }
-            FloatingActionButtonMenu(
-                // The menu pads its own button 16dp in from the end and 16dp up from the bottom, on top
-                // of the Scaffold's usual FAB inset — this cancels it so the FAB lines up with the
-                // ExtendedFloatingActionButton on the other screens.
-                modifier = Modifier.offset(x = 16.dp, y = 16.dp),
-                expanded = fabMenuExpanded,
-                button = {
-                    val actionsLabel = stringResource(R.string.account_actions)
-                    ToggleFloatingActionButton(
-                        modifier = Modifier.semantics { contentDescription = actionsLabel },
-                        checked = fabMenuExpanded,
-                        onCheckedChange = { fabMenuExpanded = it },
+            val newAccountLabel = stringResource(R.string.new_account)
+            val editTypesLabel = stringResource(R.string.edit_account_types)
+            ScreenFab(
+                label = stringResource(R.string.account_actions),
+                icon = Icons.Filled.Add,
+                onClick = { fabMenuExpanded = true },
+                // The navigation rail lists the same two actions in a dropdown from its button.
+                actions = listOf(
+                    FabAction(newAccountLabel, { Icon(Icons.Filled.LibraryAdd, contentDescription = null) }) { creating = true },
+                    FabAction(editTypesLabel, { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) }) {
+                        typesOpen = true
+                    },
+                ),
+                phoneFab = {
+                    BackHandler(fabMenuExpanded) { fabMenuExpanded = false }
+                    FloatingActionButtonMenu(
+                        // The menu pads its own button 16dp in from the end and 16dp up from the bottom, on top
+                        // of the Scaffold's usual FAB inset — this cancels it so the FAB lines up with the
+                        // ExtendedFloatingActionButton on the other screens.
+                        modifier = Modifier.offset(x = 16.dp, y = 16.dp),
+                        expanded = fabMenuExpanded,
+                        button = {
+                            val actionsLabel = stringResource(R.string.account_actions)
+                            ToggleFloatingActionButton(
+                                modifier = Modifier.semantics { contentDescription = actionsLabel },
+                                checked = fabMenuExpanded,
+                                onCheckedChange = { fabMenuExpanded = it },
+                            ) {
+                                val icon by remember { derivedStateOf { if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add } }
+                                Icon(rememberVectorPainter(icon), contentDescription = null, modifier = Modifier.animateIcon({ checkedProgress }))
+                            }
+                        },
                     ) {
-                        val icon by remember { derivedStateOf { if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add } }
-                        Icon(rememberVectorPainter(icon), contentDescription = null, modifier = Modifier.animateIcon({ checkedProgress }))
+                        FloatingActionButtonMenuItem(
+                            onClick = { fabMenuExpanded = false; creating = true },
+                            icon = { Icon(Icons.Filled.LibraryAdd, contentDescription = null) },
+                            text = { Text(newAccountLabel) },
+                        )
+                        FloatingActionButtonMenuItem(
+                            onClick = { fabMenuExpanded = false; typesOpen = true },
+                            icon = { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) },
+                            text = { Text(editTypesLabel) },
+                        )
                     }
                 },
-            ) {
-                FloatingActionButtonMenuItem(
-                    onClick = { fabMenuExpanded = false; creating = true },
-                    icon = { Icon(Icons.Filled.LibraryAdd, contentDescription = null) },
-                    text = { Text(stringResource(R.string.new_account)) },
-                )
-                FloatingActionButtonMenuItem(
-                    onClick = { fabMenuExpanded = false; typesOpen = true },
-                    icon = { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) },
-                    text = { Text(stringResource(R.string.edit_account_types)) },
-                )
-            }
+            )
         },
     ) { padding ->
         LazyColumn(
@@ -297,7 +313,7 @@ private fun AccountFormContent(
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
-    val roundUpSource = account?.roundUpSource ?: false
+    var roundUpSource by remember { mutableStateOf(account?.roundUpSource ?: false) }
     var error by remember { mutableStateOf<String?>(null) }
     var typeMenuOpen by remember { mutableStateOf(false) }
 
@@ -335,13 +351,25 @@ private fun AccountFormContent(
 
         OutlinedTextField(value = currency, onValueChange = { currency = it.uppercase() }, label = { Text(stringResource(R.string.label_currency)) }, modifier = Modifier.fillMaxWidth())
 
+        // Whether this account's own purchases round up under Save the Change. The rule itself (how much, and where it goes) lives on that screen.
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.round_up_purchases_account_label), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    stringResource(R.string.round_up_purchases_account_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            YuukaSwitch(checked = roundUpSource, onCheckedChange = { roundUpSource = it })
+        }
+
         OutlinedTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = { Text(stringResource(R.string.label_logo_url)) }, modifier = Modifier.fillMaxWidth())
 
-        if (logoUrl.isNotBlank()) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
-                YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
-            }
+        // Always shown, not only once a logo is entered; it has no effect until the account has one.
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
+            YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
         }
 
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)

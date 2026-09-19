@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
 import SettingRow from '@/components/SettingRow.vue';
@@ -22,6 +24,8 @@ const saving = ref(false);
 
 /** A round-up posts as an ordinary transfer, so it takes the same Cashflow tree a plain transfer does. */
 const roundUpCategoryGroups = computed(() => ledger.groupForPicker(ledger.transferCategories));
+const destinationChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Choose an account', disabled: true }));
+const categoryChoices = computed(() => categoryOptions(roundUpCategoryGroups.value, { value: '', label: 'Uncategorized' }));
 
 const enabledChanged = computed(() => roundUpEnabledDraft.value !== (ledger.roundUpRule?.enabled ?? false));
 const roundToChanged = computed(() => roundToDraft.value !== (ledger.roundUpRule?.roundTo ?? 1000));
@@ -69,7 +73,7 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="max-w-3xl space-y-5" @submit.prevent="save">
+	<form class="space-y-5" @submit.prevent="save">
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Round-ups</h2>
 			<div class="divide-y divide-outline-variant px-5">
@@ -98,10 +102,7 @@ async function save(): Promise<void> {
 			<h2 class="type-title-small px-5 pt-4 text-primary">Where it goes</h2>
 			<div class="divide-y divide-outline-variant px-5">
 				<SettingRow title="Destination account" description="Where the rounded-up spare change is deposited." for="round-up-destination">
-					<select id="round-up-destination" v-model="roundUpDestinationDraft" class="input input-sm">
-						<option value="" disabled>Choose an account</option>
-						<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-					</select>
+					<SelectField id="round-up-destination" v-model="roundUpDestinationDraft" :options="destinationChoices" dense />
 					<p v-if="roundUpEnabledDraft && !roundUpDestinationDraft" class="mt-2 text-xs text-warning" role="alert">
 						Choose a destination account to enable Save the Change.
 					</p>
@@ -112,18 +113,12 @@ async function save(): Promise<void> {
 					description="Optional. Lets you budget the round-ups, the same as a plain transfer."
 					for="round-up-category"
 				>
-					<select id="round-up-category" v-model="roundUpCategoryDraft" class="input input-sm">
-						<option value="">Uncategorized</option>
-						<template v-for="group in roundUpCategoryGroups" :key="group.parent.id">
-							<option :value="group.parent.id">{{ group.parent.name }}</option>
-							<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
-						</template>
-					</select>
+					<SelectField id="round-up-category" v-model="roundUpCategoryDraft" :options="categoryChoices" dense />
 				</SettingRow>
 			</div>
 		</section>
 
-		<p class="rounded-md bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
+		<p class="text-sm text-on-surface-variant">
 			Which accounts round up their own purchases is set per account, from that account's edit form under Accounts.
 		</p>
 

@@ -56,10 +56,10 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         // nested Scaffold here would add a second, phantom gap above the content.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            ScreenFab(
+                label = stringResource(R.string.new_transaction),
+                icon = Icons.Filled.Add,
                 onClick = viewModel::openCreate,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.new_transaction)) },
             )
         },
     ) { padding ->
@@ -324,26 +324,33 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                 }
             }
 
-            // Notes on the left, tags as chips at the right end of the same row.
+            // Notes on the left, tags as chips at the right end of the same row, centred on each other.
+            // The icon stays with the note's first line.
             if (notes.isNotEmpty() || tags.isNotEmpty()) {
                 HorizontalDivider()
                 BoxWithConstraints {
                     val maxChipsWidth = maxWidth * 0.6f
-                    Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (notes.isNotEmpty()) {
-                            Icon(
-                                Icons.Filled.EditNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp),
-                            )
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (notes.isNotEmpty()) {
+                                Icon(
+                                    Icons.Filled.EditNote,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    notes,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
-                        Text(
-                            notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
                         // Sized to what they hold, but never past 60% of the row, so a long tag list wraps rather than crowding the notes out.
                         if (tags.isNotEmpty()) TagChips(tags, modifier = Modifier.widthIn(max = maxChipsWidth))
                     }

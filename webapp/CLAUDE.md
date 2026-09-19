@@ -243,6 +243,18 @@ radar controllers nothing renders. The library belongs in the lazily-loaded
 dashboard chunk, not the entry bundle. Each chart keeps a "Show data" table
 alongside it as the non-visual route to the same numbers.
 
+**The spending-by-day chart is SVG, not Chart.js** (`SpendChart.vue`), and is the Android
+chart's twin (`BarCharts.kt`, with the same geometry constants): wide pill bars with the day
+beneath each, a value axis down the right, and a line across at the month's average daily
+spend (`dailyAverage`, over the days that had any). A day at or above the average is a
+`tertiary` bar carrying a scalloped badge (`scallopPath`, standing in for Material's expressive
+cookie shapes) with the display currency's symbol (`currencySymbol`) in it. A canvas could not do
+this: the plot scrolls sideways (a month is too many wide bars for a phone) while the axis stays put,
+and SVG reads the theme's colour roles as classes (`fill-primary`) instead of repeating hex
+values. Tapping a day, or pointing at it with a mouse, names it in a tooltip that floats above
+the plot rather than inside it, so the plot's edge cannot cut it off; scrolling clears it. The
+axis figures (`axisScale`, `compactAmount`) are amounts like any other and are masked with them.
+
 **The theme is the Android app's Material 3 scheme.** `src/style.css` declares
 every role from `ui/theme/Color.kt` and `ExtendedColors.kt` as a Tailwind colour
 (`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`,
@@ -275,18 +287,18 @@ one-offs: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`,
 `menu-item`, `banner-error`, and `state-layer` for the hover, focus and pressed
 wash. Fields are outlined text fields: a `.field` wrapper holds a `.label` and a
 `.input`, and the label sits raised in the border's notch, cut out in the colour
-of whatever the field sits on (`--surface-under`). Two components carry markup a
-class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few) and `FabButton` (the one
+of whatever the field sits on (`--surface-under`). Three components carry markup a
+class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few), `SelectField` (the exposed dropdown menu that replaces every native `<select>`: give it `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field and never reach for a `<select>` again) and `FabButton` (the one
 action a screen leads with, registered in `src/lib/fab.ts`: a phone gets the floating
 button, and from `sm` up `NavRail` shows the same action under its menu button, as an
 icon FAB while slim and an extended one when open). Navigation is a rail from the `sm` breakpoint (`NavRail`, whose icons are Android's own Material Filled set (`src/lib/icons.ts`, from
 `ui/Destinations.kt`) and whose logo is a plain mark at the top (with the wordmark once open), never a
 control or the menu button, per Material's rail guidance; no dividers: the open drawer
 heads its second group "More" instead) and a bottom bar below it (`NavDestination`). The rail's menu button
-opens it into a drawer that also holds Subscriptions, Save the Change, Settings and Sign out plus
-the signed-in account, so from `sm` up they are reached only by opening it; phones
-keep them in the avatar menu, together with Budget and Categories, which the phone's bottom bar has no room for
-(it holds Dashboard, Transactions and Accounts). The show/hide-amounts and light/dark toggles sit at the
+opens it into a drawer whose "More" group holds Budget, Categories, Tags, Subscriptions, Save the Change,
+Settings and Sign out plus the signed-in account, so from `sm` up they are reached only by opening it. The rail and
+the phone's bottom bar list the same three destinations (Dashboard, Transactions and Accounts, `dailyLinks` in
+`App.vue`); phones keep the rest in the avatar menu (`moreLinks`, which is also what leads the rail's "More"). The show/hide-amounts and light/dark toggles sit at the
 foot of the rail from `sm` up (an icon when slim, a labelled row when open), and stay in
 the top bar on a phone. The slim and open rail are one structure that morphs, not two layouts swapped: each entry is a
 `RailItem` whose pill, icon and label are positioned by `data-expanded` in `style.css` and
@@ -304,7 +316,7 @@ the heading comes from the route's `meta.title`, so a view does not render its o
 feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once in
 `App.vue`), which shows one message at a time; errors that belong to a form or to
 the page stay inline in a `banner-error`. Chart.js draws to a canvas and cannot read CSS
-variables, so `chartInk` and `SERIES_ONE` in `src/lib/chart.ts` repeat the hex
+variables, so `chartInk` in `src/lib/chart.ts` repeats the hex
 values; change them together with the stylesheet.
 
 **Colours are validated, not chosen by eye.** The eight category colours in

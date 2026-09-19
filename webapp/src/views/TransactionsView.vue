@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { namedOptions } from '@/lib/selectOptions';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
@@ -46,6 +48,11 @@ const days = computed(() =>
 		total: dailyAccrued(rows),
 		items: rows.map((row) => ({ row, card: describeRow(row) })),
 	})),
+);
+
+const accountFilterChoices = computed(() => namedOptions(ledger.accounts, { value: '', label: 'All accounts' }));
+const categoryFilterChoices = computed(() =>
+	namedOptions(ledger.categories, { value: '', label: 'All categories' }, { value: 'none', label: 'Uncategorized' }),
 );
 
 const filters = computed(() => ({
@@ -139,19 +146,12 @@ async function remove(): Promise<void> {
 
 			<div class="field">
 				<label class="label" for="filter-account">Account</label>
-				<select id="filter-account" v-model="accountFilter" class="input">
-					<option value="">All accounts</option>
-					<option v-for="account in ledger.accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-				</select>
+				<SelectField id="filter-account" v-model="accountFilter" :options="accountFilterChoices" />
 			</div>
 
 			<div class="field">
 				<label class="label" for="filter-category">Category</label>
-				<select id="filter-category" v-model="categoryFilter" class="input">
-					<option value="">All categories</option>
-					<option value="none">Uncategorized</option>
-					<option v-for="category in ledger.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
-				</select>
+				<SelectField id="filter-category" v-model="categoryFilter" :options="categoryFilterChoices" />
 			</div>
 		</div>
 
@@ -238,15 +238,16 @@ async function remove(): Promise<void> {
 								</span>
 							</span>
 
-							<!-- Notes on the left, tags as chips at the right end of the same row. -->
-							<span v-if="card.notes || card.tags.length" class="flex items-start gap-2 border-t border-outline-variant p-3">
-								<template v-if="card.notes">
-									<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
-										<path :d="EDIT_NOTE" />
-									</svg>
-									<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
-								</template>
-								<span v-else class="flex-1" />
+							<!-- Notes on the left, tags as chips at the right end of the same row, centred on each other. The icon stays with the note's first line. -->
+							<span v-if="card.notes || card.tags.length" class="flex items-center gap-2 border-t border-outline-variant p-3">
+								<span class="flex min-w-0 flex-1 items-start gap-2">
+									<template v-if="card.notes">
+										<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
+											<path :d="EDIT_NOTE" />
+										</svg>
+										<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
+									</template>
+								</span>
 
 								<span v-if="card.tags.length" class="flex max-w-[60%] shrink-0 flex-wrap justify-end gap-1.5">
 									<span v-for="tag in card.tags" :key="tag.id" class="chip">

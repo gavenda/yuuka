@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import SelectField from '@/components/SelectField.vue';
+import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -50,6 +52,9 @@ const earliest = utcToday();
 const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
 );
+const accountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Select an account', disabled: true }));
+const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
+
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
 
 /** What the active subscriptions come to each month; shown in the display currency, like every other aggregate. */
@@ -273,21 +278,12 @@ async function remove(subscription: Subscription): Promise<void> {
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="field">
 						<label class="label" for="subscription-account">Account</label>
-						<select id="subscription-account" v-model="form.accountId" class="input" required>
-							<option value="" disabled>Select an account</option>
-							<option v-for="account in ledger.activeAccounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-						</select>
+						<SelectField id="subscription-account" v-model="form.accountId" :options="accountChoices" required />
 					</div>
 
 					<div class="field">
 						<label class="label" for="subscription-category">Category</label>
-						<select id="subscription-category" v-model="form.categoryId" class="input">
-							<option value="">Uncategorized</option>
-							<template v-for="group in categoryGroups" :key="group.parent.id">
-								<option :value="group.parent.id">{{ group.parent.name }}</option>
-								<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
-							</template>
-						</select>
+						<SelectField id="subscription-category" v-model="form.categoryId" :options="categoryChoices" />
 					</div>
 				</div>
 

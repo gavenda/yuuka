@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import AccountLogo from '@/components/AccountLogo.vue';
+import SelectField from '@/components/SelectField.vue';
+import { namedOptions } from '@/lib/selectOptions';
 import AccountWatermark from '@/components/AccountWatermark.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AccountTypeManager from '@/components/AccountTypeManager.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
+import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import StatCard from '@/components/StatCard.vue';
 import { api, ApiError } from '@/lib/api';
@@ -56,6 +58,7 @@ const adjustDifference = computed(() => {
 	return target - adjusting.value.balance;
 });
 
+const typeChoices = computed(() => namedOptions(ledger.activeAccountTypes, { value: '', label: 'Select a type', disabled: true }));
 const visible = computed(() => ledger.accounts.filter((account) => showArchived.value || !account.archived));
 const archivedCount = computed(() => ledger.accounts.filter((account) => account.archived).length);
 
@@ -306,10 +309,7 @@ onMounted(() => ledger.load());
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="field">
 						<label class="label" for="account-type">Type</label>
-						<select id="account-type" v-model="form.typeId" class="input" required>
-							<option value="" disabled>Select a type</option>
-							<option v-for="type in ledger.activeAccountTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
-						</select>
+						<SelectField id="account-type" v-model="form.typeId" :options="typeChoices" required />
 					</div>
 
 					<div class="field">
@@ -331,21 +331,19 @@ onMounted(() => ledger.load());
 					/>
 				</div>
 
-				<div>
-					<label class="flex items-center gap-2 text-sm text-on-surface">
-						<input v-model="form.roundUpSource" type="checkbox" class="size-4 rounded border-outline accent-primary" />
-						Round up purchases (Save the Change)
-					</label>
-					<p class="mt-1 text-xs text-on-surface-variant">
-						Every expense on this account rounds up to the nearest ₱10 or ₱100 — set the exact amount and destination in Settings.
-					</p>
+				<!-- A switch, not a checkbox: text and explanation on the left, the switch on the right, and the text toggles it. -->
+				<div class="flex items-center justify-between gap-4">
+					<div class="min-w-0">
+						<label for="account-round-up" class="block text-sm text-on-surface">Round up purchases (Save the Change)</label>
+						<p class="mt-0.5 text-xs text-on-surface-variant">Every expense on this account rounds up to the nearest ₱10 or ₱100.</p>
+					</div>
+					<ToggleSwitch id="account-round-up" v-model="form.roundUpSource" label="Round up purchases (Save the Change)" />
 				</div>
 
 				<div>
 					<div class="flex items-center gap-3">
-						<AccountLogo :name="form.name || '?'" :logo-url="form.logoUrl.trim() || null" :invert-dark="form.logoInvertDark" :size="40" />
 						<div class="field min-w-0 flex-1">
-							<label class="label" for="account-logo">Logo URL</label>
+							<label class="label" for="account-logo">Logo URL (optional)</label>
 							<input
 								id="account-logo"
 								v-model="form.logoUrl"
@@ -356,13 +354,10 @@ onMounted(() => ledger.load());
 							/>
 						</div>
 					</div>
-					<p class="mt-1 text-xs text-on-surface-variant">
-						Optional. The image is loaded from wherever it lives — nothing is uploaded or copied. Leave empty for the account's initial.
-					</p>
-					<label v-if="form.logoUrl.trim()" class="mt-2 flex items-center gap-2 text-sm text-on-surface">
-						<input v-model="form.logoInvertDark" type="checkbox" class="size-4 rounded border-outline accent-primary" />
-						Invert colours in dark mode
-					</label>
+					<div class="mt-3 flex items-center justify-between gap-4">
+						<label for="account-logo-invert" class="text-sm text-on-surface">Invert colours in dark mode</label>
+						<ToggleSwitch id="account-logo-invert" v-model="form.logoInvertDark" label="Invert colours in dark mode" />
+					</div>
 				</div>
 
 				<p v-if="error" class="banner-error" role="alert">

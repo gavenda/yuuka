@@ -28,7 +28,8 @@ class TagsViewModel(private val ledgerRepository: LedgerRepository) : ViewModel(
     val uiState: StateFlow<TagsUiState> = combine(ledgerRepository.tags, search, ::TagsUiState)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TagsUiState())
 
-    init {
+    /** Counts move whenever a transaction is saved, so the screen asks again each time it is shown. */
+    fun refresh() {
         viewModelScope.launch { runCatching { ledgerRepository.refreshTags() } }
     }
 

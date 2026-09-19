@@ -10,10 +10,24 @@ import type { AppEnv } from '../types';
 
 const DUPLICATE_MESSAGE = 'A tag with that name already exists.';
 
+/**
+ * A transfer is one movement recorded on two rows, both wearing its tags, so
+ * counting rows would say two for what the list shows as one. Counting the
+ * transfer id where there is one, and the row's own id where there is not,
+ * counts each movement once.
+ */
+const SELECT_WITH_COUNT = `
+	SELECT g.*,
+	       (SELECT COUNT(DISTINCT COALESCE(t.transfer_id, t.id))
+	        FROM transaction_tags tt JOIN transactions t ON t.id = tt.transaction_id
+	        WHERE tt.tag_id = g.id) AS transaction_count
+	FROM tags g
+`;
+
 export const tagRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
 	.get('/', async (c) => {
-		const { results } = await c.env.DB.prepare('SELECT * FROM tags WHERE user_id = ? ORDER BY name COLLATE NOCASE ASC')
+		const { results } = await c.env.DB.prepare(`${SELECT_WITH_COUNT} WHERE g.user_id = ? ORDER BY g.name COLLATE NOCASE ASC`)
 			.bind(c.get('userId'))
 			.all<TagRow>();
 
@@ -33,7 +47,7 @@ export const tagRoutes = new Hono<AppEnv>()
 			throw error;
 		}
 
-		const row = await c.env.DB.prepare('SELECT * FROM tags WHERE id = ? AND user_id = ?').bind(id, userId).first<TagRow>();
+		const row = await c.env.DB.prepare(`${SELECT_WITH_COUNT} WHERE g.id = ? AND g.user_id = ?`).bind(id, userId).first<TagRow>();
 		return c.json({ tag: toTag(row!) }, 201);
 	})
 	.patch('/:id', async (c) => {
@@ -56,7 +70,7 @@ export const tagRoutes = new Hono<AppEnv>()
 
 		if (!changes) throw notFound('Tag not found.');
 
-		const row = await c.env.DB.prepare('SELECT * FROM tags WHERE id = ? AND user_id = ?').bind(id, userId).first<TagRow>();
+		const row = await c.env.DB.prepare(`${SELECT_WITH_COUNT} WHERE g.id = ? AND g.user_id = ?`).bind(id, userId).first<TagRow>();
 		return c.json({ tag: toTag(row!) });
 	})
 	.delete('/:id', async (c) => {
