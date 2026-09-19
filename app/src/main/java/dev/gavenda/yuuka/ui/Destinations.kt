@@ -17,7 +17,7 @@ enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, val
     BUDGET("budget", R.string.destination_budget, Icons.Filled.PieChart),
     ACCOUNTS("accounts", R.string.destination_accounts, Icons.Filled.AccountBalanceWallet),
     CATEGORIES("categories", R.string.destination_categories, Icons.Filled.Category),
-    SUBSCRIPTIONS("subscriptions", R.string.destination_subscriptions, Icons.Filled.Autorenew),
+    SUBSCRIPTIONS("subscriptions", R.string.destination_subscriptions, Icons.Filled.EventRepeat),
 }
 
 /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
