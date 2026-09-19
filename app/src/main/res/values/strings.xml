@@ -57,6 +57,9 @@
     <string name="cd_hide_amounts">Hide amounts</string>
     <string name="cd_previous_month">Previous month</string>
     <string name="cd_next_month">Next month</string>
+    <string name="cd_pick_month">Choose month</string>
+    <string name="cd_previous_year">Previous year</string>
+    <string name="cd_next_year">Next year</string>
     <string name="cd_account">Account</string>
     <string name="cd_clear">Clear</string>
     <string name="cd_archive_item">Archive %1$s</string>
