@@ -53,10 +53,8 @@ watch(filters, (next) => {
 	searchTimer = setTimeout(() => void store.load(next), 250);
 });
 
-onMounted(async () => {
-	await ledger.load();
-	await store.load(filters.value);
-});
+// Together, so the list's saved copy is not held back by the ledger's round trip.
+onMounted(() => Promise.all([ledger.load(), store.load(filters.value)]));
 
 function openCreate(): void {
 	editing.value = null;

@@ -30,6 +30,19 @@ export class ApiError extends Error {
 	get isUnauthorized(): boolean {
 		return this.status === 401;
 	}
+
+	/** True when the request never got an answer — offline, or the server could not be reached. */
+	get isNetworkError(): boolean {
+		return this.status === 0;
+	}
+}
+
+/**
+ * Whether a failure is only the network being out of reach. A store already showing its local copy
+ * keeps it on that, but not on anything the server actually answered.
+ */
+export function isNetworkError(error: unknown): boolean {
+	return error instanceof ApiError && error.isNetworkError;
 }
 
 /**
@@ -55,14 +68,20 @@ export function setUnauthorizedHandler(handler: () => void): void {
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const token = tokenProvider ? await tokenProvider() : null;
 
-	const response = await fetch(`/api${path}`, {
-		...init,
-		headers: {
-			'content-type': 'application/json',
-			...(token ? { authorization: `Bearer ${token}` } : {}),
-			...(init.headers as Record<string, string> | undefined),
-		},
-	});
+	let response: Response;
+
+	try {
+		response = await fetch(`/api${path}`, {
+			...init,
+			headers: {
+				'content-type': 'application/json',
+				...(token ? { authorization: `Bearer ${token}` } : {}),
+				...(init.headers as Record<string, string> | undefined),
+			},
+		});
+	} catch {
+		throw new ApiError(0, 'Network error. Check your connection.');
+	}
 
 	if (response.status === 204) return undefined as T;
 

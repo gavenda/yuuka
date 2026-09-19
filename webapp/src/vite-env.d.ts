@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
 
 /** Public Auth0 configuration, baked in at build time. None of it is secret. */
 interface ImportMetaEnv {

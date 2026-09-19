@@ -1,15 +1,34 @@
-import { api } from '@/lib/api';
+import { api, isNetworkError } from '@/lib/api';
+import { dropCacheFamily, readCache, snapshotKey, writeCache } from '@/lib/cache';
 import { currentMonth } from '@/lib/dates';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Summary } from '@/types';
 
-/** Owns the selected month and the summary computed for it. */
+/** How many months' summaries the local copy holds. */
+const KEEP_MONTHS = 6;
+
+const cacheKey = (month: string) => snapshotKey('summary', { month });
+
+const isSummaryFor =
+	(month: string) =>
+	(data: unknown): data is Summary =>
+		typeof data === 'object' &&
+		data !== null &&
+		(data as Partial<Summary>).month === month &&
+		Array.isArray((data as Partial<Summary>).categories);
+
+/**
+ * Owns the selected month and the summary computed for it. A month seen before is shown from the
+ * browser's local copy while the API is asked for the current figures.
+ */
 export const useBudgetStore = defineStore('budget', () => {
 	const month = ref(currentMonth());
 	const summary = ref<Summary | null>(null);
 	const loading = ref(false);
 	const error = ref<string | null>(null);
+	/** The month the API last answered for, so a summary shown from the local copy is not mistaken for a current one. */
+	let freshFor: string | null = null;
 
 	// Only top-level categories appear in the summary, so these lists can be
 	// summed without double-counting a subcategory.
@@ -36,17 +55,34 @@ export const useBudgetStore = defineStore('budget', () => {
 
 	const overspent = computed(() => expenseBreakdown.value.reduce((total, entry) => total + Math.min(0, entry.remaining), 0));
 
-	async function load(force = false): Promise<void> {
-		if (loading.value) return;
-		if (summary.value?.month === month.value && !force) return;
+	/**
+	 * Resolves whether the summary is now known to match the API's. It is false when the API could
+	 * not be reached and the local copy (or nothing) is what is on screen.
+	 */
+	async function load(force = false): Promise<boolean> {
+		if (loading.value) return false;
+		if (summary.value?.month === month.value && freshFor === month.value && !force) return true;
+
+		const requested = month.value;
+		const cached = summary.value?.month === requested ? null : readCache(cacheKey(requested), isSummaryFor(requested));
+		if (cached) summary.value = cached;
 
 		loading.value = true;
 		error.value = null;
 
 		try {
-			summary.value = await api.summary(month.value);
+			const fresh = await api.summary(requested);
+			summary.value = fresh;
+			freshFor = requested;
+			writeCache(cacheKey(requested), fresh, KEEP_MONTHS);
+			return true;
 		} catch (caught) {
-			error.value = caught instanceof Error ? caught.message : 'Could not load the summary.';
+			// Out of reach with this month's figures on screen: keep showing them.
+			const showingLocalCopy = summary.value?.month === requested;
+			if (!(showingLocalCopy && isNetworkError(caught))) {
+				error.value = caught instanceof Error ? caught.message : 'Could not load the summary.';
+			}
+			return false;
 		} finally {
 			loading.value = false;
 		}
@@ -57,9 +93,13 @@ export const useBudgetStore = defineStore('budget', () => {
 		await load(true);
 	}
 
-	/** Re-reads the summary; call after any write that changes the figures. */
+	/**
+	 * Re-reads the summary; call after any write that changes the figures. Other months' local
+	 * copies are dropped once it has: the write may have moved them too, and it is the API that
+	 * knows.
+	 */
 	async function refresh(): Promise<void> {
-		await load(true);
+		if (await load(true)) dropCacheFamily('summary', cacheKey(month.value));
 	}
 
 	async function setBudget(categoryId: string, value: { amount: number } | { percent: number }): Promise<void> {
@@ -74,6 +114,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
 	function reset(): void {
 		summary.value = null;
+		freshFor = null;
 		month.value = currentMonth();
 	}
 

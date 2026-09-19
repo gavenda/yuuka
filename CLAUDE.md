@@ -190,7 +190,8 @@ inverted the same way would come out wrong.
 
 ## Sync
 
-**The server is the source of truth; the Android app's local copy is a cache.**
+**The server is the source of truth; the local copy is a cache — in the Android
+app and in the web app, which is installable and opens offline.**
 Pull-to-refresh is a full sync, not a top-up. The per-screen loads only ever
 fold rows in, so something deleted elsewhere (the web app, another device)
 would otherwise linger here indefinitely. A full sync replaces accounts, types,
@@ -198,6 +199,14 @@ categories, settings, the round-up rule, subscriptions and payees from the API,
 and only once that has succeeded discards the cached transactions, budgets,
 income plans and summaries, so the screens on show load theirs again. A failed sync (offline,
 expired session) leaves the last-seen ledger untouched rather than empty.
+
+The web app does the same with what it saved in the browser: a screen shows what
+was last seen at once, then the API's answer replaces it, and an unreachable API
+leaves the saved copy on screen rather than an error. Nothing is queued while
+offline — a change is made against the API, so it fails until there is a
+connection, and the saved copy only ever changes by what the API returned. It is
+one person's books, so it is discarded on sign-out and when someone else signs in.
+How it is built is in [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
 ## Provisioning
 

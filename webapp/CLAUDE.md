@@ -28,15 +28,89 @@ lives in Hono rather than in the filesystem: adding an endpoint means adding a r
 `dist/` as Static Assets, with `run_worker_first: ["/api/*"]` sending only API
 paths to the Worker and `not_found_handling: "single-page-application"` handing
 every other non-file path to the SPA shell. Both are load-bearing: without the
-first, a missing `/api/*` path would get the SPA shell instead of the API's JSON
-404; without the second, deep links would 404 on reload. There is no
-`public/_redirects` — it would conflict with the SPA fallback. The frontend calls
+first, whether a request reaches the Worker is decided by its
+`Sec-Fetch-Mode: navigate` header, so opening a `/api/*` URL in the browser would
+get the SPA shell (the app's own `fetch()` calls would still get through) instead
+of the API's JSON, 404s included; without the second, deep links would 404 on
+reload. There is no `public/_redirects` — it would conflict with the SPA fallback.
+
+The same fallback answers a missing file with the SPA shell too (200,
+`text/html`), so a tab opened before a deploy asks for a route chunk whose hashed
+name no longer exists and gets HTML back. `main.ts` handles Vite's
+`vite:preloadError` by reloading for the new build (`lib/staleChunk.ts`), at most
+once per ten seconds so a chunk that is really gone cannot loop the page. The frontend calls
 `/api` relatively — there is no base URL to configure and no CORS layer to
 maintain.
 
 Frontend state is three Pinia stores in `src/stores`: `ledger` (accounts, types,
 categories, settings — loaded once and shared), `budget` and `transactions`.
 There is deliberately no auth store; see below.
+
+## Installable and offline
+
+The app is a PWA, and it behaves like the Android app: the screens paint from a
+local copy, and the API stays the source of truth. Two separate pieces do it, and
+neither caches the other's job.
+
+**The service worker caches the app, never the data.** `vite-plugin-pwa`
+(`generateSW`, configured in `vite.config.ts`) precaches the whole build — lazy
+route chunks included, so any screen opens offline — and answers a navigation
+with the cached `index.html`, except under `/api/`, which is not a page and is
+never cached. Figures reach the screen only through the local copy below, so
+there is one place to reason about staleness.
+
+`registerType` is `'prompt'`: a new build downloads and waits, and `App.vue`
+offers a "Reload" strip (`lib/pwa.ts`). Taking it over reloads the page, which
+would throw away a half-filled form, so it is never done on its own; until it is
+taken a tab keeps running the build it started with, files and all. The
+stale-chunk reload above is still needed — it covers a tab whose chunk was
+deleted by a deploy before its worker ever updated. Do not put a long
+`Cache-Control` on `sw.js`: Static Assets serves it with `max-age=0,
+must-revalidate`, which is what lets a new worker be noticed. The icons are the
+Android launcher art: `pwa-192.png` and `pwa-512.png` are the same 432px crop of
+the adaptive foreground over `#2A78D6` that `yuuka.png` is, and
+`pwa-maskable-512.png` is the whole 648px canvas, since Android's safe zone is
+stricter than a maskable icon's.
+
+**The local copy is a cache, and losing it costs nothing.** `lib/cache.ts` keeps
+it in `localStorage` under `yuuka.cache.*`, and every function there is
+best-effort and never throws — blocked storage, a full quota or a corrupt entry
+all read as "nothing saved", and the store loads as it always did. A full quota
+drops the oldest entries first. Entries carry a version (`VERSION`); bump it when
+a stored shape changes and older ones read as missing.
+
+Each store follows the same shape: on `load`, show the copy if there is one, ask
+the API, replace what is on screen with the answer and write it back. Three rules
+keep that honest:
+
+- **Only an unreachable API is forgiven.** A failure with `ApiError.status === 0`
+  (`isNetworkError`; `request()` turns a failed `fetch` into it) leaves the copy
+  on screen without an error. An answer from the API — a 500, a 404 — is still
+  reported, because then the copy is not merely out of date, it is contradicted.
+  With nothing to show, nothing is forgiven.
+- **A copy on screen is not a fresh one.** The stores track that the API has
+  answered (`synced` in `ledger`/`subscriptions`, `freshFor` in `budget`)
+  separately from having something to show, so a copy shown offline is fetched
+  again next time rather than treated as loaded.
+- **Snapshots are bounded and dropped after writes.** Summaries are kept per month
+  and transaction pages per filter set — first page only, never what "load more"
+  appended — each family capped by `writeCache`'s `keep`. `budget.refresh()` and
+  `transactions.refresh()` are what every write already calls, and once the API
+  has answered they drop the other snapshots: a write can move figures in a month
+  or filter the person is not looking at, and only the API knows.
+
+Writes are not queued. There is no offline outbox, as in the Android app: a
+write goes to the API first and fails with "Network error" when offline, and the
+copy only ever changes by what the API returned. `App.vue` shows an offline strip
+(`lib/online.ts`, a hint only — nothing decides on `navigator.onLine`) and runs
+`fullSync` (`lib/sync.ts`) when the browser reports a connection again, which
+fetches whatever is already loaded and leaves anything unopened alone.
+
+The copy holds one person's books, so it is bound to them. The router guard calls
+`adoptCacheFor(sub)` once the session has settled, which clears it when a
+different person (or nobody identifiable) has signed in, and `signOut` and the
+401 handler in `main.ts` clear it outright. Payee suggestions are not kept: they
+are typing-driven, and saving needs the API anyway.
 
 ## Money helpers
 
@@ -178,8 +252,9 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-408 tests: 333 against the API in `test/`, 75 over the browser helpers as
-`*.spec.ts` beside the code they cover.
+456 tests: 333 against the API in `test/`, 123 over the browser helpers as
+`*.spec.ts` beside the code they cover. `src/testing/memoryStorage.ts` gives a
+spec an in-memory `localStorage` to install — Node's own needs a backing file.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the
 same Hono app the Worker ships, `server/index.ts` being its `main`, so routing is

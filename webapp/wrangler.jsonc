@@ -25,10 +25,13 @@
 	"routes": [{ "pattern": "yuuka.gavenda.dev", "custom_domain": true }],
 	"assets": {
 		"directory": "dist",
-		// Assets are served first by default, and a miss on a `/api/*` path would
-		// otherwise be answered with the SPA shell below instead of reaching the
-		// Worker. Listing the API here runs the Worker first for those paths only;
-		// every other request is still served straight from the assets.
+		// Without this, whether a request reaches the Worker is decided by its
+		// `Sec-Fetch-Mode: navigate` header: a browser navigation to a `/api/*` path
+		// would be answered with the SPA shell below, while the app's own `fetch()`
+		// calls would still get through. Listing the API here drops that detection,
+		// so those paths always reach the Worker — the same JSON whether opened in
+		// the address bar or called from code, and a JSON 404 for an unknown one.
+		// Every other request is still served straight from the assets.
 		"run_worker_first": ["/api/*"],
 		// Client-side routing: hand every path that is not a file to the SPA shell.
 		"not_found_handling": "single-page-application",

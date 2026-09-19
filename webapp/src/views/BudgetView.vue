@@ -103,10 +103,8 @@ async function commitIncome(): Promise<void> {
 	}
 }
 
-onMounted(async () => {
-	await ledger.load();
-	await budget.load();
-});
+// Together, so the summary's saved copy is not held back by the ledger's round trip.
+onMounted(() => Promise.all([ledger.load(), budget.load()]));
 </script>
 
 <template>

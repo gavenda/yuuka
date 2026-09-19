@@ -2,10 +2,46 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
-	plugins: [vue(), tailwindcss()],
+	plugins: [
+		vue(),
+		tailwindcss(),
+		VitePWA({
+			// A new build waits until the person takes it (see src/lib/pwa.ts) rather than
+			// reloading the page under them.
+			registerType: 'prompt',
+			// Registered from src/lib/pwa.ts, after the app has mounted.
+			injectRegister: false,
+			manifest: {
+				name: 'Yuuka',
+				short_name: 'yuuka',
+				description: 'Personal budgeting and financial tracking.',
+				start_url: '/',
+				scope: '/',
+				display: 'standalone',
+				// The same as the <meta name="theme-color"> in index.html and the page's light background.
+				theme_color: '#059669',
+				background_color: '#f8fafc',
+				icons: [
+					{ src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+					{ src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+					{ src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+				],
+			},
+			workbox: {
+				// The whole app shell, lazy route chunks included, so any screen opens offline.
+				globPatterns: ['**/*.{js,css,html,png,webmanifest}'],
+				// A navigation is answered with the cached shell — the router takes it from there — but
+				// never for the API, which is not a page.
+				navigateFallback: '/index.html',
+				navigateFallbackDenylist: [/^\/api\//],
+				cleanupOutdatedCaches: true,
+			},
+		}),
+	],
 	// The footer's version tag reads this rather than duplicating the number
 	// in an env var, so it can never drift from what actually shipped.
 	define: {

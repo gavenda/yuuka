@@ -1,12 +1,41 @@
-import { api } from '@/lib/api';
+import { api, isNetworkError } from '@/lib/api';
+import { readCache, writeCache } from '@/lib/cache';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Account, AccountType, Category, RoundUpRule, Settings } from '@/types';
 
+const CACHE_KEY = 'ledger';
+
+/** Everything the store holds, as kept in the browser's local copy. */
+interface LedgerSnapshot {
+	accounts: Account[];
+	accountTypes: AccountType[];
+	categories: Category[];
+	settings: Settings;
+	roundUpRule: RoundUpRule;
+}
+
+function isLedgerSnapshot(data: unknown): data is LedgerSnapshot {
+	const snapshot = data as Partial<LedgerSnapshot> | null;
+	return (
+		Array.isArray(snapshot?.accounts) &&
+		Array.isArray(snapshot.accountTypes) &&
+		Array.isArray(snapshot.categories) &&
+		typeof snapshot.settings === 'object' &&
+		snapshot.settings !== null &&
+		typeof snapshot.roundUpRule === 'object' &&
+		snapshot.roundUpRule !== null
+	);
+}
+
 /**
  * Accounts and categories change rarely but are needed by nearly every view, so
  * they are loaded once and shared rather than refetched per screen.
+ *
+ * The first `load` paints from the browser's local copy, then replaces it with
+ * what the API says: the API is the source of truth, and the copy is only what
+ * was last seen. Every refresh that succeeds rewrites the copy.
  */
 export const useLedgerStore = defineStore('ledger', () => {
 	const accounts = ref<Account[]>([]);
@@ -14,8 +43,11 @@ export const useLedgerStore = defineStore('ledger', () => {
 	const categories = ref<Category[]>([]);
 	const settings = ref<Settings | null>(null);
 	const roundUpRule = ref<RoundUpRule | null>(null);
+	/** Whether there is a ledger to show — from the API, or from the local copy while it is out of reach. */
 	const loaded = ref(false);
 	const loading = ref(false);
+	/** Whether the API has answered since this page opened, which is what stops `load` fetching again. */
+	let synced = false;
 
 	const activeAccounts = computed(() => accounts.value.filter((account) => !account.archived));
 	const activeAccountTypes = computed(() => accountTypes.value.filter((type) => !type.archived));
@@ -67,8 +99,35 @@ export const useLedgerStore = defineStore('ledger', () => {
 
 	const netWorth = computed(() => activeAccounts.value.reduce((total, account) => total + account.balance, 0));
 
+	/** Shows the local copy, if there is one. */
+	function hydrate(): void {
+		const snapshot = readCache(CACHE_KEY, isLedgerSnapshot);
+		if (!snapshot) return;
+
+		accounts.value = snapshot.accounts;
+		accountTypes.value = snapshot.accountTypes;
+		categories.value = snapshot.categories;
+		settings.value = snapshot.settings;
+		roundUpRule.value = snapshot.roundUpRule;
+		loaded.value = true;
+	}
+
+	/** Rewrites the local copy from what is on screen. Every assignment from the API ends here. */
+	function persist(): void {
+		if (!loaded.value || !settings.value || !roundUpRule.value) return;
+
+		writeCache(CACHE_KEY, {
+			accounts: accounts.value,
+			accountTypes: accountTypes.value,
+			categories: categories.value,
+			settings: settings.value,
+			roundUpRule: roundUpRule.value,
+		} satisfies LedgerSnapshot);
+	}
+
 	async function load(force = false): Promise<void> {
-		if (loaded.value && !force) return;
+		if (!loaded.value) hydrate();
+		if (synced && !force) return;
 		loading.value = true;
 
 		try {
@@ -85,6 +144,11 @@ export const useLedgerStore = defineStore('ledger', () => {
 			settings.value = settingsResponse.settings;
 			roundUpRule.value = roundUpResponse.roundUpRule;
 			loaded.value = true;
+			synced = true;
+			persist();
+		} catch (caught) {
+			// Out of reach with a copy on screen: keep showing it. A later load tries again.
+			if (!loaded.value || !isNetworkError(caught)) throw caught;
 		} finally {
 			loading.value = false;
 		}
@@ -95,20 +159,24 @@ export const useLedgerStore = defineStore('ledger', () => {
 		const [accountsResponse, typesResponse] = await Promise.all([api.listAccounts(true), api.listAccountTypes(true)]);
 		accounts.value = accountsResponse.accounts;
 		accountTypes.value = typesResponse.accountTypes;
+		persist();
 	}
 
 	async function refreshCategories(): Promise<void> {
 		categories.value = (await api.listCategories(true)).categories;
+		persist();
 	}
 
 	async function updateSettings(input: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
 		settings.value = (await api.updateSettings(input)).settings;
+		persist();
 	}
 
 	async function updateRoundUpRule(
 		input: Partial<Pick<RoundUpRule, 'enabled' | 'roundTo' | 'destinationAccountId' | 'categoryId'>>,
 	): Promise<void> {
 		roundUpRule.value = (await api.updateRoundUpRule(input)).roundUpRule;
+		persist();
 	}
 
 	function reset(): void {
@@ -118,6 +186,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		accountTypes.value = [];
 		categories.value = [];
 		loaded.value = false;
+		synced = false;
 	}
 
 	return {

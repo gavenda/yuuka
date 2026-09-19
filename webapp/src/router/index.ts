@@ -1,4 +1,5 @@
 import { auth0, whenAuthReady } from '@/lib/auth0';
+import { adoptCacheFor } from '@/lib/cache';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
@@ -28,6 +29,9 @@ router.beforeEach(async (to) => {
 	// redirected back to the root with a `code`, to finish exchanging it. Acting
 	// before that settles would bounce an arriving or reloading user to sign-in.
 	await whenAuthReady();
+
+	// The local copy belongs to one person. Settle whose it is before any view reads it.
+	if (auth0.isAuthenticated.value) adoptCacheFor(auth0.user.value?.sub);
 
 	if (!to.meta.public && !auth0.isAuthenticated.value) {
 		return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };

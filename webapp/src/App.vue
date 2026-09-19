@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import ModalDialog from '@/components/ModalDialog.vue';
 import SettingsDialog from '@/components/SettingsDialog.vue';
+import { clearCache } from '@/lib/cache';
+import { isOnline } from '@/lib/online';
 import { useAmountVisibility } from '@/lib/privacy';
+import { applyUpdate, updateReady } from '@/lib/pwa';
+import { fullSync } from '@/lib/sync';
 import { useTheme } from '@/lib/theme';
 import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
@@ -47,11 +51,13 @@ async function signOut(): Promise<void> {
 	userMenuOpen.value = false;
 
 	// Clear cached data first: logging out navigates away to Auth0, and the next
-	// sign-in should not briefly show the previous session's books.
+	// sign-in should not briefly show the previous session's books. That includes
+	// the copy kept in the browser, which would otherwise outlast the session.
 	ledger.reset();
 	budget.reset();
 	transactions.reset();
 	subscriptions.reset();
+	clearCache();
 
 	// Ends the Auth0 session too, not just the local one.
 	await logout({ logoutParams: { returnTo: window.location.origin } });
@@ -73,8 +79,19 @@ watch(isAuthenticated, (authenticated) => {
 	}
 });
 
-onMounted(() => document.addEventListener('click', onClickOutsideUserMenu));
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMenu));
+// Coming back online is the cue to catch up on whatever was showing a saved copy.
+function onBackOnline(): void {
+	if (isAuthenticated.value) void fullSync();
+}
+
+onMounted(() => {
+	document.addEventListener('click', onClickOutsideUserMenu);
+	window.addEventListener('online', onBackOnline);
+});
+onBeforeUnmount(() => {
+	document.removeEventListener('click', onClickOutsideUserMenu);
+	window.removeEventListener('online', onBackOnline);
+});
 </script>
 
 <template>
@@ -219,6 +236,26 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutsideUserMe
 				</div>
 			</div>
 		</header>
+
+		<!-- Everything on screen is the copy this browser last saved; the API is what changes are
+		     made against, so say so rather than letting a failed save be the first hint. -->
+		<p
+			v-if="showShell && !isLoading && !isOnline"
+			role="status"
+			class="border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+		>
+			You're offline. Showing what was last saved; changes need a connection.
+		</p>
+
+		<!-- A new build is waiting. Taking it reloads the page, so it is offered, not forced. -->
+		<div
+			v-if="showShell && !isLoading && updateReady"
+			role="status"
+			class="flex items-center justify-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-1.5 text-xs text-blue-800 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
+		>
+			A new version is ready.
+			<button type="button" class="cursor-pointer font-semibold underline underline-offset-2" @click="applyUpdate">Reload</button>
+		</div>
 
 		<!-- On a cold load the SDK is still restoring the session, or exchanging
 		     the code Auth0 just redirected back with; the router is waiting on it,

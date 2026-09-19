@@ -8,6 +8,10 @@ import { ref } from 'vue';
  */
 const isAuthenticated = ref(false);
 const isLoading = ref(false);
+const user = ref<{ sub: string } | undefined>(undefined);
+const adoptCacheFor = vi.fn();
+
+vi.mock('@/lib/cache', () => ({ adoptCacheFor }));
 
 vi.mock('@/lib/auth0', () => ({
 	auth0: {
@@ -16,6 +20,9 @@ vi.mock('@/lib/auth0', () => ({
 		},
 		get isLoading() {
 			return isLoading;
+		},
+		get user() {
+			return user;
 		},
 	},
 	whenAuthReady: async () => {
@@ -30,11 +37,18 @@ const { router } = await import('./index');
 beforeEach(async () => {
 	isAuthenticated.value = false;
 	isLoading.value = false;
+	user.value = undefined;
+	adoptCacheFor.mockClear();
 	await router.replace('/login');
 	await router.isReady();
 });
 
 describe('signed out', () => {
+	it('leaves the local copy of the ledger alone', async () => {
+		await router.push('/budget');
+		expect(adoptCacheFor).not.toHaveBeenCalled();
+	});
+
 	it('sends every protected route to the sign-in screen', async () => {
 		for (const path of ['/', '/transactions', '/budget', '/accounts', '/categories', '/subscriptions']) {
 			await router.push(path);
@@ -61,6 +75,12 @@ describe('signed out', () => {
 describe('signed in', () => {
 	beforeEach(() => {
 		isAuthenticated.value = true;
+		user.value = { sub: 'auth0|a' };
+	});
+
+	it('ties the local copy of the ledger to the person who is signed in', async () => {
+		await router.push('/budget');
+		expect(adoptCacheFor).toHaveBeenCalledWith('auth0|a');
 	});
 
 	it('allows the protected routes', async () => {
