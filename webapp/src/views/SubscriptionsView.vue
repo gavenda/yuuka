@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import PayeeInput from '@/components/PayeeInput.vue';
 import { api, ApiError } from '@/lib/api';
+import { showSnackbar } from '@/lib/snackbar';
 import { formatLongDate } from '@/lib/dates';
 import { parseMoney, toDecimalString } from '@/lib/money';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
@@ -14,6 +17,11 @@ import type { Payee, Subscription } from '@/types';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 type Direction = 'expense' | 'income';
+
+const DIRECTIONS: { value: Direction; label: string }[] = [
+	{ value: 'expense', label: 'Expense' },
+	{ value: 'income', label: 'Income' },
+];
 
 const ledger = useLedgerStore();
 const store = useSubscriptionStore();
@@ -138,6 +146,7 @@ async function submit(): Promise<void> {
 		else await api.createSubscription(payload);
 
 		dialogOpen.value = false;
+		showSnackbar(editing.value ? 'Changes saved' : 'Subscription added');
 		await store.refresh();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the subscription.';
@@ -160,6 +169,7 @@ async function remove(subscription: Subscription): Promise<void> {
 
 	try {
 		await api.deleteSubscription(subscription.id);
+		showSnackbar('Subscription deleted');
 		await store.refresh();
 	} catch (caught) {
 		store.error = caught instanceof ApiError ? caught.message : 'Could not delete the subscription.';
@@ -169,23 +179,17 @@ async function remove(subscription: Subscription): Promise<void> {
 
 <template>
 	<div class="space-y-5">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<div>
-				<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Subscriptions</h1>
-				<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-					Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.
-				</p>
-			</div>
-			<button type="button" class="btn-primary" :disabled="!ledger.activeAccounts.length" @click="openCreate">Add subscription</button>
-		</header>
+		<p class="text-sm text-on-surface-variant">
+			Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.
+		</p>
 
-		<p v-if="store.subscriptions.length" class="text-sm text-slate-600 dark:text-slate-400">
+		<p v-if="store.subscriptions.length" class="text-sm text-on-surface-variant">
 			Total per month
-			<MoneyText :amount="total" :currency="ledger.displayCurrency" signed explicit class="ml-1 text-base font-semibold" />
+			<MoneyText :amount="total" :currency="ledger.displayCurrency" signed explicit class="ml-1 text-base font-medium" />
 			<template v-if="pausedCount"> · {{ pausedCount }} paused, not counted</template>
 		</p>
 
-		<p v-if="store.error" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+		<p v-if="store.error" class="banner-error" role="alert">
 			{{ store.error }}
 		</p>
 
@@ -205,7 +209,7 @@ async function remove(subscription: Subscription): Promise<void> {
 				:class="subscription.enabled ? '' : 'opacity-70'"
 			>
 				<div class="min-w-0 flex-1">
-					<p class="flex min-w-0 items-center gap-2 font-medium text-slate-900 dark:text-white">
+					<p class="flex min-w-0 items-center gap-2 font-medium text-on-surface">
 						<span
 							class="h-2.5 w-2.5 shrink-0 rounded-full"
 							:style="{ backgroundColor: subscription.categoryColor ?? '#898781' }"
@@ -214,13 +218,13 @@ async function remove(subscription: Subscription): Promise<void> {
 						<span class="truncate">{{ subscription.payee }}</span>
 						<span
 							v-if="!subscription.enabled"
-							class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+							class="shrink-0 rounded bg-surface-container-high px-1.5 py-0.5 text-xs font-normal text-on-surface-variant"
 						>
 							Paused
 						</span>
 					</p>
 
-					<p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-0.5 truncate text-xs text-on-surface-variant">
 						{{ subscription.accountName }}<template v-if="subscription.categoryName"> · {{ subscription.categoryName }}</template>
 					</p>
 
@@ -229,10 +233,10 @@ async function remove(subscription: Subscription): Promise<void> {
 						:currency="currencyOf(subscription)"
 						signed
 						explicit
-						class="mt-2 block text-lg font-semibold"
+						class="mt-2 block text-lg font-medium"
 					/>
 
-					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-1 text-xs text-on-surface-variant">
 						{{ scheduleLabel(subscription.dayOfMonth)
 						}}<template v-if="subscription.enabled"> · next {{ formatLongDate(subscription.nextRunOn) }}</template>
 					</p>
@@ -252,32 +256,22 @@ async function remove(subscription: Subscription): Promise<void> {
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit subscription' : 'New subscription'" @close="dialogOpen = false">
 			<form class="space-y-4" @submit.prevent="submit">
-				<div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-					<button
-						v-for="option in ['expense', 'income'] as Direction[]"
-						:key="option"
-						type="button"
-						class="rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors"
-						:class="
-							form.direction === option
-								? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
-								: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-						"
-						@click="setDirection(option)"
-					>
-						{{ option }}
-					</button>
-				</div>
+				<ConnectedButtonGroup
+					:model-value="form.direction"
+					label="Kind of subscription"
+					:options="DIRECTIONS"
+					@update:model-value="setDirection"
+				/>
 
 				<PayeeInput v-model="form.payee" label="Payee" placeholder="Who gets paid, e.g. Netflix" @select="applyPayee" />
 
-				<div>
+				<div class="field">
 					<label class="label" for="subscription-amount">Amount</label>
 					<input id="subscription-amount" v-model="form.amount" class="input tabular" inputmode="decimal" placeholder="0.00" required />
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
-					<div>
+					<div class="field">
 						<label class="label" for="subscription-account">Account</label>
 						<select id="subscription-account" v-model="form.accountId" class="input" required>
 							<option value="" disabled>Select an account</option>
@@ -285,7 +279,7 @@ async function remove(subscription: Subscription): Promise<void> {
 						</select>
 					</div>
 
-					<div>
+					<div class="field">
 						<label class="label" for="subscription-category">Category</label>
 						<select id="subscription-category" v-model="form.categoryId" class="input">
 							<option value="">Uncategorized</option>
@@ -297,7 +291,7 @@ async function remove(subscription: Subscription): Promise<void> {
 					</div>
 				</div>
 
-				<div>
+				<div class="field">
 					<label class="label" for="subscription-start">{{ editing ? 'Next posts on' : 'Starts on' }}</label>
 					<input
 						id="subscription-start"
@@ -307,28 +301,30 @@ async function remove(subscription: Subscription): Promise<void> {
 						:min="editing && editing.nextRunOn < earliest ? undefined : earliest"
 						required
 					/>
-					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-1 text-xs text-on-surface-variant">
 						Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.
 						<template v-if="editing">Changing the date restarts the schedule from it.</template>
 					</p>
 				</div>
 
-				<div>
+				<div class="field">
 					<label class="label" for="subscription-notes">Notes</label>
 					<input id="subscription-notes" v-model="form.notes" class="input" placeholder="Optional" />
 				</div>
 
-				<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+				<p v-if="error" class="banner-error" role="alert">
 					{{ error }}
 				</p>
 
 				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-secondary" @click="dialogOpen = false">Cancel</button>
+					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
 					<button type="submit" class="btn-primary" :disabled="submitting">
 						{{ editing ? 'Save changes' : 'Add subscription' }}
 					</button>
 				</div>
 			</form>
 		</ModalDialog>
+
+		<FabButton label="Add subscription" :disabled="!ledger.activeAccounts.length" @click="openCreate" />
 	</div>
 </template>

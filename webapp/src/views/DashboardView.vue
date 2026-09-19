@@ -40,16 +40,11 @@ watch(
 
 <template>
 	<div class="space-y-6">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+		<header>
 			<MonthSwitcher v-model="month" />
 		</header>
 
-		<p
-			v-if="budget.error"
-			class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
-			role="alert"
-		>
+		<p v-if="budget.error" class="banner-error" role="alert">
 			{{ budget.error }}
 		</p>
 
@@ -84,15 +79,13 @@ watch(
 
 			<section class="card p-5">
 				<header class="mb-4 flex items-center justify-between">
-					<h2 class="text-sm font-semibold text-slate-900 dark:text-white">Recent activity</h2>
-					<RouterLink to="/transactions" class="text-sm font-medium text-blue-700 hover:underline dark:text-blue-400">
-						View all
-					</RouterLink>
+					<h2 class="text-sm font-medium text-on-surface">Recent activity</h2>
+					<RouterLink to="/transactions" class="text-sm font-medium text-primary hover:underline"> View all </RouterLink>
 				</header>
 
-				<p v-if="!recent.length" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Nothing recorded this month yet.</p>
+				<p v-if="!recent.length" class="py-6 text-center text-sm text-on-surface-variant">Nothing recorded this month yet.</p>
 
-				<ul v-else class="divide-y divide-slate-100 dark:divide-slate-800/60">
+				<ul v-else class="divide-y divide-outline-variant">
 					<li
 						v-for="row in recent"
 						:key="row.kind === 'transfer' ? row.id : row.transaction.id"
@@ -100,10 +93,10 @@ watch(
 					>
 						<template v-if="row.kind === 'transfer'">
 							<div class="min-w-0">
-								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+								<p class="truncate text-sm font-medium text-on-surface">
 									{{ row.payee || `${row.fromAccountName} → ${row.toAccountName}` }}
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+								<p class="truncate text-xs text-on-surface-variant">
 									{{ [formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)].filter(Boolean).join(' · ') }} ·
 									{{ row.fromAccountName }} → {{ row.toAccountName }}
 								</p>
@@ -112,10 +105,10 @@ watch(
 						</template>
 						<template v-else>
 							<div class="min-w-0">
-								<p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+								<p class="truncate text-sm font-medium text-on-surface">
 									{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorized' }}
 								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
+								<p class="truncate text-xs text-on-surface-variant">
 									{{ [formatDate(row.transaction.occurredOn), formatTime(row.transaction.occurredOn)].filter(Boolean).join(' · ') }} ·
 									{{ row.transaction.accountName }}
 								</p>

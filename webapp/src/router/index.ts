@@ -15,6 +15,13 @@ const routes: RouteRecordRaw[] = [
 		component: () => import('@/views/SubscriptionsView.vue'),
 		meta: { title: 'Subscriptions' },
 	},
+	{ path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { title: 'Settings' } },
+	{
+		path: '/save-the-change',
+		name: 'save-the-change',
+		component: () => import('@/views/SaveTheChangeView.vue'),
+		meta: { title: 'Save the Change' },
+	},
 	{ path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 

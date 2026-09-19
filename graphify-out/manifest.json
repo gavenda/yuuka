@@ -1,8 +1,8 @@
 {
   "app/build.gradle.kts": {
-    "mtime": 1789781485.4747632,
-    "seen": 1789782497.5703073,
-    "ast_hash": "eab124647c950f29984b7fce683c6c44",
+    "mtime": 1789782835.6307962,
+    "seen": 1789784477.9407563,
+    "ast_hash": "a413b8fb8a2fb78ae91987e6bf21801c",
     "semantic_hash": ""
   },
   "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/1.json": {
@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt": {
-    "mtime": 1789781280.167769,
-    "seen": 1789781412.2662697,
-    "ast_hash": "7a8b9ad0c4fc4a78995430b205f751bb",
+    "mtime": 1789783200.758,
+    "seen": 1789784477.9415026,
+    "ast_hash": "1ab483cbed46505831a5346d0087afaa",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt": {
@@ -330,9 +330,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/MonthSwitcher.kt": {
-    "mtime": 1789751834.1114707,
-    "seen": 1789751911.4105678,
-    "ast_hash": "8bcc7a8aa690403b77c03859596a847a",
+    "mtime": 1789783866.2910903,
+    "seen": 1789784477.9418128,
+    "ast_hash": "a333e7dcb6a3535ddf4cfa4e279bdd9b",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/PayeeField.kt": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/theme/Color.kt": {
-    "mtime": 1789751419.597829,
-    "seen": 1789751472.9514391,
-    "ast_hash": "1d525ca72571febd843569984cd4293f",
+    "mtime": 1789784475.9043064,
+    "seen": 1789784477.9421072,
+    "ast_hash": "40e00db327d5b7fec93ba7e3887f084f",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/theme/Theme.kt": {
@@ -522,9 +522,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789782816.947199,
-    "seen": 1789782819.032653,
-    "ast_hash": "24eb0834592311ffb9ead5cb3ee05538",
+    "mtime": 1789782927.4889433,
+    "seen": 1789784477.9431882,
+    "ast_hash": "e76c98b11489be940d5519566e8017e2",
     "semantic_hash": ""
   },
   ".vscode/extensions.json": {
@@ -534,27 +534,27 @@
     "semantic_hash": ""
   },
   "webapp/package.json": {
-    "mtime": 1789781941.7180743,
-    "seen": 1789782497.571784,
-    "ast_hash": "b6b60de4e5b92588287baf1a82323adb",
+    "mtime": 1789782835.6315267,
+    "seen": 1789784477.9422803,
+    "ast_hash": "aab989cee9249568af37ea7e46cf2acf",
     "semantic_hash": ""
   },
   "webapp/src/App.vue": {
-    "mtime": 1789782254.423043,
-    "seen": 1789782497.5720491,
-    "ast_hash": "748b2fdc04ec35caeac65d96f14f3cc9",
+    "mtime": 1789790233.2047367,
+    "seen": 1789790260.8065846,
+    "ast_hash": "883e67e0f1e65e3c5a27b35f6a5b0869",
     "semantic_hash": ""
   },
   "webapp/src/components/AccountLogo.vue": {
-    "mtime": 1789677930.1101968,
-    "seen": 1789684275.660072,
-    "ast_hash": "10af60445037c80db55fd87b2a4e7ea3",
+    "mtime": 1789785047.9414852,
+    "seen": 1789785556.820122,
+    "ast_hash": "72280dd86cda65fad913a2cb2fe81056",
     "semantic_hash": ""
   },
   "webapp/src/components/AccountTypeManager.vue": {
-    "mtime": 1789677930.110215,
-    "seen": 1789684275.6600726,
-    "ast_hash": "8d6d0a3fd1ae7ef864674e5d4da915e4",
+    "mtime": 1789785517.7768068,
+    "seen": 1789785556.820123,
+    "ast_hash": "8ecf978ac506029010dea7371824f5d2",
     "semantic_hash": ""
   },
   "webapp/src/components/AccountWatermark.vue": {
@@ -564,87 +564,81 @@
     "semantic_hash": ""
   },
   "webapp/src/components/ActionIcon.vue": {
-    "mtime": 1789780924.7214901,
-    "seen": 1789781412.267328,
-    "ast_hash": "d54d0e16533b0bd551d7743daafb9a0a",
+    "mtime": 1789785184.4170988,
+    "seen": 1789785556.8201334,
+    "ast_hash": "fd66126aa0a6d488e41c72bf819b93b3",
     "semantic_hash": ""
   },
   "webapp/src/components/BudgetAmountEditor.vue": {
-    "mtime": 1789677930.110255,
-    "seen": 1789684275.6600738,
-    "ast_hash": "76a8ec472ef2d7dce8bcb44db5eaea19",
+    "mtime": 1789786865.7454815,
+    "seen": 1789786878.8608046,
+    "ast_hash": "926aad33d4de982ac46e426c1d9a63fd",
     "semantic_hash": ""
   },
   "webapp/src/components/BudgetMeter.vue": {
-    "mtime": 1789677930.110275,
-    "seen": 1789684275.660074,
-    "ast_hash": "7964e5c8e300ea9d205b4b9f271dffe3",
+    "mtime": 1789784435.926099,
+    "seen": 1789784477.9425697,
+    "ast_hash": "8b65560b3850bf60eb2a85769f4d5aef",
     "semantic_hash": ""
   },
   "webapp/src/components/CategoryBars.vue": {
-    "mtime": 1789677930.1102924,
-    "seen": 1789684275.6600742,
-    "ast_hash": "73de884adccb720eda8f4aa207c3e80b",
+    "mtime": 1789785175.4282846,
+    "seen": 1789785556.8201447,
+    "ast_hash": "7f71587722ad7d78881ef71c7bfa4f2d",
     "semantic_hash": ""
   },
   "webapp/src/components/EmptyState.vue": {
-    "mtime": 1789677930.1103036,
-    "seen": 1789684275.6600747,
-    "ast_hash": "8fd42d3ba3fcb6eb8270c34ffaace427",
+    "mtime": 1789785047.9422293,
+    "seen": 1789785556.8201454,
+    "ast_hash": "2b920a762bb3ac82475284859f1afae7",
     "semantic_hash": ""
   },
   "webapp/src/components/ModalDialog.vue": {
-    "mtime": 1789677930.1103172,
-    "seen": 1789684275.6600752,
-    "ast_hash": "c88ec0db5afdf4a33f5f47ba30f527db",
+    "mtime": 1789785027.19575,
+    "seen": 1789785556.820147,
+    "ast_hash": "bce3931a3ba707e9616ad58d7cae7368",
     "semantic_hash": ""
   },
   "webapp/src/components/MoneyText.vue": {
-    "mtime": 1789677930.1103294,
-    "seen": 1789684275.6600757,
-    "ast_hash": "1847307423aeb7f5a8d748d03c54f544",
+    "mtime": 1789784388.8585646,
+    "seen": 1789784477.9425714,
+    "ast_hash": "21ff61a126e045744b4a4fa1a6e9d066",
     "semantic_hash": ""
   },
   "webapp/src/components/MonthSwitcher.vue": {
-    "mtime": 1789677930.1103404,
-    "seen": 1789684275.6600761,
-    "ast_hash": "192370d23727e982b9c5218b176ae5f2",
+    "mtime": 1789785027.1959329,
+    "seen": 1789785556.8201575,
+    "ast_hash": "4d6a4bb7a7ba22a1f2c241ec83dfb869",
     "semantic_hash": ""
   },
   "webapp/src/components/PayeeInput.vue": {
-    "mtime": 1789677930.1103556,
-    "seen": 1789684275.6600764,
-    "ast_hash": "959f2bfba3a5441e4abb12c05acfea1f",
+    "mtime": 1789785184.4891005,
+    "seen": 1789785556.8201585,
+    "ast_hash": "8ada3c1eb68398874ff16ca3d32ba9a3",
     "semantic_hash": ""
   },
   "webapp/src/components/PhilippinesIncomeCalculator.vue": {
-    "mtime": 1789677930.110371,
-    "seen": 1789684275.6600769,
-    "ast_hash": "1a6d1cfa46527ef9af5523b3a242b346",
-    "semantic_hash": ""
-  },
-  "webapp/src/components/SettingsDialog.vue": {
-    "mtime": 1789738537.2530437,
-    "seen": 1789738558.6823828,
-    "ast_hash": "a2539743b362a06f718caebcf3a8f7e6",
+    "mtime": 1789785061.679353,
+    "seen": 1789785556.820159,
+    "ast_hash": "0faecba9e452c160a35bac188e2245a1",
     "semantic_hash": ""
   },
   "webapp/src/components/SpendChart.vue": {
-    "mtime": 1789677930.110371,
-    "seen": 1789684275.6600776,
-    "ast_hash": "cbd1a1ace8ac891e4befb585f05b9e0b",
+    "mtime": 1789785175.4284225,
+    "seen": 1789785556.8201609,
+    "ast_hash": "847980c438e1669f9a3a41ec1a214e82",
     "semantic_hash": ""
   },
   "webapp/src/components/StatCard.vue": {
-    "mtime": 1789677930.110409,
-    "seen": 1789684275.6600778,
-    "ast_hash": "d8608684a70b970f7193299f5e11d396",
+    "mtime": 1789785061.679605,
+    "seen": 1789785556.820161,
+    "ast_hash": "ad3ff168ebeaf98cb0d44b6ed8824af5",
     "semantic_hash": ""
   },
   "webapp/src/components/TransactionForm.vue": {
-    "mtime": 1789780977.6647289,
-    "seen": 1789781412.2674797,
-    "ast_hash": "7a78ed23f14b6c20259ab09e04d99a46",
+    "mtime": 1789786865.7456288,
+    "seen": 1789786878.8609407,
+    "ast_hash": "420a0aece56fd386ba46d2465b5fc1a8",
     "semantic_hash": ""
   },
   "webapp/src/lib/api.ts": {
@@ -666,9 +660,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/chart.ts": {
-    "mtime": 1789677930.1105006,
-    "seen": 1789684275.66008,
-    "ast_hash": "04e9d27871aacf4c0af3936e8288dfba",
+    "mtime": 1789784428.440528,
+    "seen": 1789784477.942624,
+    "ast_hash": "4774e2a683766bc2b8bc1ca6b0e1f2e0",
     "semantic_hash": ""
   },
   "webapp/src/lib/dates.spec.ts": {
@@ -702,9 +696,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/palette.ts": {
-    "mtime": 1789677930.1105006,
-    "seen": 1789684275.6600819,
-    "ast_hash": "e638c9ec657a5935f993a6bd5ea5e7b0",
+    "mtime": 1789784428.4404483,
+    "seen": 1789784477.9426823,
+    "ast_hash": "6bb45c3e67c42902b314c6e7a9bf9933",
     "semantic_hash": ""
   },
   "webapp/src/lib/payees.spec.ts": {
@@ -750,9 +744,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/transactionRows.ts": {
-    "mtime": 1789755694.3724267,
-    "seen": 1789757107.0348718,
-    "ast_hash": "c1ca5545e31625ae7575b1ab3b5639c3",
+    "mtime": 1789790474.7329898,
+    "seen": 1789790533.3198783,
+    "ast_hash": "32507ae211e38544e670f0efc32dc6a9",
     "semantic_hash": ""
   },
   "webapp/src/main.ts": {
@@ -762,9 +756,9 @@
     "semantic_hash": ""
   },
   "webapp/src/router/index.ts": {
-    "mtime": 1789782217.0691144,
-    "seen": 1789782497.5724077,
-    "ast_hash": "cc5ec1506fcf97e02f70166b2ec57a11",
+    "mtime": 1789790181.2967198,
+    "seen": 1789790260.807118,
+    "ast_hash": "0c7d7194df8eeff5f7897eb6e312f431",
     "semantic_hash": ""
   },
   "webapp/src/router/router.spec.ts": {
@@ -798,45 +792,45 @@
     "semantic_hash": ""
   },
   "webapp/src/views/AccountsView.vue": {
-    "mtime": 1789782587.214,
-    "seen": 1789782819.0323303,
-    "ast_hash": "347c60580b0cf5c004dc719a3c2e8d1e",
+    "mtime": 1789786713.6094167,
+    "seen": 1789786732.7433705,
+    "ast_hash": "ea37b4d2edf28f99a6838e221d178afb",
     "semantic_hash": ""
   },
   "webapp/src/views/BudgetView.vue": {
-    "mtime": 1789782266.434621,
-    "seen": 1789782497.57243,
-    "ast_hash": "257a1fb96279c107ef7be7eb018ebbff",
+    "mtime": 1789786865.7459433,
+    "seen": 1789786878.8613622,
+    "ast_hash": "24d75f74d0573b526d9265dd8a9bf88a",
     "semantic_hash": ""
   },
   "webapp/src/views/CategoriesView.vue": {
-    "mtime": 1789677930.1108723,
-    "seen": 1789684275.6600888,
-    "ast_hash": "4132ac846043eac0256b9b2bd9c6e368",
+    "mtime": 1789786713.6091459,
+    "seen": 1789786732.743381,
+    "ast_hash": "76ddfac30b515f0c8ed451a86836bf9e",
     "semantic_hash": ""
   },
   "webapp/src/views/DashboardView.vue": {
-    "mtime": 1789755946.1927214,
-    "seen": 1789757107.0349603,
-    "ast_hash": "947637ffc761c8973ff1752b8b8db41f",
+    "mtime": 1789785175.4277062,
+    "seen": 1789785556.8205316,
+    "ast_hash": "55e69470e81c57fac9ef48bba0067879",
     "semantic_hash": ""
   },
   "webapp/src/views/LoginView.vue": {
-    "mtime": 1789677930.1109073,
-    "seen": 1789684275.66009,
-    "ast_hash": "69e583518222622585e5352f8a26717b",
+    "mtime": 1789785047.944082,
+    "seen": 1789785556.8205323,
+    "ast_hash": "0c48d94cd2906c8dea49caccc6221d1a",
     "semantic_hash": ""
   },
   "webapp/src/views/NotConfiguredView.vue": {
-    "mtime": 1789677930.1109285,
-    "seen": 1789684275.6600902,
-    "ast_hash": "6219ab213e385444cdc57691b78eb917",
+    "mtime": 1789785047.9441557,
+    "seen": 1789785556.8205326,
+    "ast_hash": "73f0b1c42ebec19df5eff0042533b22d",
     "semantic_hash": ""
   },
   "webapp/src/views/TransactionsView.vue": {
-    "mtime": 1789782266.4344265,
-    "seen": 1789782497.5724773,
-    "ast_hash": "238f363394f9544452c918e823cd0159",
+    "mtime": 1789790494.8392417,
+    "seen": 1789790533.3200648,
+    "ast_hash": "b2bfa04d6d6d048af32a0f629ca9aecb",
     "semantic_hash": ""
   },
   "webapp/src/vite-env.d.ts": {
@@ -966,9 +960,9 @@
     "semantic_hash": ""
   },
   "webapp/vite.config.ts": {
-    "mtime": 1789782254.4231887,
-    "seen": 1789782497.5726855,
-    "ast_hash": "0e119d5d3922937c4b306d435ced460c",
+    "mtime": 1789784435.5660667,
+    "seen": 1789784477.9431534,
+    "ast_hash": "b4bac5cfe8f241c5273309c4a2cf050e",
     "semantic_hash": ""
   },
   "webapp/vitest.config.ts": {
@@ -990,9 +984,9 @@
     "semantic_hash": ""
   },
   "webapp/CLAUDE.md": {
-    "mtime": 1789782816.9474108,
-    "seen": 1789782819.0326536,
-    "ast_hash": "029dec8dc8154bdc62ce9afe46c9f383",
+    "mtime": 1789790258.4145694,
+    "seen": 1789790260.8075647,
+    "ast_hash": "5edb18768bb03332a78d1323582be0d2",
     "semantic_hash": ""
   },
   "webapp/README.md": {
@@ -1002,9 +996,9 @@
     "semantic_hash": ""
   },
   "webapp/index.html": {
-    "mtime": 1789779680.0562725,
-    "seen": 1789781412.2680655,
-    "ast_hash": "b7d5ec64efda8a515f81defdb3427d0f",
+    "mtime": 1789784428.4405801,
+    "seen": 1789784477.9431975,
+    "ast_hash": "1d09a6ed3a4e4f71a9d04b6dce7d2cdf",
     "semantic_hash": ""
   },
   "webapp/public/yuuka.png": {
@@ -1164,9 +1158,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/transactionRows.spec.ts": {
-    "mtime": 1789755694.5734303,
-    "seen": 1789757107.0348709,
-    "ast_hash": "daedf4df726f633d5b6bcf4418b1e0d8",
+    "mtime": 1789790475.399999,
+    "seen": 1789790533.3198779,
+    "ast_hash": "e1e1862bc277d387b49eeedd26eddfbc",
     "semantic_hash": ""
   },
   "webapp/server/auth0.ts": {
@@ -1422,9 +1416,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/SubscriptionsView.vue": {
-    "mtime": 1789782745.624264,
-    "seen": 1789782819.0323803,
-    "ast_hash": "f3235157d4793354e3115a80c4ea7a56",
+    "mtime": 1789786865.7460546,
+    "seen": 1789786878.861401,
+    "ast_hash": "966e0ba25901947b81dda48c085769e7",
     "semantic_hash": ""
   },
   "webapp/test/subscriptions.spec.ts": {
@@ -1515,6 +1509,90 @@
     "mtime": 1789781941.837075,
     "seen": 1789782497.5728734,
     "ast_hash": "0a543c070de77565bdeb96722355ffa1",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/ui/common/MonthPickerDialog.kt": {
+    "mtime": 1789783860.4290216,
+    "seen": 1789784477.9418118,
+    "ast_hash": "78cce98c4009169335a32329f31cfb08",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/FabButton.vue": {
+    "mtime": 1789790181.2965567,
+    "seen": 1789790260.8066843,
+    "ast_hash": "8db591030aa136f65f93fd9ee6e04342",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/NavDestination.vue": {
+    "mtime": 1789787954.83349,
+    "seen": 1789788063.231806,
+    "ast_hash": "4162d7be527abaf86dfafd7c5bebc688",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/SnackbarHost.vue": {
+    "mtime": 1789785952.3724647,
+    "seen": 1789786026.1006846,
+    "ast_hash": "888bf9dff2d93ec3f325f5e45f1e9a0d",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/snackbar.spec.ts": {
+    "mtime": 1789784974.7610872,
+    "seen": 1789785556.820356,
+    "ast_hash": "cb18124e4fff0f68ddf395b9938978e8",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/snackbar.ts": {
+    "mtime": 1789785196.085052,
+    "seen": 1789785556.8203564,
+    "ast_hash": "4b0ad8e8802d142e0b633dd9affe1faa",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/NavRail.vue": {
+    "mtime": 1789790232.8617816,
+    "seen": 1789790260.8067272,
+    "ast_hash": "babeae0d3cef1a45f829624387e51a7b",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/rail.ts": {
+    "mtime": 1789785943.2782004,
+    "seen": 1789786026.100906,
+    "ast_hash": "e9f6e175aebfbba60281301ece6cd4f2",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/fab.ts": {
+    "mtime": 1789790181.2965133,
+    "seen": 1789790260.8068771,
+    "ast_hash": "908785c5613c96794c6a624098123f8f",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/icons.ts": {
+    "mtime": 1789790474.745288,
+    "seen": 1789790533.3196692,
+    "ast_hash": "1aa8b74c09158bdb01d9be4ae5355051",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/ConnectedButtonGroup.vue": {
+    "mtime": 1789786865.7450793,
+    "seen": 1789786878.860825,
+    "ast_hash": "fd05edaea195482f97a92eab0636c849",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/RailItem.vue": {
+    "mtime": 1789787954.8228247,
+    "seen": 1789788063.2318287,
+    "ast_hash": "fa805c4f36ad5c21ae495aee8c09dd02",
+    "semantic_hash": ""
+  },
+  "webapp/src/views/SaveTheChangeView.vue": {
+    "mtime": 1789790181.3006158,
+    "seen": 1789790260.8072581,
+    "ast_hash": "81a1c78c5deaeee7fe7956df1bddfae5",
+    "semantic_hash": ""
+  },
+  "webapp/src/views/SettingsView.vue": {
+    "mtime": 1789790181.30006,
+    "seen": 1789790260.807259,
+    "ast_hash": "9422888a0227584ff1aefe2585d962e1",
     "semantic_hash": ""
   }
 }

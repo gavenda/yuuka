@@ -24,11 +24,11 @@ const formatted = computed(() => {
 });
 
 const tone = computed(() => {
-	if (props.transfer) return 'text-blue-700 dark:text-blue-400';
-	if (!props.signed) return 'text-slate-900 dark:text-slate-100';
-	if (props.amount > 0) return 'text-emerald-700 dark:text-emerald-400';
-	if (props.amount < 0) return 'text-rose-700 dark:text-rose-400';
-	return 'text-slate-500 dark:text-slate-400';
+	if (props.transfer) return 'text-primary';
+	if (!props.signed) return 'text-on-surface';
+	if (props.amount > 0) return 'text-positive';
+	if (props.amount < 0) return 'text-error';
+	return 'text-on-surface-variant';
 });
 </script>
 

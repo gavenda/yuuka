@@ -4,7 +4,136 @@
    toggle, which falls back to the OS preference on first visit. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
+.dark {
+	--color-primary: #a8c8ff;
+	--color-on-primary: #003062;
+	--color-primary-container: #00468a;
+	--color-on-primary-container: #d5e3ff;
+	--color-secondary: #bdc7dc;
+	--color-on-secondary: #273141;
+	--color-secondary-container: #3e4758;
+	--color-on-secondary-container: #d9e3f8;
+	--color-tertiary: #dbbce1;
+	--color-on-tertiary: #3e2845;
+	--color-tertiary-container: #563e5d;
+	--color-on-tertiary-container: #f8d8fe;
+	--color-error: #ffb4ab;
+	--color-on-error: #690005;
+	--color-error-container: #93000a;
+	--color-on-error-container: #ffb4ab;
+	--color-surface: #121316;
+	--color-on-surface: #e3e2e6;
+	--color-surface-variant: #43474e;
+	--color-on-surface-variant: #c4c6cf;
+	--color-surface-dim: #121316;
+	--color-surface-bright: #38393c;
+	--color-surface-container-lowest: #0d0e11;
+	--color-surface-container-low: #1a1c1e;
+	--color-surface-container: #1e2023;
+	--color-surface-container-high: #292a2d;
+	--color-surface-container-highest: #343538;
+	--color-outline: #8e9099;
+	--color-outline-variant: #43474e;
+	--color-inverse-surface: #e3e2e6;
+	--color-inverse-on-surface: #2f3033;
+	--color-inverse-primary: #005eb4;
+	--color-positive: #61dcb0;
+	--color-warning: #ffb77c;
+	color-scheme: dark;
+}
+
+/* The Android app's Material 3 scheme (`ui/theme/Color.kt`, `ExtendedColors.kt`),
+   role for role: the tonal-spot set generated from the brand blue #2A78D6.
+   Regenerate the whole set from a new seed rather than editing single roles,
+   and keep the two in step. The `.dark` block below replaces the same
+   variables, so a utility such as `bg-surface` follows the theme with no
+   `dark:` variant. `positive` and `warning` are the extended roles the scheme
+   has no slot for; negative is `error` and a transfer is `primary`. */
+@theme static {
+	--color-primary: #005eb4;
+	--color-on-primary: #ffffff;
+	--color-primary-container: #d5e3ff;
+	--color-on-primary-container: #001b3c;
+	--color-secondary: #555f71;
+	--color-on-secondary: #ffffff;
+	--color-secondary-container: #d9e3f8;
+	--color-on-secondary-container: #121c2b;
+	--color-tertiary: #6f5675;
+	--color-on-tertiary: #ffffff;
+	--color-tertiary-container: #f8d8fe;
+	--color-on-tertiary-container: #28132f;
+	--color-error: #ba1a1a;
+	--color-on-error: #ffffff;
+	--color-error-container: #ffdad6;
+	--color-on-error-container: #410002;
+	--color-surface: #faf9fd;
+	--color-on-surface: #1a1c1e;
+	--color-surface-variant: #e0e2ec;
+	--color-on-surface-variant: #43474e;
+	--color-surface-dim: #dad9dd;
+	--color-surface-bright: #faf9fd;
+	--color-surface-container-lowest: #ffffff;
+	--color-surface-container-low: #f4f3f7;
+	--color-surface-container: #eeedf1;
+	--color-surface-container-high: #e9e7eb;
+	--color-surface-container-highest: #e3e2e6;
+	--color-outline: #74777f;
+	--color-outline-variant: #c4c6cf;
+	--color-inverse-surface: #2f3033;
+	--color-inverse-on-surface: #f1f0f4;
+	--color-inverse-primary: #a8c8ff;
+	--color-positive: #006c50;
+	--color-warning: #b46200;
+	--color-scrim: #000000;
+
+	/* Shape: the M3 corner scale. `rounded-full` is the scale's "full". */
+	--radius-xs: 4px;
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
+	--radius-xl: 28px;
+
+	/* Elevation: levels 1 to 3 of the M3 shadow pairs. Tonal surface colour does
+	   the rest of the work, so shadows stay light. */
+	--shadow-elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+	--shadow-elevation-2: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+	--shadow-elevation-3: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+
+	/* Motion: the M3 easing curves. Everything transitions on "standard" by default. */
+	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
+	--ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+	--ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+	--ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+	--ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+	--default-transition-duration: 200ms;
+	--default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+
+	/* Type: Tailwind's size names sit on the M3 scale. xs is body small, sm body
+	   medium, base body large, xl title large, 2xl headline small, 4xl and 5xl
+	   display small and medium. Titles and labels take a weight from the
+	   `type-*` utilities below, and the app only ever uses 400 and 500. */
+	--text-xs: 0.75rem;
+	--text-xs--line-height: 1rem;
+	--text-xs--letter-spacing: 0.4px;
+	--text-sm: 0.875rem;
+	--text-sm--line-height: 1.25rem;
+	--text-sm--letter-spacing: 0.25px;
+	--text-base: 1rem;
+	--text-base--line-height: 1.5rem;
+	--text-base--letter-spacing: 0.5px;
+	--text-lg: 1.125rem;
+	--text-lg--line-height: 1.75rem;
+	--text-xl: 1.375rem;
+	--text-xl--line-height: 1.75rem;
+	--text-2xl: 1.5rem;
+	--text-2xl--line-height: 2rem;
+	--text-3xl: 1.75rem;
+	--text-3xl--line-height: 2.25rem;
+	--text-4xl: 2.25rem;
+	--text-4xl--line-height: 2.75rem;
+	--text-5xl: 2.8125rem;
+	--text-5xl--line-height: 3.25rem;
+
 	--font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
 }
@@ -12,11 +141,12 @@
 @layer base {
 	html {
 		scroll-behavior: smooth;
+		/* Where a field's label notch cuts the border: the colour of whatever the field sits on. */
+		--surface-under: var(--color-surface);
 	}
 
 	body {
-		@apply bg-slate-50 text-slate-900 antialiased;
-		@apply dark:bg-slate-950 dark:text-slate-100;
+		@apply bg-surface text-on-surface antialiased;
 	}
 
 	/* Money and other figures line up in columns when digits are tabular. */
@@ -25,41 +155,247 @@
 	}
 }
 
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 1ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/* Type roles that carry a weight. Body and headline roles come from the size
+   scale in the theme; these are the ones the scale doesn't spell out. */
+@utility type-title-medium {
+	font-size: 1rem;
+	line-height: 1.5rem;
+	font-weight: 500;
+	letter-spacing: 0.15px;
+}
+
+@utility type-title-small {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	font-weight: 500;
+	letter-spacing: 0.1px;
+}
+
+@utility type-label-large {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	font-weight: 500;
+	letter-spacing: 0.1px;
+}
+
+@utility type-label-medium {
+	font-size: 0.75rem;
+	line-height: 1rem;
+	font-weight: 500;
+	letter-spacing: 0.5px;
+}
+
+@utility type-label-small {
+	font-size: 0.6875rem;
+	line-height: 1rem;
+	font-weight: 500;
+	letter-spacing: 0.5px;
+}
+
+/*
+ * The M3 state layer: a wash of the content colour that appears on hover (8%),
+ * focus (10%) and press (10%). It lives on ::after so ::before stays free for
+ * an icon, and it is clipped by the element's own shape.
+ */
+@utility state-layer {
+	position: relative;
+	isolation: isolate;
+
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		background: currentColor;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 150ms var(--ease-standard);
+	}
+
+	&:where(:hover:not(:disabled))::after {
+		opacity: 0.08;
+	}
+
+	&:where(:focus-visible:not(:disabled))::after,
+	&:where(:active:not(:disabled))::after {
+		opacity: 0.1;
+	}
+}
+
+/* The M3 focus indicator: a 3dp secondary outline, offset by 2dp. */
+@utility focus-ring {
+	&:focus-visible {
+		outline: 3px solid var(--color-secondary);
+		outline-offset: 2px;
+	}
+}
+
 /* Declared as a utility, not a component class: `@apply btn` in the variants
    below only resolves if `btn` is a real utility. */
 @utility btn {
-	@apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium;
-	@apply transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
-	@apply disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-950;
+	@apply state-layer focus-ring type-label-large inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full px-6 py-2 whitespace-nowrap;
+	@apply transition-[box-shadow,background-color,color] disabled:cursor-not-allowed disabled:bg-on-surface/12 disabled:text-on-surface/38 disabled:shadow-none;
+}
+
+/* Icon buttons: a 40dp target (32dp when dense) holding a glyph. */
+@utility btn-icon {
+	@apply state-layer focus-ring inline-grid size-10 shrink-0 cursor-pointer place-items-center rounded-full text-on-surface-variant;
+	@apply disabled:cursor-not-allowed disabled:text-on-surface/38;
+}
+
+/* An inline banner: state that belongs to the page and stays until it changes. */
+@utility banner {
+	@apply rounded-md px-4 py-3 text-sm;
 }
 
 @layer components {
+	/* Cards are elevated cards: a tonal surface a step above the page, lifted by level 1. */
 	.card {
-		@apply rounded-xl border border-slate-200 bg-white shadow-sm;
-		@apply dark:border-slate-800 dark:bg-slate-900;
+		--surface-under: var(--color-surface-container-low);
+		@apply rounded-md bg-surface-container-low shadow-elevation-1;
+	}
+
+	/*
+	 * Outlined text fields. The label always sits raised in the notch of the
+	 * border, so there is no floating state to script, and a value never has
+	 * to fight a resting label. Anything else labelled `.label` — a group of
+	 * buttons, say — stays a plain caption above it.
+	 */
+	.label {
+		@apply mb-1.5 block text-xs text-on-surface-variant;
+	}
+
+	.field {
+		position: relative;
+	}
+
+	.field > .label {
+		@apply absolute top-0 left-3 z-10 mb-0 -translate-y-1/2 bg-(--surface-under) px-1 transition-colors;
+		pointer-events: none;
+	}
+
+	.field:focus-within > .label {
+		@apply text-primary;
 	}
 
 	.input {
-		@apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm;
-		@apply placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 focus:outline-none;
-		@apply dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500;
+		@apply block min-h-14 w-full rounded-xs border border-outline bg-transparent px-4 py-2 text-base text-on-surface;
+		@apply placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none;
+		@apply disabled:border-on-surface/12 disabled:text-on-surface/38;
+		@apply transition-colors;
 	}
 
-	.label {
-		@apply mb-1.5 block text-xs font-medium tracking-wide text-slate-600 uppercase dark:text-slate-400;
+	/* For fields set inline beside other controls, where 56dp is too tall. */
+	.input-sm {
+		@apply min-h-10 px-3 py-1 text-sm;
 	}
 
 	.btn-primary {
-		@apply btn bg-blue-600 text-white hover:bg-blue-500 focus-visible:ring-blue-500;
+		@apply btn bg-primary text-on-primary hover:shadow-elevation-1;
 	}
 
 	.btn-secondary {
-		@apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-400;
-		@apply dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+		@apply btn bg-secondary-container text-on-secondary-container hover:shadow-elevation-1;
+	}
+
+	.btn-outlined {
+		@apply btn border border-outline text-primary disabled:border-on-surface/12 disabled:bg-transparent;
+	}
+
+	.btn-text {
+		@apply btn px-3 text-primary disabled:bg-transparent;
 	}
 
 	.btn-danger {
-		@apply btn bg-rose-600 text-white hover:bg-rose-500 focus-visible:ring-rose-500;
+		@apply btn bg-error text-on-error hover:shadow-elevation-1;
+	}
+
+	.btn-sm {
+		@apply min-h-8 px-3 py-1;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		letter-spacing: 0.5px;
+	}
+
+	.btn-icon-sm {
+		@apply btn-icon size-8;
+	}
+
+	/* An extended FAB: the one primary action a screen leads with. */
+	.fab {
+		@apply state-layer focus-ring type-label-large inline-flex h-14 cursor-pointer items-center gap-3 rounded-lg bg-primary-container px-4 text-on-primary-container shadow-elevation-3;
+		@apply transition-[box-shadow,opacity] disabled:cursor-not-allowed disabled:bg-on-surface/12 disabled:text-on-surface/38 disabled:shadow-none;
+	}
+
+	/*
+	 * A connected button group: toggle buttons two dp apart, pill-ended at the outside with small inner
+	 * corners. The selected one fills with the primary colour and rounds off completely, so the choice
+	 * reads by shape as well as colour. Its "full" radius is half the height rather than a huge value,
+	 * so the corners can animate between the two.
+	 */
+	.connected-group {
+		--button-full: 1.25rem;
+		--button-inner: 0.5rem;
+		@apply flex gap-0.5;
+	}
+
+	.connected-group > button {
+		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center bg-surface-container-high px-4 text-on-surface-variant;
+		border-radius: var(--button-inner);
+		transition:
+			border-radius 250ms var(--ease-standard),
+			background-color 200ms var(--ease-standard),
+			color 200ms var(--ease-standard);
+	}
+
+	.connected-group > button:first-child {
+		border-start-start-radius: var(--button-full);
+		border-end-start-radius: var(--button-full);
+	}
+
+	.connected-group > button:last-child {
+		border-start-end-radius: var(--button-full);
+		border-end-end-radius: var(--button-full);
+	}
+
+	.connected-group > button[aria-pressed='true'] {
+		@apply bg-primary text-on-primary;
+		border-radius: var(--button-full);
+	}
+
+	.connected-group-dense {
+		--button-full: 1rem;
+	}
+
+	.connected-group-dense > button {
+		@apply min-h-8 px-3;
+		font-size: 0.75rem;
+		line-height: 1rem;
+	}
+
+	/* Menus: an extra-small surface at elevation 2, with 48dp items. */
+	.menu {
+		@apply overflow-hidden rounded-xs bg-surface-container py-2 shadow-elevation-2;
+	}
+
+	.menu-item {
+		@apply state-layer type-label-large block min-h-12 w-full cursor-pointer px-3 py-3 text-left text-on-surface;
+	}
+
+	.banner-error {
+		@apply banner bg-error-container text-on-error-container;
 	}
 
 	/*
@@ -84,9 +420,288 @@
 			opacity: 1;
 		}
 	}
+}
 
-	.btn-ghost {
-		@apply btn text-slate-600 hover:bg-slate-200/70 focus-visible:ring-slate-400;
-		@apply dark:text-slate-400 dark:hover:bg-slate-800;
+/* Dialogs and sheets enter on the emphasized-decelerate curve. */
+@keyframes dialog-in {
+	from {
+		opacity: 0;
+		transform: translateY(2rem);
 	}
+}
+
+@keyframes dialog-in-centered {
+	from {
+		opacity: 0;
+		transform: scale(0.92);
+	}
+}
+
+@utility dialog-enter {
+	animation: dialog-in 300ms var(--ease-emphasized-decelerate);
+
+	@media (min-width: 40rem) {
+		animation-name: dialog-in-centered;
+	}
+}
+
+/* Top-level destinations swap with a fade-through: the old page leaves fast, the new one settles in. */
+/* Opacity only: a transform on the page would make its fixed FAB position against the page, then jump. */
+.fade-through-enter-active {
+	transition: opacity 210ms var(--ease-standard-decelerate) 90ms;
+}
+
+.fade-through-leave-active {
+	transition: opacity 90ms var(--ease-standard-accelerate);
+}
+
+.fade-through-enter-from {
+	opacity: 0;
+}
+
+.fade-through-leave-to {
+	opacity: 0;
+}
+
+/*
+ * The navigation rail, as one structure that morphs between slim and open. `data-expanded` is the only
+ * thing that changes; every property below transitions on the same curve as the rail's own width, so the
+ * two states are the same elements in different places. Icons sit 28px from the left in both, which
+ * is why they never travel sideways: only the pill widens and the label moves out from under the icon.
+ */
+.rail-item {
+	--rail-time: 300ms;
+	--rail-ease: var(--ease-emphasized-decelerate);
+	position: relative;
+	display: block;
+	flex: none;
+	width: 100%;
+	height: 52px;
+	margin-bottom: 12px;
+	cursor: pointer;
+	text-align: left;
+	color: var(--color-on-surface-variant);
+	outline: none;
+	transition:
+		height var(--rail-time) var(--rail-ease),
+		margin-bottom var(--rail-time) var(--rail-ease),
+		color 200ms var(--ease-standard);
+}
+
+.rail-item[data-variant='action'] {
+	height: 48px;
+}
+
+.rail-item[data-expanded='true'] {
+	height: 56px;
+	margin-bottom: 4px;
+}
+
+.rail-item[data-active='true'] {
+	color: var(--color-on-secondary-container);
+}
+
+.rail-item-pill {
+	position: absolute;
+	top: 0;
+	left: 12px;
+	width: 56px;
+	height: 32px;
+	border-radius: 9999px;
+	transition:
+		top var(--rail-time) var(--rail-ease),
+		left var(--rail-time) var(--rail-ease),
+		width var(--rail-time) var(--rail-ease),
+		height var(--rail-time) var(--rail-ease),
+		background-color 200ms var(--ease-standard);
+}
+
+.rail-item[data-variant='action'] .rail-item-pill {
+	top: 4px;
+	left: 20px;
+	width: 40px;
+	height: 40px;
+}
+
+.rail-item[data-expanded='true'] .rail-item-pill {
+	top: 0;
+	left: 12px;
+	width: calc(100% - 24px);
+	height: 56px;
+}
+
+.rail-item[data-active='true'] .rail-item-pill {
+	background-color: var(--color-secondary-container);
+}
+
+.rail-item[data-active='false']:hover .rail-item-pill {
+	background-color: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
+}
+
+.rail-item:focus-visible .rail-item-pill {
+	outline: 3px solid var(--color-secondary);
+	outline-offset: 2px;
+}
+
+.rail-item-icon {
+	position: absolute;
+	top: 4px;
+	left: 28px;
+	width: 24px;
+	height: 24px;
+	transition: top var(--rail-time) var(--rail-ease);
+}
+
+.rail-item[data-variant='action'] .rail-item-icon {
+	top: 12px;
+}
+
+.rail-item[data-expanded='true'] .rail-item-icon {
+	top: 16px;
+}
+
+/* Slim, a destination's label sits centred under its icon (icon centre is 40px in); open, beside it. */
+.rail-item-label {
+	position: absolute;
+	top: 36px;
+	left: 40px;
+	transform: translateX(-50%);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	line-height: 1rem;
+	letter-spacing: 0.5px;
+	white-space: nowrap;
+	transition:
+		top var(--rail-time) var(--rail-ease),
+		left var(--rail-time) var(--rail-ease),
+		transform var(--rail-time) var(--rail-ease),
+		font-size var(--rail-time) var(--rail-ease),
+		line-height var(--rail-time) var(--rail-ease),
+		letter-spacing var(--rail-time) var(--rail-ease),
+		opacity 200ms var(--ease-standard),
+		color 200ms var(--ease-standard);
+}
+
+.rail-item[data-active='true'] .rail-item-label {
+	color: var(--color-on-surface);
+}
+
+/* An action has no label to show while slim, so its label waits, invisible, where it will end up. */
+.rail-item[data-variant='action'] .rail-item-label {
+	opacity: 0;
+}
+
+.rail-item[data-variant='action'] .rail-item-label,
+.rail-item[data-expanded='true'] .rail-item-label {
+	top: 18px;
+	left: 64px;
+	transform: translateX(0);
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	letter-spacing: 0.1px;
+}
+
+.rail-item[data-expanded='true'] .rail-item-label {
+	opacity: 1;
+	color: inherit;
+	transition-delay: 0s, 0s, 0s, 0s, 0s, 0s, 100ms, 0s;
+}
+
+/*
+ * The FAB's slot. It opens from zero height, so everything below slides down to make room, and the FAB
+ * inside pops in from a small, transparent circle with a little overshoot; going away is the reverse, faster.
+ * The button and the slot are separate switches: between two pages that both have a FAB the slot stays
+ * put and the button just folds to its circle (`data-expanded` off) and unfolds with the new label.
+ * The negative margin cancels the padding that keeps the FAB's shadow and focus ring from being clipped, so a
+ * closed slot takes no room.
+ */
+.rail-slot {
+	display: grid;
+	grid-template-rows: 0fr;
+	flex: none;
+	margin-top: -6px;
+	transition: grid-template-rows 300ms var(--ease-emphasized-decelerate);
+}
+
+.rail-slot[data-open='true'] {
+	grid-template-rows: 1fr;
+}
+
+.rail-slot > div {
+	min-height: 0;
+	overflow: hidden;
+	padding-top: 6px;
+}
+
+/* The FAB: a 56px circle whose icon is already where the open rail's icons are; opening the rail widens it. */
+.rail-fab {
+	--fab-morph:
+		width 300ms var(--ease-emphasized-decelerate), margin-bottom 300ms var(--ease-emphasized-decelerate),
+		box-shadow 200ms var(--ease-standard);
+	width: 56px;
+	flex: none;
+	margin: 0 0 12px 12px;
+	justify-content: flex-start;
+	overflow: hidden;
+	transform: scale(0.4);
+	transform-origin: 28px 50%;
+	opacity: 0;
+	transition:
+		var(--fab-morph),
+		transform 200ms var(--ease-standard-accelerate),
+		opacity 150ms var(--ease-standard);
+}
+
+.rail-fab[data-shown='true'] {
+	transform: scale(1);
+	opacity: 1;
+	transition:
+		var(--fab-morph),
+		transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms,
+		opacity 200ms var(--ease-standard) 120ms;
+}
+
+.rail-fab[data-expanded='true'] {
+	width: calc(100% - 24px);
+}
+
+/* The margin follows the rail, not the fold: folding the FAB must not change how much room it takes, or
+   everything beneath it would shift while it does. */
+.rail-fab[data-rail-open='true'] {
+	margin-bottom: 8px;
+}
+
+/* Something that is only there some of the time: it fades, holding back a beat on the way in. */
+.rail-fade {
+	opacity: 0;
+	transition: opacity 150ms var(--ease-standard);
+}
+
+.rail-fade[data-shown='true'] {
+	opacity: 1;
+	transition-duration: 200ms;
+	transition-delay: 100ms;
+}
+
+/* A group that is only in the open rail grows from zero height instead of appearing. */
+.rail-collapse {
+	display: grid;
+	grid-template-rows: 0fr;
+	flex: none;
+	opacity: 0;
+	transition:
+		grid-template-rows 300ms var(--ease-emphasized-decelerate),
+		opacity 150ms var(--ease-standard);
+}
+
+.rail-collapse[data-open='true'] {
+	grid-template-rows: 1fr;
+	opacity: 1;
+	transition-duration: 300ms, 200ms;
+	transition-delay: 0s, 100ms;
+}
+
+.rail-collapse > div {
+	min-height: 0;
+	overflow: hidden;
 }

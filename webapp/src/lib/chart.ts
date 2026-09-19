@@ -11,21 +11,23 @@ export { Chart };
 export type { ChartConfiguration } from 'chart.js';
 
 /**
- * Chart chrome for each theme: one step off the surface so grid and axis stay
- * recessive and the data is the only loud thing.
+ * Chart chrome for each theme, from the Material 3 roles in `src/style.css`
+ * (a canvas cannot read CSS variables, so the values are repeated here): the
+ * grid is `outline-variant` and the ticks `outline`, so both stay recessive and
+ * the data is the only loud thing. The tooltip is an inverse surface.
  */
 export function chartInk(dark: boolean) {
 	return {
-		grid: dark ? '#1e293b' : '#e2e8f0',
-		tick: dark ? '#64748b' : '#94a3b8',
-		tooltipBackground: dark ? '#334155' : '#0f172a',
-		tooltipText: '#ffffff',
-		tooltipMuted: dark ? '#cbd5e1' : '#cbd5e1',
+		grid: dark ? '#43474e' : '#c4c6cf',
+		tick: dark ? '#8e9099' : '#74777f',
+		tooltipBackground: dark ? '#e3e2e6' : '#2f3033',
+		tooltipText: dark ? '#2f3033' : '#f1f0f4',
+		tooltipMuted: dark ? '#43474e' : '#c4c6cf',
 	};
 }
 
-/** The single hue used when a chart plots one series, per theme. */
-export const SERIES_ONE = { light: '#2a78d6', dark: '#3987e5' } as const;
+/** The single hue used when a chart plots one series, per theme: the theme's `primary`. */
+export const SERIES_ONE = { light: '#005eb4', dark: '#a8c8ff' } as const;
 
 /** Mark specs shared by every bar chart here. */
 export const BAR_SPEC = {

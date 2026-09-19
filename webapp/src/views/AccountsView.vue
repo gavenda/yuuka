@@ -4,11 +4,13 @@ import AccountWatermark from '@/components/AccountWatermark.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AccountTypeManager from '@/components/AccountTypeManager.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import StatCard from '@/components/StatCard.vue';
 import { api, ApiError } from '@/lib/api';
 import { parseMoney, toDecimalString } from '@/lib/money';
+import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
@@ -159,6 +161,7 @@ async function save(): Promise<void> {
 		else await api.createAccount(payload);
 
 		dialogOpen.value = false;
+		showSnackbar(editing.value ? 'Changes saved' : 'Account added');
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the account.';
@@ -189,6 +192,7 @@ async function saveAdjustment(): Promise<void> {
 	try {
 		await api.adjustAccount(account.id, { balance, occurredOn: today(), payee: adjustForm.payee.trim() || undefined });
 		adjustDialogOpen.value = false;
+		showSnackbar('Balance adjusted');
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
 		adjustError.value = caught instanceof ApiError ? caught.message : 'Could not adjust the balance.';
@@ -215,6 +219,7 @@ async function remove(account: Account): Promise<void> {
 		}
 	}
 
+	showSnackbar('Account deleted');
 	await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 }
 
@@ -223,12 +228,8 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="space-y-6">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Accounts</h1>
-			<div class="flex items-center gap-2">
-				<button type="button" class="btn-secondary" @click="typesOpen = true">Manage types</button>
-				<button type="button" class="btn-primary" @click="openCreate">Add account</button>
-			</div>
+		<header class="flex items-center gap-2">
+			<button type="button" class="btn-secondary" @click="typesOpen = true">Manage types</button>
 		</header>
 
 		<StatCard label="Net worth" :amount="ledger.netWorth" :currency="ledger.displayCurrency" />
@@ -240,14 +241,14 @@ onMounted(() => ledger.load());
 		<!-- Grouped by account type, each group carrying its own subtotal. -->
 		<div v-else class="space-y-6">
 			<section v-for="group in groups" :key="group.id" class="space-y-3">
-				<header class="flex items-baseline justify-between gap-3 border-b border-slate-200 pb-2 dark:border-slate-800">
-					<h2 class="text-sm font-semibold text-slate-900 dark:text-white">
+				<header class="flex items-baseline justify-between gap-3 border-b border-outline-variant pb-2">
+					<h2 class="text-sm font-medium text-on-surface">
 						{{ group.name }}
-						<span class="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">
+						<span class="ml-1 text-xs font-normal text-on-surface-variant">
 							{{ group.accounts.length }} {{ group.accounts.length === 1 ? 'account' : 'accounts' }}
 						</span>
 					</h2>
-					<MoneyText :amount="group.total" :currency="group.currency" signed class="text-sm font-semibold" />
+					<MoneyText :amount="group.total" :currency="group.currency" signed class="text-sm font-medium" />
 				</header>
 
 				<ul class="grid gap-4 sm:grid-cols-2">
@@ -258,18 +259,15 @@ onMounted(() => ledger.load());
 					>
 						<!-- Positioned, so the content paints above the watermark. -->
 						<div class="relative min-w-0 flex-1">
-							<p class="truncate font-medium text-slate-900 dark:text-white">
+							<p class="truncate font-medium text-on-surface">
 								{{ account.name }}
-								<span
-									v-if="account.archived"
-									class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-								>
+								<span v-if="account.archived" class="ml-1 rounded bg-surface-container-high px-1.5 py-0.5 text-xs text-on-surface-variant">
 									Archived
 								</span>
 							</p>
 							<!-- The type is the group heading; only the currency is left to say. -->
-							<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ account.currency }}</p>
-							<MoneyText :amount="account.balance" :currency="account.currency" signed class="mt-2 block text-lg font-semibold" />
+							<p class="mt-0.5 text-xs text-on-surface-variant">{{ account.currency }}</p>
+							<MoneyText :amount="account.balance" :currency="account.currency" signed class="mt-2 block text-lg font-medium" />
 						</div>
 
 						<div class="flex flex-col items-end gap-4">
@@ -290,7 +288,7 @@ onMounted(() => ledger.load());
 			</section>
 		</div>
 
-		<button v-if="archivedCount" type="button" class="btn-ghost text-sm" @click="showArchived = !showArchived">
+		<button v-if="archivedCount" type="button" class="btn-text" @click="showArchived = !showArchived">
 			{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
 		</button>
 
@@ -300,13 +298,13 @@ onMounted(() => ledger.load());
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit account' : 'New account'" @close="dialogOpen = false">
 			<form class="space-y-4" @submit.prevent="save">
-				<div>
+				<div class="field">
 					<label class="label" for="account-name">Name</label>
 					<input id="account-name" v-model="form.name" class="input" required placeholder="Everyday checking" />
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
-					<div>
+					<div class="field">
 						<label class="label" for="account-type">Type</label>
 						<select id="account-type" v-model="form.typeId" class="input" required>
 							<option value="" disabled>Select a type</option>
@@ -314,14 +312,14 @@ onMounted(() => ledger.load());
 						</select>
 					</div>
 
-					<div>
+					<div class="field">
 						<label class="label" for="account-balance">Starting balance</label>
 						<input id="account-balance" v-model="form.startingBalance" class="input tabular" inputmode="decimal" placeholder="0.00" />
 					</div>
 				</div>
-				<p class="-mt-2 text-xs text-slate-500 dark:text-slate-400">The balance before any transaction below was recorded.</p>
+				<p class="-mt-2 text-xs text-on-surface-variant">The balance before any transaction below was recorded.</p>
 
-				<div>
+				<div class="field">
 					<label class="label" for="account-currency">Currency</label>
 					<input
 						id="account-currency"
@@ -334,51 +332,45 @@ onMounted(() => ledger.load());
 				</div>
 
 				<div>
-					<label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-						<input
-							v-model="form.roundUpSource"
-							type="checkbox"
-							class="size-4 rounded border-slate-300 accent-blue-600 dark:border-slate-700"
-						/>
+					<label class="flex items-center gap-2 text-sm text-on-surface">
+						<input v-model="form.roundUpSource" type="checkbox" class="size-4 rounded border-outline accent-primary" />
 						Round up purchases (Save the Change)
 					</label>
-					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-1 text-xs text-on-surface-variant">
 						Every expense on this account rounds up to the nearest ₱10 or ₱100 — set the exact amount and destination in Settings.
 					</p>
 				</div>
 
 				<div>
-					<label class="label" for="account-logo">Logo URL</label>
 					<div class="flex items-center gap-3">
 						<AccountLogo :name="form.name || '?'" :logo-url="form.logoUrl.trim() || null" :invert-dark="form.logoInvertDark" :size="40" />
-						<input
-							id="account-logo"
-							v-model="form.logoUrl"
-							class="input min-w-0 flex-1"
-							type="url"
-							inputmode="url"
-							placeholder="https://example.com/logo.png"
-						/>
+						<div class="field min-w-0 flex-1">
+							<label class="label" for="account-logo">Logo URL</label>
+							<input
+								id="account-logo"
+								v-model="form.logoUrl"
+								class="input"
+								type="url"
+								inputmode="url"
+								placeholder="https://example.com/logo.png"
+							/>
+						</div>
 					</div>
-					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-1 text-xs text-on-surface-variant">
 						Optional. The image is loaded from wherever it lives — nothing is uploaded or copied. Leave empty for the account's initial.
 					</p>
-					<label v-if="form.logoUrl.trim()" class="mt-2 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-						<input
-							v-model="form.logoInvertDark"
-							type="checkbox"
-							class="size-4 rounded border-slate-300 accent-blue-600 dark:border-slate-700"
-						/>
+					<label v-if="form.logoUrl.trim()" class="mt-2 flex items-center gap-2 text-sm text-on-surface">
+						<input v-model="form.logoInvertDark" type="checkbox" class="size-4 rounded border-outline accent-primary" />
 						Invert colours in dark mode
 					</label>
 				</div>
 
-				<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+				<p v-if="error" class="banner-error" role="alert">
 					{{ error }}
 				</p>
 
 				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-secondary" @click="dialogOpen = false">Cancel</button>
+					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
 					<button type="submit" class="btn-primary">{{ editing ? 'Save changes' : 'Add account' }}</button>
 				</div>
 			</form>
@@ -386,41 +378,39 @@ onMounted(() => ledger.load());
 
 		<ModalDialog :open="adjustDialogOpen" title="Adjust balance" @close="adjustDialogOpen = false">
 			<form v-if="adjusting" class="space-y-4" @submit.prevent="saveAdjustment">
-				<p class="text-sm text-slate-500 dark:text-slate-400">
+				<p class="text-sm text-on-surface-variant">
 					{{ adjusting.name }}'s current balance is
-					<MoneyText :amount="adjusting.balance" :currency="adjusting.currency" class="font-medium text-slate-700 dark:text-slate-300" />.
-					Enter what it should be instead — the difference is logged as its own transaction, dated today.
+					<MoneyText :amount="adjusting.balance" :currency="adjusting.currency" class="font-medium text-on-surface" />. Enter what it should
+					be instead — the difference is logged as its own transaction, dated today.
 				</p>
 
-				<div>
+				<div class="field">
 					<label class="label" for="adjust-balance">New balance</label>
 					<input id="adjust-balance" v-model="adjustForm.balance" class="input tabular" inputmode="decimal" placeholder="0.00" />
 				</div>
 
-				<p v-if="adjustDifference !== null && adjustDifference !== 0" class="text-sm text-slate-500 dark:text-slate-400">
+				<p v-if="adjustDifference !== null && adjustDifference !== 0" class="text-sm text-on-surface-variant">
 					Logs
 					<MoneyText :amount="adjustDifference" :currency="adjusting.currency" signed class="font-medium" />
 					as {{ adjustDifference > 0 ? 'income' : 'an expense' }}.
 				</p>
 
-				<div>
+				<div class="field">
 					<label class="label" for="adjust-payee">Payee (optional)</label>
 					<input id="adjust-payee" v-model="adjustForm.payee" class="input" placeholder="Balance adjustment" />
 				</div>
 
-				<p
-					v-if="adjustError"
-					class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
-					role="alert"
-				>
+				<p v-if="adjustError" class="banner-error" role="alert">
 					{{ adjustError }}
 				</p>
 
 				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-secondary" @click="adjustDialogOpen = false">Cancel</button>
+					<button type="button" class="btn-text" @click="adjustDialogOpen = false">Cancel</button>
 					<button type="submit" class="btn-primary">Save adjustment</button>
 				</div>
 			</form>
 		</ModalDialog>
+
+		<FabButton label="Add account" @click="openCreate" />
 	</div>
 </template>

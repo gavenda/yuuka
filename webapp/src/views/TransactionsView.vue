@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
+import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
@@ -7,7 +8,9 @@ import TransactionForm from '@/components/TransactionForm.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
-import { dailyAccrued, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
+import { showSnackbar } from '@/lib/snackbar';
+import { EDIT_NOTE } from '@/lib/icons';
+import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
@@ -26,8 +29,6 @@ const search = ref('');
 const accountFilter = ref('');
 const categoryFilter = ref('');
 const month = ref(budget.month);
-const roundUpNotice = ref<string | null>(null);
-let roundUpNoticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 const currency = computed(() => ledger.displayCurrency);
 
@@ -37,6 +38,15 @@ function accountCurrency(accountId: string): string {
 }
 
 const groupedRows = computed<[string, TransactionRow[]][]>(() => store.byDate.map(([date, group]) => [date, mergeTransferRows(group)]));
+
+/** Each day's cards, with the day's net change, worked out once rather than per binding in the template. */
+const days = computed(() =>
+	groupedRows.value.map(([date, rows]) => ({
+		date,
+		total: dailyAccrued(rows),
+		items: rows.map((row) => ({ row, card: describeRow(row) })),
+	})),
+);
 
 const filters = computed(() => ({
 	month: month.value,
@@ -69,21 +79,19 @@ function openEdit(transaction: Transaction, transferToAccountId: string | null =
 	dialogOpen.value = true;
 }
 
-/** Shows "+₱X saved to <account>" for a few seconds after a purchase triggers a Save the Change round-up. */
-function showRoundUpNotice(roundUp: Transaction): void {
+/** Says "₱X saved to <account>" after a purchase triggers a Save the Change round-up. */
+function announceRoundUp(roundUp: Transaction): void {
 	const destinationCurrency = ledger.accountsById.get(roundUp.accountId)?.currency ?? currency.value;
-	roundUpNotice.value = `${displayMoney(roundUp.amount, destinationCurrency)} saved to ${roundUp.accountName ?? 'your account'}`;
-
-	clearTimeout(roundUpNoticeTimer);
-	roundUpNoticeTimer = setTimeout(() => {
-		roundUpNotice.value = null;
-	}, 5000);
+	showSnackbar(`${displayMoney(roundUp.amount, destinationCurrency)} saved to ${roundUp.accountName ?? 'your account'}`);
 }
 
 async function save(payload: Record<string, unknown> & { mode: string }): Promise<void> {
 	const { mode, ...body } = payload;
 
 	try {
+		const wasEditing = editing.value !== null;
+		let roundUp: Transaction | null = null;
+
 		if (mode === 'transfer' && editing.value?.transferId) {
 			await api.updateTransfer(editing.value.transferId, body);
 		} else if (mode === 'transfer') {
@@ -91,11 +99,12 @@ async function save(payload: Record<string, unknown> & { mode: string }): Promis
 		} else if (editing.value) {
 			await api.updateTransaction(editing.value.id, body);
 		} else {
-			const response = await api.createTransaction(body);
-			if (response.roundUp) showRoundUpNotice(response.roundUp);
+			roundUp = (await api.createTransaction(body)).roundUp ?? null;
 		}
 
 		dialogOpen.value = false;
+		showSnackbar(wasEditing ? 'Changes saved' : mode === 'transfer' ? 'Transfer added' : 'Transaction added');
+		if (roundUp) announceRoundUp(roundUp);
 		await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
 		formRef.value?.fail(caught instanceof ApiError ? caught.message : 'Could not save the transaction.');
@@ -110,64 +119,58 @@ async function remove(): Promise<void> {
 
 	await api.deleteTransaction(editing.value.id);
 	dialogOpen.value = false;
+	showSnackbar(editing.value.transferId ? 'Transfer deleted' : 'Transaction deleted');
 	await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
 }
 </script>
 
 <template>
 	<div class="space-y-5">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Transactions</h1>
-			<div class="flex items-center gap-2">
-				<MonthSwitcher v-model="month" />
-				<button type="button" class="btn-primary" @click="openCreate">Add</button>
-			</div>
+		<header>
+			<MonthSwitcher v-model="month" />
 		</header>
-
-		<p
-			v-if="roundUpNotice"
-			class="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-			role="status"
-		>
-			{{ roundUpNotice }}
-		</p>
 
 		<!-- Filters sit in one row above the list. -->
 		<div class="grid gap-3 sm:grid-cols-3">
-			<input v-model="search" class="input" type="search" placeholder="Search payee or notes" aria-label="Search transactions" />
+			<div class="field">
+				<label class="label" for="filter-search">Search</label>
+				<input id="filter-search" v-model="search" class="input" type="search" placeholder="Payee or notes" />
+			</div>
 
-			<select v-model="accountFilter" class="input" aria-label="Filter by account">
-				<option value="">All accounts</option>
-				<option v-for="account in ledger.accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
-			</select>
+			<div class="field">
+				<label class="label" for="filter-account">Account</label>
+				<select id="filter-account" v-model="accountFilter" class="input">
+					<option value="">All accounts</option>
+					<option v-for="account in ledger.accounts" :key="account.id" :value="account.id">{{ account.name }}</option>
+				</select>
+			</div>
 
-			<select v-model="categoryFilter" class="input" aria-label="Filter by category">
-				<option value="">All categories</option>
-				<option value="none">Uncategorized</option>
-				<option v-for="category in ledger.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
-			</select>
+			<div class="field">
+				<label class="label" for="filter-category">Category</label>
+				<select id="filter-category" v-model="categoryFilter" class="input">
+					<option value="">All categories</option>
+					<option value="none">Uncategorized</option>
+					<option v-for="category in ledger.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+				</select>
+			</div>
 		</div>
 
-		<p v-if="store.error" class="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+		<p v-if="store.error" class="banner-error" role="alert">
 			{{ store.error }}
 		</p>
 
-		<div
-			v-else-if="store.loading && !store.transactions.length"
-			class="card divide-y divide-slate-100 dark:divide-slate-800/60"
-			aria-hidden="true"
-		>
-			<div v-for="group in 3" :key="group" class="animate-pulse">
-				<div class="h-8 bg-slate-50 px-4 py-2 dark:bg-slate-950/40">
-					<div class="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
-				</div>
-				<div v-for="row in 3" :key="row" class="flex items-center gap-3 px-4 py-3">
-					<span class="h-2.5 w-2.5 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800" />
+		<div v-else-if="store.loading && !store.transactions.length" class="space-y-4" aria-hidden="true">
+			<div v-for="group in 3" :key="group" class="animate-pulse space-y-2">
+				<div class="h-3 w-28 rounded bg-surface-container-highest" />
+				<div v-for="row in 3" :key="row" class="card flex items-start gap-3 p-3">
 					<div class="min-w-0 flex-1 space-y-2">
-						<div class="h-3.5 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
-						<div class="h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800/60" />
+						<div class="h-3.5 w-1/3 rounded bg-surface-container-highest" />
+						<div class="h-3 w-1/4 rounded bg-surface-container-high" />
 					</div>
-					<div class="h-3.5 w-14 shrink-0 rounded bg-slate-200 dark:bg-slate-800" />
+					<div class="w-16 shrink-0 space-y-2">
+						<div class="ml-auto h-3.5 w-14 rounded bg-surface-container-highest" />
+						<div class="ml-auto h-3 w-10 rounded bg-surface-container-high" />
+					</div>
 				</div>
 			</div>
 		</div>
@@ -180,131 +183,74 @@ async function remove(): Promise<void> {
 			<button type="button" class="btn-primary" @click="openCreate">Add a transaction</button>
 		</EmptyState>
 
-		<div v-else class="card divide-y divide-slate-100 dark:divide-slate-800/60">
-			<section v-for="[date, group] in groupedRows" :key="date">
-				<div class="flex items-center justify-between gap-3 bg-slate-50 px-4 py-2 text-xs font-medium dark:bg-slate-950/40">
-					<h2 class="tracking-wide text-slate-500 uppercase dark:text-slate-400">{{ formatLongDate(date) }}</h2>
-					<MoneyText :amount="dailyAccrued(group)" :currency="currency" signed explicit />
+		<!-- One card per transaction under a header for its day, as on Android. -->
+		<div v-else class="space-y-4">
+			<section v-for="day in days" :key="day.date">
+				<div class="flex items-center justify-between gap-3 px-1 pb-2">
+					<h2 class="type-label-medium text-on-surface-variant">{{ formatLongDate(day.date) }}</h2>
+					<MoneyText :amount="day.total" :currency="currency" signed explicit class="type-label-medium" />
 				</div>
 
-				<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
-					<li
-						v-for="row in group"
-						:key="row.kind === 'transfer' ? row.id : row.transaction.id"
-						class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
-					>
-						<template v-if="row.kind === 'transfer'">
-							<span
-								class="h-2.5 w-2.5 shrink-0 rounded-full"
-								:style="{ backgroundColor: row.categoryColor ?? '#898781' }"
-								aria-hidden="true"
-							/>
-
-							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.leg, row.toAccountId)">
-								<p class="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
-									<span class="min-w-0 truncate">{{ row.payee || row.categoryName || 'Transfer' }}</span>
+				<ul class="space-y-2">
+					<li v-for="{ row, card } in day.items" :key="card.key" class="card overflow-hidden">
+						<!-- The whole card opens the edit form. Spans, not blocks, because it is a button. -->
+						<button
+							type="button"
+							class="state-layer focus-ring block w-full cursor-pointer text-left"
+							@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
+						>
+							<span class="flex items-start gap-3 p-3">
+								<span class="block min-w-0 flex-1 space-y-1">
+									<span class="block truncate text-sm text-on-surface">{{ card.title }}</span>
+									<span class="block truncate text-xs text-on-surface-variant">{{ card.subtitle }}</span>
 									<span
-										v-if="row.payee && row.categoryName"
-										class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
-										:style="{
-											backgroundColor: `color-mix(in srgb, ${row.categoryColor ?? '#898781'} 18%, transparent)`,
-											color: row.categoryColor ?? '#898781',
-										}"
-										>{{ row.categoryName }}</span
-									>
-								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ row.fromAccountName }} → {{ row.toAccountName
-									}}{{ formatTime(row.leg.occurredOn) ? ` · ${formatTime(row.leg.occurredOn)}` : '' }}
-								</p>
-							</button>
-
-							<span v-if="row.notes" class="hidden max-w-40 shrink-0 items-center gap-1 text-xs text-slate-500 sm:flex dark:text-slate-400">
-								<svg
-									viewBox="0 0 20 20"
-									class="h-3.5 w-3.5 shrink-0"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="1.5"
-									aria-hidden="true"
-								>
-									<rect x="4" y="3.5" width="12" height="13" rx="1.5" />
-									<path d="M6.75 8h6.5M6.75 11h6.5M6.75 14h3.5" stroke-linecap="round" />
-								</svg>
-								<span class="truncate">{{ row.notes }}</span>
-							</span>
-
-							<div class="flex shrink-0 flex-col items-end gap-0.5">
-								<MoneyText :amount="row.amount" :currency="currency" transfer class="text-sm font-medium" />
-								<span class="tabular text-xs text-slate-400 dark:text-slate-500">
-									{{ displayMoney(row.leg.runningBalance, accountCurrency(row.leg.accountId)) }}
-								</span>
-							</div>
-						</template>
-
-						<template v-else>
-							<span
-								class="h-2.5 w-2.5 shrink-0 rounded-full"
-								:style="{ backgroundColor: row.transaction.categoryColor ?? '#898781' }"
-								aria-hidden="true"
-							/>
-
-							<button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="openEdit(row.transaction)">
-								<p class="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
-									<span class="min-w-0 truncate">{{ row.transaction.payee || row.transaction.categoryName || 'Uncategorized' }}</span>
-									<span
-										v-if="row.transaction.automated"
-										class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] leading-none font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+										v-if="card.automated"
+										class="type-label-small block text-on-surface-variant"
 										title="Posted automatically by a subscription"
 										>Subscription</span
 									>
-									<span
-										v-if="row.transaction.payee && row.transaction.categoryName"
-										class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium"
-										:style="{
-											backgroundColor: `color-mix(in srgb, ${row.transaction.categoryColor ?? '#898781'} 18%, transparent)`,
-											color: row.transaction.categoryColor ?? '#898781',
-										}"
-										>{{ row.transaction.categoryName }}</span
-									>
-								</p>
-								<p class="truncate text-xs text-slate-500 dark:text-slate-400">
-									{{ row.transaction.accountName
-									}}{{ formatTime(row.transaction.occurredOn) ? ` · ${formatTime(row.transaction.occurredOn)}` : '' }}
-								</p>
-							</button>
+									<span v-if="formatTime(card.occurredOn)" class="block text-xs text-on-surface-variant">
+										{{ formatTime(card.occurredOn) }}
+									</span>
+								</span>
 
-							<span
-								v-if="row.transaction.notes"
-								class="hidden max-w-40 shrink-0 items-center gap-1 text-xs text-slate-500 sm:flex dark:text-slate-400"
-							>
-								<svg
-									viewBox="0 0 20 20"
-									class="h-3.5 w-3.5 shrink-0"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="1.5"
-									aria-hidden="true"
-								>
-									<rect x="4" y="3.5" width="12" height="13" rx="1.5" />
-									<path d="M6.75 8h6.5M6.75 11h6.5M6.75 14h3.5" stroke-linecap="round" />
-								</svg>
-								<span class="truncate">{{ row.transaction.notes }}</span>
+								<span class="flex shrink-0 flex-col items-end space-y-1">
+									<MoneyText
+										:amount="card.amount"
+										:currency="currency"
+										:signed="card.tone === 'signed'"
+										:transfer="card.tone === 'transfer'"
+										:explicit="card.tone === 'signed'"
+										class="text-sm"
+									/>
+									<span class="tabular text-xs text-on-surface-variant">
+										{{ displayMoney(card.balance, accountCurrency(card.balanceAccountId)) }}
+									</span>
+									<span v-if="card.category" class="flex items-center gap-1.5 text-xs text-on-surface-variant">
+										{{ card.category?.name }}
+										<span
+											v-if="card.category?.color"
+											class="size-2 rounded-full"
+											:style="{ backgroundColor: card.category?.color ?? undefined }"
+											aria-hidden="true"
+										/>
+									</span>
+								</span>
 							</span>
 
-							<div class="flex shrink-0 flex-col items-end gap-0.5">
-								<MoneyText :amount="row.transaction.amount" :currency="currency" signed explicit class="text-sm font-medium" />
-								<span class="tabular text-xs text-slate-400 dark:text-slate-500">
-									{{ displayMoney(row.transaction.runningBalance, accountCurrency(row.transaction.accountId)) }}
-								</span>
-							</div>
-						</template>
+							<span v-if="card.notes" class="flex items-start gap-2 border-t border-outline-variant p-3">
+								<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
+									<path :d="EDIT_NOTE" />
+								</svg>
+								<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
+							</span>
+						</button>
 					</li>
 				</ul>
 			</section>
 
-			<div v-if="store.hasMore" class="p-4 text-center">
-				<button type="button" class="btn-secondary" :disabled="store.loading" @click="store.loadMore()">
+			<div v-if="store.hasMore" class="text-center">
+				<button type="button" class="btn-outlined" :disabled="store.loading" @click="store.loadMore()">
 					{{ store.loading ? 'Loading…' : `Load more (${store.transactions.length} of ${store.total})` }}
 				</button>
 			</div>
@@ -324,5 +270,7 @@ async function remove(): Promise<void> {
 				@delete="remove"
 			/>
 		</ModalDialog>
+
+		<FabButton label="Add transaction" @click="openCreate" />
 	</div>
 </template>

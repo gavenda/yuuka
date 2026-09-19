@@ -3,6 +3,7 @@ import { parseMoney, parsePercent, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import { ref } from 'vue';
 
 const props = defineProps<{ entry: CategoryBreakdown; currency: string }>();
@@ -67,36 +68,28 @@ async function commit(): Promise<void> {
 <template>
 	<form v-if="editing" class="flex items-center gap-1" @submit.prevent="commit">
 		<!-- Switching tabs only changes how the same draft is interpreted on save, so it carries over rather than resetting. -->
-		<div class="flex shrink-0 overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
-			<button
-				type="button"
-				class="px-1.5 py-1 text-xs font-medium"
-				:class="mode === 'amount' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
-				@click="mode = 'amount'"
-			>
-				{{ currency }}
-			</button>
-			<button
-				type="button"
-				class="px-1.5 py-1 text-xs font-medium"
-				:class="mode === 'percent' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
-				@click="mode = 'percent'"
-			>
-				%
-			</button>
-		</div>
+		<ConnectedButtonGroup
+			v-model="mode"
+			class="shrink-0"
+			label="Enter as"
+			dense
+			:options="[
+				{ value: 'amount', label: currency },
+				{ value: 'percent', label: '%' },
+			]"
+		/>
 		<input
 			v-model="draft"
-			class="input tabular w-24 py-1 text-right"
+			class="input input-sm tabular w-24 text-right"
 			inputmode="decimal"
 			:placeholder="mode === 'percent' ? '0' : '0.00'"
 			autofocus
 			@keydown.esc="editing = false"
 		/>
-		<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="saving">Save</button>
+		<button type="submit" class="btn-primary btn-sm" :disabled="saving">Save</button>
 	</form>
 
-	<button v-else type="button" class="btn-secondary tabular px-3 py-1 text-xs" @click="start">
+	<button v-else type="button" class="btn-secondary btn-sm tabular" @click="start">
 		<template v-if="entry.plannedPercent !== null"
 			>{{ entry.plannedPercent }}% &middot; {{ displayMoney(entry.planned, currency) }}</template
 		>

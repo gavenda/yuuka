@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 // Material 3 tonal-spot scheme generated from the brand blue (#2A78D6, the launcher
 // background). Used when dynamic colour is off or unavailable; regenerate the whole
 // set from a new seed rather than editing single roles.
+// The web app mirrors it in `webapp/src/style.css` and `chartInk`; change them together.
 
 val LightPrimary = Color(0xFF005EB4)
 val LightOnPrimary = Color(0xFFFFFFFF)

@@ -23,18 +23,18 @@ const formatted = computed(() => {
 });
 
 const tone = computed(() => {
-	if (!props.signed) return 'text-slate-900 dark:text-white';
-	if (props.amount > 0) return 'text-emerald-700 dark:text-emerald-400';
-	if (props.amount < 0) return 'text-rose-700 dark:text-rose-400';
-	return 'text-slate-900 dark:text-white';
+	if (!props.signed) return 'text-on-surface';
+	if (props.amount > 0) return 'text-positive';
+	if (props.amount < 0) return 'text-error';
+	return 'text-on-surface';
 });
 </script>
 
 <template>
 	<div class="card p-5">
-		<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">{{ label }}</p>
+		<p class="type-title-small text-on-surface-variant">{{ label }}</p>
 		<!-- Proportional figures: these are standalone numbers, not a column. -->
-		<p class="mt-2 font-semibold" :class="[tone, hero ? 'text-4xl sm:text-5xl' : 'text-2xl']">{{ formatted }}</p>
-		<p v-if="caption" class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ caption }}</p>
+		<p class="mt-2 font-medium" :class="[tone, hero ? 'text-4xl sm:text-5xl' : 'text-2xl']">{{ formatted }}</p>
+		<p v-if="caption" class="mt-1 text-sm text-on-surface-variant">{{ caption }}</p>
 	</div>
 </template>

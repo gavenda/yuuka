@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PayeeInput from '@/components/PayeeInput.vue';
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import { currentTime, today } from '@/lib/dates';
 import { ApiError } from '@/lib/api';
 import { parseMoney, toDecimalString } from '@/lib/money';
@@ -8,6 +9,12 @@ import type { Payee, Transaction } from '@/types';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 
 type Mode = 'expense' | 'income' | 'transfer';
+
+const MODES: { value: Mode; label: string }[] = [
+	{ value: 'expense', label: 'Expense' },
+	{ value: 'income', label: 'Income' },
+	{ value: 'transfer', label: 'Transfer' },
+];
 
 const props = defineProps<{ transaction?: Transaction | null; transferToAccountId?: string | null }>();
 const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; cancel: []; delete: [] }>();
@@ -180,22 +187,7 @@ defineExpose({
 
 <template>
 	<form class="space-y-4" @submit.prevent="submit">
-		<div v-if="!isEditing" class="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-			<button
-				v-for="option in ['expense', 'income', 'transfer'] as Mode[]"
-				:key="option"
-				type="button"
-				class="rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors"
-				:class="
-					form.mode === option
-						? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
-						: 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-				"
-				@click="form.mode = option"
-			>
-				{{ option }}
-			</button>
-		</div>
+		<ConnectedButtonGroup v-if="!isEditing" v-model="form.mode" label="Kind of transaction" :options="MODES" />
 
 		<!-- First field: naming it is what makes the rest fill itself in. -->
 		<PayeeInput
@@ -205,13 +197,13 @@ defineExpose({
 			@select="applyPayee"
 		/>
 
-		<div>
+		<div class="field">
 			<label class="label" for="amount">Amount</label>
 			<input id="amount" v-model="form.amount" class="input tabular" inputmode="decimal" placeholder="0.00" required />
 		</div>
 
 		<div class="grid gap-4 sm:grid-cols-2">
-			<div>
+			<div class="field">
 				<label class="label" for="account">{{ form.mode === 'transfer' ? 'From account' : 'Account' }}</label>
 				<select id="account" v-model="form.accountId" class="input" required>
 					<option value="" disabled>Select an account</option>
@@ -219,7 +211,7 @@ defineExpose({
 				</select>
 			</div>
 
-			<div v-if="form.mode === 'transfer'">
+			<div v-if="form.mode === 'transfer'" class="field">
 				<label class="label" for="to-account">To account</label>
 				<select id="to-account" v-model="form.toAccountId" class="input" required>
 					<option value="" disabled>Select an account</option>
@@ -228,7 +220,7 @@ defineExpose({
 			</div>
 		</div>
 
-		<div>
+		<div class="field">
 			<label class="label" for="category">{{ form.mode === 'transfer' ? 'Cashflow category' : 'Category' }}</label>
 			<!-- Parents and their children are both selectable, but only one at a
 			     time: a transaction carries a single category, never both. -->
@@ -239,40 +231,40 @@ defineExpose({
 					<option v-for="child in group.children" :key="child.id" :value="child.id">&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
 				</template>
 			</select>
-			<p v-if="form.mode === 'transfer'" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+			<p v-if="form.mode === 'transfer'" class="mt-1 text-xs text-on-surface-variant">
 				Optional. Categorising a transfer lets you budget it — an investment contribution is a movement, not spending.
 			</p>
 		</div>
 
 		<div class="grid gap-4 sm:grid-cols-2">
-			<div>
+			<div class="field">
 				<label class="label" for="date">Date</label>
 				<input id="date" v-model="form.occurredOn" type="date" class="input" required />
 			</div>
 
-			<div>
+			<div class="field">
 				<label class="label" for="time">Time</label>
 				<!-- A subscription posts at 00:00 UTC, so there is no time here for anyone to set. -->
 				<input id="time" v-model="form.occurredTime" type="time" class="input" :disabled="isAutomated" />
 			</div>
 		</div>
 
-		<p v-if="isAutomated" class="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+		<p v-if="isAutomated" class="-mt-2 text-xs text-on-surface-variant">
 			Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.
 		</p>
 
-		<div>
+		<div class="field">
 			<label class="label" for="notes">Notes</label>
 			<input id="notes" v-model="form.notes" class="input" placeholder="Optional" />
 		</div>
 
-		<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+		<p v-if="error" class="banner-error" role="alert">
 			{{ error }}
 		</p>
 
 		<div class="flex justify-end gap-2 pt-2">
 			<button v-if="isEditing" type="button" class="btn-danger mr-auto" @click="emit('delete')">Delete</button>
-			<button type="button" class="btn-secondary" @click="emit('cancel')">Cancel</button>
+			<button type="button" class="btn-text" @click="emit('cancel')">Cancel</button>
 			<button type="submit" class="btn-primary" :disabled="submitting">
 				{{ isEditing ? 'Save changes' : 'Add transaction' }}
 			</button>

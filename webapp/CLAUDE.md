@@ -243,6 +243,68 @@ radar controllers nothing renders. The library belongs in the lazily-loaded
 dashboard chunk, not the entry bundle. Each chart keeps a "Show data" table
 alongside it as the non-visual route to the same numbers.
 
+**The theme is the Android app's Material 3 scheme.** `src/style.css` declares
+every role from `ui/theme/Color.kt` and `ExtendedColors.kt` as a Tailwind colour
+(`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`,
+`text-error`, `text-positive`, …), with the dark values replacing the same
+variables under `.dark`. Use the roles, never the palette scales (`slate-*`,
+`blue-*`…), and never a `dark:` variant for colour: the role already follows the
+theme. Negative is `error`, a transfer is `primary`, inflows are `positive`, and
+a nearly-spent budget is `warning`. Dynamic colour is an Android 12+ feature, so
+the web app uses the static scheme.
+
+**Settings and Save the Change are screens, not a popup**, as on Android (`/settings` and
+`/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). Each keeps drafts
+of what it edits and follows the ledger, so it always shows what is saved; and each saves through a Save FAB
+(`FabButton` with the save `icon`) that is disabled until something has changed and is valid, then confirms with a
+snackbar and stays on the screen. A screen that leads with a non-add action passes `icon` to `FabButton`; the
+rail draws whichever icon the registered FAB carries.
+
+**Material Design 3, not just its colours.** The rest of the system lives in the
+same stylesheet, so a screen never spells out a radius, a weight or a hover tint
+by hand: shape is the M3 corner scale (`rounded-xs` 4px, `sm` 8, `md` 12, `lg` 16,
+`xl` 28, `full`), elevation is `shadow-elevation-1..3` on top of the tonal
+surfaces, and motion uses the M3 easings, with reduced motion honoured. Type is the
+M3 scale on Tailwind's size names (`text-sm` is body medium, `text-xl` title large,
+`text-4xl` display small) plus `type-title-*` and `type-label-*` where a weight is
+wanted; the app only uses weights 400 and 500. Components are classes, not
+one-offs: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`,
+`btn-text`, `btn-danger`, `btn-sm`, `btn-icon`, `card` (elevated), `menu` and
+`menu-item`, `banner-error`, and `state-layer` for the hover, focus and pressed
+wash. Fields are outlined text fields: a `.field` wrapper holds a `.label` and a
+`.input`, and the label sits raised in the border's notch, cut out in the colour
+of whatever the field sits on (`--surface-under`). Two components carry markup a
+class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few) and `FabButton` (the one
+action a screen leads with, registered in `src/lib/fab.ts`: a phone gets the floating
+button, and from `sm` up `NavRail` shows the same action under its menu button, as an
+icon FAB while slim and an extended one when open). Navigation is a rail from the `sm` breakpoint (`NavRail`, whose icons are Android's own Material Filled set (`src/lib/icons.ts`, from
+`ui/Destinations.kt`) and whose logo is a plain mark at the top (with the wordmark once open), never a
+control or the menu button, per Material's rail guidance; no dividers: the open drawer
+heads its second group "More" instead) and a bottom bar below it (`NavDestination`). The rail's menu button
+opens it into a drawer that also holds Subscriptions, Save the Change, Settings and Sign out plus
+the signed-in account, so from `sm` up they are reached only by opening it; phones
+keep them in the avatar menu, together with Budget and Categories, which the phone's bottom bar has no room for
+(it holds Dashboard, Transactions and Accounts). The show/hide-amounts and light/dark toggles sit at the
+foot of the rail from `sm` up (an icon when slim, a labelled row when open), and stay in
+the top bar on a phone. The slim and open rail are one structure that morphs, not two layouts swapped: each entry is a
+`RailItem` whose pill, icon and label are positioned by `data-expanded` in `style.css` and
+transition on the rail's own curve, icons sit 28px from the left in both states (so they never
+travel sideways), and the parts that exist only when open (the "More" group, the account block)
+grow from zero height and are `inert` while shut. The FAB has a slot of its own that opens the same way, sliding the destinations down as the
+FAB pops in (and back on the way out), and is one persistent button: between two pages that both have a FAB the slot stays open while
+the same button folds back to its circle, takes the new label and unfolds again (it pops out and the
+slot closes only if no new FAB turns up). Keep it that way: don't add a `v-if` on
+`expanded` to the rail's layout, or that entry will pop instead of moving. Open, it sits beside the page from `lg` and floats over
+a scrim below that, and the choice is remembered (`src/lib/rail.ts`), though a narrow
+window never starts with it floating. A phone also gets a top app bar naming the screen; from
+`sm` up there is none, since the rail already marks the current destination. Either way
+the heading comes from the route's `meta.title`, so a view does not render its own `<h1>`. Transient
+feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once in
+`App.vue`), which shows one message at a time; errors that belong to a form or to
+the page stay inline in a `banner-error`. Chart.js draws to a canvas and cannot read CSS
+variables, so `chartInk` and `SERIES_ONE` in `src/lib/chart.ts` repeat the hex
+values; change them together with the stylesheet.
+
 **Colours are validated, not chosen by eye.** The eight category colours in
 `src/lib/palette.ts` are a fixed-order categorical palette checked against this
 app's own light and dark surfaces for lightness, chroma, colour-vision-deficiency

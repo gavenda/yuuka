@@ -67,32 +67,35 @@ async function remove(type: AccountType): Promise<void> {
 
 <template>
 	<div class="space-y-4">
-		<p class="text-sm text-slate-600 dark:text-slate-400">These are your own labels. Rename one and every account using it follows.</p>
+		<p class="text-sm text-on-surface-variant">These are your own labels. Rename one and every account using it follows.</p>
 
-		<form class="flex gap-2" @submit.prevent="add">
-			<input v-model="newName" class="input" placeholder="Add a type, e.g. Crypto Wallet" aria-label="New account type name" />
-			<button type="submit" class="btn-primary shrink-0" :disabled="busy || !newName.trim()">Add</button>
+		<form class="flex items-start gap-2 pt-2" @submit.prevent="add">
+			<div class="field min-w-0 flex-1">
+				<label class="label" for="new-account-type">New type</label>
+				<input id="new-account-type" v-model="newName" class="input" placeholder="e.g. Crypto Wallet" />
+			</div>
+			<button type="submit" class="btn-primary mt-2 shrink-0" :disabled="busy || !newName.trim()">Add</button>
 		</form>
 
-		<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+		<p v-if="error" class="banner-error" role="alert">
 			{{ error }}
 		</p>
 
-		<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
+		<ul class="divide-y divide-outline-variant">
 			<li v-for="type in visible" :key="type.id" class="group flex items-center gap-2 py-2.5">
 				<form v-if="editingId === type.id" class="flex flex-1 gap-2" @submit.prevent="commitRename(type.id)">
-					<input v-model="draftName" class="input py-1" autofocus @keydown.esc="editingId = null" />
-					<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="busy">Save</button>
-					<button type="button" class="btn-ghost px-2 py-1 text-xs" @click="editingId = null">Cancel</button>
+					<input v-model="draftName" class="input input-sm" autofocus @keydown.esc="editingId = null" />
+					<button type="submit" class="btn-primary btn-sm" :disabled="busy">Save</button>
+					<button type="button" class="btn-text btn-sm" @click="editingId = null">Cancel</button>
 				</form>
 
 				<template v-else>
-					<span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+					<span class="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">
 						{{ type.name }}
-						<span v-if="type.archived" class="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">Archived</span>
+						<span v-if="type.archived" class="ml-1 text-xs font-normal text-outline">Archived</span>
 					</span>
 
-					<span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+					<span class="shrink-0 text-xs text-on-surface-variant">
 						{{ type.accountCount }} {{ type.accountCount === 1 ? 'account' : 'accounts' }}
 					</span>
 
@@ -123,7 +126,7 @@ async function remove(type: AccountType): Promise<void> {
 			</li>
 		</ul>
 
-		<button v-if="archivedCount" type="button" class="btn-ghost text-sm" @click="showArchived = !showArchived">
+		<button v-if="archivedCount" type="button" class="btn-text" @click="showArchived = !showArchived">
 			{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
 		</button>
 	</div>

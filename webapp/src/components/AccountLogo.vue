@@ -69,7 +69,7 @@ const fallbackStyle = computed(() => ({ width: `${props.size}px`, height: `${pro
 	<span
 		v-else
 		:style="fallbackStyle"
-		class="grid shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+		class="grid shrink-0 place-items-center rounded-sm bg-surface-container-high text-sm font-medium text-on-surface-variant"
 		aria-hidden="true"
 	>
 		{{ initial }}

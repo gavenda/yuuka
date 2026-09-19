@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import ActionIcon from '@/components/ActionIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import { api, ApiError } from '@/lib/api';
 import { nextColor, PALETTE } from '@/lib/palette';
+import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Category, CategoryKind, CategoryScope } from '@/types';
@@ -133,6 +135,7 @@ async function save(): Promise<void> {
 		else await api.createCategory(payload);
 
 		dialogOpen.value = false;
+		showSnackbar(editing.value ? 'Changes saved' : 'Category added');
 		await Promise.all([ledger.refreshCategories(), budget.refresh()]);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the category.';
@@ -148,6 +151,7 @@ async function remove(category: Category): Promise<void> {
 	if (!confirm(`Delete “${category.name}”? Transactions keep their history but become uncategorised.`)) return;
 
 	await api.deleteCategory(category.id);
+	showSnackbar('Category deleted');
 	await Promise.all([ledger.refreshCategories(), budget.refresh()]);
 }
 
@@ -156,11 +160,6 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="space-y-6">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Categories</h1>
-			<button type="button" class="btn-primary" @click="openCreate(sections[0])">Add category</button>
-		</header>
-
 		<EmptyState
 			v-if="!ledger.loading && !ledger.categories.length"
 			title="No categories yet"
@@ -172,32 +171,32 @@ onMounted(() => ledger.load());
 		<section v-for="section in sections" v-else :key="section.key" class="card p-5">
 			<header class="mb-3 flex items-start justify-between gap-3">
 				<div>
-					<h2 class="text-sm font-semibold text-slate-900 dark:text-white">{{ section.title }}</h2>
-					<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ section.description }}</p>
+					<h2 class="text-sm font-medium text-on-surface">{{ section.title }}</h2>
+					<p class="mt-0.5 text-xs text-on-surface-variant">{{ section.description }}</p>
 				</div>
-				<button type="button" class="btn-ghost shrink-0 px-2 py-1 text-xs" @click="openCreate(section)">Add</button>
+				<button type="button" class="btn-text btn-sm" @click="openCreate(section)">Add</button>
 			</header>
 
-			<p v-if="!section.families.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+			<p v-if="!section.families.length" class="py-4 text-center text-sm text-on-surface-variant">
 				No {{ section.title.toLowerCase() }} categories yet.
 			</p>
 
-			<ul v-else class="divide-y divide-slate-100 dark:divide-slate-800/60">
+			<ul v-else class="divide-y divide-outline-variant">
 				<li v-for="family in section.families" :key="family.parent.id" class="py-1">
 					<!-- Parent, then its own children indented beneath it. Nesting stops
 					     here: a subcategory cannot have children of its own. -->
 					<div class="group flex items-center gap-3 py-1.5">
 						<span class="h-3 w-3 shrink-0 rounded-full" :style="{ backgroundColor: family.parent.color }" aria-hidden="true" />
 
-						<span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+						<span class="min-w-0 flex-1 truncate text-sm font-medium text-on-surface">
 							{{ family.parent.name }}
-							<span v-if="family.parent.archived" class="ml-1 text-xs font-normal text-slate-400 dark:text-slate-500">Archived</span>
+							<span v-if="family.parent.archived" class="ml-1 text-xs font-normal text-outline">Archived</span>
 						</span>
 
 						<div class="row-actions">
 							<button
 								type="button"
-								class="btn-ghost px-2 py-1 text-xs"
+								class="btn-text btn-sm"
 								:title="`Add a subcategory under ${family.parent.name}`"
 								@click="openCreate(section, family.parent.id)"
 							>
@@ -216,9 +215,9 @@ onMounted(() => ledger.load());
 					<div v-for="child in family.children" :key="child.id" class="group flex items-center gap-3 py-1.5 pl-6">
 						<span class="h-2 w-2 shrink-0 rounded-full opacity-60" :style="{ backgroundColor: child.color }" aria-hidden="true" />
 
-						<span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">
+						<span class="min-w-0 flex-1 truncate text-sm text-on-surface">
 							{{ child.name }}
-							<span v-if="child.archived" class="ml-1 text-xs text-slate-400 dark:text-slate-500">Archived</span>
+							<span v-if="child.archived" class="ml-1 text-xs text-outline">Archived</span>
 						</span>
 
 						<div class="row-actions">
@@ -235,29 +234,29 @@ onMounted(() => ledger.load());
 			</ul>
 		</section>
 
-		<button v-if="archivedCount" type="button" class="btn-ghost text-sm" @click="showArchived = !showArchived">
+		<button v-if="archivedCount" type="button" class="btn-text" @click="showArchived = !showArchived">
 			{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
 		</button>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit category' : 'New category'" @close="dialogOpen = false">
 			<form class="space-y-4" @submit.prevent="save">
-				<div>
+				<div class="field">
 					<label class="label" for="category-name">Name</label>
 					<input id="category-name" v-model="form.name" class="input" required placeholder="Groceries" />
 				</div>
 
-				<div v-if="!editing">
+				<div v-if="!editing" class="field">
 					<label class="label" for="category-parent">Nest under</label>
 					<select id="category-parent" v-model="form.parentId" class="input">
 						<option value="">Nothing — this is a top-level category</option>
 						<option v-for="parent in parentOptions" :key="parent.id" :value="parent.id">{{ parent.name }}</option>
 					</select>
-					<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+					<p class="mt-1 text-xs text-on-surface-variant">
 						A subcategory inherits its parent's kind, and its spending counts towards the parent's budget. Nesting stops at one level.
 					</p>
 				</div>
 
-				<div v-if="form.appliesTo === 'standard' && !form.parentId">
+				<div v-if="form.appliesTo === 'standard' && !form.parentId" class="field">
 					<label class="label" for="category-kind">Kind</label>
 					<select id="category-kind" v-model="form.kind" class="input">
 						<option value="expense">Expense</option>
@@ -276,8 +275,8 @@ onMounted(() => ledger.load());
 							v-for="slot in PALETTE"
 							:key="slot.light"
 							type="button"
-							class="h-8 w-8 rounded-full ring-offset-2 transition-transform hover:scale-110 dark:ring-offset-slate-900"
-							:class="form.color === slot.light ? 'ring-2 ring-slate-900 dark:ring-white' : ''"
+							class="h-8 w-8 rounded-full ring-offset-2 transition-transform hover:scale-110"
+							:class="form.color === slot.light ? 'ring-2 ring-on-surface' : ''"
 							:style="{ backgroundColor: slot.light }"
 							:aria-label="slot.name"
 							:aria-pressed="form.color === slot.light"
@@ -285,11 +284,11 @@ onMounted(() => ledger.load());
 						/>
 
 						<label
-							class="relative grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-400 ring-offset-2 transition-transform hover:scale-110 dark:text-slate-500 dark:ring-offset-slate-900"
+							class="relative grid h-8 w-8 cursor-pointer place-items-center rounded-full text-outline ring-offset-2 transition-transform hover:scale-110"
 							:class="
 								isCustomColor
-									? 'ring-2 ring-slate-900 dark:ring-white'
-									: 'bg-[repeating-conic-gradient(#cbd5e1_0_25%,transparent_0_50%)] bg-[length:8px_8px] ring-1 ring-slate-300 dark:bg-[repeating-conic-gradient(#475569_0_25%,transparent_0_50%)] dark:ring-slate-600'
+									? 'ring-2 ring-on-surface'
+									: 'bg-[repeating-conic-gradient(var(--color-outline-variant)_0_25%,transparent_0_50%)] bg-[length:8px_8px] ring-1 ring-outline'
 							"
 							:style="isCustomColor ? { backgroundColor: form.color } : {}"
 							title="Custom colour"
@@ -307,7 +306,7 @@ onMounted(() => ledger.load());
 						<input
 							v-if="isCustomColor"
 							v-model="form.color"
-							class="input w-28 font-mono text-xs"
+							class="input input-sm w-28 font-mono"
 							required
 							pattern="^#[0-9a-fA-F]{6}$"
 							maxlength="7"
@@ -317,15 +316,17 @@ onMounted(() => ledger.load());
 					</div>
 				</fieldset>
 
-				<p v-if="error" class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-500/10 dark:text-rose-400" role="alert">
+				<p v-if="error" class="banner-error" role="alert">
 					{{ error }}
 				</p>
 
 				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-secondary" @click="dialogOpen = false">Cancel</button>
+					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
 					<button type="submit" class="btn-primary">{{ editing ? 'Save changes' : 'Add category' }}</button>
 				</div>
 			</form>
 		</ModalDialog>
+
+		<FabButton label="Add category" @click="openCreate(sections[0])" />
 	</div>
 </template>

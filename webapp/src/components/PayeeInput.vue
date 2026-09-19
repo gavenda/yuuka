@@ -90,7 +90,7 @@ function hint(entry: Payee): string {
 </script>
 
 <template>
-	<div ref="root" class="relative">
+	<div ref="root" class="field">
 		<label class="label" for="payee">{{ label }}</label>
 
 		<input
@@ -108,19 +108,14 @@ function hint(entry: Payee): string {
 			@keydown="onKeydown"
 		/>
 
-		<ul
-			v-if="showList"
-			id="payee-suggestions"
-			role="listbox"
-			class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-		>
+		<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute z-20 mt-1 max-h-64 w-full overflow-y-auto">
 			<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
 				<!-- mousedown, not click: the input's blur would otherwise close the
 				     list before the click landed. -->
 				<button
 					type="button"
-					class="flex w-full items-center gap-2 px-3 py-2 text-left"
-					:class="index === active ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'"
+					class="menu-item flex items-center gap-2"
+					:class="index === active ? 'bg-on-surface/12' : ''"
 					@mousedown.prevent="choose(entry)"
 					@mouseenter="active = index"
 				>
@@ -132,8 +127,8 @@ function hint(entry: Payee): string {
 					/>
 
 					<span class="min-w-0 flex-1">
-						<span class="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ entry.payee }}</span>
-						<span v-if="hint(entry)" class="block truncate text-xs text-slate-500 dark:text-slate-400">{{ hint(entry) }}</span>
+						<span class="block truncate">{{ entry.payee }}</span>
+						<span v-if="hint(entry)" class="block truncate text-xs text-on-surface-variant">{{ hint(entry) }}</span>
 					</span>
 				</button>
 			</li>

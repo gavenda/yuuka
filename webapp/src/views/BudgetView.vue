@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import BudgetAmountEditor from '@/components/BudgetAmountEditor.vue';
 import BudgetMeter from '@/components/BudgetMeter.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -109,16 +110,15 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 <template>
 	<div class="space-y-6">
-		<header class="flex flex-wrap items-center justify-between gap-3">
-			<h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">Budget</h1>
+		<header>
 			<MonthSwitcher v-model="month" />
 		</header>
 
 		<section class="card p-5">
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div>
-					<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Planned income</p>
-					<p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+					<p class="type-title-small text-on-surface-variant">Planned income</p>
+					<p class="mt-1 text-sm text-on-surface-variant">
 						<template v-if="usingGross"> Enter your gross monthly pay — the take-home net is what you budget from. </template>
 						<template v-else>
 							Set what you expect to bring in, then budget a category as a percentage of it instead of a fixed amount.
@@ -128,37 +128,30 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 				<div class="flex shrink-0 items-center gap-2">
 					<!-- Switching modes changes what the same draft means, not what's shown while editing it. -->
-					<div v-if="isPhp" class="flex overflow-hidden rounded-md border border-slate-300 dark:border-slate-700">
-						<button
-							type="button"
-							class="px-1.5 py-1 text-xs font-medium"
-							:class="incomeMode === 'gross' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
-							@click="incomeMode = 'gross'"
-						>
-							Gross
-						</button>
-						<button
-							type="button"
-							class="px-1.5 py-1 text-xs font-medium"
-							:class="incomeMode === 'fixed' ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'"
-							@click="incomeMode = 'fixed'"
-						>
-							Fixed
-						</button>
-					</div>
+					<ConnectedButtonGroup
+						v-if="isPhp"
+						v-model="incomeMode"
+						class="shrink-0"
+						label="Income entered as"
+						dense
+						:options="[
+							{ value: 'gross', label: 'Gross' },
+							{ value: 'fixed', label: 'Fixed' },
+						]"
+					/>
 
 					<form v-if="editingIncome" class="flex items-center gap-1" @submit.prevent="commitIncome">
 						<input
 							v-model="incomeDraft"
-							class="input tabular w-32 py-1 text-right"
+							class="input input-sm tabular w-32 text-right"
 							inputmode="decimal"
 							:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
 							autofocus
 							@keydown.esc="editingIncome = false"
 						/>
-						<button type="submit" class="btn-primary px-2 py-1 text-xs" :disabled="savingIncome">Save</button>
+						<button type="submit" class="btn-primary btn-sm" :disabled="savingIncome">Save</button>
 					</form>
-					<button v-else type="button" class="btn-secondary tabular px-3 py-1 text-sm" @click="startEditingIncome">
+					<button v-else type="button" class="btn-secondary btn-sm tabular" @click="startEditingIncome">
 						<template v-if="usingGross">{{ grossDraft > 0 ? displayMoney(grossDraft, 'PHP') : 'Set gross income' }}</template>
 						<template v-else>{{ budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency) : 'Set income' }}</template>
 					</button>
@@ -168,11 +161,11 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
 
 			<div v-if="budget.incomeBreakdown.length" class="mt-4">
-				<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Income</p>
-				<ul class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+				<p class="type-title-small text-on-surface-variant">Income</p>
+				<ul class="mt-2 divide-y divide-outline-variant">
 					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex items-center justify-between gap-3 py-2 text-sm">
-						<span class="text-slate-500 dark:text-slate-400">{{ entry.name }}</span>
-						<span class="tabular text-slate-900 dark:text-slate-100">{{ displayMoney(entry.actual, currency) }}</span>
+						<span class="text-on-surface-variant">{{ entry.name }}</span>
+						<span class="tabular text-on-surface">{{ displayMoney(entry.actual, currency) }}</span>
 					</li>
 				</ul>
 			</div>
@@ -227,13 +220,13 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 		</EmptyState>
 
 		<section v-else class="card p-5">
-			<h2 class="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Expense</h2>
-			<p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+			<h2 class="mb-1 text-sm font-medium text-on-surface">Expense</h2>
+			<p class="mb-3 text-sm text-on-surface-variant">
 				<template v-if="ledger.budgetMode === 'fixed'">Click a planned amount to change it — it applies to every month.</template>
 				<template v-else>Click a planned amount to change it for {{ month }}.</template>
 			</p>
 
-			<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
+			<ul class="divide-y divide-outline-variant">
 				<li v-for="entry in budget.expenseBreakdown" :key="entry.categoryId">
 					<div class="flex items-center gap-3">
 						<div class="min-w-0 flex-1">
@@ -249,13 +242,13 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 		</section>
 
 		<section v-if="budget.cashflowBreakdown.length" class="card p-5">
-			<h2 class="mb-1 text-sm font-semibold text-slate-900 dark:text-white">Cashflow</h2>
-			<p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+			<h2 class="mb-1 text-sm font-medium text-on-surface">Cashflow</h2>
+			<p class="mb-3 text-sm text-on-surface-variant">
 				Money moved between your own accounts. Investments live here — a contribution is a movement, not spending, so it is budgeted apart
 				from the figures above.
 			</p>
 
-			<ul class="divide-y divide-slate-100 dark:divide-slate-800/60">
+			<ul class="divide-y divide-outline-variant">
 				<li v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId">
 					<div class="flex items-center gap-3">
 						<div class="min-w-0 flex-1">

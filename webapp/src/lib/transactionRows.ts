@@ -59,3 +59,58 @@ export function mergeTransferRows(group: Transaction[]): TransactionRow[] {
 export function dailyAccrued(rows: TransactionRow[]): number {
 	return rows.reduce((sum, row) => (row.kind === 'transaction' ? sum + row.transaction.amount : sum), 0);
 }
+
+/** What a transaction card shows, the same for a plain transaction and a merged transfer. Mirrors the Android row. */
+export interface RowCard {
+	key: string;
+	title: string;
+	/** The account, or "From → To" for a transfer. */
+	subtitle: string;
+	/** Posted by a subscription rather than entered by a person. */
+	automated: boolean;
+	occurredOn: string;
+	amount: number;
+	tone: 'signed' | 'transfer';
+	balance: number;
+	balanceAccountId: string;
+	category: { name: string; color: string | null } | null;
+	notes: string;
+}
+
+export function describeRow(row: TransactionRow): RowCard {
+	if (row.kind === 'transfer') {
+		const flow = `${row.fromAccountName ?? ''} → ${row.toAccountName ?? ''}`;
+		const payee = row.payee.trim();
+
+		return {
+			key: row.id,
+			// An unnamed transfer is stored under its own "From → To", which the subtitle already says.
+			title: !payee || payee === flow ? 'Transfer' : payee,
+			subtitle: flow,
+			automated: false,
+			occurredOn: row.leg.occurredOn,
+			amount: row.amount,
+			tone: 'transfer',
+			balance: row.leg.runningBalance,
+			balanceAccountId: row.leg.accountId,
+			category: row.categoryName ? { name: row.categoryName, color: row.categoryColor } : null,
+			notes: row.notes.trim(),
+		};
+	}
+
+	const { transaction } = row;
+
+	return {
+		key: transaction.id,
+		title: transaction.payee || transaction.categoryName || 'Uncategorized',
+		subtitle: transaction.accountName ?? '',
+		automated: transaction.automated,
+		occurredOn: transaction.occurredOn,
+		amount: transaction.amount,
+		tone: 'signed',
+		balance: transaction.runningBalance,
+		balanceAccountId: transaction.accountId,
+		category: transaction.categoryName ? { name: transaction.categoryName, color: transaction.categoryColor } : null,
+		notes: transaction.notes.trim(),
+	};
+}

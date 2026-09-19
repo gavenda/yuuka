@@ -1,10 +1,24 @@
 <script setup lang="ts">
-import ModalDialog from '@/components/ModalDialog.vue';
-import SettingsDialog from '@/components/SettingsDialog.vue';
+import NavDestination from '@/components/NavDestination.vue';
+import NavRail from '@/components/NavRail.vue';
+import SnackbarHost from '@/components/SnackbarHost.vue';
 import { clearCache } from '@/lib/cache';
+import {
+	ACCOUNT_BALANCE_WALLET,
+	ATTACH_MONEY,
+	CATEGORY,
+	DARK_MODE,
+	DASHBOARD,
+	LIGHT_MODE,
+	MONEY_OFF,
+	PIE_CHART,
+	RECEIPT,
+} from '@/lib/icons';
 import { isOnline } from '@/lib/online';
+import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
 import { applyUpdate, updateReady } from '@/lib/pwa';
+import { clearSnackbars, showSnackbar } from '@/lib/snackbar';
 import { fullSync } from '@/lib/sync';
 import { useTheme } from '@/lib/theme';
 import { useAuth0 } from '@auth0/auth0-vue';
@@ -13,7 +27,7 @@ import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import { useTransactionStore } from '@/stores/transactions';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const { isAuthenticated, isLoading, user, error, logout } = useAuth0();
 const ledger = useLedgerStore();
@@ -21,31 +35,46 @@ const budget = useBudgetStore();
 const transactions = useTransactionStore();
 const subscriptions = useSubscriptionStore();
 const router = useRouter();
+const route = useRoute();
 const { theme, toggle } = useTheme();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
-const settingsOpen = ref(false);
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
 
+/** Every destination, as the rail lists them. A phone's bar has room for fewer; `phoneMenu: true` sends one to the avatar menu instead. */
 const links = [
-	{ to: '/', label: 'Dashboard', icon: 'M3 10l7-7 7 7v8a1 1 0 01-1 1h-4v-5H8v5H4a1 1 0 01-1-1v-8z' },
-	{ to: '/transactions', label: 'Transactions', icon: 'M4 6h12M4 10h12M4 14h8' },
-	{ to: '/budget', label: 'Budget', icon: 'M3 16V8m5 8V4m5 12v-6m5 6V7' },
-	{ to: '/accounts', label: 'Accounts', icon: 'M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm0 3h16' },
-	{ to: '/categories', label: 'Categories', icon: 'M4 4h5v5H4V4zm7 0h5v5h-5V4zM4 11h5v5H4v-5zm7 0h5v5h-5v-5z' },
+	{ to: '/', label: 'Dashboard', icon: DASHBOARD },
+	{ to: '/transactions', label: 'Transactions', icon: RECEIPT },
+	{ to: '/budget', label: 'Budget', icon: PIE_CHART, phoneMenu: true },
+	{ to: '/accounts', label: 'Accounts', icon: ACCOUNT_BALANCE_WALLET },
+	{ to: '/categories', label: 'Categories', icon: CATEGORY, phoneMenu: true },
 ];
 
+const phoneBarLinks = links.filter((link) => !link.phoneMenu);
+const phoneMenuLinks = links.filter((link) => link.phoneMenu);
+
 const showShell = computed(() => isAuthenticated.value);
+
+/** The page makes room for the rail: a slim one always, an open one only where it fits beside the page. */
+const { expanded: railExpanded } = useRail();
+const contentInset = computed(() => {
+	if (!showShell.value || isLoading.value) return '';
+	return railExpanded.value ? 'sm:pl-20 lg:pl-72' : 'sm:pl-20';
+});
+
+/** The top app bar names the screen; the views underneath don't repeat it. */
+const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'yuuka');
+
+/** The phone's bar sits on the page's surface until content scrolls beneath it, then lifts a tonal step. */
+const scrolled = ref(false);
+function onScroll(): void {
+	scrolled.value = window.scrollY > 0;
+}
 const appVersion = __APP_VERSION__;
 
 /** Auth0 fills whichever of these the connection provides. */
 const displayName = computed(() => user.value?.name ?? user.value?.nickname ?? user.value?.email ?? null);
 const avatarInitial = computed(() => displayName.value?.trim().charAt(0).toUpperCase() || '?');
-
-function openSettings(): void {
-	userMenuOpen.value = false;
-	settingsOpen.value = true;
-}
 
 async function signOut(): Promise<void> {
 	userMenuOpen.value = false;
@@ -53,6 +82,7 @@ async function signOut(): Promise<void> {
 	// Clear cached data first: logging out navigates away to Auth0, and the next
 	// sign-in should not briefly show the previous session's books. That includes
 	// the copy kept in the browser, which would otherwise outlast the session.
+	clearSnackbars();
 	ledger.reset();
 	budget.reset();
 	transactions.reset();
@@ -84,153 +114,128 @@ function onBackOnline(): void {
 	if (isAuthenticated.value) void fullSync();
 }
 
+// A new build waits until it is taken, so it is offered as a message that stays until
+// the person acts on it or waves it away.
+watch(
+	updateReady,
+	(ready) => {
+		if (ready) showSnackbar('A new version is ready.', { action: { label: 'Reload', run: applyUpdate }, duration: null });
+	},
+	{ immediate: true },
+);
+
 onMounted(() => {
 	document.addEventListener('click', onClickOutsideUserMenu);
 	window.addEventListener('online', onBackOnline);
+	window.addEventListener('scroll', onScroll, { passive: true });
 });
 onBeforeUnmount(() => {
 	document.removeEventListener('click', onClickOutsideUserMenu);
 	window.removeEventListener('online', onBackOnline);
+	window.removeEventListener('scroll', onScroll);
 });
 </script>
 
 <template>
-	<div class="min-h-dvh">
+	<div class="min-h-dvh transition-[padding] duration-300 ease-emphasized-decelerate" :class="contentInset">
+		<!-- With room for it, navigation moves to a rail down the side, and the bottom bar below
+		     takes over on a phone. The rail opens into a drawer that also holds what is not a daily
+		     destination: subscriptions, settings and signing out. -->
+		<NavRail
+			v-if="showShell && !isLoading"
+			:links="links"
+			:version="appVersion"
+			:account="{ name: displayName, email: user?.email ?? null, picture: user?.picture ?? null, initial: avatarInitial }"
+			@sign-out="signOut"
+		/>
+
+		<!-- Phones only. With a rail the current destination is already marked, so a bar naming the
+		     screen would just repeat it; the heading below keeps the page titled for assistive tech. -->
+		<h1 v-if="showShell && !isLoading" class="sr-only max-sm:hidden">{{ pageTitle }}</h1>
+
 		<header
 			v-if="showShell && !isLoading"
-			class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90"
+			class="sticky top-0 z-30 transition-colors sm:hidden"
+			:class="scrolled ? 'bg-surface-container' : 'bg-surface'"
 		>
-			<div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-				<!-- The bottom tab bar carries navigation on a phone, so the header's
-				     only job there is to say what app this is; sm:hidden hands that
-				     job back to the row of links once there's room for both. -->
-				<RouterLink to="/" class="flex items-center gap-2 font-semibold tracking-tight text-slate-900 sm:hidden dark:text-white">
-					<img src="/yuuka.png" alt="" class="h-7 w-7 rounded-full object-cover" />
-					yuuka
+			<div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4">
+				<RouterLink to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
+					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 
-				<nav class="hidden gap-1 sm:flex">
-					<RouterLink
-						v-for="link in links"
-						:key="link.to"
-						:to="link.to"
-						class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-						active-class="!bg-blue-50 !text-blue-700 dark:!bg-blue-500/10 dark:!text-blue-400"
-					>
-						{{ link.label }}
-					</RouterLink>
-				</nav>
+				<h1 class="min-w-0 flex-1 truncate text-xl text-on-surface">{{ pageTitle }}</h1>
 
-				<div class="ml-auto flex items-center gap-1">
+				<div class="flex shrink-0 items-center">
 					<button
 						type="button"
-						class="btn-ghost px-2 py-1.5"
+						class="btn-icon"
 						:aria-label="amountsHidden ? 'Show amounts' : 'Hide amounts'"
 						:aria-pressed="amountsHidden"
 						:title="amountsHidden ? 'Show amounts' : 'Hide amounts'"
 						@click="toggleAmounts"
 					>
-						<svg
-							v-if="amountsHidden"
-							viewBox="0 0 20 20"
-							class="h-4.5 w-4.5"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.5"
-							aria-hidden="true"
-						>
-							<path
-								d="M7.5 4.4A7.4 7.4 0 0 1 10 4c4 0 7 4 7 6a8.5 8.5 0 0 1-1.7 2.6M5.2 6.3C3.8 7.5 3 9.2 3 10c0 2 3 6 7 6a7.6 7.6 0 0 0 3-.6"
-								stroke-linecap="round"
-							/>
-							<path d="M3 3l14 14" stroke-linecap="round" />
-						</svg>
-
-						<svg v-else viewBox="0 0 20 20" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-							<path d="M10 4c4 0 7 4 7 6s-3 6-7 6-7-4-7-6 3-6 7-6z" />
-							<circle cx="10" cy="10" r="2.25" />
+						<svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true">
+							<path :d="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
 						</svg>
 					</button>
 
-					<button
-						type="button"
-						class="btn-ghost px-2 py-1.5"
-						:aria-label="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`"
-						@click="toggle"
-					>
-						<svg v-if="theme === 'dark'" viewBox="0 0 20 20" class="h-4.5 w-4.5" fill="currentColor" aria-hidden="true">
-							<path
-								d="M10 3V1m0 18v-2m7-7h2M1 10h2m12.07-5.07l1.42-1.42M3.51 16.49l1.42-1.42m0-10.14L3.51 3.51m12.98 12.98l-1.42-1.42M10 6a4 4 0 100 8 4 4 0 000-8z"
-								stroke="currentColor"
-								stroke-width="1.5"
-								fill="none"
-								stroke-linecap="round"
-							/>
-						</svg>
-						<svg v-else viewBox="0 0 20 20" class="h-4.5 w-4.5" fill="currentColor" aria-hidden="true">
-							<path d="M17 11.5A7.5 7.5 0 018.5 3a7.5 7.5 0 108.5 8.5z" />
+					<button type="button" class="btn-icon" :aria-label="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`" @click="toggle">
+						<svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true">
+							<path :d="theme === 'dark' ? LIGHT_MODE : DARK_MODE" />
 						</svg>
 					</button>
 
 					<div ref="userMenuRoot" class="relative ml-1" @keydown="onKeydownUserMenu">
 						<button
 							type="button"
-							class="flex cursor-pointer items-center rounded-full ring-1 ring-slate-200 transition-shadow hover:ring-slate-300 dark:ring-slate-700 dark:hover:ring-slate-600"
+							class="btn-icon"
 							aria-haspopup="menu"
 							:aria-expanded="userMenuOpen"
 							aria-label="Account menu"
 							@click="userMenuOpen = !userMenuOpen"
 						>
-							<img v-if="user?.picture" :src="user.picture" alt="" class="h-7 w-7 rounded-full" referrerpolicy="no-referrer" />
+							<img v-if="user?.picture" :src="user.picture" alt="" class="size-8 rounded-full" referrerpolicy="no-referrer" />
 							<span
 								v-else
-								class="grid h-7 w-7 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+								class="grid size-8 place-items-center rounded-full bg-primary-container text-sm font-medium text-on-primary-container"
 								aria-hidden="true"
 							>
 								{{ avatarInitial }}
 							</span>
 						</button>
 
-						<div
-							v-if="userMenuOpen"
-							role="menu"
-							class="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-						>
-							<div v-if="displayName" class="truncate border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-								<span class="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ displayName }}</span>
-								<span v-if="user?.email && user.email !== displayName" class="block truncate text-xs text-slate-500 dark:text-slate-400">{{
+						<div v-if="userMenuOpen" role="menu" class="menu absolute right-0 z-40 mt-2 w-60">
+							<div v-if="displayName" class="truncate border-b border-outline-variant px-3 pb-3">
+								<span class="block truncate text-sm font-medium text-on-surface">{{ displayName }}</span>
+								<span v-if="user?.email && user.email !== displayName" class="block truncate text-xs text-on-surface-variant">{{
 									user.email
 								}}</span>
 							</div>
 
 							<!-- Reached from here rather than the tab bar: it is set up once and
 							     then left alone, unlike the pages that are visited every day. -->
+							<!-- What the phone's bar has no room for. -->
 							<RouterLink
-								to="/subscriptions"
+								v-for="(link, index) in phoneMenuLinks"
+								:key="link.to"
+								:to="link.to"
 								role="menuitem"
-								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+								class="menu-item"
+								:class="index === 0 ? 'mt-2' : ''"
 								@click="userMenuOpen = false"
 							>
-								Subscriptions
+								{{ link.label }}
 							</RouterLink>
 
-							<button
-								type="button"
-								role="menuitem"
-								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-								@click="openSettings"
-							>
-								Settings
-							</button>
+							<RouterLink to="/subscriptions" role="menuitem" class="menu-item" @click="userMenuOpen = false"> Subscriptions </RouterLink>
 
-							<button
-								type="button"
-								role="menuitem"
-								class="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-								@click="signOut"
-							>
-								Sign out
-							</button>
+							<RouterLink to="/save-the-change" role="menuitem" class="menu-item" @click="userMenuOpen = false">
+								Save the Change
+							</RouterLink>
+
+							<RouterLink to="/settings" role="menuitem" class="menu-item" @click="userMenuOpen = false"> Settings </RouterLink>
+
+							<button type="button" role="menuitem" class="menu-item" @click="signOut">Sign out</button>
 						</div>
 					</div>
 				</div>
@@ -239,78 +244,41 @@ onBeforeUnmount(() => {
 
 		<!-- Everything on screen is the copy this browser last saved; the API is what changes are
 		     made against, so say so rather than letting a failed save be the first hint. -->
-		<p
-			v-if="showShell && !isLoading && !isOnline"
-			role="status"
-			class="border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
-		>
+		<p v-if="showShell && !isLoading && !isOnline" role="status" class="bg-warning/10 px-4 py-2 text-center text-xs text-warning">
 			You're offline. Showing what was last saved; changes need a connection.
 		</p>
-
-		<!-- A new build is waiting. Taking it reloads the page, so it is offered, not forced. -->
-		<div
-			v-if="showShell && !isLoading && updateReady"
-			role="status"
-			class="flex items-center justify-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-1.5 text-xs text-blue-800 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
-		>
-			A new version is ready.
-			<button type="button" class="cursor-pointer font-semibold underline underline-offset-2" @click="applyUpdate">Reload</button>
-		</div>
 
 		<!-- On a cold load the SDK is still restoring the session, or exchanging
 		     the code Auth0 just redirected back with; the router is waiting on it,
 		     so say something rather than showing a blank page. -->
 		<div v-if="isLoading" class="flex min-h-dvh items-center justify-center px-4">
-			<p class="text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+			<p class="text-sm text-on-surface-variant">Loading…</p>
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
 			<div class="card max-w-sm p-6 text-center">
-				<p class="text-sm text-rose-700 dark:text-rose-400" role="alert">{{ error.message }}</p>
+				<p class="text-sm text-error" role="alert">{{ error.message }}</p>
 				<RouterLink to="/login" class="btn-secondary mt-4">Back to sign in</RouterLink>
 			</div>
 		</div>
 
-		<main v-else :class="showShell ? 'mx-auto max-w-6xl px-4 pt-6 pb-24 sm:pb-10' : ''">
-			<RouterView />
-
-			<!-- The header's mobile logo already says what app this is, so the
-			     footer repeats it only once there's a header row without one. -->
-			<footer v-if="showShell" class="mt-10 hidden text-xs text-slate-400 sm:block dark:text-slate-600">
-				<a
-					href="https://github.com/gavenda/yuuka"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="hover:text-slate-600 dark:hover:text-slate-400"
-					>yuuka</a
-				>
-				<span class="text-slate-300 dark:text-slate-700"> v{{ appVersion }}</span>
-			</footer>
+		<main v-else :class="showShell ? 'mx-auto max-w-6xl px-4 pt-2 pb-28 sm:pt-6 sm:pb-10' : ''">
+			<RouterView v-slot="{ Component }">
+				<Transition name="fade-through" mode="out-in">
+					<component :is="Component" />
+				</Transition>
+			</RouterView>
 		</main>
 
-		<ModalDialog :open="settingsOpen" title="Settings" @close="settingsOpen = false">
-			<SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
-		</ModalDialog>
-
-		<!-- Bottom tabs keep the primary navigation in thumb reach on a phone. -->
+		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone. -->
 		<nav
 			v-if="showShell && !isLoading"
-			class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden dark:border-slate-800 dark:bg-slate-950/95"
+			aria-label="Primary"
+			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
 		>
-			<div class="flex">
-				<RouterLink
-					v-for="link in links"
-					:key="link.to"
-					:to="link.to"
-					class="flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium text-slate-500 dark:text-slate-400"
-					active-class="!text-blue-600 dark:!text-blue-400"
-				>
-					<svg viewBox="0 0 20 20" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-						<path :d="link.icon" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-					{{ link.label }}
-				</RouterLink>
-			</div>
+			<NavDestination v-for="link in phoneBarLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
 		</nav>
+
+		<SnackbarHost />
 	</div>
 </template>

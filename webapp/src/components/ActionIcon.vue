@@ -35,15 +35,8 @@ const paths = computed(() => PATHS[props.icon]);
 <template>
 	<!-- Icon-only, so the label has to be carried by `aria-label`; `title` gives
 	     sighted users the same word on hover. -->
-	<button
-		type="button"
-		class="btn-ghost p-2"
-		:class="danger ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10' : ''"
-		:aria-label="label"
-		:title="label"
-		:disabled="disabled"
-	>
-		<svg viewBox="0 0 20 20" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+	<button type="button" class="btn-icon-sm" :class="danger ? 'text-error' : ''" :aria-label="label" :title="label" :disabled="disabled">
+		<svg viewBox="0 0 20 20" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
 			<path v-for="d in paths" :key="d" :d="d" stroke-linecap="round" stroke-linejoin="round" />
 		</svg>
 	</button>

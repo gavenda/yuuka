@@ -22,9 +22,9 @@ export default defineConfig({
 				start_url: '/',
 				scope: '/',
 				display: 'standalone',
-				// The same as the <meta name="theme-color"> in index.html and the page's light background.
-				theme_color: '#059669',
-				background_color: '#f8fafc',
+				// The same as the light <meta name="theme-color"> in index.html and the page's light background.
+				theme_color: '#faf9fd',
+				background_color: '#faf9fd',
 				icons: [
 					{ src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
 					{ src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

@@ -12,11 +12,11 @@ const lines = computed(() => [...breakdown.value.contributions, { label: 'Withho
 
 <template>
 	<div class="mt-4">
-		<p class="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">Monthly contributions</p>
-		<ul class="mt-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+		<p class="type-title-small text-on-surface-variant">Monthly contributions</p>
+		<ul class="mt-2 divide-y divide-outline-variant">
 			<li v-for="line in lines" :key="line.label" class="flex items-center justify-between gap-3 py-2 text-sm">
-				<span class="text-slate-500 dark:text-slate-400">{{ line.label }}</span>
-				<span class="tabular text-slate-900 dark:text-slate-100">{{ displayMoney(line.amount, 'PHP') }}</span>
+				<span class="text-on-surface-variant">{{ line.label }}</span>
+				<span class="tabular text-on-surface">{{ displayMoney(line.amount, 'PHP') }}</span>
 			</li>
 		</ul>
 	</div>

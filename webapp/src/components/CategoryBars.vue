@@ -128,16 +128,16 @@ onBeforeUnmount(() => chart.value?.destroy());
 	<section class="card p-5">
 		<header class="mb-4 flex flex-wrap items-start justify-between gap-3">
 			<div>
-				<h2 class="text-sm font-semibold text-slate-900 dark:text-white">{{ title }}</h2>
-				<p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{{ displayMoney(total, currency) }} total</p>
+				<h2 class="text-sm font-medium text-on-surface">{{ title }}</h2>
+				<p class="mt-0.5 text-sm text-on-surface-variant">{{ displayMoney(total, currency) }} total</p>
 			</div>
 
-			<button v-if="rows.length" type="button" class="btn-ghost px-2 py-1 text-xs" @click="showTable = !showTable">
+			<button v-if="rows.length" type="button" class="btn-text btn-sm" @click="showTable = !showTable">
 				{{ showTable ? 'Show chart' : 'Show data' }}
 			</button>
 		</header>
 
-		<p v-if="!rows.length" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Nothing recorded this month.</p>
+		<p v-if="!rows.length" class="py-6 text-center text-sm text-on-surface-variant">Nothing recorded this month.</p>
 
 		<div v-else-if="!showTable" class="relative" :style="{ height: `${chartHeight}px` }">
 			<canvas ref="canvas" role="img" :aria-label="title" />
@@ -145,17 +145,17 @@ onBeforeUnmount(() => chart.value?.destroy());
 
 		<table v-else class="w-full text-sm">
 			<thead>
-				<tr class="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+				<tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant">
 					<th class="py-2 font-medium">Category</th>
 					<th class="py-2 text-right font-medium">Spent</th>
 					<th class="py-2 text-right font-medium">Share</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="row in rows" :key="row.categoryId" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-					<td class="py-2 text-slate-700 dark:text-slate-300">{{ row.name }}</td>
-					<td class="tabular py-2 text-right text-slate-900 dark:text-slate-100">{{ displayMoney(row.actual, currency) }}</td>
-					<td class="tabular py-2 text-right text-slate-500 dark:text-slate-400">{{ share(row.actual) }}%</td>
+				<tr v-for="row in rows" :key="row.categoryId" class="border-b border-outline-variant last:border-0">
+					<td class="py-2 text-on-surface">{{ row.name }}</td>
+					<td class="tabular py-2 text-right text-on-surface">{{ displayMoney(row.actual, currency) }}</td>
+					<td class="tabular py-2 text-right text-on-surface-variant">{{ share(row.actual) }}%</td>
 				</tr>
 			</tbody>
 		</table>

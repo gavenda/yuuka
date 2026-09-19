@@ -104,19 +104,19 @@ onBeforeUnmount(() => chart.value?.destroy());
 	<section class="card p-5">
 		<header class="mb-4 flex flex-wrap items-start justify-between gap-3">
 			<div>
-				<h2 class="text-sm font-semibold text-slate-900 dark:text-white">Spending by day</h2>
-				<p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+				<h2 class="text-sm font-medium text-on-surface">Spending by day</h2>
+				<p class="mt-0.5 text-sm text-on-surface-variant">
 					{{ displayMoney(total, currency) }} across {{ spentDays.length }}
 					{{ spentDays.length === 1 ? 'day' : 'days' }}
 				</p>
 			</div>
 
-			<button type="button" class="btn-ghost px-2 py-1 text-xs" @click="showTable = !showTable">
+			<button type="button" class="btn-text btn-sm" @click="showTable = !showTable">
 				{{ showTable ? 'Show chart' : 'Show data' }}
 			</button>
 		</header>
 
-		<p v-if="!hasData" class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">No spending recorded this month.</p>
+		<p v-if="!hasData" class="py-10 text-center text-sm text-on-surface-variant">No spending recorded this month.</p>
 
 		<div v-else-if="!showTable" class="relative h-48">
 			<canvas ref="canvas" role="img" :aria-label="`Spending by day for ${month}`" />
@@ -125,15 +125,15 @@ onBeforeUnmount(() => chart.value?.destroy());
 		<!-- The table is the non-visual route to the same numbers. -->
 		<table v-else class="w-full text-sm">
 			<thead>
-				<tr class="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+				<tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant">
 					<th class="py-2 font-medium">Date</th>
 					<th class="py-2 text-right font-medium">Spent</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="entry in spentDays" :key="entry.date" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-					<td class="py-2 text-slate-700 dark:text-slate-300">{{ formatLongDate(entry.date) }}</td>
-					<td class="tabular py-2 text-right text-slate-900 dark:text-slate-100">{{ displayMoney(entry.amount, currency) }}</td>
+				<tr v-for="entry in spentDays" :key="entry.date" class="border-b border-outline-variant last:border-0">
+					<td class="py-2 text-on-surface">{{ formatLongDate(entry.date) }}</td>
+					<td class="tabular py-2 text-right text-on-surface">{{ displayMoney(entry.amount, currency) }}</td>
 				</tr>
 			</tbody>
 		</table>
