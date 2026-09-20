@@ -182,6 +182,49 @@ describe('transfers', () => {
 			notes: 'index fund',
 		});
 	});
+
+	// An edit form prefills the payee with what the row already says, so a
+	// request can hand the composed name straight back. That is still not a
+	// name anyone typed.
+	it('do not remember a composed name handed back to them', async () => {
+		await transfer({ payee: 'Checking → Savings' });
+		expect(await payees()).toEqual([]);
+	});
+
+	it('do not remember a composed name echoed by an edit', async () => {
+		const { transactions } = await json<{ transactions: { transferId: string }[] }>(await transfer({}));
+
+		const response = await call(`/transactions/transfer/${transactions[0].transferId}`, {
+			method: 'PATCH',
+			body: JSON.stringify({
+				fromAccountId: checking,
+				toAccountId: savings,
+				amount: 60_000,
+				occurredOn: '2026-09-06',
+				payee: 'Checking → Savings',
+			}),
+		});
+
+		expect(response.status).toBe(200);
+		expect(await payees()).toEqual([]);
+	});
+
+	it('do not remember the round-up payee', async () => {
+		await transfer({ payee: 'Save the Change' });
+		expect(await payees()).toEqual([]);
+	});
+
+	it('do not remember a transfer leg edited on its own', async () => {
+		const { transactions } = await json<{ transactions: { id: string }[] }>(await transfer({}));
+
+		const response = await call(`/transactions/${transactions[0].id}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ notes: 'moved some over' }),
+		});
+
+		expect(response.status).toBe(200);
+		expect(await payees()).toEqual([]);
+	});
 });
 
 describe('payee history is private', () => {

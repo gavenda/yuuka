@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { invalidateSummaries } from '../cache';
-import { payeeKind, rememberPayee } from '../payees';
+import { payeeKind, rememberPayee, ROUND_UP_PAYEE } from '../payees';
 import { badRequest, notFound } from '../errors';
 import { monthOf, monthRange } from '../dates';
 import { newId } from '../ids';
@@ -47,8 +47,23 @@ const MISSING_REFERENCE = 'Unknown account or category.';
 const UNKNOWN_TAG = 'Unknown tag.';
 const WRONG_SCOPE = 'That category cannot be used here. Spending and income use standard categories; transfers use Cashflow categories.';
 
-/** The synthetic payee "Save the Change" round-ups are posted under. Never fed into `rememberPayee` — it's derived, not typed. */
-const ROUND_UP_PAYEE = 'Save the Change';
+/**
+ * The name an unnamed transfer describes itself with, e.g. `Checking → Savings`.
+ * Falls back to "Transfer" when either account is missing — the guarded write
+ * rejects that request anyway, so composing a half-name would be worse.
+ */
+async function composeTransferName(db: D1Database, userId: string, fromAccountId: string, toAccountId: string): Promise<string> {
+	const { results } = await db
+		.prepare('SELECT id, name FROM accounts WHERE user_id = ? AND id IN (?, ?)')
+		.bind(userId, fromAccountId, toAccountId)
+		.all<{ id: string; name: string }>();
+
+	const names = new Map(results.map((row) => [row.id, row.name]));
+	const from = names.get(fromAccountId);
+	const to = names.get(toAccountId);
+
+	return from && to ? `${from} → ${to}` : 'Transfer';
+}
 
 interface RoundUpEligibility {
 	roundTo: number;
@@ -348,20 +363,14 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		// A transfer's payee reads as its name. Left blank it describes itself,
 		// which is more use in a list than the word "Transfer" repeated.
-		let name = input.payee;
-		if (!name) {
-			const { results } = await c.env.DB.prepare('SELECT id, name FROM accounts WHERE user_id = ? AND id IN (?, ?)')
-				.bind(userId, input.fromAccountId, input.toAccountId)
-				.all<{ id: string; name: string }>();
-
-			const names = new Map(results.map((row) => [row.id, row.name]));
-			const from = names.get(input.fromAccountId);
-			const to = names.get(input.toAccountId);
-
-			// If either is missing the guarded insert below rejects the request
-			// anyway; fall back rather than composing a half-name.
-			name = from && to ? `${from} → ${to}` : 'Transfer';
-		}
+		//
+		// The derived name is composed either way, not just when the field is
+		// blank: an edit form prefills the payee with whatever the row already
+		// says, so a request can hand back a name the API wrote. Comparing
+		// against it is what tells a typed name from an echoed one.
+		const derivedName = await composeTransferName(c.env.DB, userId, input.fromAccountId, input.toAccountId);
+		const name = input.payee || derivedName;
+		const typedName = Boolean(input.payee) && input.payee !== derivedName;
 
 		// Both legs carry the same category: a transfer is one movement recorded
 		// twice, and categorising it lets an investment contribution be budgeted.
@@ -414,7 +423,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		// Only a name the user actually typed is worth remembering — the composed
 		// "From → To" is derived, so suggesting it back would be noise.
-		if (input.payee) {
+		if (typedName) {
 			await rememberPayee(c.env.DB, userId, {
 				payee: input.payee,
 				kind: 'transfer',
@@ -456,17 +465,10 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		if (existing.length !== 2) throw notFound('Transfer not found.');
 
-		let name = input.payee;
-		if (!name) {
-			const { results } = await c.env.DB.prepare('SELECT id, name FROM accounts WHERE user_id = ? AND id IN (?, ?)')
-				.bind(userId, input.fromAccountId, input.toAccountId)
-				.all<{ id: string; name: string }>();
-
-			const names = new Map(results.map((row) => [row.id, row.name]));
-			const from = names.get(input.fromAccountId);
-			const to = names.get(input.toAccountId);
-			name = from && to ? `${from} → ${to}` : 'Transfer';
-		}
+		// As on creation: an echoed derived name is not a typed one.
+		const derivedName = await composeTransferName(c.env.DB, userId, input.fromAccountId, input.toAccountId);
+		const name = input.payee || derivedName;
+		const typedName = Boolean(input.payee) && input.payee !== derivedName;
 
 		const [outflow, inflow] = existing;
 		const legs = [
@@ -532,7 +534,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		await invalidateSummaries(c.env.CACHE, userId, [monthOf(outflow.occurred_on), monthOf(input.occurredOn)]);
 
-		if (input.payee) {
+		if (typedName) {
 			await rememberPayee(c.env.DB, userId, {
 				payee: input.payee,
 				kind: 'transfer',
@@ -624,13 +626,20 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		// Editing is saving, so the history follows the row's final state rather
 		// than only what the patch happened to mention.
-		await rememberPayee(c.env.DB, userId, {
-			payee: updated.payee,
-			kind: payeeKind(updated.amount, updated.transfer_id),
-			accountId: updated.account_id,
-			categoryId: updated.category_id,
-			notes: updated.notes,
-		});
+		//
+		// A transfer leg is left alone: naming a transfer belongs to
+		// `PATCH /transfer/:id`, which knows both accounts and can tell a typed
+		// name from the one the API composed. From here the name is only ever
+		// the stored one, and a leg knows only its own side of the movement.
+		if (!updated.transfer_id) {
+			await rememberPayee(c.env.DB, userId, {
+				payee: updated.payee,
+				kind: payeeKind(updated.amount, updated.transfer_id),
+				accountId: updated.account_id,
+				categoryId: updated.category_id,
+				notes: updated.notes,
+			});
+		}
 
 		return c.json({ transaction: toTransaction(updated) });
 	})

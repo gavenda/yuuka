@@ -3,6 +3,13 @@ import { NOW_SQL } from './sql';
 
 export type PayeeKind = 'expense' | 'income' | 'transfer';
 
+/**
+ * The synthetic payee "Save the Change" round-ups are posted under. It is
+ * written by the API rather than typed, so it is never remembered — offering it
+ * back as a suggestion would fill a form with a name the user cannot have meant.
+ */
+export const ROUND_UP_PAYEE = 'Save the Change';
+
 export interface PayeeMemory {
 	payee: string;
 	kind: PayeeKind;
@@ -15,7 +22,7 @@ export interface PayeeMemory {
 /**
  * Records what a payee was filed under, so typing it again can fill in the
  * rest. Only a named transaction is worth remembering — a blank payee has
- * nothing to look up later.
+ * nothing to look up later, and a name the API composed was not typed at all.
  *
  * The newest use wins: the stored details are overwritten rather than merged,
  * because the question being answered is "what did I do last time", and a
@@ -23,7 +30,7 @@ export interface PayeeMemory {
  */
 export async function rememberPayee(db: D1Database, userId: string, memory: PayeeMemory): Promise<void> {
 	const payee = memory.payee.trim();
-	if (!payee) return;
+	if (!payee || payee === ROUND_UP_PAYEE) return;
 
 	await db
 		.prepare(
