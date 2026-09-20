@@ -9,7 +9,6 @@ Multi-user budgeting and financial tracking, running entirely on Cloudflare.
 - **Cloudflare Workers KV** — Auth0 signing keys and cached monthly summaries
 - **Cron Triggers** — a daily run at 00:00 UTC that posts due subscriptions
 - **Vue 3 + Pinia + Tailwind CSS v4** — the frontend, with `@auth0/auth0-vue` for sign-in
-- **Chart.js** — the dashboard charts
 - **A PWA** — installable, and opens offline on what it last saw (`vite-plugin-pwa`); changes still need a connection
 
 Bun is the package manager; Wrangler drives everything on the Cloudflare side.

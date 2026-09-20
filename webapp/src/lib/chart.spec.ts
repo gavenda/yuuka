@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { axisScale, BAR_SPEC, chartInk, compactAmount, dailyAverage, monthSeries, rankAndFold, scallopPath } from './chart';
+import { axisScale, compactAmount, dailyAverage, monthSeries, rankAndFold, scallopPath } from './chart';
 
 describe('monthSeries', () => {
 	it('fills every day of the month, zeroing the quiet ones', () => {
@@ -71,24 +71,6 @@ describe('rankAndFold', () => {
 		const expected = entries.reduce((sum, e) => sum + e.actual, 0);
 
 		expect(rankAndFold(entries, 8).reduce((sum, row) => sum + row.actual, 0)).toBe(expected);
-	});
-});
-
-describe('chart chrome', () => {
-	it('gives each theme its own recessive grid and tick colours', () => {
-		const light = chartInk(false);
-		const dark = chartInk(true);
-
-		expect(light.grid).not.toBe(dark.grid);
-		expect(light.tick).toBeTruthy();
-		expect(dark.tooltipBackground).toBeTruthy();
-	});
-
-	it('caps bar thickness and rounds only the data-end', () => {
-		expect(BAR_SPEC.maxBarThickness).toBeLessThanOrEqual(24);
-		expect(BAR_SPEC.borderRadius).toBe(4);
-		// `borderSkipped: false` is what keeps the baseline square.
-		expect(BAR_SPEC.borderSkipped).toBe(false);
 	});
 });
 

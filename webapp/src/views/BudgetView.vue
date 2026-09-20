@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import BudgetAmountEditor from '@/components/BudgetAmountEditor.vue';
-import BudgetMeter from '@/components/BudgetMeter.vue';
+import BudgetCard from '@/components/BudgetCard.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import PhilippinesIncomeCalculator from '@/components/PhilippinesIncomeCalculator.vue';
@@ -260,48 +259,24 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			<RouterLink to="/categories" class="btn-primary">Add categories</RouterLink>
 		</EmptyState>
 
-		<section v-else class="card p-5">
-			<h2 class="mb-1 text-sm font-medium text-on-surface">Expense</h2>
-			<p class="mb-3 text-sm text-on-surface-variant">
-				<template v-if="ledger.budgetMode === 'fixed'">Click a planned amount to change it — it applies to every month.</template>
-				<template v-else>Click a planned amount to change it for {{ month }}.</template>
-			</p>
+		<section v-else>
+			<h2 class="type-title-small mb-3 text-on-surface">Expense</h2>
 
-			<ul class="divide-y divide-outline-variant">
-				<li v-for="entry in budget.expenseBreakdown" :key="entry.categoryId">
-					<div class="flex items-center gap-3">
-						<div class="min-w-0 flex-1">
-							<BudgetMeter :entry="entry" :currency="currency" />
-						</div>
-
-						<div class="shrink-0">
-							<BudgetAmountEditor :entry="entry" :currency="currency" />
-						</div>
-					</div>
-				</li>
-			</ul>
+			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+			</div>
 		</section>
 
-		<section v-if="budget.cashflowBreakdown.length" class="card p-5">
-			<h2 class="mb-1 text-sm font-medium text-on-surface">Cashflow</h2>
-			<p class="mb-3 text-sm text-on-surface-variant">
+		<section v-if="budget.cashflowBreakdown.length">
+			<h2 class="type-title-small text-on-surface">Cashflow</h2>
+			<p class="mt-1 mb-3 text-sm text-on-surface-variant">
 				Money moved between your own accounts. Investments live here — a contribution is a movement, not spending, so it is budgeted apart
 				from the figures above.
 			</p>
 
-			<ul class="divide-y divide-outline-variant">
-				<li v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId">
-					<div class="flex items-center gap-3">
-						<div class="min-w-0 flex-1">
-							<BudgetMeter :entry="entry" :currency="currency" />
-						</div>
-
-						<div class="shrink-0">
-							<BudgetAmountEditor :entry="entry" :currency="currency" />
-						</div>
-					</div>
-				</li>
-			</ul>
+			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+			</div>
 		</section>
 	</div>
 </template>

@@ -237,13 +237,14 @@ nothing.
 
 ## Charts
 
-**Registered piece by piece.** Only the bar controller, the two scales and the
-tooltip are registered; importing `chart.js/auto` would pull in the line, pie and
-radar controllers nothing renders. The library belongs in the lazily-loaded
-dashboard chunk, not the entry bundle. Each chart keeps a "Show data" table
-alongside it as the non-visual route to the same numbers.
+**There is no charting library.** Both charts are drawn in the page, as they are on Android,
+so they read the theme's colour roles as classes and never repeat a hex value.
+"Where the money went" (`CategoryBars.vue`) is `CategoryBarList` from `BarCharts.kt` again: a
+name and its "amount · share%" over a rounded bar, each bar's length relative to the largest
+category and coloured by the category (its dark-mode step in the dark theme), with the tail
+folded into "Other" past eight (`rankAndFold`).
 
-**The spending-by-day chart is SVG, not Chart.js** (`SpendChart.vue`), and is the Android
+**The spending-by-day chart is SVG** (`SpendChart.vue`), and is the Android
 chart's twin (`BarCharts.kt`, with the same geometry constants): wide pill bars with the day
 beneath each, a value axis down the right, and a line across at the month's average daily
 spend (`dailyAverage`, over the days that had any). A day at or above the average is a
@@ -315,9 +316,7 @@ window never starts with it floating. A phone also gets a top app bar naming the
 the heading comes from the route's `meta.title`, so a view does not render its own `<h1>`. Transient
 feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once in
 `App.vue`), which shows one message at a time; errors that belong to a form or to
-the page stay inline in a `banner-error`. Chart.js draws to a canvas and cannot read CSS
-variables, so `chartInk` in `src/lib/chart.ts` repeats the hex
-values; change them together with the stylesheet.
+the page stay inline in a `banner-error`.
 
 **Colours are validated, not chosen by eye.** The eight category colours in
 `src/lib/palette.ts` are a fixed-order categorical palette checked against this
