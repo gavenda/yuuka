@@ -146,7 +146,7 @@ describe('creating a subscription', () => {
 	});
 
 	it('rejects a transfer-scope category', async () => {
-		const cashflow = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const cashflow = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
 		expect((await create({ categoryId: cashflow })).status).toBe(400);
 	});
 
@@ -244,7 +244,7 @@ describe('editing a subscription', () => {
 
 	it('cannot be re-pointed at a transfer category or someone else’s account', async () => {
 		const subscription = await createOne();
-		const cashflow = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const cashflow = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
 		const theirAccount = await makeAccount(await otherClient(), { name: 'Theirs' });
 
 		const patch = (body: Record<string, unknown>) =>

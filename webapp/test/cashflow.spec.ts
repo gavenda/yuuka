@@ -8,8 +8,8 @@ let to: string;
 interface Category {
 	id: string;
 	name: string;
+	kind: string;
 	parentId: string | null;
-	appliesTo: string;
 }
 
 beforeEach(async () => {
@@ -30,7 +30,7 @@ const transfer = (body: Record<string, unknown>) =>
 describe('the Cashflow category', () => {
 	it('is provisioned with its subcategories', async () => {
 		const cashflow = await byName('Cashflow');
-		expect(cashflow.appliesTo).toBe('transfer');
+		expect(cashflow.kind).toBe('transfer');
 		expect(cashflow.parentId).toBeNull();
 
 		const children = (await categories()).filter((category) => category.parentId === cashflow.id);
@@ -91,13 +91,13 @@ describe('cashflow in the summary', () => {
 			cashflow: number;
 			income: number;
 			expenses: number;
-			categories: { name: string; actual: number; appliesTo: string; children: { name: string; actual: number }[] }[];
+			categories: { name: string; actual: number; kind: string; children: { name: string; actual: number }[] }[];
 		}>(await call('/summary?month=2026-09'));
 
 		expect(body.cashflow).toBe(100000);
 
 		const cashflow = body.categories.find((entry) => entry.name === 'Cashflow')!;
-		expect(cashflow.appliesTo).toBe('transfer');
+		expect(cashflow.kind).toBe('transfer');
 		expect(cashflow.actual).toBe(100000);
 		expect(cashflow.children.find((child) => child.name === 'Investments')!.actual).toBe(100000);
 	});

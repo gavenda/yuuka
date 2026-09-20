@@ -66,18 +66,10 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 		...DEFAULT_CATEGORIES.map((category) =>
 			db
 				.prepare(
-					`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order, applies_to)
-					 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+					`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order)
+					 VALUES (?, ?, ?, ?, ?, ?)`,
 				)
-				.bind(
-					categoryIds.get(category.name)!,
-					subject,
-					category.name,
-					category.kind,
-					category.color,
-					category.sortOrder,
-					category.appliesTo ?? 'standard',
-				),
+				.bind(categoryIds.get(category.name)!, subject, category.name, category.kind, category.color, category.sortOrder),
 		),
 
 		// Children come after their parents in the same batch, so the foreign key
@@ -86,19 +78,10 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 			(parent.children ?? []).map((child, index) =>
 				db
 					.prepare(
-						`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order, applies_to, parent_id)
-						 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+						`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order, parent_id)
+						 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 					)
-					.bind(
-						childIds.get(`${parent.name}/${child}`)!,
-						subject,
-						child,
-						parent.kind,
-						parent.color,
-						index,
-						parent.appliesTo ?? 'standard',
-						categoryIds.get(parent.name)!,
-					),
+					.bind(childIds.get(`${parent.name}/${child}`)!, subject, child, parent.kind, parent.color, index, categoryIds.get(parent.name)!),
 			),
 		),
 	];

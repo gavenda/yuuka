@@ -345,7 +345,7 @@ describe('round-up rule is private', () => {
 	});
 
 	it('cannot be pointed at another user’s category', async () => {
-		const theirCategoryId = await makeCategory(theirs, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const theirCategoryId = await makeCategory(theirs, { name: 'Cashflow', kind: 'transfer' });
 
 		const response = await mine('/round-up', { method: 'PATCH', body: JSON.stringify({ categoryId: theirCategoryId }) });
 		expect(response.status).toBe(400);

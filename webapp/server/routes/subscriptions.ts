@@ -61,7 +61,7 @@ export const subscriptionRoutes = new Hono<AppEnv>()
 			`INSERT INTO subscriptions (id, user_id, account_id, category_id, amount, payee, notes, start_on, day_of_month, next_run_on)
 			 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 			 WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
-			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'standard'))`,
+			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND kind <> 'transfer'))`,
 		)
 			.bind(
 				id,
@@ -126,7 +126,7 @@ export const subscriptionRoutes = new Hono<AppEnv>()
 			`UPDATE subscriptions SET ${clause}, updated_at = ${NOW_SQL}
 			 WHERE id = ? AND user_id = ?
 			   AND (? IS NULL OR EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?))
-			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'standard'))`,
+			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND kind <> 'transfer'))`,
 		)
 			.bind(...values, id, userId, accountGuard, accountGuard, userId, categoryGuard, categoryGuard, userId)
 			.run();

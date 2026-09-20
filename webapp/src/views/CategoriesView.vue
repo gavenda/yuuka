@@ -10,7 +10,7 @@ import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
-import type { Category, CategoryKind, CategoryScope } from '@/types';
+import type { Category, CategoryKind } from '@/types';
 import { computed, onMounted, reactive, ref } from 'vue';
 
 const ledger = useLedgerStore();
@@ -24,7 +24,6 @@ const showArchived = ref(false);
 const form = reactive({
 	name: '',
 	kind: 'expense' as CategoryKind,
-	appliesTo: 'standard' as CategoryScope,
 	color: PALETTE[0].light,
 	parentId: '',
 });
@@ -34,7 +33,6 @@ interface Section {
 	title: string;
 	description: string;
 	kind: CategoryKind;
-	appliesTo: CategoryScope;
 	families: { parent: Category; children: Category[] }[];
 }
 
@@ -57,33 +55,28 @@ const sections = computed<Section[]>(() => {
 			title: 'Expense',
 			description: 'What you spend on.',
 			kind: 'expense',
-			appliesTo: 'standard',
-			families: familiesFor((c) => c.appliesTo === 'standard' && c.kind === 'expense'),
+			families: familiesFor((c) => c.kind === 'expense'),
 		},
 		{
 			key: 'income',
 			title: 'Income',
 			description: 'What you earn.',
 			kind: 'income',
-			appliesTo: 'standard',
-			families: familiesFor((c) => c.appliesTo === 'standard' && c.kind === 'income'),
+			families: familiesFor((c) => c.kind === 'income'),
 		},
 		{
 			key: 'cashflow',
 			title: 'Cashflow',
 			description: 'For transfers between your own accounts.',
-			kind: 'expense',
-			appliesTo: 'transfer',
-			families: familiesFor((c) => c.appliesTo === 'transfer'),
+			kind: 'transfer',
+			families: familiesFor((c) => c.kind === 'transfer'),
 		},
 	];
 });
 
 /** Parents the new category could be nested under, matching the chosen section. */
 const parentOptions = computed(() =>
-	ledger.categories.filter(
-		(category) => category.parentId === null && !category.archived && category.appliesTo === form.appliesTo && category.kind === form.kind,
-	),
+	ledger.categories.filter((category) => category.parentId === null && !category.archived && category.kind === form.kind),
 );
 
 const parentChoices = computed(() => namedOptions(parentOptions.value, { value: '', label: 'Nothing — this is a top-level category' }));
@@ -105,13 +98,10 @@ function openCreate(section: Section, parentId = ''): void {
 	editing.value = null;
 	error.value = null;
 
-	const siblings = ledger.categories.filter(
-		(category) => category.appliesTo === section.appliesTo && category.kind === section.kind,
-	).length;
+	const siblings = ledger.categories.filter((category) => category.kind === section.kind).length;
 	Object.assign(form, {
 		name: '',
 		kind: section.kind,
-		appliesTo: section.appliesTo,
 		color: nextColor(siblings),
 		parentId,
 	});
@@ -124,7 +114,6 @@ function openEdit(category: Category): void {
 	Object.assign(form, {
 		name: category.name,
 		kind: category.kind,
-		appliesTo: category.appliesTo,
 		color: category.color,
 		parentId: category.parentId ?? '',
 	});
@@ -132,11 +121,11 @@ function openEdit(category: Category): void {
 }
 
 async function save(): Promise<void> {
-	// Kind and scope are only sent when creating a top-level category; a child
-	// inherits both from its parent, and the API ignores what is sent anyway.
+	// Kind is only meaningful when creating a top-level category; a child
+	// inherits its parent's, and the API ignores what is sent anyway.
 	const payload = editing.value
 		? { name: form.name, kind: form.kind, color: form.color }
-		: { name: form.name, kind: form.kind, appliesTo: form.appliesTo, color: form.color, parentId: form.parentId || null };
+		: { name: form.name, kind: form.kind, color: form.color, parentId: form.parentId || null };
 
 	try {
 		if (editing.value) await api.updateCategory(editing.value.id, payload);
@@ -261,7 +250,7 @@ onMounted(() => ledger.load());
 					</p>
 				</div>
 
-				<div v-if="form.appliesTo === 'standard' && !form.parentId" class="field">
+				<div v-if="form.kind !== 'transfer' && !form.parentId" class="field">
 					<label class="label" for="category-kind">Kind</label>
 					<SelectField id="category-kind" v-model="form.kind" :options="KIND_CHOICES" />
 				</div>

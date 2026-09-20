@@ -88,7 +88,6 @@ data class CategoryBreakdown(
     val name: String,
     val kind: CategoryKind,
     val color: String,
-    val appliesTo: CategoryScope,
     val planned: Long,
     /** Set when [planned] is a share of the month's planned income rather than a fixed amount. */
     val plannedPercent: Double? = null,

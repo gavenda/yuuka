@@ -7,7 +7,7 @@ import { newId } from '../ids';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
-import { toTransaction, type CategoryScope, type TransactionRow, type TransactionSource } from '../mappers';
+import { toTransaction, type TransactionRow, type TransactionSource } from '../mappers';
 import { transactionCreateSchema, transactionQuerySchema, transactionUpdateSchema, transferCreateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
@@ -121,19 +121,23 @@ function computeRoundUp(amount: number, roundTo: number): number {
  * lands, and a reference to someone else's row is indistinguishable from one
  * that does not exist.
  *
- * The last parameter is the scope the category must have: spending and income
- * take 'standard' categories, transfers take 'transfer' ones. A transaction has
- * a single category column, so it is always one or the other, never both.
+ * Which categories may be used depends on what is being written: a transfer leg
+ * takes a 'transfer' category, spending and income take the other two. A
+ * transaction has a single category column, so it is always one or the other,
+ * never both.
  */
-const INSERT_GUARDED = `
+const TRANSFER_CATEGORY = "kind = 'transfer'";
+const SPENDING_CATEGORY = "kind <> 'transfer'";
+
+const insertGuarded = (forTransfer: boolean) => `
 	INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, source)
 	SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
-	  AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = ?))
+	  AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND ${forTransfer ? TRANSFER_CATEGORY : SPENDING_CATEGORY}))
 `;
 
 /**
- * The bindings `INSERT_GUARDED` expects, in order. There are enough of them,
+ * The bindings `insertGuarded` expects, in order. There are enough of them,
  * and enough repeated between the row and its guards, that positional binding
  * at each call site was its own hazard.
  */
@@ -148,7 +152,6 @@ function insertBindings(input: {
 	notes: string;
 	transferId: string | null;
 	source: TransactionSource;
-	scope: CategoryScope;
 }): unknown[] {
 	const { date, time } = splitOccurrence(input.occurredOn);
 
@@ -171,7 +174,6 @@ function insertBindings(input: {
 		input.categoryId,
 		input.categoryId,
 		input.userId,
-		input.scope,
 	];
 }
 
@@ -295,7 +297,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		await assertOwnTags(c.env.DB, userId, input.tagIds);
 
-		const result = await c.env.DB.prepare(INSERT_GUARDED)
+		const result = await c.env.DB.prepare(insertGuarded(false))
 			.bind(
 				...insertBindings({
 					id,
@@ -308,7 +310,6 @@ export const transactionRoutes = new Hono<AppEnv>()
 					notes: input.notes,
 					transferId: null,
 					source: 'manual',
-					scope: 'standard',
 				}),
 			)
 			.run();
@@ -338,7 +339,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 					// has to recognise a round-up by its payee.
 					const [, outflow, inflow] = await c.env.DB.batch([
 						c.env.DB.prepare('INSERT INTO transfers (id, user_id, kind) VALUES (?, ?, ?)').bind(transferId, userId, 'round_up'),
-						c.env.DB.prepare(INSERT_GUARDED).bind(
+						c.env.DB.prepare(insertGuarded(true)).bind(
 							...insertBindings({
 								id: sourceLegId,
 								userId,
@@ -350,10 +351,9 @@ export const transactionRoutes = new Hono<AppEnv>()
 								notes: '',
 								transferId,
 								source: 'round_up',
-								scope: 'transfer',
 							}),
 						),
-						c.env.DB.prepare(INSERT_GUARDED).bind(
+						c.env.DB.prepare(insertGuarded(true)).bind(
 							...insertBindings({
 								id: destinationLegId,
 								userId,
@@ -365,7 +365,6 @@ export const transactionRoutes = new Hono<AppEnv>()
 								notes: '',
 								transferId,
 								source: 'round_up',
-								scope: 'transfer',
 							}),
 						),
 					]);
@@ -435,7 +434,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const [, outflow, inflow] = await c.env.DB.batch([
 			c.env.DB.prepare('INSERT INTO transfers (id, user_id, kind) VALUES (?, ?, ?)').bind(transferId, userId, 'manual'),
 			...legs.map((leg) =>
-				c.env.DB.prepare(INSERT_GUARDED).bind(
+				c.env.DB.prepare(insertGuarded(true)).bind(
 					...insertBindings({
 						id: leg.id,
 						userId,
@@ -447,7 +446,6 @@ export const transactionRoutes = new Hono<AppEnv>()
 						notes: input.notes,
 						transferId,
 						source: 'manual',
-						scope: 'transfer',
 					}),
 				),
 			),
@@ -541,7 +539,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 					 SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
 					 WHERE id = ? AND user_id = ?
 					   AND EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
-					   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'transfer'))`,
+					   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND kind = 'transfer'))`,
 				).bind(
 					leg.accountId,
 					input.categoryId,
@@ -656,7 +654,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 			       OR EXISTS (
 			           SELECT 1 FROM categories
 			           WHERE id = ? AND user_id = ?
-			             AND applies_to = CASE WHEN transactions.transfer_id IS NULL THEN 'standard' ELSE 'transfer' END
+			             AND (kind = 'transfer') = (transactions.transfer_id IS NOT NULL)
 			       )
 			   )`,
 		)

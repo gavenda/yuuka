@@ -48,7 +48,7 @@ UNION ALL
 -- Cashflow: the outflow leg of transfer-categorised movements.
 SELECT 'cashflow.' || substr(t.occurred_on, 1, 7), CAST(SUM(-t.amount) AS TEXT)
 FROM transactions t JOIN categories c ON c.id = t.category_id
-WHERE t.transfer_id IS NOT NULL AND c.applies_to = 'transfer' AND t.amount < 0
+WHERE t.transfer_id IS NOT NULL AND c.kind = 'transfer' AND t.amount < 0
 GROUP BY substr(t.occurred_on, 1, 7)
 UNION ALL
 SELECT 'bycat.' || COALESCE(category_id, 'none'), CAST(SUM(amount) AS TEXT)

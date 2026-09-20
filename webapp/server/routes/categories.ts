@@ -41,22 +41,23 @@ export const categoryRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const id = newId('cat');
 
-		// A child inherits its parent's kind and scope, so the two can never drift
-		// apart — an "Investments" under "Cashflow" is always a transfer category.
+		// A child inherits its parent's kind, so the two can never drift apart — an
+		// "Investments" under "Cashflow" is always a transfer category. The
+		// `categories_hierarchy_*` triggers enforce the same thing; this is what
+		// turns it into a quiet inheritance rather than an error the caller has to
+		// avoid.
 		let kind = input.kind;
-		let appliesTo = input.appliesTo;
 
 		if (input.parentId) {
-			const parent = await c.env.DB.prepare('SELECT kind, applies_to, parent_id FROM categories WHERE id = ? AND user_id = ?')
+			const parent = await c.env.DB.prepare('SELECT kind, parent_id FROM categories WHERE id = ? AND user_id = ?')
 				.bind(input.parentId, userId)
-				.first<{ kind: typeof kind; applies_to: typeof appliesTo; parent_id: string | null }>();
+				.first<{ kind: typeof kind; parent_id: string | null }>();
 
 			if (!parent) throw badRequest('Unknown parent category.');
 			// One level only: a subcategory cannot itself be a parent.
 			if (parent.parent_id) throw badRequest('Categories can only nest one level deep.');
 
 			kind = parent.kind;
-			appliesTo = parent.applies_to;
 		}
 
 		try {
@@ -64,12 +65,12 @@ export const categoryRoutes = new Hono<AppEnv>()
 			// "Other", and one person's "Groceries" never collides with another's.
 			// The EXISTS guard re-checks the parent in the statement that writes.
 			const result = await c.env.DB.prepare(
-				`INSERT INTO categories (id, user_id, name, kind, color, sort_order, applies_to, parent_id)
-				 SELECT ?, ?, ?, ?, ?, ?, ?, ?
+				`INSERT INTO categories (id, user_id, name, kind, color, sort_order, parent_id)
+				 SELECT ?, ?, ?, ?, ?, ?, ?
 				 WHERE ? IS NULL
 				    OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND parent_id IS NULL)`,
 			)
-				.bind(id, userId, input.name, kind, input.color, input.sortOrder, appliesTo, input.parentId, input.parentId, input.parentId, userId)
+				.bind(id, userId, input.name, kind, input.color, input.sortOrder, input.parentId, input.parentId, input.parentId, userId)
 				.run();
 
 			if (!result.meta.changes) throw badRequest('Unknown parent category.');

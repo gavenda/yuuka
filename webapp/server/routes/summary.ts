@@ -4,7 +4,7 @@ import { readSummary, writeSummary } from '../cache';
 import { currentMonth, monthRange } from '../dates';
 import { parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
-import { toAccount, type AccountRow, type CategoryKind, type CategoryRow, type CategoryScope } from '../mappers';
+import { toAccount, type AccountRow, type CategoryKind, type CategoryRow } from '../mappers';
 import { monthQuerySchema } from '../schemas';
 import type { AppEnv } from '../types';
 
@@ -48,7 +48,6 @@ export interface CategoryBreakdown {
 	name: string;
 	kind: CategoryKind;
 	color: string;
-	appliesTo: CategoryScope;
 	/** Planned amount for the month, as a positive number. Budgets live on parents only. */
 	planned: number;
 	/** Set when `planned` is a share of the month's planned income rather than a fixed amount. */
@@ -100,14 +99,13 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		// summing both sides would always come to zero.
 		c.env.DB.prepare(
 			`SELECT t.category_id,
-			        SUM(CASE WHEN c.applies_to = 'transfer'
+			        SUM(CASE WHEN c.kind = 'transfer'
 			                 THEN (CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END)
 			                 ELSE t.amount END) AS total
 			 FROM transactions t
 			 JOIN categories c ON c.id = t.category_id AND c.user_id = t.user_id
 			 WHERE t.user_id = ? AND t.occurred_on >= ? AND t.occurred_on < ?
-			   AND ((c.applies_to = 'standard' AND t.transfer_id IS NULL)
-			     OR (c.applies_to = 'transfer' AND t.transfer_id IS NOT NULL))
+			   AND (c.kind = 'transfer') = (t.transfer_id IS NOT NULL)
 			 GROUP BY t.category_id`,
 		).bind(userId, start, end),
 		c.env.DB.prepare(`SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND ${MONTH_MATCHES}`).bind(
@@ -157,7 +155,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 	 */
 	function ownActual(category: CategoryRow): number {
 		const signed = signedByCategory.get(category.id) ?? 0;
-		if (category.applies_to === 'transfer') return signed;
+		if (category.kind === 'transfer') return signed;
 		return category.kind === 'expense' ? -signed : signed;
 	}
 
@@ -190,7 +188,6 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			name: parent.name,
 			kind: parent.kind,
 			color: parent.color,
-			appliesTo: parent.applies_to,
 			planned,
 			plannedPercent,
 			actual,
@@ -212,10 +209,8 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		plannedIncomeGrossAmount: incomePlanRow?.gross_amount ?? null,
 		netWorth: accountRows.reduce((sum, row) => sum + (row.balance ?? row.starting_balance), 0),
 		/** Money moved into transfer-categorised destinations, e.g. investments. */
-		cashflow: breakdown.filter((entry) => entry.appliesTo === 'transfer').reduce((sum, entry) => sum + entry.actual, 0),
-		totalBudgeted: breakdown
-			.filter((entry) => entry.appliesTo === 'standard' && entry.kind === 'expense')
-			.reduce((sum, entry) => sum + entry.planned, 0),
+		cashflow: breakdown.filter((entry) => entry.kind === 'transfer').reduce((sum, entry) => sum + entry.actual, 0),
+		totalBudgeted: breakdown.filter((entry) => entry.kind === 'expense').reduce((sum, entry) => sum + entry.planned, 0),
 		accounts: accountRows.map(toAccount),
 		categories: breakdown,
 		dailySpend: (daily.results as DailyRow[]).map((row) => ({ date: row.date, amount: row.spent })),

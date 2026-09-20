@@ -23,27 +23,27 @@ describe('round-up rule', () => {
 	});
 
 	it('accepts a transfer-scope category', async () => {
-		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
 
 		const { roundUpRule } = await json<{ roundUpRule: RoundUpRuleBody }>(await patch({ categoryId }));
 		expect(roundUpRule.categoryId).toBe(categoryId);
 	});
 
 	it('rejects a standard-scope category', async () => {
-		const categoryId = await makeCategory(call, { name: 'Groceries', kind: 'expense', appliesTo: 'standard' });
+		const categoryId = await makeCategory(call, { name: 'Groceries', kind: 'expense' });
 
 		expect((await patch({ categoryId })).status).toBe(400);
 	});
 
 	it('rejects a category belonging to another user', async () => {
 		const theirs = await otherClient();
-		const theirCategoryId = await makeCategory(theirs, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const theirCategoryId = await makeCategory(theirs, { name: 'Cashflow', kind: 'transfer' });
 
 		expect((await patch({ categoryId: theirCategoryId })).status).toBe(400);
 	});
 
 	it('clears the category back to uncategorised', async () => {
-		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
 		await patch({ categoryId });
 
 		const { roundUpRule } = await json<{ roundUpRule: RoundUpRuleBody }>(await patch({ categoryId: null }));

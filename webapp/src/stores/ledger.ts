@@ -70,15 +70,11 @@ export const useLedgerStore = defineStore('ledger', () => {
 	 * categories are excluded: a transaction carries one category, and these two
 	 * sets never mix on the same row.
 	 */
-	const expenseCategories = computed(() =>
-		categories.value.filter((category) => category.appliesTo === 'standard' && category.kind === 'expense'),
-	);
-	const incomeCategories = computed(() =>
-		categories.value.filter((category) => category.appliesTo === 'standard' && category.kind === 'income'),
-	);
+	const expenseCategories = computed(() => categories.value.filter((category) => category.kind === 'expense'));
+	const incomeCategories = computed(() => categories.value.filter((category) => category.kind === 'income'));
 
 	/** Categories usable on a transfer — the Cashflow tree. */
-	const transferCategories = computed(() => categories.value.filter((category) => category.appliesTo === 'transfer'));
+	const transferCategories = computed(() => categories.value.filter((category) => category.kind === 'transfer'));
 
 	/** Top-level categories only; budgets are set on these. */
 	const parentCategories = computed(() => categories.value.filter((category) => category.parentId === null));

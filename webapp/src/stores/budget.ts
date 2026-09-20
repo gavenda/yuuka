@@ -32,7 +32,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
 	// Only top-level categories appear in the summary, so these lists can be
 	// summed without double-counting a subcategory.
-	const standard = computed(() => (summary.value?.categories ?? []).filter((entry) => entry.appliesTo === 'standard'));
+	const standard = computed(() => (summary.value?.categories ?? []).filter((entry) => entry.kind !== 'transfer'));
 
 	const expenseBreakdown = computed(() => standard.value.filter((entry) => entry.kind === 'expense').sort((a, b) => b.actual - a.actual));
 
@@ -40,7 +40,7 @@ export const useBudgetStore = defineStore('budget', () => {
 
 	/** Transfer-scope categories — the Cashflow tree, e.g. investments. */
 	const cashflowBreakdown = computed(() =>
-		(summary.value?.categories ?? []).filter((entry) => entry.appliesTo === 'transfer').sort((a, b) => b.actual - a.actual),
+		(summary.value?.categories ?? []).filter((entry) => entry.kind === 'transfer').sort((a, b) => b.actual - a.actual),
 	);
 
 	/** The planned total for the month — what a percentage-based budget is a share of. */

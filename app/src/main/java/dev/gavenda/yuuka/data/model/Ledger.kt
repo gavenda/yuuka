@@ -85,16 +85,14 @@ data class Tag(
     val updatedAt: String = "",
 )
 
+/**
+ * What a category is for. [income] and [expense] categorise spending and
+ * income; [transfer] categorises movements between the user's own accounts.
+ */
 @Serializable
 enum class CategoryKind {
     income,
     expense,
-}
-
-/** Where a category may be used: on spending/income, or on transfers. */
-@Serializable
-enum class CategoryScope {
-    standard,
     transfer,
 }
 
@@ -108,7 +106,6 @@ data class Category(
     val archived: Boolean,
     /** Null for a top-level category. Nesting is one level deep. */
     val parentId: String? = null,
-    val appliesTo: CategoryScope,
     val createdAt: String = "",
     val updatedAt: String = "",
 )

@@ -47,8 +47,6 @@ export interface RoundUpRuleRow {
 	updated_at: string | null;
 }
 
-export type CategoryScope = 'standard' | 'transfer';
-
 export interface CategoryRow {
 	id: string;
 	name: string;
@@ -57,7 +55,6 @@ export interface CategoryRow {
 	sort_order: number;
 	archived: number;
 	parent_id: string | null;
-	applies_to: CategoryScope;
 	created_at: string;
 	updated_at: string;
 }
@@ -186,7 +183,6 @@ export const toCategory = (row: CategoryRow) => ({
 	sortOrder: row.sort_order,
 	archived: row.archived === 1,
 	parentId: row.parent_id,
-	appliesTo: row.applies_to,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

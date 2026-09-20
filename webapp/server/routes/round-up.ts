@@ -45,7 +45,7 @@ export const roundUpRoutes = new Hono<AppEnv>()
 			`INSERT INTO round_up_rules (user_id, enabled, round_to, destination_account_id, category_id)
 			 SELECT ?, ?, ?, ?, ?
 			 WHERE (? IS NULL OR EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?))
-			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'transfer'))
+			   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND kind = 'transfer'))
 			 ON CONFLICT (user_id) DO UPDATE SET
 			   enabled = COALESCE(?, round_up_rules.enabled),
 			   round_to = COALESCE(?, round_up_rules.round_to),

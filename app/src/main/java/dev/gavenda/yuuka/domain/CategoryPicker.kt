@@ -2,7 +2,6 @@ package dev.gavenda.yuuka.domain
 
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
 
 data class CategoryGroup(val parent: Category, val children: List<Category>)
 
@@ -17,8 +16,8 @@ fun groupForPicker(categories: List<Category>): List<CategoryGroup> {
     return parents.map { parent -> CategoryGroup(parent, categories.filter { it.parentId == parent.id && !it.archived }) }
 }
 
-fun expenseCategories(categories: List<Category>) = categories.filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense }
+fun expenseCategories(categories: List<Category>) = categories.filter { it.kind == CategoryKind.expense }
 
-fun incomeCategories(categories: List<Category>) = categories.filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.income }
+fun incomeCategories(categories: List<Category>) = categories.filter { it.kind == CategoryKind.income }
 
-fun transferCategories(categories: List<Category>) = categories.filter { it.appliesTo == CategoryScope.transfer }
+fun transferCategories(categories: List<Category>) = categories.filter { it.kind == CategoryKind.transfer }

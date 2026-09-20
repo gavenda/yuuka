@@ -151,6 +151,10 @@ silently corrupt.
   carries `user_id` with composite keys to both sides. Keep writing the
   in-statement ownership guards anyway — they are what turns someone else's id
   into a 404 instead of a 500.
+- **A category's kind is the whole story.** `kind` is `'income'`, `'expense'` or
+  `'transfer'`; there is no separate scope column. A transfer leg takes a
+  `'transfer'` category and everything else takes one of the other two, which
+  in SQL is `kind = 'transfer'` against `kind <> 'transfer'`.
 - **Categories nest one level and children inherit.** Enforced by the
   `categories_hierarchy_*` triggers, not only by `routes/categories.ts`.
 

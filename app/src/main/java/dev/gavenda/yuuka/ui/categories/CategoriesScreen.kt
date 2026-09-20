@@ -27,7 +27,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
 import dev.gavenda.yuuka.domain.CollapsedSections
 import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.ui.common.*
@@ -186,9 +185,9 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                     parentId = creatingParentId,
                     editing = editing,
                     submitting = submitting,
-                    parentOptionsFor = { viewModel.parentOptionsFor(it.kind, it.appliesTo) },
-                    nextColorFor = { viewModel.nextColorFor(it.kind, it.appliesTo) },
-                    onSave = { name, kind, appliesTo, color ->
+                    parentOptionsFor = { viewModel.parentOptionsFor(it.kind) },
+                    nextColorFor = { viewModel.nextColorFor(it.kind) },
+                    onSave = { name, kind, color ->
                         busy.run(
                             formKey,
                             snackbarHostState,
@@ -196,7 +195,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                             onSuccess = { creatingIn = null; editing = null },
                         ) {
                             if (editing != null) viewModel.updateCategory(editing!!.id, name, kind, color)
-                            else viewModel.createCategory(name, kind, appliesTo, color, creatingParentId)
+                            else viewModel.createCategory(name, kind, color, creatingParentId)
                         }
                     },
                     onCancel = { creatingIn = null; editing = null },
@@ -271,7 +270,7 @@ private fun CategoryFormContent(
     submitting: Boolean,
     parentOptionsFor: (CategorySection) -> List<Category>,
     nextColorFor: (CategorySection) -> String,
-    onSave: (String, CategoryKind, CategoryScope, String) -> Unit,
+    onSave: (String, CategoryKind, String) -> Unit,
     onCancel: () -> Unit,
 ) {
     var name by remember { mutableStateOf(editing?.name ?: "") }
@@ -279,7 +278,6 @@ private fun CategoryFormContent(
     var color by remember { mutableStateOf(editing?.color ?: nextColorFor(initialSection)) }
 
     val kind = editing?.kind ?: selectedSection.kind
-    val appliesTo = editing?.appliesTo ?: selectedSection.appliesTo
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (editing != null) stringResource(R.string.edit_category) else stringResource(R.string.new_category), style = MaterialTheme.typography.titleMedium)
@@ -380,7 +378,7 @@ private fun CategoryFormContent(
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                onClick = { if (name.isNotBlank() && isValidColor) onSave(name, kind, appliesTo, color) },
+                onClick = { if (name.isNotBlank() && isValidColor) onSave(name, kind, color) },
                 enabled = name.isNotBlank() && isValidColor && !submitting,
             ) {
                 if (submitting) {

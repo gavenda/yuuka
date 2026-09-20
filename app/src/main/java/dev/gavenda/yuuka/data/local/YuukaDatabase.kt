@@ -27,7 +27,10 @@ import dev.gavenda.yuuka.data.local.entity.*
         RoundUpRuleEntity::class,
         SubscriptionEntity::class,
     ],
-    version = 7,
+    // 8: categories lost `appliesTo`, its meaning folded into `kind`. The
+    // builder falls back to a destructive migration, which is right here — this
+    // database is a cache of the API, and a full sync refills it.
+    version = 8,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

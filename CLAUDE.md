@@ -8,26 +8,33 @@ its API (commands, architecture, security, auth, tests) lives in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
 ## Important
+
 The following bullets and sections are important and should be adhered:
+
 - When the user says android app, solely focus on the android app. Unless stated otherwise.
 - Even if the user says android app, you can only touch the API part of webapp when making API changes.
 - Versions of the android app and web app are synced. So whenever an android only bump is made, both versions will be affected.
 - When an emulator is running, and you want to visually check, always ask the user if they want to visually check before proceeding.
 
 ### Deployment
+
 - A simple tag push to remote will build the android app in a GitHub Actions CI environment.
 - A separate commit bump before the actual version tagging.
 - If a change in the database or api changes, always run `bun run db:migrate && bun run deploy` after pushing the tags to origin.
 
 #### Version Bumping
+
 - A working-tree commit, then a separate version-bump commit, then a lightweight tag.
 
 ### Android
-If Idea MCP is available, use `execute_run_configuration` to run the application, 
+
+If Idea MCP is available, use `execute_run_configuration` to run the application,
 configuration name is `app` for running the application in the emulator.
 
 ### IDE
+
 If Idea MCP is available, use it for the following:
+
 - Analyze function paths (analyze_calls)
 - Building (build_project)
 - Linting (line_files)
@@ -84,7 +91,7 @@ excluded from income and spending totals, because a transfer is neither; deletin
 either side deletes the pair, so the two accounts can never disagree.
 
 **Categories nest one level, budgets stay on the parent.** A subcategory inherits
-its parent's kind and scope, so an "Investments" under "Cashflow" is always a
+its parent's kind, so an "Investments" under "Cashflow" is always a
 transfer category. Its spending counts towards the parent's plan, and
 `/api/summary` returns top-level categories only — each carrying its children's
 figures — so summing the list cannot double-count. A transaction holds a single
@@ -118,9 +125,11 @@ out keeps them. Deleting a tag only takes the label off — the transactions sta
 matches a payee or notes. Round-ups and automated subscription rows wear none,
 and the payee history does not remember them.
 
-**Cashflow categories belong to transfers.** A category records where it may be
-used — `standard` for spending and income, `transfer` for movements between your
-own accounts — and the two sets never appear in the same picker. Because a
+**Cashflow categories belong to transfers.** A category's `kind` says what it is
+for: `income` and `expense` categorise spending and income, `transfer`
+categorises movements between your own accounts. They are three values of one
+field rather than a kind and a separate scope — a transfer category had no
+meaningful kind of its own — and the two sets never appear in the same picker. Because a
 transfer writes a matching pair of rows, counting both sides would always come to
 zero; the cashflow figure measures the outflow leg. It stays out of income,
 spending, the daily chart and the expense budget total: budgeting a movement is
@@ -165,9 +174,10 @@ honest:
   same goes for its category being deleted (the subscription becomes
   uncategorised). Deleting its account deletes it — it is configuration, not
   history.
-- Categories are standard-scope only, as for any transaction. Automated rows do
-  not trigger "Save the Change" and do not teach the payee history: both follow
-  what a person enters, not what a schedule does.
+- A subscription takes an `income` or `expense` category, never a `transfer`
+  one, as for any ordinary transaction. Automated rows do not trigger "Save the
+  Change" and do not teach the payee history: both follow what a person enters,
+  not what a schedule does.
 
 The Subscriptions screen states what the active subscriptions come to in a month
 (`monthlyTotal`, in both apps), signed like the amounts: a net outflow is
@@ -198,8 +208,8 @@ enabled with a destination account set, the gap between the amount and the
 next `round_to` multiple (₱10 or ₱100 — a minor-unit multiple of 1000 or
 10000, never centavos) is posted as its own transfer: two rows sharing a
 `transfer_id`, payee `"Save the Change"`, both legs carrying whichever
-category the rule names (`round_up_rules.category_id`) — a transfer-scope
-one, the same Cashflow tree an ordinary transfer uses, since a round-up is
+category the rule names (`round_up_rules.category_id`) — a `transfer` one,
+the same Cashflow tree an ordinary transfer uses, since a round-up is
 one. Uncategorised when the rule names none. That payee is
 synthetic and is never fed into `rememberPayee`, the same way a transfer's
 derived "From → To" name isn't. A purchase that happens to occur on the
@@ -268,6 +278,7 @@ dashboard has figures on it. How this stays safe under concurrent requests is in
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
 Rules:
+
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.

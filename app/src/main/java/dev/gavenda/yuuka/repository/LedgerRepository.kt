@@ -182,11 +182,10 @@ class LedgerRepository(
         refreshAccounts()
     }
 
-    suspend fun createCategory(name: String, kind: CategoryKind, appliesTo: CategoryScope, color: String, parentId: String?) {
+    suspend fun createCategory(name: String, kind: CategoryKind, color: String, parentId: String?) {
         val body = buildJsonObject {
             put("name", name)
             put("kind", kind.name)
-            put("appliesTo", appliesTo.name)
             put("color", color)
             put("parentId", parentId)
         }

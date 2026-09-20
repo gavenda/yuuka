@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
 import dev.gavenda.yuuka.domain.nextColor
 import dev.gavenda.yuuka.repository.LedgerRepository
 import kotlinx.coroutines.flow.*
@@ -17,7 +16,6 @@ data class CategorySection(
     val title: String,
     val description: String,
     val kind: CategoryKind,
-    val appliesTo: CategoryScope,
     val families: List<CategoryFamily>,
 )
 
@@ -43,24 +41,21 @@ data class CategoriesUiState(val categories: List<Category> = emptyList(), val s
                     "Expense",
                     "What you spend on.",
                     CategoryKind.expense,
-                    CategoryScope.standard,
-                    familiesFor { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense },
+                    familiesFor { it.kind == CategoryKind.expense },
                 ),
                 CategorySection(
                     "income",
                     "Income",
                     "What you earn.",
                     CategoryKind.income,
-                    CategoryScope.standard,
-                    familiesFor { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.income },
+                    familiesFor { it.kind == CategoryKind.income },
                 ),
                 CategorySection(
                     "cashflow",
                     "Cashflow",
                     "For transfers between your own accounts.",
-                    CategoryKind.expense,
-                    CategoryScope.transfer,
-                    familiesFor { it.appliesTo == CategoryScope.transfer },
+                    CategoryKind.transfer,
+                    familiesFor { it.kind == CategoryKind.transfer },
                 ),
             )
         }
@@ -82,15 +77,15 @@ class CategoriesViewModel(private val ledgerRepository: LedgerRepository) : View
     }
 
     /** Parents the new category could be nested under, matching the chosen section. */
-    fun parentOptionsFor(kind: CategoryKind, appliesTo: CategoryScope): List<Category> =
-        uiState.value.categories.filter { it.parentId == null && !it.archived && it.appliesTo == appliesTo && it.kind == kind }
+    fun parentOptionsFor(kind: CategoryKind): List<Category> =
+        uiState.value.categories.filter { it.parentId == null && !it.archived && it.kind == kind }
 
     /** The slot a new category in this section should take, so defaults spread across the palette. */
-    fun nextColorFor(kind: CategoryKind, appliesTo: CategoryScope): String =
-        nextColor(uiState.value.categories.count { it.appliesTo == appliesTo && it.kind == kind })
+    fun nextColorFor(kind: CategoryKind): String =
+        nextColor(uiState.value.categories.count { it.kind == kind })
 
-    suspend fun createCategory(name: String, kind: CategoryKind, appliesTo: CategoryScope, color: String, parentId: String?) =
-        ledgerRepository.createCategory(name, kind, appliesTo, color, parentId)
+    suspend fun createCategory(name: String, kind: CategoryKind, color: String, parentId: String?) =
+        ledgerRepository.createCategory(name, kind, color, parentId)
 
     /** A child inherits its parent's kind and scope, so only these three fields are ever sent when editing. */
     suspend fun updateCategory(id: String, name: String, kind: CategoryKind, color: String) = ledgerRepository.updateCategory(id, name, kind, color)

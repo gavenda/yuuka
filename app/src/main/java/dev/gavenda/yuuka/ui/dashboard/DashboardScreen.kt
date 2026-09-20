@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.data.model.CategoryScope
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
@@ -54,7 +53,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                val expenseBreakdown = state.summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense }
+                val expenseBreakdown = state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }
                 val unspent = expenseBreakdown.sumOf { maxOf(0, it.remaining) }
                 val overspent = expenseBreakdown.sumOf { minOf(0, it.remaining) }
                 val net = state.summary?.net ?: 0
@@ -118,7 +117,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleSmall)
-                        val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.standard && it.kind == CategoryKind.expense }, 8)
+                        val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)
                         if (entries.isEmpty()) {
                             Text(
                                 stringResource(R.string.dashboard_nothing_recorded_month),

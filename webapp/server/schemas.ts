@@ -3,8 +3,13 @@ import { BUDGET_MODES } from './budget-mode';
 import { DATE_PATTERN, DATE_TIME_PATTERN, isRealDate, MONTH_PATTERN } from './dates';
 import { DEFAULT_CURRENCY } from './defaults';
 
-export const CATEGORY_KINDS = ['income', 'expense'] as const;
-export const CATEGORY_SCOPES = ['standard', 'transfer'] as const;
+/**
+ * What a category is for. 'income' and 'expense' categorise spending and
+ * income; 'transfer' categorises movements between the user's own accounts.
+ * One field rather than a kind and a separate scope: a transfer category had
+ * no meaningful kind, and (income, transfer) was a state nothing could read.
+ */
+export const CATEGORY_KINDS = ['income', 'expense', 'transfer'] as const;
 
 /** Amounts are integer minor units (cents); negative is an outflow. */
 const money = z.number().int();
@@ -98,9 +103,7 @@ export const categoryCreateSchema = z.object({
 	kind: z.enum(CATEGORY_KINDS),
 	color: color.default('#64748b'),
 	sortOrder: z.number().int().min(0).default(0),
-	/** Only used when this is a top-level category; a child inherits its parent's. */
-	appliesTo: z.enum(CATEGORY_SCOPES).default('standard'),
-	/** Set to nest under a top-level category. Kind and scope are inherited. */
+	/** Set to nest under a top-level category, whose kind it then inherits. */
 	parentId: z.string().min(1).nullable().default(null),
 });
 

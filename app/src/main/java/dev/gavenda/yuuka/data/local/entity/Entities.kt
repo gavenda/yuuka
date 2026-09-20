@@ -48,7 +48,6 @@ data class CategoryEntity(
     val sortOrder: Int,
     val archived: Boolean,
     val parentId: String?,
-    val appliesTo: String,
     val createdAt: String,
     val updatedAt: String,
 )

@@ -26,7 +26,7 @@ SELECT 'transfer_groups_mixed_category', COUNT(*) FROM (
 UNION ALL
 SELECT 'transfer_groups_mixed_date', COUNT(*) FROM (
 	SELECT transfer_id FROM transactions WHERE transfer_id IS NOT NULL
-	GROUP BY transfer_id HAVING COUNT(DISTINCT substr(occurred_on, 1, 10)) <> 1
+	GROUP BY transfer_id HAVING COUNT(DISTINCT occurred_on) <> 1
 )
 UNION ALL
 -- Both legs must wear the same tags, so links = legs x distinct tags.
@@ -39,10 +39,20 @@ SELECT 'transfer_groups_mismatched_tags', COUNT(*) FROM (
 	HAVING COUNT(tt.tag_id) <> COUNT(DISTINCT t.id) * COUNT(DISTINCT tt.tag_id)
 )
 UNION ALL
--- The round-up transform keys off this payee, so a non-transfer wearing it
--- would be mistyped as `kind = 'round_up'`.
-SELECT 'save_the_change_payee_not_transfer', COUNT(*)
-FROM transactions WHERE payee = 'Save the Change' AND transfer_id IS NULL
+SELECT 'transfer_legs_without_parent', COUNT(*)
+FROM transactions t LEFT JOIN transfers f ON f.id = t.transfer_id
+WHERE t.transfer_id IS NOT NULL AND f.id IS NULL
+UNION ALL
+SELECT 'transfers_without_legs', COUNT(*)
+FROM transfers f WHERE NOT EXISTS (SELECT 1 FROM transactions WHERE transfer_id = f.id)
+UNION ALL
+SELECT 'transfer_parent_other_user', COUNT(*)
+FROM transactions t JOIN transfers f ON f.id = t.transfer_id
+WHERE f.user_id <> t.user_id
+UNION ALL
+-- A round-up is always a transfer, and its legs say so.
+SELECT 'round_up_source_not_transfer', COUNT(*)
+FROM transactions WHERE source = 'round_up' AND transfer_id IS NULL
 
 -- --------------------------------------------------------------- ownership
 UNION ALL
@@ -110,44 +120,40 @@ SELECT 'child_kind_differs_from_parent', COUNT(*)
 FROM categories c JOIN categories p ON p.id = c.parent_id
 WHERE c.kind <> p.kind
 UNION ALL
-SELECT 'child_scope_differs_from_parent', COUNT(*)
-FROM categories c JOIN categories p ON p.id = c.parent_id
-WHERE c.applies_to <> p.applies_to
-UNION ALL
 SELECT 'budget_on_child_category', COUNT(*)
 FROM budgets b JOIN categories c ON c.id = b.category_id
 WHERE c.parent_id IS NOT NULL
 
--- ------------------------------------------------------------ category scope
+-- ------------------------------------------------------------- category kind
 UNION ALL
--- A transfer leg takes a transfer-scope category; everything else standard.
-SELECT 'txn_scope_mismatch', COUNT(*)
+-- A transfer leg takes a 'transfer' category; everything else takes one of
+-- the other two.
+SELECT 'txn_kind_mismatch', COUNT(*)
 FROM transactions t JOIN categories c ON c.id = t.category_id
-WHERE (t.transfer_id IS NULL     AND c.applies_to <> 'standard')
-   OR (t.transfer_id IS NOT NULL AND c.applies_to <> 'transfer')
+WHERE (c.kind = 'transfer') <> (t.transfer_id IS NOT NULL)
 UNION ALL
-SELECT 'subscription_scope_mismatch', COUNT(*)
+SELECT 'subscription_kind_mismatch', COUNT(*)
 FROM subscriptions s JOIN categories c ON c.id = s.category_id
-WHERE c.applies_to <> 'standard'
+WHERE c.kind = 'transfer'
 UNION ALL
 SELECT 'round_up_category_not_transfer', COUNT(*)
 FROM round_up_rules r JOIN categories c ON c.id = r.category_id
-WHERE c.applies_to <> 'transfer'
+WHERE c.kind <> 'transfer'
 
 -- ------------------------------------------------------------------- dates
 UNION ALL
 SELECT 'occurred_on_malformed', COUNT(*)
 FROM transactions
 WHERE occurred_on NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
-  AND occurred_on NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]'
+   OR (occurred_time IS NOT NULL AND occurred_time NOT GLOB '[0-9][0-9]:[0-9][0-9]')
 UNION ALL
 SELECT 'occurred_on_not_a_real_day', COUNT(*)
 FROM transactions
-WHERE date(substr(occurred_on, 1, 10)) IS NULL OR date(substr(occurred_on, 1, 10)) <> substr(occurred_on, 1, 10)
+WHERE date(occurred_on) IS NULL OR date(occurred_on) <> occurred_on
 UNION ALL
--- Automated rows post at 00:00 UTC and must stay bare dates.
+-- Subscription rows post at 00:00 UTC and name no time of day.
 SELECT 'automated_row_carries_time', COUNT(*)
-FROM transactions WHERE automated = 1 AND length(occurred_on) > 10
+FROM transactions WHERE source = 'subscription' AND occurred_time IS NOT NULL
 UNION ALL
 SELECT 'subscription_dates_malformed', COUNT(*)
 FROM subscriptions
@@ -168,10 +174,10 @@ FROM subscriptions WHERE enabled = 1 AND next_run_on < strftime('%Y-%m-%d', 'now
 -- ------------------------------------------------------ budgets and planning
 UNION ALL
 SELECT 'budget_month_malformed', COUNT(*)
-FROM budgets WHERE month <> 'fixed' AND month NOT GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'
+FROM budgets WHERE month IS NOT NULL AND month NOT GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'
 UNION ALL
 SELECT 'income_plan_month_malformed', COUNT(*)
-FROM income_plans WHERE month <> 'fixed' AND month NOT GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'
+FROM income_plans WHERE month IS NOT NULL AND month NOT GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'
 UNION ALL
 SELECT 'budget_duplicate_per_category_month', COUNT(*) FROM (
 	SELECT user_id, category_id, month FROM budgets GROUP BY user_id, category_id, month HAVING COUNT(*) > 1

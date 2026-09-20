@@ -38,7 +38,7 @@ describe('save the change', () => {
 	});
 
 	it("posts both legs under the rule's category when one is set", async () => {
-		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'expense', appliesTo: 'transfer' });
+		const categoryId = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
 		await call('/round-up', { method: 'PATCH', body: JSON.stringify({ categoryId }) });
 
 		const { roundUp } = await json<CreateResponse>(await post({ accountId: sourceId, amount: -4599, occurredOn: '2026-09-03' }));

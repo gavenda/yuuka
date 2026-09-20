@@ -14,7 +14,6 @@ interface Category {
 	name: string;
 	kind: string;
 	parentId: string | null;
-	appliesTo: string;
 }
 
 async function categories(): Promise<Category[]> {
@@ -35,13 +34,13 @@ describe('subcategories', () => {
 		expect(supermarket.parentId).toBe(groceries.id);
 	});
 
-	it('inherit their parent’s kind and scope', async () => {
+	it('inherit their parent’s kind', async () => {
 		const cashflow = await byName('Cashflow');
 		const investments = await byName('Investments');
 
 		expect(investments.parentId).toBe(cashflow.id);
 		expect(investments.kind).toBe(cashflow.kind);
-		expect(investments.appliesTo).toBe('transfer');
+		expect(investments.kind).toBe('transfer');
 	});
 
 	it('can be created under an existing parent', async () => {

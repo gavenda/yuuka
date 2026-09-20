@@ -57,10 +57,10 @@ class BudgetViewModel(
         month.flatMapLatest { budgetRepository.observeSummary(it) },
         status,
     ) { currentMonthValue, settings, summary, currentStatus ->
-        val standard = summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.standard }
+        val standard = summary?.categories.orEmpty().filter { it.kind != CategoryKind.transfer }
         val expense = standard.filter { it.kind == CategoryKind.expense }.sortedByDescending { it.actual }
         val income = standard.filter { it.kind == CategoryKind.income }.sortedByDescending { it.actual }
-        val cashflow = summary?.categories.orEmpty().filter { it.appliesTo == CategoryScope.transfer }.sortedByDescending { it.actual }
+        val cashflow = summary?.categories.orEmpty().filter { it.kind == CategoryKind.transfer }.sortedByDescending { it.actual }
 
         BudgetUiState(
             month = currentMonthValue,

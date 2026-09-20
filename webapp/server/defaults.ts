@@ -8,12 +8,11 @@
 
 export interface DefaultCategory {
 	name: string;
-	kind: 'income' | 'expense';
+	/** 'transfer' categorises movements between the user's own accounts. */
+	kind: 'income' | 'expense' | 'transfer';
 	color: string;
 	sortOrder: number;
-	/** Where the category may be used. Transfer categories budget cash movements. */
-	appliesTo?: 'standard' | 'transfer';
-	/** Subcategories, one level deep. They inherit their parent's kind and scope. */
+	/** Subcategories, one level deep. They inherit their parent's kind. */
 	children?: string[];
 }
 
@@ -45,10 +44,9 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
 	 */
 	{
 		name: 'Cashflow',
-		kind: 'expense',
+		kind: 'transfer',
 		color: '#4a3aa7',
 		sortOrder: 0,
-		appliesTo: 'transfer',
 		children: ['Investments', 'Savings', 'Debt Repayment'],
 	},
 ];

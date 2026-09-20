@@ -41,6 +41,30 @@ describe('categories', () => {
 		expect(response.status).toBe(201);
 	});
 
+	// 'transfer' is a kind like the other two, so a name means one thing when
+	// you spend it and another when you move it. While the scope was a separate
+	// column it was left out of the uniqueness index, and these two collided.
+	it('allows the same name as both spending and a transfer', async () => {
+		await makeCategory(call, { name: 'Savings', kind: 'expense' });
+		const response = await call('/categories', { method: 'POST', body: JSON.stringify({ name: 'Savings', kind: 'transfer' }) });
+		expect(response.status).toBe(201);
+	});
+
+	// A category decides where money counts, so the two sets never mix: an
+	// ordinary expense cannot be filed under a transfer category, and the guard
+	// runs in the statement that writes.
+	it('refuses a transfer category on an ordinary transaction', async () => {
+		const accountId = await makeAccount(call);
+		const cashflow = await makeCategory(call, { name: 'Cashflow', kind: 'transfer' });
+
+		const response = await call('/transactions', {
+			method: 'POST',
+			body: JSON.stringify({ accountId, categoryId: cashflow, amount: -2500, occurredOn: '2026-09-04' }),
+		});
+
+		expect(response.status).toBe(400);
+	});
+
 	it('refuses to rename onto an existing name', async () => {
 		await makeCategory(call, { name: 'Food', kind: 'expense' });
 		const other = await makeCategory(call, { name: 'Fuel', kind: 'expense' });

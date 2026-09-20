@@ -1,8 +1,10 @@
 /** Shapes returned by the yuuka API. Amounts are integer minor units (cents). */
 
-export type CategoryKind = 'income' | 'expense';
-/** Where a category may be used: on spending/income, or on transfers. */
-export type CategoryScope = 'standard' | 'transfer';
+/**
+ * What a category is for. 'income' and 'expense' categorise spending and
+ * income; 'transfer' categorises movements between the user's own accounts.
+ */
+export type CategoryKind = 'income' | 'expense' | 'transfer';
 
 export type BudgetMode = 'fixed' | 'monthly';
 
@@ -70,7 +72,6 @@ export interface Category {
 	archived: boolean;
 	/** Null for a top-level category. Nesting is one level deep. */
 	parentId: string | null;
-	appliesTo: CategoryScope;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -172,7 +173,6 @@ export interface CategoryBreakdown {
 	name: string;
 	kind: CategoryKind;
 	color: string;
-	appliesTo: CategoryScope;
 	planned: number;
 	/** Set when `planned` is a share of the month's planned income rather than a fixed amount. */
 	plannedPercent: number | null;
