@@ -275,6 +275,12 @@
     <string name="search_payee_notes">Search payee, notes or tag</string>
     <string name="all_accounts">All accounts</string>
     <string name="all_categories">All categories</string>
+    <string name="all_tags">All tags</string>
+    <string name="filter_and_more">%1$s &amp; more</string>
+    <string name="filter_by_account">Filter by account</string>
+    <string name="filter_by_category">Filter by category</string>
+    <string name="filter_by_tag">Filter by tag</string>
+    <string name="action_clear">Clear</string>
     <string name="transactions_empty_title">No transactions here</string>
     <string name="transactions_empty_description">Nothing matches these filters yet. Add one, or widen the search.</string>
     <string name="loading_ellipsis">Loading…</string>

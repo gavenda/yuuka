@@ -11,9 +11,11 @@ import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.repository.*
 import dev.gavenda.yuuka.ui.common.ScreenStatus
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val PAGE_SIZE = 50
 
@@ -24,8 +26,10 @@ data class TransactionsUiState(
     val categories: List<Category> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val defaultAccountId: String? = null,
-    val accountFilter: String? = null,
-    val categoryFilter: String? = null,
+    /** What the filters are narrowed to, in the order it was picked; empty means unfiltered. */
+    val accountFilter: Set<String> = emptySet(),
+    val categoryFilter: Set<String> = emptySet(),
+    val tagFilter: Set<String> = emptySet(),
     val searchText: String = "",
     val rows: List<TransactionRow> = emptyList(),
     val total: Int = 0,
@@ -91,29 +95,47 @@ class TransactionsViewModel(
 
     private fun currentFilters() = TransactionFilters(
         month = _uiState.value.month,
-        accountId = _uiState.value.accountFilter,
-        categoryId = _uiState.value.categoryFilter,
+        accountIds = _uiState.value.accountFilter,
+        categoryIds = _uiState.value.categoryFilter,
+        tagIds = _uiState.value.tagFilter,
         search = _uiState.value.searchText.trim().ifBlank { null },
     )
 
     init {
         viewModelScope.launch { ledgerRepository.accounts.collect { list -> _uiState.update { it.copy(accounts = list) } } }
-        viewModelScope.launch { ledgerRepository.categories.collect { list -> _uiState.update { it.copy(categories = list) } } }
+        viewModelScope.launch {
+            ledgerRepository.categories.collect { list ->
+                _uiState.update {
+                    it.copy(categories = list.filter { cat ->
+                        cat.parentId == null
+                    })
+                }
+            }
+        }
         viewModelScope.launch { ledgerRepository.tags.collect { list -> _uiState.update { it.copy(tags = list) } } }
         viewModelScope.launch {
             ledgerRepository.settings.collect { settings ->
-                _uiState.update { it.copy(currency = settings?.displayCurrency ?: DEFAULT_CURRENCY, defaultAccountId = settings?.defaultAccountId) }
+                _uiState.update {
+                    it.copy(
+                        currency = settings?.displayCurrency ?: DEFAULT_CURRENCY,
+                        defaultAccountId = settings?.defaultAccountId
+                    )
+                }
             }
         }
 
         viewModelScope.launch {
-            searchInput.debounce(250).distinctUntilChanged().collect { reload() }
+            searchInput.debounce(250.milliseconds).distinctUntilChanged().collect { reload() }
         }
 
         viewModelScope.launch { syncRepository.synced.collect { reload() } }
 
         viewModelScope.launch {
-            filterKey.flatMapLatest { f -> limit.flatMapLatest { l -> transactionRepository.observePage(f, l).map(::mergeTransferRows) } }
+            filterKey.flatMapLatest { f ->
+                limit.flatMapLatest { l ->
+                    transactionRepository.observePage(f, l).map(::mergeTransferRows)
+                }
+            }
                 .collect { rows -> _uiState.update { it.copy(rows = rows) } }
         }
 
@@ -125,13 +147,18 @@ class TransactionsViewModel(
         reload()
     }
 
-    fun setAccountFilter(accountId: String?) {
-        _uiState.update { it.copy(accountFilter = accountId) }
+    fun setAccountFilter(accountIds: Set<String>) {
+        _uiState.update { it.copy(accountFilter = accountIds) }
         reload()
     }
 
-    fun setCategoryFilter(categoryId: String?) {
-        _uiState.update { it.copy(categoryFilter = categoryId) }
+    fun setCategoryFilter(categoryIds: Set<String>) {
+        _uiState.update { it.copy(categoryFilter = categoryIds) }
+        reload()
+    }
+
+    fun setTagFilter(tagIds: Set<String>) {
+        _uiState.update { it.copy(tagFilter = tagIds) }
         reload()
     }
 
@@ -143,20 +170,37 @@ class TransactionsViewModel(
     private fun reload() {
         val f = currentFilters()
         filterKey.value = f
-        limit.value = PAGE_SIZE
+        limit.value = f.rowLimit(PAGE_SIZE)
         _uiState.update { it.copy(loadedCount = PAGE_SIZE) }
         refreshFirstPage(f)
     }
 
+    private var firstPageJob: Job? = null
+
+    /** Cancels the one still running, so quick changes to the filters cannot leave an older answer's total on screen. */
     private fun refreshFirstPage(f: TransactionFilters) {
-        viewModelScope.launch {
+        firstPageJob?.cancel()
+        firstPageJob = viewModelScope.launch {
             _uiState.update { it.copy(status = ScreenStatus.Loading) }
             try {
                 val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = 0)
-                _uiState.update { it.copy(total = page.total, status = ScreenStatus.Idle) }
+                _uiState.update { it.copy(total = page.total) }
+                if (f.narrowsCache) loadRest(f, page.total)
+                _uiState.update { it.copy(status = ScreenStatus.Idle) }
             } catch (e: ApiError) {
                 _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not load transactions.")) }
             }
+        }
+    }
+
+    /** A filter that narrows the cache only sees what is cached, so it needs the rest of the month's pages, not just the first. */
+    private suspend fun loadRest(f: TransactionFilters, total: Int) {
+        var loaded = _uiState.value.loadedCount
+        while (loaded < total) {
+            val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = loaded)
+            if (page.transactions.isEmpty()) break
+            loaded += page.transactions.size
+            _uiState.update { it.copy(total = page.total, loadedCount = loaded) }
         }
     }
 
@@ -170,7 +214,7 @@ class TransactionsViewModel(
             try {
                 val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = offset)
                 val nextLoaded = offset + page.transactions.size
-                limit.value = nextLoaded
+                limit.value = f.rowLimit(nextLoaded)
                 _uiState.update { it.copy(total = page.total, loadedCount = nextLoaded, status = ScreenStatus.Idle) }
             } catch (e: ApiError) {
                 _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not load more.")) }
@@ -185,7 +229,8 @@ class TransactionsViewModel(
 
     fun openEdit(transaction: Transaction, transferToAccountId: String? = null) {
         viewModelScope.launch { runCatching { payeeRepository.refresh() } }
-        _formState.value = TransactionFormState(open = true, editing = transaction, transferToAccountId = transferToAccountId)
+        _formState.value =
+            TransactionFormState(open = true, editing = transaction, transferToAccountId = transferToAccountId)
     }
 
     fun closeForm() {
@@ -271,14 +316,20 @@ class TransactionsViewModel(
                 // first is still unread and get silently dropped.
                 _events.tryEmit(
                     if (roundUp != null) {
-                        val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency ?: _uiState.value.currency
+                        val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency
+                            ?: _uiState.value.currency
                         "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
                     } else {
                         baseMessage
                     },
                 )
             } catch (e: ApiError) {
-                _formState.update { it.copy(submitting = false, error = e.message ?: "Could not save the transaction.") }
+                _formState.update {
+                    it.copy(
+                        submitting = false,
+                        error = e.message ?: "Could not save the transaction."
+                    )
+                }
             }
         }
     }

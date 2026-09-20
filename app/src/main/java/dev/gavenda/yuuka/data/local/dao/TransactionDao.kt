@@ -16,9 +16,10 @@ private const val ID_CHUNK = 500
 @Dao
 interface TransactionDao {
     /**
-     * `categoryNone` selects the "uncategorised" filter; when it is false,
-     * `categoryId` (possibly null, for "all categories") is used instead. See
-     * [dev.gavenda.yuuka.repository.TransactionRepository] for how the two are set.
+     * Each `filter…` flag says whether that filter applies at all, so an empty id list
+     * means "everything" rather than "nothing". A row matches any id of a filter, and must
+     * satisfy every filter that applies. `categoryNone` adds the uncategorised to the
+     * categories; see [dev.gavenda.yuuka.repository.TransactionRepository] for how these are set.
      *
      * A search also matches the names of a transaction's tags, as the API's does.
      */
@@ -27,9 +28,12 @@ interface TransactionDao {
         """
         SELECT * FROM transactions
         WHERE (:month IS NULL OR occurredOn LIKE (:month || '%'))
-          AND (:accountId IS NULL OR accountId = :accountId)
-          AND (:categoryNone = 0 OR categoryId IS NULL)
-          AND (:categoryId IS NULL OR categoryId = :categoryId)
+          AND (:filterAccounts = 0 OR accountId IN (:accountIds))
+          AND (:filterCategories = 0 OR categoryId IN (:categoryIds) OR (:categoryNone = 1 AND categoryId IS NULL))
+          AND (
+            :filterTags = 0
+            OR EXISTS (SELECT 1 FROM transaction_tags ft WHERE ft.transactionId = transactions.id AND ft.tagId IN (:tagIds))
+          )
           AND (
             :search IS NULL
             OR payee LIKE ('%' || :search || '%')
@@ -45,9 +49,13 @@ interface TransactionDao {
     )
     fun observePage(
         month: String?,
-        accountId: String?,
-        categoryId: String?,
+        filterAccounts: Boolean,
+        accountIds: List<String>,
+        filterCategories: Boolean,
+        categoryIds: List<String>,
         categoryNone: Boolean,
+        filterTags: Boolean,
+        tagIds: List<String>,
         search: String?,
         limit: Int,
         offset: Int,

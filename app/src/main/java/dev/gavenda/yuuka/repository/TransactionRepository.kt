@@ -6,6 +6,7 @@ import dev.gavenda.yuuka.data.local.tagLinks
 import dev.gavenda.yuuka.data.local.toEntity
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
+import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
 import dev.gavenda.yuuka.data.model.TransactionPage
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
@@ -27,27 +28,29 @@ class TransactionRepository(
 
     /** The cached page for these filters — populated by [refreshPage], observed live thereafter. */
     fun observePage(filters: TransactionFilters, limit: Int, offset: Int = 0): Flow<List<Transaction>> {
-        val categoryNone = filters.categoryId == "none"
-        val categoryId = if (categoryNone) null else filters.categoryId
-
         return dao.observePage(
             month = filters.month,
-            accountId = filters.accountId,
-            categoryId = categoryId,
-            categoryNone = categoryNone,
+            filterAccounts = filters.accountIds.isNotEmpty(),
+            accountIds = filters.accountIds.toList(),
+            filterCategories = filters.categoryIds.isNotEmpty(),
+            categoryIds = (filters.categoryIds - UNCATEGORIZED_FILTER_ID).toList(),
+            categoryNone = UNCATEGORIZED_FILTER_ID in filters.categoryIds,
+            filterTags = filters.tagIds.isNotEmpty(),
+            tagIds = filters.tagIds.toList(),
             search = filters.search?.takeIf { it.isNotBlank() },
             limit = limit,
             offset = offset,
         ).map { list -> list.map { it.toDomain() } }
     }
 
-    /** Fetches a page from the network and folds it into the local cache; returns the API's own total for pagination. */
+    /**
+     * Fetches a page from the network and folds it into the local cache; returns the API's own total for pagination.
+     * Only the month and search are asked of the API: the account, category and tag filters are applied to the cache by [observePage].
+     */
     suspend fun refreshPage(filters: TransactionFilters, limit: Int, offset: Int): TransactionPage {
         val page = apiCall {
             api.listTransactions(
                 month = filters.month,
-                accountId = filters.accountId,
-                categoryId = filters.categoryId,
                 search = filters.search?.takeIf { it.isNotBlank() },
                 limit = limit,
                 offset = offset,

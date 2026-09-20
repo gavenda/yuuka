@@ -71,7 +71,7 @@ fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed
 /** Wide enough for a large figure and a one-line caption, narrow enough that the next card peeks in on a phone. */
 private val StatItemWidth = 232.dp
 
-private fun Modifier.bleed(amount: Dp) = layout { measurable, constraints ->
+internal fun Modifier.bleed(amount: Dp) = layout { measurable, constraints ->
     val bleed = amount.roundToPx()
     val width = constraints.maxWidth + bleed * 2
     val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))

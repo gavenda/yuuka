@@ -2,13 +2,22 @@ package dev.gavenda.yuuka.ui.transactions
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material3.*
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -17,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -24,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionTag
+import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
@@ -46,9 +57,13 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         viewModel.events.collect { message -> snackbarHostState.showSnackbar(message) }
     }
 
-    val allAccountsLabel = stringResource(R.string.all_accounts)
-    val allCategoriesLabel = stringResource(R.string.all_categories)
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
+    val accountOptions = remember(state.accounts) { state.accounts.map { FilterOption(it.id, it.name) } }
+    val categoryOptions = remember(state.categories, uncategorizedLabel) {
+        listOf(FilterOption(UNCATEGORIZED_FILTER_ID, uncategorizedLabel)) + state.categories.map { FilterOption(it.id, it.name) }
+    }
+    val tagOptions = remember(state.tags) { state.tags.map { FilterOption(it.id, it.name) } }
+    var openFilter by remember { mutableStateOf<FilterKind?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -66,44 +81,67 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         val error = (state.status as? ScreenStatus.Error)?.message
         val grouped = remember(state.rows) { groupByDate(state.rows) }
 
-        Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
+        Column(modifier = Modifier.padding(padding).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             MonthSwitcher(
                 month = state.month,
                 onMonthChange = viewModel::setMonth,
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AccountFilterButton(
+                    options = accountOptions,
+                    selected = state.accountFilter,
+                    allLabel = stringResource(R.string.all_accounts),
+                    onClick = { openFilter = FilterKind.ACCOUNTS },
+                    modifier = Modifier.weight(1f, fill = true),
+                )
+                FilterIconButton(
+                    icon = Icons.Outlined.Sell,
+                    description = stringResource(R.string.filter_by_tag),
+                    count = state.tagFilter.size,
+                    onClick = { openFilter = FilterKind.TAGS },
+                )
+                FilterIconButton(
+                    icon = Icons.Outlined.FilterList,
+                    description = stringResource(R.string.filter_by_category),
+                    count = state.categoryFilter.size,
+                    onClick = { openFilter = FilterKind.CATEGORIES },
+                )
+            }
 
             LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 96.dp)) {
                 item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+
+                        TextField(
                             value = state.searchText,
                             onValueChange = viewModel::setSearchText,
-                            label = { Text(stringResource(R.string.search_payee_notes)) },
+                            placeholder = { Text(stringResource(R.string.search_payee_notes)) },
+                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (state.searchText.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.setSearchText("") }) {
+                                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
+                                    }
+                                }
+                            },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
+                            shape = CircleShape,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                errorIndicatorColor = Color.Transparent,
+                            ),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterDropdown(
-                                modifier = Modifier.weight(1f),
-                                label = stringResource(R.string.label_account),
-                                selectedLabel = state.accounts.firstOrNull { it.id == state.accountFilter }?.name ?: allAccountsLabel,
-                                options = listOf(null to allAccountsLabel) + state.accounts.map { it.id to it.name },
-                                onSelect = viewModel::setAccountFilter,
-                            )
-                            FilterDropdown(
-                                modifier = Modifier.weight(1f),
-                                label = stringResource(R.string.label_category),
-                                selectedLabel = when (state.categoryFilter) {
-                                    null -> allCategoriesLabel
-                                    "none" -> uncategorizedLabel
-                                    else -> state.categories.firstOrNull { it.id == state.categoryFilter }?.name ?: allCategoriesLabel
-                                },
-                                options = listOf(null to allCategoriesLabel, "none" to uncategorizedLabel) + state.categories.map { it.id to it.name },
-                                onSelect = viewModel::setCategoryFilter,
-                            )
-                        }
                     }
                 }
 
@@ -176,7 +214,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     }
 
     if (formState.open) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
         ModalBottomSheet(onDismissRequest = viewModel::closeForm, sheetState = sheetState) {
             WithSnackbarOverlay {
                 TransactionForm(
@@ -194,6 +232,38 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                 )
             }
         }
+    }
+
+    val dismissFilter = { openFilter = null }
+    when (openFilter) {
+        FilterKind.ACCOUNTS -> FilterSheet(
+            title = stringResource(R.string.filter_by_account),
+            options = accountOptions,
+            selected = state.accountFilter,
+            emptyText = stringResource(R.string.no_accounts_yet),
+            onChange = viewModel::setAccountFilter,
+            onDismiss = dismissFilter,
+        )
+
+        FilterKind.CATEGORIES -> FilterSheet(
+            title = stringResource(R.string.filter_by_category),
+            options = categoryOptions,
+            selected = state.categoryFilter,
+            emptyText = stringResource(R.string.no_categories_yet),
+            onChange = viewModel::setCategoryFilter,
+            onDismiss = dismissFilter,
+        )
+
+        FilterKind.TAGS -> FilterSheet(
+            title = stringResource(R.string.filter_by_tag),
+            options = tagOptions,
+            selected = state.tagFilter,
+            emptyText = stringResource(R.string.no_tags_yet),
+            onChange = viewModel::setTagFilter,
+            onDismiss = dismissFilter,
+        )
+
+        null -> Unit
     }
 
     val toDelete = pendingDelete
@@ -361,7 +431,6 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
 }
 
 /** A transaction's tags as small chips, wrapping onto further lines and packed toward the end of the row. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagChips(tags: List<TransactionTag>, modifier: Modifier = Modifier) {
     FlowRow(
@@ -403,27 +472,96 @@ private fun CategoryLabel(name: String, colorHex: String?) {
 }
 
 @Composable
-private fun FilterDropdown(
-    label: String,
-    selectedLabel: String,
-    options: List<Pair<String?, String>>,
-    onSelect: (String?) -> Unit,
+private fun AccountFilterButton(
+    options: List<FilterOption>,
+    selected: Set<String>,
+    allLabel: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (value, text) ->
-                DropdownMenuItem(text = { Text(text) }, onClick = { onSelect(value); expanded = false })
+    // In the order they were picked; anything no longer in the list is not counted.
+    val labels = selected.mapNotNull { id -> options.firstOrNull { it.id == id }?.label }
+    val text = when (labels.size) {
+        0 -> allLabel
+        1 -> labels.first()
+        else -> stringResource(R.string.filter_and_more, labels.first())
+    }
+    TextButton(
+        onClick = onClick,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = if (labels.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+        ),
+        modifier = modifier,
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+        }
+    }
+}
+
+@Composable
+private fun FilterIconButton(icon: ImageVector, description: String, count: Int, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+            Icon(
+                icon,
+                contentDescription = description,
+                tint = if (count > 0) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+            )
+        }
+    }
+}
+
+/** Every option as a chip to switch on or off; a change applies at once, so the list behind updates as chips are picked. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterSheet(
+    title: String,
+    options: List<FilterOption>,
+    selected: Set<String>,
+    emptyText: String,
+    onChange: (Set<String>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                if (selected.isNotEmpty()) {
+                    TextButton(onClick = { onChange(emptySet()) }) { Text(stringResource(R.string.action_clear)) }
+                }
+            }
+
+            if (options.isEmpty()) {
+                Text(emptyText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    options.forEach { option ->
+                        val active = option.id in selected
+                        FilterChip(
+                            selected = active,
+                            onClick = { onChange(if (active) selected - option.id else selected + option.id) },
+                            label = { Text(option.label) },
+                            leadingIcon = if (active) {
+                                { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                            } else {
+                                null
+                            },
+                        )
+                    }
+                }
             }
         }
     }
 }
+
+private enum class FilterKind { ACCOUNTS, CATEGORIES, TAGS }
+
+private data class FilterOption(val id: String, val label: String)

@@ -2,15 +2,18 @@ package dev.gavenda.yuuka.ui.dashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material3.Card
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -32,7 +35,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val error = (state.status as? ScreenStatus.Error)?.message
@@ -87,7 +90,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleLarge)
                         val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
                         val total = series.sumOf { it.amount }
                         val spentDays = series.count { it.amount > 0 }
@@ -116,7 +119,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleLarge)
                         val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)
                         if (entries.isEmpty()) {
                             Text(
@@ -133,64 +136,85 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    modifier = Modifier.bleed(16.dp),
+                    shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize),
+                    color = MaterialTheme.colorScheme.recentContainer,
                 ) {
-                    Text(stringResource(R.string.dashboard_recent_activity), style = MaterialTheme.typography.titleSmall)
-                    TextButton(
-                        onClick = onViewAllTransactions,
-                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
-                    ) { Text(stringResource(R.string.action_view_all)) }
-                }
-            }
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(stringResource(R.string.dashboard_recent_activity), style = MaterialTheme.typography.titleLarge)
+                            TextButton(
+                                onClick = onViewAllTransactions,
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
+                            ) { Text(stringResource(R.string.action_view_all)) }
+                        }
 
-            if (state.recentRows.isEmpty()) {
-                item { EmptyState(stringResource(R.string.dashboard_nothing_recorded_month_yet)) }
-            } else {
-                items(state.recentRows) { row -> RecentActivityRow(row, state.currency) }
+                        if (state.recentRows.isEmpty()) {
+                            EmptyState(stringResource(R.string.dashboard_nothing_recorded_month_yet))
+                        } else {
+                            Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                state.recentRows.forEach { row -> RecentActivityRow(row, state.currency) }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+// The container is the lightest layer: brightest in light mode, lifted above the page in dark mode, where "lowest" would recess it.
+private val ColorScheme.isDark get() = background.luminance() < 0.5f
+private val ColorScheme.recentContainer get() = if (isDark) surfaceContainerHigh else surfaceContainerLowest
+private val ColorScheme.recentTile get() = if (isDark) surfaceContainer else surfaceContainerLow
+
 @Composable
 private fun RecentActivityRow(row: TransactionRow, currency: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        when (row) {
-            is TransactionRow.Transfer -> {
-                Column(Modifier.weight(1f)) {
-                    val from = row.fromAccountName.orEmpty()
-                    val to = row.toAccountName.orEmpty()
-                    if (row.payee.isBlank()) {
-                        AccountFlow(from, to, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                    } else {
-                        Text(row.payee, style = MaterialTheme.typography.bodyMedium)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.recentTile,
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            when (row) {
+                is TransactionRow.Transfer -> {
+                    Column(Modifier.weight(1f)) {
+                        val from = row.fromAccountName.orEmpty()
+                        val to = row.toAccountName.orEmpty()
+                        if (row.payee.isBlank()) {
+                            AccountFlow(from, to, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        } else {
+                            Text(row.payee, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            AccountFlow(from, to)
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency)
+                }
+
+                is TransactionRow.Single -> {
+                    val transaction = row.transaction
+                    Column(Modifier.weight(1f)) {
+                        Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ",
+                            listOfNotNull(formatDate(transaction.occurredOn), formatTime(transaction.occurredOn)).joinToString(" · ") + " · ${transaction.accountName}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        AccountFlow(from, to)
                     }
+                    MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency)
                 }
-                MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency)
-            }
-
-            is TransactionRow.Single -> {
-                val transaction = row.transaction
-                Column(Modifier.weight(1f)) {
-                    Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        listOfNotNull(formatDate(transaction.occurredOn), formatTime(transaction.occurredOn)).joinToString(" · ") + " · ${transaction.accountName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency)
             }
         }
     }
