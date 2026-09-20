@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { budgetMonthKey, FIXED_BUDGET_MONTH, getBudgetMode } from '../budget-mode';
+import { budgetMonthKey, FIXED_BUDGET_MONTH, getBudgetMode, MONTH_MATCHES } from '../budget-mode';
 import { invalidateAllSummaries, invalidateSummaries } from '../cache';
 import { badRequest, notFound } from '../errors';
 import { newId } from '../ids';
@@ -12,9 +12,18 @@ import { currentMonth } from '../dates';
 import type { AppEnv } from '../types';
 
 /** Purges the cached summaries a write to this stored `month` could have affected. */
-async function invalidateForStoredMonth(cache: KVNamespace, userId: string, storedMonth: string): Promise<void> {
+async function invalidateForStoredMonth(cache: KVNamespace, userId: string, storedMonth: string | null): Promise<void> {
 	if (storedMonth === FIXED_BUDGET_MONTH) await invalidateAllSummaries(cache, userId);
 	else await invalidateSummaries(cache, userId, [storedMonth]);
+}
+
+/**
+ * Which unique index an upsert should resolve against. Both are partial, so
+ * the predicate is part of naming them: one row per category for the plan that
+ * answers every month, one per category per named month for the rest.
+ */
+function conflictTarget(storedMonth: string | null): string {
+	return storedMonth === null ? '(user_id, category_id) WHERE month IS NULL' : '(user_id, category_id, month) WHERE month IS NOT NULL';
 }
 
 export const budgetRoutes = new Hono<AppEnv>()
@@ -24,7 +33,7 @@ export const budgetRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const mode = await getBudgetMode(c.env.DB, userId);
 
-		const { results } = await c.env.DB.prepare('SELECT * FROM budgets WHERE user_id = ? AND month = ? ORDER BY category_id')
+		const { results } = await c.env.DB.prepare(`SELECT * FROM budgets WHERE user_id = ? AND ${MONTH_MATCHES} ORDER BY category_id`)
 			.bind(userId, budgetMonthKey(mode, month ?? currentMonth()))
 			.all<BudgetRow>();
 
@@ -54,7 +63,7 @@ export const budgetRoutes = new Hono<AppEnv>()
 			`INSERT INTO budgets (id, user_id, category_id, month, amount, percent_bp)
 			 SELECT ?, ?, ?, ?, ?, ?
 			 WHERE EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND parent_id IS NULL)
-			 ON CONFLICT (category_id, month)
+			 ON CONFLICT ${conflictTarget(storedMonth)}
 			 DO UPDATE SET amount = excluded.amount, percent_bp = excluded.percent_bp, updated_at = ${NOW_SQL}`,
 		)
 			.bind(newId('bdg'), userId, input.categoryId, storedMonth, amount, percentBp, input.categoryId, userId)
@@ -64,7 +73,7 @@ export const budgetRoutes = new Hono<AppEnv>()
 
 		await invalidateForStoredMonth(c.env.CACHE, userId, storedMonth);
 
-		const row = await c.env.DB.prepare('SELECT * FROM budgets WHERE user_id = ? AND category_id = ? AND month = ?')
+		const row = await c.env.DB.prepare(`SELECT * FROM budgets WHERE user_id = ? AND category_id = ? AND ${MONTH_MATCHES}`)
 			.bind(userId, input.categoryId, storedMonth)
 			.first<BudgetRow>();
 
@@ -76,7 +85,7 @@ export const budgetRoutes = new Hono<AppEnv>()
 
 		const existing = await c.env.DB.prepare('SELECT month FROM budgets WHERE id = ? AND user_id = ?')
 			.bind(id, userId)
-			.first<{ month: string }>();
+			.first<{ month: string | null }>();
 		if (!existing) throw notFound('Budget not found.');
 
 		await c.env.DB.prepare('DELETE FROM budgets WHERE id = ? AND user_id = ?').bind(id, userId).run();

@@ -119,10 +119,10 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 			})),
 		);
 
-		// Seeded under the fixed sentinel, not the join month: a fresh user starts
-		// in fixed mode, so that's the row `/api/summary` will actually look up.
+		// Seeded as the plan for every month, not the join month: a fresh user
+		// starts in fixed mode, so that's the row `/api/summary` looks up.
 		const budgets = await Promise.all(
-			DEMO_BUDGETS.map(async (budget) => ({ ...budget, id: await stableId('bdg', subject, budget.categoryName, FIXED_BUDGET_MONTH) })),
+			DEMO_BUDGETS.map(async (budget) => ({ ...budget, id: await stableId('bdg', subject, budget.categoryName, 'default') })),
 		);
 
 		statements.push(

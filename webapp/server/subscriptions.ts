@@ -34,7 +34,8 @@ export interface SubscriptionRunResult {
  * anyone to choose.
  *
  * A subscription posts as the transaction it would have been had the user typed
- * it in — with two differences, both deliberate. It is flagged `automated`, so
+ * it in — with two differences, both deliberate. Its `source` records that a
+ * subscription posted it, so
  * the UI can lock its time of day. And it never triggers "Save the Change" nor
  * teaches the payee history: those follow what a person enters, not what a
  * schedule does.
@@ -83,8 +84,8 @@ export async function runDueSubscriptions(env: Env, now: Date = new Date()): Pro
 					// this instant — an edit landing mid-run cannot leave a mixed row.
 					db
 						.prepare(
-							`INSERT OR IGNORE INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, payee, notes, transfer_id, automated)
-							 SELECT ?, s.user_id, s.account_id, s.category_id, s.amount, ?, s.payee, s.notes, NULL, 1
+							`INSERT OR IGNORE INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, source)
+							 SELECT ?, s.user_id, s.account_id, s.category_id, s.amount, ?, NULL, s.payee, s.notes, NULL, 'subscription'
 							 FROM subscriptions s
 							 WHERE s.id = ? AND s.enabled = 1 AND s.next_run_on = ?`,
 						)

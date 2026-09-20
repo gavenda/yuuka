@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 import { invalidateSummaries } from '../cache';
 import { payeeKind, rememberPayee, ROUND_UP_PAYEE } from '../payees';
 import { badRequest, notFound } from '../errors';
-import { monthOf, monthRange } from '../dates';
+import { monthOf, monthRange, splitOccurrence } from '../dates';
 import { newId } from '../ids';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
-import { toTransaction, type TransactionRow } from '../mappers';
+import { toTransaction, type CategoryScope, type TransactionRow, type TransactionSource } from '../mappers';
 import { transactionCreateSchema, transactionQuerySchema, transactionUpdateSchema, transferCreateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
@@ -20,8 +20,8 @@ import type { AppEnv } from '../types';
  * its own `user_id` parameter rather than reusing the outer query's filters.
  */
 const SELECT_ENRICHED = `
-	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.payee, t.notes,
-	       t.transfer_id, t.automated, t.created_at, t.updated_at,
+	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.occurred_time, t.payee, t.notes,
+	       t.transfer_id, t.source, t.created_at, t.updated_at,
 	       a.name AS account_name, c.name AS category_name, c.color AS category_color,
 	       b.running_balance,
 	       (SELECT json_group_array(json_object('id', g.id, 'name', g.name, 'color', g.color))
@@ -34,7 +34,7 @@ const SELECT_ENRICHED = `
 		SELECT t2.id,
 		       a2.starting_balance + SUM(t2.amount) OVER (
 		           PARTITION BY t2.account_id
-		           ORDER BY t2.occurred_on ASC, t2.created_at ASC
+		           ORDER BY t2.occurred_on ASC, t2.occurred_time ASC, t2.created_at ASC
 		           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 		       ) AS running_balance
 		FROM transactions t2
@@ -42,6 +42,9 @@ const SELECT_ENRICHED = `
 		WHERE t2.user_id = ?
 	) b ON b.id = t.id
 `;
+
+/** The list's order, and the order the running balance accumulates in. */
+const NEWEST_FIRST = 't.occurred_on DESC, t.occurred_time DESC, t.created_at DESC';
 
 const MISSING_REFERENCE = 'Unknown account or category.';
 const UNKNOWN_TAG = 'Unknown tag.';
@@ -123,11 +126,54 @@ function computeRoundUp(amount: number, roundTo: number): number {
  * a single category column, so it is always one or the other, never both.
  */
 const INSERT_GUARDED = `
-	INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, payee, notes, transfer_id)
-	SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+	INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, source)
+	SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
 	  AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = ?))
 `;
+
+/**
+ * The bindings `INSERT_GUARDED` expects, in order. There are enough of them,
+ * and enough repeated between the row and its guards, that positional binding
+ * at each call site was its own hazard.
+ */
+function insertBindings(input: {
+	id: string;
+	userId: string;
+	accountId: string;
+	categoryId: string | null;
+	amount: number;
+	occurredOn: string;
+	payee: string;
+	notes: string;
+	transferId: string | null;
+	source: TransactionSource;
+	scope: CategoryScope;
+}): unknown[] {
+	const { date, time } = splitOccurrence(input.occurredOn);
+
+	return [
+		input.id,
+		input.userId,
+		input.accountId,
+		input.categoryId,
+		input.amount,
+		date,
+		time,
+		input.payee,
+		input.notes,
+		input.transferId,
+		input.source,
+		// the account guard
+		input.accountId,
+		input.userId,
+		// the category guard, skipped entirely when there is no category
+		input.categoryId,
+		input.categoryId,
+		input.userId,
+		input.scope,
+	];
+}
 
 /**
  * Throws unless every tag belongs to the caller. Checked before anything is
@@ -163,7 +209,10 @@ function tagStatements(
 		...(replace ? [db.prepare('DELETE FROM transaction_tags WHERE transaction_id = ?').bind(transactionId)] : []),
 		...tagIds.map((tagId) =>
 			db
-				.prepare('INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id) SELECT ?, id FROM tags WHERE id = ? AND user_id = ?')
+				.prepare(
+					`INSERT OR IGNORE INTO transaction_tags (user_id, transaction_id, tag_id)
+					 SELECT user_id, ?, id FROM tags WHERE id = ? AND user_id = ?`,
+				)
 				.bind(transactionId, tagId, userId),
 		),
 	]);
@@ -184,6 +233,10 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const conditions: string[] = ['t.user_id = ?'];
 		const values: unknown[] = [userId];
 
+		// `occurred_on` is a date and nothing else, so these compare dates with
+		// dates. Under the old column it carried an optional `THH:MM`, which made
+		// `to` exclude the very day it named: '2026-09-20T14:30' sorts after
+		// '2026-09-20', so every timed row on the last day fell out of the range.
 		if (query.month) {
 			const { start, end } = monthRange(query.month);
 			conditions.push('t.occurred_on >= ? AND t.occurred_on < ?');
@@ -220,7 +273,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const [page, count] = await c.env.DB.batch<TransactionRow | { total: number }>([
 			c.env.DB.prepare(
 				`${SELECT_ENRICHED} ${where}
-				 ORDER BY t.occurred_on DESC, t.created_at DESC
+				 ORDER BY ${NEWEST_FIRST}
 				 LIMIT ? OFFSET ?`,
 			).bind(userId, ...values, query.limit, query.offset),
 			c.env.DB.prepare(`SELECT COUNT(*) AS total FROM transactions t ${where}`).bind(...values),
@@ -244,21 +297,19 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		const result = await c.env.DB.prepare(INSERT_GUARDED)
 			.bind(
-				id,
-				userId,
-				input.accountId,
-				input.categoryId,
-				input.amount,
-				input.occurredOn,
-				input.payee,
-				input.notes,
-				null,
-				input.accountId,
-				userId,
-				input.categoryId,
-				input.categoryId,
-				userId,
-				'standard',
+				...insertBindings({
+					id,
+					userId,
+					accountId: input.accountId,
+					categoryId: input.categoryId,
+					amount: input.amount,
+					occurredOn: input.occurredOn,
+					payee: input.payee,
+					notes: input.notes,
+					transferId: null,
+					source: 'manual',
+					scope: 'standard',
+				}),
 			)
 			.run();
 
@@ -282,51 +333,51 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 					// Both legs carry the rule's category, same as an ordinary transfer
 					// between the user's own accounts — a round-up is one, so it takes
-					// a transfer-scope category rather than a standard one.
-					const [outflow, inflow] = await c.env.DB.batch([
+					// a transfer-scope category rather than a standard one. The parent
+					// row records what kind of transfer this is, so nothing downstream
+					// has to recognise a round-up by its payee.
+					const [, outflow, inflow] = await c.env.DB.batch([
+						c.env.DB.prepare('INSERT INTO transfers (id, user_id, kind) VALUES (?, ?, ?)').bind(transferId, userId, 'round_up'),
 						c.env.DB.prepare(INSERT_GUARDED).bind(
-							sourceLegId,
-							userId,
-							input.accountId,
-							eligibility.categoryId,
-							-roundUpAmount,
-							input.occurredOn,
-							ROUND_UP_PAYEE,
-							'',
-							transferId,
-							input.accountId,
-							userId,
-							eligibility.categoryId,
-							eligibility.categoryId,
-							userId,
-							'transfer',
+							...insertBindings({
+								id: sourceLegId,
+								userId,
+								accountId: input.accountId,
+								categoryId: eligibility.categoryId,
+								amount: -roundUpAmount,
+								occurredOn: input.occurredOn,
+								payee: ROUND_UP_PAYEE,
+								notes: '',
+								transferId,
+								source: 'round_up',
+								scope: 'transfer',
+							}),
 						),
 						c.env.DB.prepare(INSERT_GUARDED).bind(
-							destinationLegId,
-							userId,
-							eligibility.destinationAccountId,
-							eligibility.categoryId,
-							roundUpAmount,
-							input.occurredOn,
-							ROUND_UP_PAYEE,
-							'',
-							transferId,
-							eligibility.destinationAccountId,
-							userId,
-							eligibility.categoryId,
-							eligibility.categoryId,
-							userId,
-							'transfer',
+							...insertBindings({
+								id: destinationLegId,
+								userId,
+								accountId: eligibility.destinationAccountId,
+								categoryId: eligibility.categoryId,
+								amount: roundUpAmount,
+								occurredOn: input.occurredOn,
+								payee: ROUND_UP_PAYEE,
+								notes: '',
+								transferId,
+								source: 'round_up',
+								scope: 'transfer',
+							}),
 						),
 					]);
 
 					// The destination account may have been deleted between the read
 					// above and this write; treat that race as "no round-up" rather
-					// than failing the purchase that triggered it.
+					// than failing the purchase that triggered it. Dropping the parent
+					// takes whichever legs did land with it.
 					if (outflow.meta.changes && inflow.meta.changes) {
 						roundUpId = destinationLegId;
 					} else {
-						await c.env.DB.prepare('DELETE FROM transactions WHERE transfer_id = ? AND user_id = ?').bind(transferId, userId).run();
+						await c.env.DB.prepare('DELETE FROM transfers WHERE id = ? AND user_id = ?').bind(transferId, userId).run();
 					}
 				}
 			}
@@ -381,32 +432,32 @@ export const transactionRoutes = new Hono<AppEnv>()
 			{ id: newId('txn'), accountId: input.toAccountId, amount: input.amount },
 		];
 
-		const [outflow, inflow] = await c.env.DB.batch(
-			legs.map((leg) =>
+		const [, outflow, inflow] = await c.env.DB.batch([
+			c.env.DB.prepare('INSERT INTO transfers (id, user_id, kind) VALUES (?, ?, ?)').bind(transferId, userId, 'manual'),
+			...legs.map((leg) =>
 				c.env.DB.prepare(INSERT_GUARDED).bind(
-					leg.id,
-					userId,
-					leg.accountId,
-					input.categoryId,
-					leg.amount,
-					input.occurredOn,
-					name,
-					input.notes,
-					transferId,
-					leg.accountId,
-					userId,
-					input.categoryId,
-					input.categoryId,
-					userId,
-					'transfer',
+					...insertBindings({
+						id: leg.id,
+						userId,
+						accountId: leg.accountId,
+						categoryId: input.categoryId,
+						amount: leg.amount,
+						occurredOn: input.occurredOn,
+						payee: name,
+						notes: input.notes,
+						transferId,
+						source: 'manual',
+						scope: 'transfer',
+					}),
 				),
 			),
-		);
+		]);
 
 		// Either account not being the caller's leaves a half-written transfer, so
-		// undo it rather than leaving one side of the movement behind.
+		// undo it rather than leaving one side of the movement behind. Dropping the
+		// parent cascades to whichever legs did land.
 		if (!outflow.meta.changes || !inflow.meta.changes) {
-			await c.env.DB.prepare('DELETE FROM transactions WHERE transfer_id = ? AND user_id = ?').bind(transferId, userId).run();
+			await c.env.DB.prepare('DELETE FROM transfers WHERE id = ? AND user_id = ?').bind(transferId, userId).run();
 			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
 		}
 
@@ -450,7 +501,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// Both legs, ordered outflow-then-inflow the same way creation leaves them.
 		// Kept in full so a rejected edit can restore them verbatim, not just their id.
 		const { results: existing } = await c.env.DB.prepare(
-			'SELECT id, account_id, category_id, amount, occurred_on, payee, notes FROM transactions WHERE transfer_id = ? AND user_id = ? ORDER BY amount ASC',
+			`SELECT id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes
+			 FROM transactions WHERE transfer_id = ? AND user_id = ? ORDER BY amount ASC`,
 		)
 			.bind(transferId, userId)
 			.all<{
@@ -459,6 +511,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 				category_id: string | null;
 				amount: number;
 				occurred_on: string;
+				occurred_time: string | null;
 				payee: string;
 				notes: string;
 			}>();
@@ -479,10 +532,13 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// Same ownership guard as creation, applied per leg: re-pointing a leg to
 		// an account or category the caller does not hold is rejected in the same
 		// statement that would otherwise write it.
+		const occurrence = splitOccurrence(input.occurredOn);
+
 		const results = await c.env.DB.batch(
 			legs.map((leg) =>
 				c.env.DB.prepare(
-					`UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+					`UPDATE transactions
+					 SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
 					 WHERE id = ? AND user_id = ?
 					   AND EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
 					   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND applies_to = 'transfer'))`,
@@ -490,7 +546,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 					leg.accountId,
 					input.categoryId,
 					leg.amount,
-					input.occurredOn,
+					occurrence.date,
+					occurrence.time,
 					name,
 					input.notes,
 					leg.id,
@@ -511,9 +568,10 @@ export const transactionRoutes = new Hono<AppEnv>()
 			await c.env.DB.batch(
 				existing.map((leg) =>
 					c.env.DB.prepare(
-						`UPDATE transactions SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+						`UPDATE transactions
+						 SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
 						 WHERE id = ? AND user_id = ?`,
-					).bind(leg.account_id, leg.category_id, leg.amount, leg.occurred_on, leg.payee, leg.notes, leg.id, userId),
+					).bind(leg.account_id, leg.category_id, leg.amount, leg.occurred_on, leg.occurred_time, leg.payee, leg.notes, leg.id, userId),
 				),
 			);
 			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
@@ -558,16 +616,18 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const userId = c.get('userId');
 		const input = await parseJson(c, transactionUpdateSchema);
 
-		const existing = await c.env.DB.prepare('SELECT occurred_on, automated, transfer_id FROM transactions WHERE id = ? AND user_id = ?')
+		const existing = await c.env.DB.prepare('SELECT occurred_on, source, transfer_id FROM transactions WHERE id = ? AND user_id = ?')
 			.bind(id, userId)
-			.first<{ occurred_on: string; automated: number; transfer_id: string | null }>();
+			.first<{ occurred_on: string; source: TransactionSource; transfer_id: string | null }>();
 		if (!existing) throw notFound('Transaction not found.');
 
 		if (input.tagIds) await assertOwnTags(c.env.DB, userId, input.tagIds);
 
 		// A subscription posts at 00:00 UTC and nobody chooses that. The date can
-		// still move; a time of day cannot be added to it.
-		if (existing.automated === 1 && input.occurredOn !== undefined && input.occurredOn.length > 10) {
+		// still move; a time of day cannot be added to it. The schema agrees —
+		// a subscription row with a time fails its CHECK — but a 400 explains.
+		const occurrence = input.occurredOn === undefined ? undefined : splitOccurrence(input.occurredOn);
+		if (existing.source === 'subscription' && occurrence?.time) {
 			throw badRequest('The time of an automated transaction cannot be changed.');
 		}
 
@@ -575,7 +635,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 			account_id: input.accountId,
 			category_id: input.categoryId,
 			amount: input.amount,
-			occurred_on: input.occurredOn,
+			occurred_on: occurrence?.date,
+			occurred_time: occurrence === undefined ? undefined : occurrence.time,
 			payee: input.payee,
 			notes: input.notes,
 		});
@@ -653,10 +714,12 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		if (!existing) throw notFound('Transaction not found.');
 
-		// A transfer is one movement recorded twice; deleting half would leave
-		// both accounts wrong, so take the whole pair.
+		// A transfer is one movement recorded twice; deleting half would leave both
+		// accounts wrong. Dropping the parent takes both legs with it, and the
+		// `transfers_leg_deleted` trigger means even a direct delete of one leg
+		// could not leave the other behind.
 		if (existing.transfer_id) {
-			await c.env.DB.prepare('DELETE FROM transactions WHERE transfer_id = ? AND user_id = ?').bind(existing.transfer_id, userId).run();
+			await c.env.DB.prepare('DELETE FROM transfers WHERE id = ? AND user_id = ?').bind(existing.transfer_id, userId).run();
 		} else {
 			await c.env.DB.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').bind(id, userId).run();
 		}

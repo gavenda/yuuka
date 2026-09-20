@@ -126,15 +126,50 @@ root CLAUDE.md.
 
 ## Storage and API details
 
+**Some rules are the schema's, not the routes'.** `migrations/0013_rebuild.sql`
+moved a set of invariants out of application code, where they held only because
+every write remembered them, and into the database. Do not re-implement them in
+a route, and do expect a write that breaks one to fail loudly rather than
+silently corrupt.
+
+- **A date is a date.** `occurred_on` is `YYYY-MM-DD` and nothing else;
+  `occurred_time` is `HH:MM` or NULL. The API still speaks one `occurredOn`
+  field, joined and split by `joinOccurrence`/`splitOccurrence` in `dates.ts`.
+  NULL means "names no time", which is not the same as midnight, and it is what
+  sorts an untimed row to the start of its day.
+- **A transfer has a parent row.** `transfers` carries the owner and a `kind`
+  (`'manual'` or `'round_up'`), and the legs reference it `ON DELETE CASCADE`.
+  Deleting either leg fires `transfers_leg_deleted`, which drops the parent and
+  takes the other leg with it — so a route deletes `transfers`, not the legs.
+  `kind` is also how a round-up is recognised; the payee string is not.
+- **A row knows where it came from.** `transactions.source` is `'manual'`,
+  `'subscription'` or `'round_up'`. There is deliberately no `'adjustment'`: a
+  balance adjustment must stay indistinguishable from a typed row. The API's
+  `automated` field is derived from `source === 'subscription'`.
+- **Ownership is a foreign key.** A transaction's and a subscription's account
+  is `(user_id, account_id) REFERENCES accounts (user_id, id)`, and a tag link
+  carries `user_id` with composite keys to both sides. Keep writing the
+  in-statement ownership guards anyway — they are what turns someone else's id
+  into a 404 instead of a 500.
+- **Categories nest one level and children inherit.** Enforced by the
+  `categories_hierarchy_*` triggers, not only by `routes/categories.ts`.
+
 **Budget mode is stored per user, not per budget.** `budget_mode` on `users` is
-`'fixed'` (the default) or `'monthly'`. Fixed budgets are stored under one shared
-sentinel month (`FIXED_BUDGET_MONTH` in `budget-mode.ts`) rather than a second
-table, so the existing `(category_id, month)` unique index is still what stops a
-category from carrying two plans at once. `/api/budgets` and `/api/summary` both
-resolve the caller's actual month through `budgetMonthKey()` before touching the
-table, and `/api/income-plan` does the same. Changing the mode invalidates every
-cached summary for that user, not just the current month, because it changes what
-"planned" means everywhere at once.
+`'fixed'` (the default) or `'monthly'`. A fixed budget is stored with `month`
+NULL — it answers every month, so it belongs to none — and a monthly one under
+its `YYYY-MM`. Two partial unique indexes (`budgets_default_idx` and
+`budgets_month_idx`, and the pair on `income_plans`) are what stop a category
+carrying two plans of the same kind at once. `/api/budgets` and `/api/summary`
+both resolve the caller's actual month through `budgetMonthKey()` before touching
+the table, and `/api/income-plan` does the same. Changing the mode invalidates
+every cached summary for that user, not just the current month, because it changes
+what "planned" means everywhere at once.
+
+Two things follow from the NULL and are easy to get wrong. Matching a month is
+`month IS ?` (`MONTH_MATCHES`), never `month = ?`, because `= NULL` matches
+nothing; and an upsert has to name which partial index it means, predicate
+included — `ON CONFLICT (user_id, category_id) WHERE month IS NULL` or
+`ON CONFLICT (user_id, category_id, month) WHERE month IS NOT NULL`.
 
 **Some per-user tables have no guaranteed row.** `round_up_rules` is not
 provisioned on sign-in — it follows the same GET-with-default / upsert pattern as
@@ -144,9 +179,10 @@ provisioned on sign-in — it follows the same GET-with-default / upsert pattern
 `wrangler.jsonc` declares `triggers.crons: ["0 0 * * *"]`, which calls the
 `scheduled` handler in `server/index.ts` → `runDueSubscriptions`
 (`server/subscriptions.ts`). Cron Triggers run in UTC, which is why an automated
-transaction is stored as a bare `YYYY-MM-DD` and the flag `transactions.automated`
-— not the string — is what tells the UI to lock the time; `PATCH /transactions/:id`
-refuses to give an automated row a time of day. The handler uses
+transaction names no time of day at all — `occurred_time` is NULL — and
+`transactions.source` being `'subscription'` is what tells the UI to lock the
+time field; `PATCH /transactions/:id` refuses to give such a row a time, and the
+schema refuses it too. The handler uses
 `controller.scheduledTime`, not the wall clock, so a late tick still posts for the
 day it was meant for.
 

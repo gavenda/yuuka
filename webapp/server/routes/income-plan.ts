@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { budgetMonthKey, FIXED_BUDGET_MONTH, getBudgetMode } from '../budget-mode';
+import { budgetMonthKey, FIXED_BUDGET_MONTH, getBudgetMode, MONTH_MATCHES } from '../budget-mode';
 import { invalidateAllSummaries, invalidateSummaries } from '../cache';
 import { newId } from '../ids';
 import { NOW_SQL } from '../sql';
@@ -13,7 +13,7 @@ import type { AppEnv } from '../types';
 /**
  * The total income a user plans for a month, so percentage-based budgets have
  * a figure to be a share of. One row per user and stored month, upserted like
- * a budget — and keyed by the same `budgetMonthKey()` sentinel, so a fixed
+ * a budget — and keyed by the same `budgetMonthKey()`, so a fixed
  * plan answers every month with the same figure instead of resetting when the
  * caller switches months; an unset month simply reports zero.
  */
@@ -25,7 +25,7 @@ export const incomePlanRoutes = new Hono<AppEnv>()
 		const mode = await getBudgetMode(c.env.DB, userId);
 		const storedMonth = budgetMonthKey(mode, month);
 
-		const row = await c.env.DB.prepare('SELECT * FROM income_plans WHERE user_id = ? AND month = ?')
+		const row = await c.env.DB.prepare(`SELECT * FROM income_plans WHERE user_id = ? AND ${MONTH_MATCHES}`)
 			.bind(userId, storedMonth)
 			.first<IncomePlanRow>();
 
@@ -48,7 +48,7 @@ export const incomePlanRoutes = new Hono<AppEnv>()
 		await c.env.DB.prepare(
 			`INSERT INTO income_plans (id, user_id, month, amount, mode, gross_amount)
 			 VALUES (?, ?, ?, ?, ?, ?)
-			 ON CONFLICT (user_id, month)
+			 ON CONFLICT ${storedMonth === null ? '(user_id) WHERE month IS NULL' : '(user_id, month) WHERE month IS NOT NULL'}
 			 DO UPDATE SET amount = excluded.amount, mode = excluded.mode, gross_amount = excluded.gross_amount, updated_at = ${NOW_SQL}`,
 		)
 			.bind(newId('inp'), userId, storedMonth, input.amount, input.mode, grossAmount)
@@ -57,7 +57,7 @@ export const incomePlanRoutes = new Hono<AppEnv>()
 		if (storedMonth === FIXED_BUDGET_MONTH) await invalidateAllSummaries(c.env.CACHE, userId);
 		else await invalidateSummaries(c.env.CACHE, userId, [storedMonth]);
 
-		const row = await c.env.DB.prepare('SELECT * FROM income_plans WHERE user_id = ? AND month = ?')
+		const row = await c.env.DB.prepare(`SELECT * FROM income_plans WHERE user_id = ? AND ${MONTH_MATCHES}`)
 			.bind(userId, storedMonth)
 			.first<IncomePlanRow>();
 

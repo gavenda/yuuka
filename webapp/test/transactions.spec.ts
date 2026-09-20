@@ -97,6 +97,18 @@ describe('transactions', () => {
 			expect(total).toBe(1);
 		});
 
+		// `to` names a day, and a transaction that happened at some point during
+		// that day happened on it. While the date and the time shared one column,
+		// '2026-09-10T14:30' sorted after '2026-09-10' and the row fell out of its
+		// own range — which is nearly every row, since most carry a time.
+		it('includes a timed transaction on the last day of the range', async () => {
+			await post({ accountId, amount: -700, occurredOn: '2026-09-10T14:30', payee: 'Late in the day' });
+
+			const { transactions } = await json<{ transactions: { payee: string }[] }>(await call('/transactions?from=2026-09-01&to=2026-09-10'));
+
+			expect(transactions.map((entry) => entry.payee)).toContain('Late in the day');
+		});
+
 		it('filters by category, including the uncategorised', async () => {
 			expect((await json<{ total: number }>(await call(`/transactions?categoryId=${categoryId}`))).total).toBe(2);
 			expect((await json<{ total: number }>(await call('/transactions?categoryId=none'))).total).toBe(1);

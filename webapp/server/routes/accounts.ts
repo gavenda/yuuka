@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { invalidateAllSummaries, invalidateSummaries } from '../cache';
-import { monthOf } from '../dates';
+import { monthOf, splitOccurrence } from '../dates';
 import { badRequest, conflict, notFound } from '../errors';
 import { newId } from '../ids';
 import { toAccount, toTransaction, type AccountRow } from '../mappers';
@@ -132,6 +132,7 @@ export const accountRoutes = new Hono<AppEnv>()
 		const input = await parseJson(c, accountAdjustSchema);
 		const txnId = newId('txn');
 		const payee = input.payee || 'Balance adjustment';
+		const occurrence = splitOccurrence(input.occurredOn);
 
 		// The posted amount is the target balance minus whatever the account's
 		// balance is right now, computed in the same statement that writes it so a
@@ -146,12 +147,12 @@ export const accountRoutes = new Hono<AppEnv>()
 				 WHERE a.id = ? AND a.user_id = ?
 				 GROUP BY a.id
 			 )
-			 INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, payee, notes, transfer_id)
-			 SELECT ?, ?, ?, NULL, ? - current.balance, ?, ?, ?, NULL
+			 INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, source)
+			 SELECT ?, ?, ?, NULL, ? - current.balance, ?, ?, ?, ?, NULL, 'manual'
 			 FROM current
 			 WHERE ? - current.balance != 0`,
 		)
-			.bind(id, userId, txnId, userId, id, input.balance, input.occurredOn, payee, input.notes, input.balance)
+			.bind(id, userId, txnId, userId, id, input.balance, occurrence.date, occurrence.time, payee, input.notes, input.balance)
 			.run();
 
 		if (!result.meta.changes) {

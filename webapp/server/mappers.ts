@@ -1,4 +1,5 @@
-import { FIXED_BUDGET_MONTH, type BudgetMode } from './budget-mode';
+import type { BudgetMode } from './budget-mode';
+import { joinOccurrence } from './dates';
 import type { CATEGORY_KINDS } from './schemas';
 
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
@@ -78,17 +79,27 @@ export interface TransactionTag {
 	color: string;
 }
 
+/**
+ * Where a transaction came from. There is deliberately no value for a balance
+ * adjustment: the ledger model says an adjustment is an ordinary uncategorised
+ * transaction and must stay indistinguishable from one entered by hand.
+ */
+export type TransactionSource = 'manual' | 'subscription' | 'round_up';
+
 export interface TransactionRow {
 	id: string;
 	account_id: string;
 	category_id: string | null;
 	amount: number;
+	/** `YYYY-MM-DD`, and only that — the time of day is its own column. */
 	occurred_on: string;
+	/** `HH:MM`, or null for a row that names no time of day. */
+	occurred_time: string | null;
 	payee: string;
 	notes: string;
 	transfer_id: string | null;
-	/** 1 when a subscription's cron posted this row rather than the user. */
-	automated: number;
+	/** Where the row came from: typed, posted by a subscription, or a round-up. */
+	source: TransactionSource;
 	created_at: string;
 	updated_at: string;
 	account_name?: string;
@@ -103,7 +114,8 @@ export interface TransactionRow {
 export interface BudgetRow {
 	id: string;
 	category_id: string;
-	month: string;
+	/** Null for a plan that answers every month rather than one of them. */
+	month: string | null;
 	amount: number;
 	/** Basis points (1 = 0.01%) of the month's planned income. Takes precedence over `amount` when set. */
 	percent_bp: number | null;
@@ -113,7 +125,8 @@ export interface BudgetRow {
 
 export interface IncomePlanRow {
 	id: string;
-	month: string;
+	/** Null for a plan that answers every month rather than one of them. */
+	month: string | null;
 	amount: number;
 	/** Whether `amount` was typed directly or is the take-home net of `gross_amount`. */
 	mode: 'gross' | 'fixed';
@@ -201,12 +214,13 @@ export const toTransaction = (row: TransactionRow) => ({
 	categoryName: row.category_name ?? null,
 	categoryColor: row.category_color ?? null,
 	amount: row.amount,
-	occurredOn: row.occurred_on,
+	/** The date and, when it names one, the time — rejoined into the one field the API speaks. */
+	occurredOn: joinOccurrence(row.occurred_on, row.occurred_time),
 	payee: row.payee,
 	notes: row.notes,
 	transferId: row.transfer_id,
 	/** Posted by a subscription at 00:00 UTC — its time of day is not the user's to change. */
-	automated: row.automated === 1,
+	automated: row.source === 'subscription',
 	tags: parseTags(row.tags_json),
 	runningBalance: row.running_balance,
 	createdAt: row.created_at,
@@ -216,8 +230,8 @@ export const toTransaction = (row: TransactionRow) => ({
 export const toBudget = (row: BudgetRow) => ({
 	id: row.id,
 	categoryId: row.category_id,
-	/** Null when this budget is fixed — it applies to every month rather than the one it happens to be stored under. */
-	month: row.month === FIXED_BUDGET_MONTH ? null : row.month,
+	/** Null when this budget is fixed — it applies to every month rather than belonging to one. */
+	month: row.month,
 	amount: row.amount,
 	/** Whole or fractional percent (e.g. 12.5), null when this budget is a fixed amount. */
 	percent: row.percent_bp === null ? null : row.percent_bp / 100,
@@ -226,8 +240,8 @@ export const toBudget = (row: BudgetRow) => ({
 });
 
 export const toIncomePlan = (row: IncomePlanRow) => ({
-	/** Null when this plan is fixed — it applies to every month rather than the one it happens to be stored under. */
-	month: row.month === FIXED_BUDGET_MONTH ? null : row.month,
+	/** Null when this plan is fixed — it applies to every month rather than belonging to one. */
+	month: row.month,
 	amount: row.amount,
 	mode: row.mode,
 	grossAmount: row.gross_amount,

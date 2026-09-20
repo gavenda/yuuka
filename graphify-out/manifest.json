@@ -1,8 +1,8 @@
 {
   "app/build.gradle.kts": {
-    "mtime": 1789842384.5117967,
-    "seen": 1789881845.460726,
-    "ast_hash": "1a907f0a933e2c0783f28f965e6f2448",
+    "mtime": 1789893379.8979273,
+    "seen": 1789894824.0449467,
+    "ast_hash": "dc15935674c7a8a770e8f42d52617410",
     "semantic_hash": ""
   },
   "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/1.json": {
@@ -534,9 +534,9 @@
     "semantic_hash": ""
   },
   "webapp/package.json": {
-    "mtime": 1789882151.650971,
-    "seen": 1789882167.162431,
-    "ast_hash": "7c3f353c152d08f34f0364d818d97c8b",
+    "mtime": 1789893383.0225933,
+    "seen": 1789894824.0468905,
+    "ast_hash": "12ac432eff996275aaf4174007d1eb93",
     "semantic_hash": ""
   },
   "webapp/src/App.vue": {
@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "webapp/test/payees.spec.ts": {
-    "mtime": 1789779138.04007,
-    "seen": 1789779230.5206802,
-    "ast_hash": "e431cd2dfc56668d89d067a71f1f2ecf",
+    "mtime": 1789893375.286796,
+    "seen": 1789894824.0480912,
+    "ast_hash": "d6bad4c0dd89e36da2efbec961c6c320",
     "semantic_hash": ""
   },
   "webapp/test/provisioning.spec.ts": {
@@ -918,9 +918,9 @@
     "semantic_hash": ""
   },
   "webapp/test/transactions.spec.ts": {
-    "mtime": 1789779138.0405068,
-    "seen": 1789779230.5207007,
-    "ast_hash": "2551369564fc6c9aaa5a9512c1781e43",
+    "mtime": 1789894687.150217,
+    "seen": 1789894824.0481772,
+    "ast_hash": "a9f05ad06374feeb648ee65d65dab752",
     "semantic_hash": ""
   },
   "webapp/test/units.spec.ts": {
@@ -972,9 +972,9 @@
     "semantic_hash": ""
   },
   "webapp/CLAUDE.md": {
-    "mtime": 1789882151.629284,
-    "seen": 1789882167.1638288,
-    "ast_hash": "6847eddb81c099f19c8c7ff5280b02fc",
+    "mtime": 1789894765.8757463,
+    "seen": 1789894824.0482788,
+    "ast_hash": "047ce6afb933b003950586912bdc1a62",
     "semantic_hash": ""
   },
   "webapp/README.md": {
@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "webapp/server/budget-mode.ts": {
-    "mtime": 1789677930.1091177,
-    "seen": 1789779230.5200899,
-    "ast_hash": "e9bd3b4b86fe1c35acb7b0ba501b70cb",
+    "mtime": 1789894168.8268783,
+    "seen": 1789894824.0469022,
+    "ast_hash": "7a0f73031317fd05fb7ce010b07430c2",
     "semantic_hash": ""
   },
   "webapp/server/cache.ts": {
@@ -1170,9 +1170,9 @@
     "semantic_hash": ""
   },
   "webapp/server/dates.ts": {
-    "mtime": 1789780581.0961895,
-    "seen": 1789781412.26709,
-    "ast_hash": "5576e88f9a916457b0dc86760ae2dcb0",
+    "mtime": 1789894174.9329247,
+    "seen": 1789894824.046913,
+    "ast_hash": "4563e294ac8658f2d0b30225e805637a",
     "semantic_hash": ""
   },
   "webapp/server/defaults.ts": {
@@ -1200,9 +1200,9 @@
     "semantic_hash": ""
   },
   "webapp/server/mappers.ts": {
-    "mtime": 1789824487.0611024,
-    "seen": 1789835776.7579172,
-    "ast_hash": "ac82568f4133b26b9bb6eeb02bf87d04",
+    "mtime": 1789894216.988838,
+    "seen": 1789894824.046953,
+    "ast_hash": "d2c22560c593c5a3e45ca46c7f197d61",
     "semantic_hash": ""
   },
   "webapp/server/middleware/auth.ts": {
@@ -1212,9 +1212,9 @@
     "semantic_hash": ""
   },
   "webapp/server/payees.ts": {
-    "mtime": 1789677930.1091177,
-    "seen": 1789779230.5200932,
-    "ast_hash": "b2b070779473f9be2e0a53326e213ba9",
+    "mtime": 1789893375.2865,
+    "seen": 1789894824.0469656,
+    "ast_hash": "106655f9c699b14012ff8d0279c15c46",
     "semantic_hash": ""
   },
   "webapp/server/routes/account-types.ts": {
@@ -1224,9 +1224,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/accounts.ts": {
-    "mtime": 1789733099.0879295,
-    "seen": 1789779230.5200937,
-    "ast_hash": "d1534190922f0339681678b8b2e83a95",
+    "mtime": 1789894578.0292044,
+    "seen": 1789894824.0469778,
+    "ast_hash": "5cf088377c78cc49ba80804f16ccae0d",
     "semantic_hash": ""
   },
   "webapp/server/routes/auth.ts": {
@@ -1236,9 +1236,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/budgets.ts": {
-    "mtime": 1789677930.109275,
-    "seen": 1789779230.5200944,
-    "ast_hash": "23fee9ba2a46867142c373524da70db5",
+    "mtime": 1789894454.616706,
+    "seen": 1789894824.0469897,
+    "ast_hash": "178025dce2ab893e3acb3f590d0003eb",
     "semantic_hash": ""
   },
   "webapp/server/routes/categories.ts": {
@@ -1248,9 +1248,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/income-plan.ts": {
-    "mtime": 1789677930.109275,
-    "seen": 1789779230.5200953,
-    "ast_hash": "b75b5f61484c09d91b74c82f4141aebb",
+    "mtime": 1789894490.0155952,
+    "seen": 1789894824.0470014,
+    "ast_hash": "07736252ce11a52eb853eb2805f2f13c",
     "semantic_hash": ""
   },
   "webapp/server/routes/payees.ts": {
@@ -1272,15 +1272,15 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/summary.ts": {
-    "mtime": 1789687540.1590874,
-    "seen": 1789779230.5200968,
-    "ast_hash": "aee53a115f26ad69afdc079b41e92b79",
+    "mtime": 1789894686.822211,
+    "seen": 1789894824.0470448,
+    "ast_hash": "1aea3f163ba9a7bbd88f88dc531a78b0",
     "semantic_hash": ""
   },
   "webapp/server/routes/transactions.ts": {
-    "mtime": 1789798921.0989923,
-    "seen": 1789799407.4556494,
-    "ast_hash": "ec8fd87382d2e07ac0d5146e694e1daf",
+    "mtime": 1789894686.8512115,
+    "seen": 1789894824.047057,
+    "ast_hash": "fd25b20ce86640ae77a17af3c8b78767",
     "semantic_hash": ""
   },
   "webapp/server/schemas.ts": {
@@ -1302,9 +1302,9 @@
     "semantic_hash": ""
   },
   "webapp/server/users.ts": {
-    "mtime": 1789677930.109275,
-    "seen": 1789779230.520099,
-    "ast_hash": "c8548252b0cb5d19fa359ee43d6b279a",
+    "mtime": 1789894588.6076407,
+    "seen": 1789894824.0470881,
+    "ast_hash": "164b8f18150d63179dedb1e6f9126970",
     "semantic_hash": ""
   },
   "webapp/server/validate.ts": {
@@ -1380,9 +1380,9 @@
     "semantic_hash": ""
   },
   "webapp/server/subscriptions.ts": {
-    "mtime": 1789780977.997427,
-    "seen": 1789781412.2672615,
-    "ast_hash": "b20ad3cb4a08cea58f8da6f1588e5a83",
+    "mtime": 1789894548.1314983,
+    "seen": 1789894824.0470777,
+    "ast_hash": "29f7b029d108bf6ecd4e0f78949109d3",
     "semantic_hash": ""
   },
   "webapp/src/lib/subscriptions.spec.ts": {
@@ -1731,6 +1731,12 @@
     "mtime": 1789881823.357733,
     "seen": 1789881845.46269,
     "ast_hash": "1336a3aec122822708445165f8573126",
+    "semantic_hash": ""
+  },
+  "webapp/scripts/README.md": {
+    "mtime": 1789893890.01982,
+    "seen": 1789894824.0482974,
+    "ast_hash": "86894c47b40929b6c7e5e801af1f12a1",
     "semantic_hash": ""
   }
 }

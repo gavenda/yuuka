@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { budgetMonthKey, getBudgetMode } from '../budget-mode';
+import { budgetMonthKey, getBudgetMode, MONTH_MATCHES } from '../budget-mode';
 import { readSummary, writeSummary } from '../cache';
 import { currentMonth, monthRange } from '../dates';
 import { parseQuery } from '../validate';
@@ -110,19 +110,24 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			     OR (c.applies_to = 'transfer' AND t.transfer_id IS NOT NULL))
 			 GROUP BY t.category_id`,
 		).bind(userId, start, end),
-		c.env.DB.prepare('SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND month = ?').bind(userId, budgetMonth),
+		c.env.DB.prepare(`SELECT category_id, amount, percent_bp FROM budgets WHERE user_id = ? AND ${MONTH_MATCHES}`).bind(
+			userId,
+			budgetMonth,
+		),
 		// Fixed-mode planned income lives under the same shared stored month as
 		// fixed budgets, so it doesn't reset when the caller switches months.
-		c.env.DB.prepare('SELECT amount, mode, gross_amount FROM income_plans WHERE user_id = ? AND month = ?').bind(userId, budgetMonth),
+		c.env.DB.prepare(`SELECT amount, mode, gross_amount FROM income_plans WHERE user_id = ? AND ${MONTH_MATCHES}`).bind(
+			userId,
+			budgetMonth,
+		),
 		c.env.DB.prepare(
-			// `occurred_on` may carry a `THH:MM` time of day, so bucket on just the
-			// date portion — grouping on the raw column would split one day's
-			// spending across several rows keyed by timestamps the frontend's
-			// per-day lookup never matches.
-			`SELECT substr(occurred_on, 1, 10) AS date, -SUM(amount) AS spent
+			// `occurred_on` is a date, so a day is a plain GROUP BY. It used to
+			// carry an optional `THH:MM`, which split one day's spending across
+			// rows keyed by timestamps the frontend's per-day lookup never matched.
+			`SELECT occurred_on AS date, -SUM(amount) AS spent
 			 FROM transactions
 			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND occurred_on >= ? AND occurred_on < ?
-			 GROUP BY substr(occurred_on, 1, 10)
+			 GROUP BY occurred_on
 			 ORDER BY date ASC`,
 		).bind(userId, start, end),
 	]);

@@ -2,13 +2,12 @@ export const BUDGET_MODES = ['fixed', 'monthly'] as const;
 export type BudgetMode = (typeof BUDGET_MODES)[number];
 
 /**
- * The `month` a fixed budget is stored under. Fixed budgets share the same
- * `budgets` table and `(category_id, month)` unique index as monthly ones —
- * this sentinel is what lets "one row per category, applying to every month"
- * be enforced by that same index rather than a second table. It is never a
- * valid `YYYY-MM`, so it cannot collide with a real month.
+ * The `month` a fixed budget is stored under: none. A fixed plan answers every
+ * month, so it belongs to no single one, and a NULL month says that outright.
+ * Partial unique indexes (`budgets_default_idx`, `budgets_month_idx`) are what
+ * keep a category from carrying two plans of the same kind at once.
  */
-export const FIXED_BUDGET_MONTH = 'fixed';
+export const FIXED_BUDGET_MONTH = null;
 
 /** A user's budgeting preference, set once and defaulting to 'fixed'. */
 export async function getBudgetMode(db: D1Database, userId: string): Promise<BudgetMode> {
@@ -17,6 +16,13 @@ export async function getBudgetMode(db: D1Database, userId: string): Promise<Bud
 }
 
 /** The `month` a budget is actually keyed by, given the user's mode. */
-export function budgetMonthKey(mode: BudgetMode, month: string): string {
+export function budgetMonthKey(mode: BudgetMode, month: string): string | null {
 	return mode === 'fixed' ? FIXED_BUDGET_MONTH : month;
 }
+
+/**
+ * Matching a month means `month IS ?`, never `month = ?`: a fixed plan's month
+ * is NULL, and `= NULL` matches nothing. SQLite's `IS` is null-safe equality,
+ * so one predicate serves both modes and the routes stay mode-agnostic.
+ */
+export const MONTH_MATCHES = 'month IS ?';

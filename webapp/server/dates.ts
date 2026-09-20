@@ -9,6 +9,20 @@ export const DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
  */
 export const DATE_TIME_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(T([01]\d|2[0-3]):[0-5]\d)?$/;
 
+/**
+ * Splits the single `occurredOn` field the API speaks into the two columns the
+ * ledger stores. A row that names no time of day keeps NULL rather than a
+ * stand-in midnight, so "no time" and "midnight" stay different things.
+ */
+export function splitOccurrence(value: string): { date: string; time: string | null } {
+	return { date: value.slice(0, 10), time: value.length > 10 ? value.slice(11, 16) : null };
+}
+
+/** Rejoins them, so what goes out is shaped exactly as what came in. */
+export function joinOccurrence(date: string, time: string | null): string {
+	return time ? `${date}T${time}` : date;
+}
+
 export function isMonth(value: string): boolean {
 	return MONTH_PATTERN.test(value);
 }
