@@ -5,6 +5,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    // Declared here, applied below: the plugin reads `google-services.json`, and
+    // a checkout that has not been given one must still build — without push —
+    // rather than fail. The `plugins` block cannot ask whether the file exists.
+    alias(libs.plugins.google.services) apply false
+}
+
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle("app/google-services.json is missing: building without Cloud Messaging. See README.")
 }
 
 val keystoreProperties = Properties().apply {
@@ -108,6 +118,12 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.koin.androidx.workmanager)
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

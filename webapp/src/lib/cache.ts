@@ -156,17 +156,19 @@ export function clearCache(): void {
  * account signing in on the same browser must never be shown it, even for the instant before its
  * own data arrives.
  */
-export function adoptCacheFor(owner: string | undefined): void {
+export function adoptCacheFor(owner: string | undefined): boolean {
 	const store = storage();
-	if (!store) return;
+	if (!store) return false;
 
 	try {
-		if (store.getItem(OWNER_KEY) === owner) return;
+		if (store.getItem(OWNER_KEY) === owner) return false;
 
 		clearCache();
 		if (owner) store.setItem(OWNER_KEY, owner);
+		return true;
 	} catch {
 		// Without the marker the copy is cleared again next time, which is the safe direction.
+		return false;
 	}
 }
 

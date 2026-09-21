@@ -40,6 +40,21 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # Cloud Messaging is how a change made in the web app reaches the phone.
+      # The file is not in the repository — this one is public, and these are
+      # per-project identifiers — so it arrives the same way the keystore does.
+      # Without the secret the build still succeeds, silently and without push,
+      # which is why it says so rather than failing quietly.
+      - name: Decode Firebase configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON is not set; building without Cloud Messaging."
+          fi
+
       - name: Decode signing keystore
         run: |
           mkdir -p keystore
@@ -56,7 +71,7 @@ jobs:
 
       - name: Remove signing secrets from workspace
         if: always()
-        run: rm -rf keystore keystore.properties
+        run: rm -rf keystore keystore.properties app/google-services.json
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v6

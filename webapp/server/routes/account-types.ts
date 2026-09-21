@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { invalidateAllSummaries } from '../cache';
 import { conflict, notFound } from '../errors';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { buildUpdate, isUniqueViolation, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
@@ -37,7 +37,17 @@ export const accountTypeRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, accountTypeCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('atp');
+		const id = input.id ?? newId('atp');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not. Because the client named the row, the repeat is recognisable, and
+		// answering with what is already there is what makes a replay safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'account_types', id, userId))) {
+			const existing = await c.env.DB.prepare(`${SELECT_WITH_USAGE} WHERE t.id = ? AND t.user_id = ? GROUP BY t.id`)
+				.bind(id, userId)
+				.first<AccountTypeRow>();
+			return c.json({ accountType: toAccountType(existing!) });
+		}
 
 		try {
 			await c.env.DB.prepare('INSERT INTO account_types (id, user_id, name, sort_order) VALUES (?, ?, ?, ?)')

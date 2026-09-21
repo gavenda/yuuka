@@ -1,5 +1,6 @@
 import { auth0, whenAuthReady } from '@/lib/auth0';
 import { adoptCacheFor } from '@/lib/cache';
+import { discardQueue } from '@/lib/queue';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
@@ -39,7 +40,10 @@ router.beforeEach(async (to) => {
 	await whenAuthReady();
 
 	// The local copy belongs to one person. Settle whose it is before any view reads it.
-	if (auth0.isAuthenticated.value) adoptCacheFor(auth0.user.value?.sub);
+	// The unsent queue belongs to the same person, so a change of owner takes it
+	// too: replaying one person's spending into another's books would be worse
+	// than losing it.
+	if (auth0.isAuthenticated.value && adoptCacheFor(auth0.user.value?.sub)) await discardQueue();
 
 	if (!to.meta.public && !auth0.isAuthenticated.value) {
 		return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };

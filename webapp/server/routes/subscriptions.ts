@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { dayOf, firstOccurrenceOnOrAfter, today } from '../dates';
 import { badRequest, notFound } from '../errors';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { toSubscription, type SubscriptionRow } from '../mappers';
 import { subscriptionCreateSchema, subscriptionUpdateSchema } from '../schemas';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
@@ -49,7 +49,14 @@ export const subscriptionRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, subscriptionCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('sub');
+		const id = input.id ?? newId('sub');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not. Because the client named the row, the repeat is recognisable, and
+		// answering with what is already there is what makes a replay safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'subscriptions', id, userId))) {
+			return c.json({ subscription: toSubscription((await loadOne(c.env.DB, userId, id))!) });
+		}
 
 		// Running at 00:00 UTC, a date already gone can never post. Today is fine:
 		// the next tick posts it, dated as chosen.

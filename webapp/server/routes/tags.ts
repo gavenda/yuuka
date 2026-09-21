@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { conflict, notFound } from '../errors';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { buildUpdate, isUniqueViolation, NOW_SQL } from '../sql';
 import { parseJson } from '../validate';
 import { requireAuth } from '../middleware/auth';
@@ -36,7 +36,15 @@ export const tagRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, tagCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('tag');
+		const id = input.id ?? newId('tag');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not. Because the client named the row, the repeat is recognisable, and
+		// answering with what is already there is what makes a replay safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'tags', id, userId))) {
+			const existing = await c.env.DB.prepare(`${SELECT_WITH_COUNT} WHERE g.id = ? AND g.user_id = ?`).bind(id, userId).first<TagRow>();
+			return c.json({ tag: toTag(existing!) });
+		}
 
 		try {
 			await c.env.DB.prepare('INSERT INTO tags (id, user_id, name, color) VALUES (?, ?, ?, ?)')

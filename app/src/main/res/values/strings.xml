@@ -322,4 +322,17 @@
 
     <!-- Generic -->
     <string name="error_generic">Something went wrong.</string>
+    <!--
+      Offline-first: a change is saved on this device first and sent when there
+      is a connection, so this counts what the server has not been told about
+      yet. It is shown only while something is waiting.
+    -->
+    <plurals name="sync_unsent">
+        <item quantity="one">%1$d change saved on this device, waiting to sync</item>
+        <item quantity="other">%1$d changes saved on this device, waiting to sync</item>
+    </plurals>
+    <plurals name="sync_sending">
+        <item quantity="one">Syncing %1$d change…</item>
+        <item quantity="other">Syncing %1$d changes…</item>
+    </plurals>
 </resources>

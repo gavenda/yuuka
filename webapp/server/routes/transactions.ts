@@ -3,7 +3,7 @@ import { invalidateSummaries } from '../cache';
 import { payeeKind, rememberPayee, ROUND_UP_PAYEE } from '../payees';
 import { badRequest, notFound } from '../errors';
 import { monthOf, monthRange, splitOccurrence } from '../dates';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
@@ -225,6 +225,15 @@ export async function loadOne(db: D1Database, userId: string, id: string): Promi
 	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(userId, id, userId).first<TransactionRow>();
 }
 
+/** Both legs of a transfer, outflow first — the order every transfer response uses. */
+async function loadTransfer(db: D1Database, userId: string, transferId: string): Promise<TransactionRow[]> {
+	const { results } = await db
+		.prepare(`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`)
+		.bind(userId, transferId, userId)
+		.all<TransactionRow>();
+	return results;
+}
+
 export const transactionRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
 	.get('/', async (c) => {
@@ -293,7 +302,15 @@ export const transactionRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, transactionCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('txn');
+		const id = input.id ?? newId('txn');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not, so the client sent it again. Because the client named the row, the
+		// repeat is recognisable, and answering with what is already there is
+		// what makes replaying a batch safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'transactions', input.id, userId))) {
+			return c.json({ transaction: toTransaction((await loadOne(c.env.DB, userId, input.id))!), roundUp: null });
+		}
 
 		await assertOwnTags(c.env.DB, userId, input.tagIds);
 
@@ -328,9 +345,13 @@ export const transactionRoutes = new Hono<AppEnv>()
 			if (eligibility) {
 				const roundUpAmount = computeRoundUp(input.amount, eligibility.roundTo);
 				if (roundUpAmount > 0) {
-					const transferId = newId('tfr');
-					const sourceLegId = newId('txn');
-					const destinationLegId = newId('txn');
+					// A client that worked the round-up out itself — an offline one
+					// must, or the balance it shows is wrong — already drew these three
+					// rows and named them. Reusing its names is what makes the API's
+					// answer replace them rather than arrive as a second copy.
+					const transferId = input.roundUpIds?.transferId ?? newId('tfr');
+					const sourceLegId = input.roundUpIds?.fromId ?? newId('txn');
+					const destinationLegId = input.roundUpIds?.toId ?? newId('txn');
 
 					// Both legs carry the rule's category, same as an ordinary transfer
 					// between the user's own accounts — a round-up is one, so it takes
@@ -406,8 +427,13 @@ export const transactionRoutes = new Hono<AppEnv>()
 	.post('/transfer', async (c) => {
 		const input = await parseJson(c, transferCreateSchema);
 		const userId = c.get('userId');
-		const transferId = newId('tfr');
+		const transferId = input.ids?.transferId ?? newId('tfr');
 		const tagIds = input.tagIds ?? [];
+
+		// Replay of a queued transfer; see the note on creating a transaction.
+		if (input.ids?.transferId && (await alreadyOwned(c.env.DB, 'transfers', transferId, userId))) {
+			return c.json({ transferId, transactions: (await loadTransfer(c.env.DB, userId, transferId)).map(toTransaction) });
+		}
 
 		await assertOwnTags(c.env.DB, userId, tagIds);
 
@@ -427,8 +453,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// It is still excluded from income and spending — moving your own money
 		// is neither.
 		const legs = [
-			{ id: newId('txn'), accountId: input.fromAccountId, amount: -input.amount },
-			{ id: newId('txn'), accountId: input.toAccountId, amount: input.amount },
+			{ id: input.ids?.fromId ?? newId('txn'), accountId: input.fromAccountId, amount: -input.amount },
+			{ id: input.ids?.toId ?? newId('txn'), accountId: input.toAccountId, amount: input.amount },
 		];
 
 		const [, outflow, inflow] = await c.env.DB.batch([
@@ -483,11 +509,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 			});
 		}
 
-		const { results } = await c.env.DB.prepare(`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`)
-			.bind(userId, transferId, userId)
-			.all<TransactionRow>();
-
-		return c.json({ transferId, transactions: results.map(toTransaction) }, 201);
+		return c.json({ transferId, transactions: (await loadTransfer(c.env.DB, userId, transferId)).map(toTransaction) }, 201);
 	})
 	.patch('/transfer/:transferId', async (c) => {
 		const transferId = c.req.param('transferId');

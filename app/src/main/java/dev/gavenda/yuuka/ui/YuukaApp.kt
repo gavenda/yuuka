@@ -57,6 +57,16 @@ import dev.gavenda.yuuka.ui.tags.TagsScreen
 import dev.gavenda.yuuka.ui.transactions.TransactionsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.pluralStringResource
+import dev.gavenda.yuuka.sync.Outbox
 
 /**
  * The signed-in app shell. Navigation follows the window, as the web app's does:
@@ -109,6 +119,21 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // How much of what is on screen the server has not been told about yet.
+    // Writes are local-first, so a save never fails for want of a connection —
+    // but a figure that has not reached the server is worth saying so about,
+    // and the count is the queue's own rather than a guess.
+    val outbox = koinInject<Outbox>()
+    val unsentChanges by outbox.unsentCount.collectAsStateWithLifecycle(initialValue = 0)
+    val isSending by outbox.syncing.collectAsStateWithLifecycle()
+
+    // A change the server refused. Local-first means the user is told late —
+    // when the batch lands, which may be a day later — but they are told, and
+    // the refresh that follows takes the row back off the screen.
+    LaunchedEffect(outbox) {
+        outbox.rejections.collect { message -> snackbarHostState.showSnackbar(message) }
+    }
 
     // Navigation follows the window's width class rather than a width of our own. Compact, a phone held
     // upright, keeps the bottom bar and drawer; anything wider has room for a rail, and Expanded has room
@@ -252,10 +277,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 },
             ) { padding ->
+                Column(modifier = Modifier.padding(padding)) {
+                    UnsentChangesBanner(count = unsentChanges, sending = isSending)
+
                 NavHost(
                     navController = navController,
                     startDestination = YuukaDestination.DASHBOARD.route,
-                    modifier = Modifier.padding(padding),
                     enterTransition = {
                         val direction = tabSlideDirection(bottomNavRoutes) ?: 1
                         slideInHorizontally { fullWidth -> direction * fullWidth }
@@ -310,6 +337,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             },
                         )
                     }
+                }
                 }
             }
         }
@@ -443,4 +471,38 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideDirection(
     val toIndex = bottomNavRoutes.indexOf(targetState.destination.route)
     if (fromIndex == -1 || toIndex == -1) return null
     return if (toIndex >= fromIndex) 1 else -1
+}
+
+/**
+ * What has not reached the server yet.
+ *
+ * Writes are local-first, so a save no longer fails for want of a connection
+ * and there is nothing to warn about — but a figure the server has not been
+ * told about is worth naming, both so the user knows their morning's spending
+ * is still only on this phone and so a queue that has stopped draining is
+ * visible rather than silent. It says nothing at all when there is nothing
+ * waiting, which is almost always.
+ */
+@Composable
+private fun UnsentChangesBanner(count: Int, sending: Boolean) {
+    AnimatedVisibility(visible = count > 0) {
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = pluralStringResource(
+                    if (sending) R.plurals.sync_sending else R.plurals.sync_unsent,
+                    count,
+                    count,
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+    }
 }

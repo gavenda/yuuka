@@ -164,7 +164,9 @@ dist
 !.dev.vars.example
 .env*
 !webapp/.env.example
-webapp/.wrangler/
+# Local wrangler state, wherever it is run from — it caches the signed-in
+# Cloudflare account, which is not ours to publish.
+.wrangler/
 
 # yuuka
 .dev.vars
@@ -189,3 +191,9 @@ dist/
 .cxx
 /keystore/
 keystore.properties
+
+# Firebase Cloud Messaging configuration. Not a secret in the sense the keystore
+# is — it ships inside every APK — but this repository is public and these are
+# per-project identifiers, so it is kept out and reaches CI through the
+# GOOGLE_SERVICES_JSON secret instead. See webapp/README.md.
+app/google-services.json

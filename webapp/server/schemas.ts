@@ -51,7 +51,29 @@ export const dateString = z.string().regex(DATE_PATTERN, 'Must be a YYYY-MM-DD d
 export const dateTimeString = z.string().regex(DATE_TIME_PATTERN, 'Must be a YYYY-MM-DD date, optionally with a THH:MM time.');
 export const monthString = z.string().regex(MONTH_PATTERN, 'Must be a YYYY-MM month.');
 
+/**
+ * An id the client chose for a row it is creating.
+ *
+ * Offline-first means a row exists, and is referenced by later rows, before the
+ * server has ever seen it: a transaction entered on a plane names an account
+ * that may itself still be queued. Letting the client name the row is what
+ * makes that work without a second pass to rewrite references once the server
+ * answers — the id the client wrote is the id the server stores.
+ *
+ * It is scoped to the caller's own data like every other id, so a collision
+ * with someone else's row is impossible, and a repeat of the same create is a
+ * no-op rather than a duplicate: that is what makes replaying a queued batch
+ * safe. The shape is the server's own (`newId`), so nothing downstream can tell
+ * which side generated it.
+ */
+export const clientId = (prefix: string) =>
+	z
+		.string()
+		.regex(new RegExp(`^${prefix}_[0-9a-zA-Z]{8,64}$`), `Must be a ${prefix}_ identifier.`)
+		.optional();
+
 export const accountTypeCreateSchema = z.object({
+	id: clientId('atp'),
 	name: label,
 	sortOrder: z.number().int().min(0).default(0),
 });
@@ -66,6 +88,7 @@ export const accountTypeUpdateSchema = z
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
 export const accountCreateSchema = z.object({
+	id: clientId('acc'),
 	name: label,
 	typeId: z.string().min(1),
 	currency: currency.default(DEFAULT_CURRENCY),
@@ -91,6 +114,8 @@ export const accountUpdateSchema = z
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
 export const accountAdjustSchema = z.object({
+	/** The id for the transaction this posts, so an offline adjustment keeps the row the client already showed. */
+	id: clientId('txn'),
 	/** The account's balance after this adjustment posts; the API computes the difference itself. */
 	balance: money,
 	occurredOn: dateTimeString,
@@ -99,6 +124,7 @@ export const accountAdjustSchema = z.object({
 });
 
 export const categoryCreateSchema = z.object({
+	id: clientId('cat'),
 	name: label,
 	kind: z.enum(CATEGORY_KINDS),
 	color: color.default('#64748b'),
@@ -121,6 +147,7 @@ export const categoryUpdateSchema = z
 export const MAX_TAGS_PER_TRANSACTION = 10;
 
 export const tagCreateSchema = z.object({
+	id: clientId('tag'),
 	name: label,
 	color: color.default('#64748b'),
 });
@@ -139,7 +166,25 @@ const tagIds = z
 	.max(MAX_TAGS_PER_TRANSACTION, `A transaction takes at most ${MAX_TAGS_PER_TRANSACTION} tags.`)
 	.transform((ids) => [...new Set(ids)]);
 
+/** The three rows a transfer is: its parent and the two legs that reference it. */
+const transferIds = z.object({
+	transferId: clientId('tfr'),
+	fromId: clientId('txn'),
+	toId: clientId('txn'),
+});
+
+/** The same three rows, for the transfer a round-up posts. */
+const roundUpIds = transferIds;
+
 export const transactionCreateSchema = z.object({
+	id: clientId('txn'),
+	/**
+	 * Ids for the "Save the Change" transfer this create may trigger. A client
+	 * that worked out the round-up itself — as an offline one must, to show the
+	 * right balance — names the three rows it already drew, so the API's answer
+	 * replaces them instead of arriving as a second copy.
+	 */
+	roundUpIds: roundUpIds.optional(),
 	accountId: z.string().min(1),
 	categoryId: z.string().min(1).nullable().default(null),
 	amount: money.refine((value) => value !== 0, 'Amount cannot be zero.'),
@@ -165,6 +210,7 @@ export const transactionUpdateSchema = z
 
 export const transferCreateSchema = z
 	.object({
+		ids: transferIds.optional(),
 		fromAccountId: z.string().min(1),
 		toAccountId: z.string().min(1),
 		amount: z.number().int().positive('Transfer amount must be positive.'),
@@ -189,6 +235,7 @@ const subscriptionPayee = z.string().trim().min(1, 'Required.').max(120);
 const realDate = dateString.refine(isRealDate, 'Must be a real calendar date.');
 
 export const subscriptionCreateSchema = z.object({
+	id: clientId('sub'),
 	accountId: z.string().min(1),
 	/** Must be a standard-scope category — a subscription posts an ordinary transaction, never a transfer. */
 	categoryId: z.string().min(1).nullable().default(null),
@@ -219,6 +266,7 @@ const percent = z.number().min(0).max(100);
 
 export const budgetUpsertSchema = z
 	.object({
+		id: clientId('bdg'),
 		categoryId: z.string().min(1),
 		month: monthString,
 		amount: z.number().int().min(0, 'Budgeted amount cannot be negative.').optional(),
@@ -289,4 +337,58 @@ export const listQuerySchema = z.object({
 		.enum(['true', 'false'])
 		.default('false')
 		.transform((value) => value === 'true'),
+});
+
+/**
+ * Which table an offline mutation was aimed at, for the staleness check that
+ * makes a queued batch last-write-wins rather than blind replay.
+ *
+ * Only rows a person can edit from two places at once are listed. Anything
+ * absent is applied without a check, which is the same answer a row that has
+ * never been touched elsewhere would have given.
+ */
+export const SYNC_ENTITIES = [
+	'account',
+	'accountType',
+	'category',
+	'tag',
+	'transaction',
+	'transfer',
+	'subscription',
+	'budget',
+	'settings',
+	'roundUpRule',
+] as const;
+
+/** Methods a queued operation may use. A GET is never queued: reading is what a sync already does. */
+const SYNC_METHODS = ['POST', 'PATCH', 'PUT', 'DELETE'] as const;
+
+export const syncOperationSchema = z.object({
+	/** The client's own name for this operation, echoed in the result so it can retire the right queue entry. */
+	opId: z.string().min(1).max(64),
+	method: z.enum(SYNC_METHODS),
+	/** An `/api/...` path, exactly as the same call would look online. */
+	path: z.string().min(2).max(300).startsWith('/api/'),
+	/** When the user made the change, not when it was sent. This is what a stale edit is judged against. */
+	at: z.string().datetime(),
+	/** What the operation touches, for the staleness check. Left out, the operation is applied unconditionally. */
+	entity: z.enum(SYNC_ENTITIES).optional(),
+	/** Which row, for an entity that has more than one. */
+	id: z.string().min(1).max(80).optional(),
+	body: z.unknown().optional(),
+});
+
+/** At most a few hundred: a queue longer than this is a sign of something wrong, not of a long flight. */
+export const MAX_SYNC_OPERATIONS = 200;
+
+export const syncBatchSchema = z.object({
+	operations: z.array(syncOperationSchema).max(MAX_SYNC_OPERATIONS, `A batch takes at most ${MAX_SYNC_OPERATIONS} operations.`),
+});
+
+export const deviceRegisterSchema = z.object({
+	/** The FCM registration token. Opaque, and rotated by FCM rather than by us. */
+	token: z.string().min(10).max(4096),
+	/** The install's own stable id, which survives the token being rotated. */
+	deviceId: z.string().min(8).max(80),
+	platform: z.enum(['android', 'web']),
 });

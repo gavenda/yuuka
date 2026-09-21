@@ -49,6 +49,17 @@ class AuthManager(private val context: Context) {
     private val _errors = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val errors: SharedFlow<String> = _errors
 
+    private val _signedOut = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * A sign-out the user asked for, as distinct from a session that merely
+     * expired. Only this one discards unsent work: a token the API rejected is
+     * the same person, who will sign in again and still wants their morning's
+     * spending saved — throwing the queue away there would lose it for a reason
+     * that resolves itself.
+     */
+    val signedOut: SharedFlow<Unit> = _signedOut
+
     init {
         restoreSession()
     }
@@ -97,12 +108,14 @@ class AuthManager(private val context: Context) {
                     override fun onSuccess(result: Void?) {
                         credentialsManager.clearCredentials()
                         _authState.value = AuthState.Unauthenticated
+                        _signedOut.tryEmit(Unit)
                     }
 
                     override fun onFailure(error: AuthenticationException) {
                         // A failed remote logout should not trap the user signed in locally.
                         credentialsManager.clearCredentials()
                         _authState.value = AuthState.Unauthenticated
+                        _signedOut.tryEmit(Unit)
                         _errors.tryEmit(error.getDescription())
                     }
                 },

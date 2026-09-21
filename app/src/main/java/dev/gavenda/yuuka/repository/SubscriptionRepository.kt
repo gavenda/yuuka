@@ -1,13 +1,20 @@
 package dev.gavenda.yuuka.repository
 
+import dev.gavenda.yuuka.data.Ids
+import dev.gavenda.yuuka.data.local.Provisional
+import dev.gavenda.yuuka.data.local.dao.AccountDao
+import dev.gavenda.yuuka.data.local.dao.CategoryDao
 import dev.gavenda.yuuka.data.local.dao.SubscriptionDao
 import dev.gavenda.yuuka.data.local.toDomain
 import dev.gavenda.yuuka.data.local.toEntity
 import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
+import dev.gavenda.yuuka.sync.Outbox
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -18,7 +25,10 @@ import kotlinx.serialization.json.put
  */
 class SubscriptionRepository(
     private val api: YuukaApi,
+    private val outbox: Outbox,
     private val dao: SubscriptionDao,
+    private val accountDao: AccountDao,
+    private val categoryDao: CategoryDao,
 ) {
     val subscriptions: Flow<List<Subscription>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
 
@@ -36,8 +46,20 @@ class SubscriptionRepository(
             put("notes", notes)
             put("startOn", startOn)
         }
-        apiCall { api.createSubscription(body) }
-        refresh()
+        val id = Ids.new(Ids.SUBSCRIPTION)
+        dao.upsert(
+            Provisional.subscription(
+                id = id,
+                accountId = accountId,
+                account = accountDao.byId(accountId),
+                category = categoryId?.let { categoryDao.byId(it) },
+                amount = amount,
+                payee = payee,
+                notes = notes,
+                startOn = startOn,
+            ),
+        )
+        outbox.enqueue("POST", "/api/subscriptions", JsonObject(body + ("id" to JsonPrimitive(id))))
     }
 
     /**
@@ -53,17 +75,37 @@ class SubscriptionRepository(
             put("notes", notes)
             startOn?.let { put("startOn", it) }
         }
-        apiCall { api.updateSubscription(id, body) }
-        refresh()
+        dao.byId(id)?.let { current ->
+            dao.upsert(
+                current.copy(
+                    accountId = accountId,
+                    accountName = accountDao.byId(accountId)?.name,
+                    categoryId = categoryId,
+                    categoryName = categoryId?.let { categoryDao.byId(it)?.name },
+                    categoryColor = categoryId?.let { categoryDao.byId(it)?.color },
+                    amount = amount,
+                    payee = payee,
+                    notes = notes,
+                    // Restarting the schedule moves the anchor and the next run
+                    // with it, the way the API does.
+                    startOn = startOn ?: current.startOn,
+                    dayOfMonth = startOn?.substring(8, 10)?.toInt() ?: current.dayOfMonth,
+                    nextRunOn = startOn ?: current.nextRunOn,
+                    updatedAt = Provisional.touchedAt(),
+                ),
+            )
+        }
+        outbox.enqueue("PATCH", "/api/subscriptions/$id", body, entity = "subscription", rowId = id)
     }
 
     suspend fun setEnabled(id: String, enabled: Boolean) {
-        apiCall { api.updateSubscription(id, buildJsonObject { put("enabled", enabled) }) }
-        refresh()
+        dao.byId(id)?.let { dao.upsert(it.copy(enabled = enabled, updatedAt = Provisional.touchedAt())) }
+        outbox.enqueue("PATCH", "/api/subscriptions/$id", buildJsonObject { put("enabled", enabled) }, entity = "subscription", rowId = id)
     }
 
+    /** Everything it already posted stays: those are ordinary transactions, and this is only its schedule. */
     suspend fun delete(id: String) {
-        apiCall { api.deleteSubscription(id) }
-        refresh()
+        dao.deleteById(id)
+        outbox.enqueue("DELETE", "/api/subscriptions/$id", entity = "subscription", rowId = id)
     }
 }

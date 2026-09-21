@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -239,7 +242,7 @@ fun YuukaNavRail(
 
             // The foot stays at the bottom of the rail however far the destinations above scroll. The display
             // switch is in reach in both states: a phone keeps it in its top bar, but a wide window has none.
-            Column(verticalArrangement = Arrangement.spacedBy(spacing)) {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing), modifier = Modifier.padding(vertical = 16.dp)) {
                 RailItem(
                     label = stringResource(if (amountsHidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
                     icon = if (amountsHidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
@@ -255,11 +258,20 @@ fun YuukaNavRail(
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
-                    AccountSummary(
-                        claims = claims,
-                        fallbackName = stringResource(R.string.brand_name),
-                        modifier = Modifier.widthIn(max = 220.dp).padding(horizontal = 24.dp, vertical = 12.dp),
-                    )
+                    Card(
+                        modifier = Modifier.padding(vertical = 16.dp, horizontal = 24.dp),
+                        onClick = {},
+                        shape = RoundedCornerShape(32.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )) {
+                        AccountSummary(
+                            claims = claims,
+                            fallbackName = stringResource(R.string.brand_name),
+                            modifier = Modifier.widthIn(max = 220.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                    }
+
                 }
             }
         }
@@ -343,7 +355,6 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RailItem(
     label: String,

@@ -105,7 +105,13 @@ fun Transaction.tagLinks() = tags.map { TransactionTagEntity(id, it.id) }
 /** Tags read in a steady order, so a transaction's chips do not shuffle between loads. */
 fun TransactionWithTags.toDomain() = transaction.toDomain(tags.sortedBy { it.name.lowercase() }.map { TransactionTag(it.id, it.name, it.color) })
 
-private fun TransactionEntity.toDomain(tags: List<TransactionTag>) = Transaction(
+/**
+ * A transaction with the chips it wears. `tags` is a parameter rather than a
+ * lookup because the only two callers know the answer already: a row read
+ * through [TransactionWithTags] carries them, and a row built locally before
+ * the server has seen it is given them by whoever drew it.
+ */
+fun TransactionEntity.toDomain(tags: List<TransactionTag>) = Transaction(
     id = id,
     accountId = accountId,
     accountName = accountName,

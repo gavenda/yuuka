@@ -27,10 +27,11 @@ import dev.gavenda.yuuka.data.local.entity.*
         RoundUpRuleEntity::class,
         SubscriptionEntity::class,
     ],
-    // 8: categories lost `appliesTo`, its meaning folded into `kind`. The
-    // builder falls back to a destructive migration, which is right here — this
-    // database is a cache of the API, and a full sync refills it.
-    version = 8,
+    // 8: categories lost `appliesTo`, its meaning folded into `kind`.
+    // 9: offline-first. Nothing here changed shape — the unsent queue lives in
+    // `OutboxDatabase`, deliberately apart, because this one falls back to a
+    // destructive migration and that is exactly what a queue must not do.
+    version = 9,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

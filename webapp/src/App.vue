@@ -20,7 +20,10 @@ import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
 import { applyUpdate, updateReady } from '@/lib/pwa';
 import { clearSnackbars, showSnackbar } from '@/lib/snackbar';
-import { fullSync } from '@/lib/sync';
+import { fullSync, installSliceRefresher } from '@/lib/sync';
+import { discardQueue, flush, hasUnsentChanges, isSyncing, startQueue, unsentChanges } from '@/lib/queue';
+import { startPush, stopPush } from '@/lib/push';
+import { setLedgerView } from '@/lib/provisional';
 import { useTheme } from '@/lib/theme';
 import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
@@ -93,6 +96,10 @@ async function signOut(): Promise<void> {
 	transactions.reset();
 	subscriptions.reset();
 	clearCache();
+	// Unsent changes go with the session that made them, and this install stops
+	// being worth waking.
+	await discardQueue();
+	await stopPush();
 
 	// Ends the Auth0 session too, not just the local one.
 	await logout({ logoutParams: { returnTo: window.location.origin } });
@@ -115,9 +122,42 @@ watch(isAuthenticated, (authenticated) => {
 });
 
 // Coming back online is the cue to catch up on whatever was showing a saved copy.
+// The queue listens for the same event on its own; this is the read half.
 function onBackOnline(): void {
 	if (isAuthenticated.value) void fullSync();
 }
+
+/**
+ * What the offline queue needs to know to build a provisional row — an
+ * account's name, a category's colour, the balance a transaction moves. It is
+ * handed over rather than imported, because everything that holds it imports
+ * the API, which is what asks.
+ */
+setLedgerView(() => ({
+	accounts: ledger.accounts,
+	accountTypes: ledger.accountTypes,
+	categories: ledger.categories,
+	tags: ledger.tags,
+	roundUpRule: ledger.roundUpRule,
+	settings: ledger.settings,
+	displayCurrency: ledger.displayCurrency,
+	transaction: (id: string) => transactions.transactions.find((row: { id: string }) => row.id === id) ?? null,
+	subscription: (id: string) => subscriptions.subscriptions.find((row: { id: string }) => row.id === id) ?? null,
+}));
+
+installSliceRefresher();
+
+// Draining the queue and registering for pushes both need a session, so they
+// wait for one rather than starting with the page.
+watch(
+	isAuthenticated,
+	(authenticated) => {
+		if (!authenticated) return;
+		startQueue();
+		void startPush();
+	},
+	{ immediate: true },
+);
 
 // A new build waits until it is taken, so it is offered as a message that stays until
 // the person acts on it or waves it away.
@@ -248,10 +288,20 @@ onBeforeUnmount(() => {
 			</div>
 		</header>
 
-		<!-- Everything on screen is the copy this browser last saved; the API is what changes are
-		     made against, so say so rather than letting a failed save be the first hint. -->
-		<p v-if="showShell && !isLoading && !isOnline" role="status" class="bg-warning/10 px-4 py-2 text-center text-xs text-warning">
-			You're offline. Showing what was last saved; changes need a connection.
+		<!-- Changes are saved here first and sent after, so being offline is no longer a reason a
+		     save can fail — but it is still worth saying that what is on screen has not reached the
+		     server yet, and how much of it. The count is the queue's, not a guess. -->
+		<p
+			v-if="showShell && !isLoading && (!isOnline || hasUnsentChanges)"
+			role="status"
+			class="bg-warning/10 px-4 py-2 text-center text-xs text-warning"
+		>
+			<template v-if="hasUnsentChanges">
+				{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved here,
+				{{ isSyncing ? 'syncing now…' : isOnline ? 'not sent yet.' : 'waiting for a connection.' }}
+				<button v-if="isOnline && !isSyncing" type="button" class="underline underline-offset-2" @click="flush()">Try now</button>
+			</template>
+			<template v-else>You're offline. Showing what was last saved; changes are kept here until there is a connection.</template>
 		</p>
 
 		<!-- On a cold load the SDK is still restoring the session, or exchanging

@@ -14,6 +14,13 @@ interface BudgetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(budgets: List<BudgetEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(budget: BudgetEntity)
+
+    /** A category carries one plan per queried month, so setting it again replaces whatever was there. */
+    @Query("SELECT * FROM budgets WHERE queriedMonth = :month AND categoryId = :categoryId")
+    suspend fun forCategory(month: String, categoryId: String): BudgetEntity?
+
     @Query("DELETE FROM budgets WHERE queriedMonth = :month")
     suspend fun clearMonth(month: String)
 

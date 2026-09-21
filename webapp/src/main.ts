@@ -1,6 +1,7 @@
 import { setTokenProvider, setUnauthorizedHandler } from '@/lib/api';
 import { auth0, isConfigured } from '@/lib/auth0';
 import { clearCache } from '@/lib/cache';
+import { stopPush } from '@/lib/push';
 import { shouldReloadForStaleChunk } from '@/lib/staleChunk';
 import { registerServiceWorker } from '@/lib/pwa';
 import { router } from '@/router';
@@ -44,6 +45,11 @@ if (!isConfigured) {
 	// The local copy goes with it: it holds the books of a session that is over.
 	setUnauthorizedHandler(() => {
 		clearCache();
+		// The unsent work deliberately stays. A rejected token is the same
+		// person, who will sign in again and still wants what they entered
+		// saved; the router guard discards the queue if it turns out to be
+		// someone else. Only a sign-out the user asked for throws it away.
+		void stopPush();
 		void auth0.logout({ openUrl: false });
 	});
 

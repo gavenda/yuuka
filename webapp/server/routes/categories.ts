@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { invalidateAllSummaries } from '../cache';
 import { badRequest, conflict, notFound } from '../errors';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { buildUpdate, isUniqueViolation, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
@@ -39,7 +39,17 @@ export const categoryRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, categoryCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('cat');
+		const id = input.id ?? newId('cat');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not. Because the client named the row, the repeat is recognisable, and
+		// answering with what is already there is what makes a replay safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'categories', id, userId))) {
+			const existing = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ? AND user_id = ?')
+				.bind(id, userId)
+				.first<CategoryRow>();
+			return c.json({ category: toCategory(existing!) });
+		}
 
 		// A child inherits its parent's kind, so the two can never drift apart — an
 		// "Investments" under "Cashflow" is always a transfer category. The

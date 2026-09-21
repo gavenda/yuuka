@@ -141,4 +141,21 @@ interface YuukaApi {
 
     @GET("summary")
     suspend fun summary(@Query("month") month: String): Summary
+
+    /**
+     * Drains the offline queue. The operations are replayed in the order they
+     * are sent, through the same routes an online call would have reached, and
+     * the response says what became of each one. Sending the same batch twice
+     * is safe — see `server/sync.ts`.
+     */
+    @POST("sync/batch")
+    suspend fun syncBatch(@Body body: SyncBatchRequest): SyncBatchResponse
+
+    /** Says where to reach this install, so a change made elsewhere can be pushed here. Repeated on every start; FCM rotates tokens. */
+    @PUT("devices")
+    suspend fun registerDevice(@Body body: DeviceRegistrationRequest)
+
+    /** Signing out. Naming the token rather than the install means a stale caller cannot unregister whatever it holds now. */
+    @DELETE("devices/{token}")
+    suspend fun unregisterDevice(@Path("token") token: String)
 }

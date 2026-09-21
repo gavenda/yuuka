@@ -102,6 +102,29 @@ interface TransactionDao {
         deleteRowsByTransferId(transferId)
     }
 
+    @Query("DELETE FROM transaction_tags WHERE transactionId IN (SELECT id FROM transactions WHERE accountId = :accountId)")
+    suspend fun deleteTagLinksOfAccount(accountId: String)
+
+    @Query("DELETE FROM transactions WHERE accountId = :accountId")
+    suspend fun deleteRowsByAccountId(accountId: String)
+
+    /** Deleting an account takes its transactions with it, which is what the API's `includeTransactions` confirms. */
+    @Transaction
+    suspend fun deleteByAccountId(accountId: String) {
+        deleteTagLinksOfAccount(accountId)
+        deleteRowsByAccountId(accountId)
+    }
+
+    /** Reading one back, for an edit that has to show before it is sent. */
+    @Query("SELECT * FROM transactions WHERE id = :id")
+    suspend fun byId(id: String): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE transferId = :transferId ORDER BY amount ASC")
+    suspend fun byTransferId(transferId: String): List<TransactionEntity>
+
+    @Query("SELECT tagId FROM transaction_tags WHERE transactionId = :id")
+    suspend fun tagIdsOf(id: String): List<String>
+
     @Query("DELETE FROM transactions")
     suspend fun clearRows()
 

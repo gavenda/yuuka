@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
 >
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!--
+      Messages from the server are data-only and nothing is ever shown, so this
+      is not needed to receive them. It is declared because Android 13+ refuses
+      to register for messaging at all without it being at least declarable, and
+      because a future build may want to say something. The app never asks for
+      it, and works without it being granted.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
             android:name=".YuukaApplication"
@@ -26,6 +35,36 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!--
+          Where a change made in the web app, or on another device, arrives. The
+          messages are data-only hints naming which slices of the ledger moved;
+          nothing is shown, because the user made the change themselves. See
+          `sync/YuukaMessagingService.kt`.
+        -->
+        <service
+                android:name=".sync.YuukaMessagingService"
+                android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
+
+        <!--
+          WorkManager's own initialiser is removed so Koin can supply the worker
+          factory — `SyncWorker` takes the outbox as a constructor argument, and
+          the default factory cannot build it. See `YuukaApplication`.
+        -->
+        <provider
+                android:name="androidx.startup.InitializationProvider"
+                android:authorities="${applicationId}.androidx-startup"
+                android:exported="false"
+                tools:node="merge">
+            <meta-data
+                    android:name="androidx.work.WorkManagerInitializer"
+                    android:value="androidx.startup"
+                    tools:node="remove"/>
+        </provider>
     </application>
 
 </manifest>

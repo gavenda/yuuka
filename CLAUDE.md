@@ -247,23 +247,80 @@ action to the rail, so a new screen never places its own. The web side is in
 
 ## Sync
 
-**The server is the source of truth; the local copy is a cache — in the Android
-app and in the web app, which is installable and opens offline.**
-Pull-to-refresh is a full sync, not a top-up. The per-screen loads only ever
-fold rows in, so something deleted elsewhere (the web app, another device)
-would otherwise linger here indefinitely. A full sync replaces accounts, types,
-categories, tags, settings, the round-up rule, subscriptions and payees from the API,
-and only once that has succeeded discards the cached transactions, budgets,
-income plans and summaries, so the screens on show load theirs again. A failed sync (offline,
-expired session) leaves the last-seen ledger untouched rather than empty.
+**Both apps are offline-first. A change is written locally and sent afterwards,
+never the other way round.** A save does not wait for the network and cannot
+fail for want of one: the row the user made goes into the local database, the
+call that would have been made online goes into an outbox, and the screen — which
+reads the local database — updates at once. The queue drains as a single
+`POST /api/sync/batch`, in the order the changes were made, which is what makes
+"spend from the account I just made" work after an hour with no signal. It
+drains on every write, when the network comes back, and (on Android) under a
+WorkManager connectivity constraint so a queue built on a plane is sent even if
+the app is never reopened.
 
-The web app does the same with what it saved in the browser: a screen shows what
-was last seen at once, then the API's answer replaces it, and an unreachable API
-leaves the saved copy on screen rather than an error. Nothing is queued while
-offline — a change is made against the API, so it fails until there is a
-connection, and the saved copy only ever changes by what the API returned. It is
-one person's books, so it is discarded on sign-out and when someone else signs in.
-How it is built is in [webapp/CLAUDE.md](webapp/CLAUDE.md).
+**The server is still the source of truth; what is written locally is a good
+guess.** The client works out what the API would have filled in — an account's
+name, a category's colour, a balance that has moved, the "Save the Change"
+round-up a purchase triggers — so the figures read correctly in the moment. Once
+the batch lands, the parts of the ledger it touched are refetched and the
+server's answer replaces every one of those guesses. Two of them are worth
+knowing about: a running balance is right for the newest row on an account and
+approximate for one back-dated into the middle of its history, and a month's
+summary is not recomputed locally at all, because it depends on every
+transaction in the month.
+
+**The client names the rows it creates.** A transaction entered offline may
+reference an account that is itself still queued, so ids are generated on the
+client in the server's own shape (`txn_…`, `acc_…`) and the server stores the
+name it was given. Nothing downstream can tell which side generated an id. It is
+also what makes sending the same batch twice safe: a repeated create resolves to
+the row that is already there, and deleting something already gone reports
+success.
+
+**Last write wins, judged by when the user acted.** Each queued operation
+carries the moment the change was made, not the moment it was sent. If the row
+it names has moved on since — the other device edited it, and that reached the
+server first — the operation is dropped rather than applied. A change made on a
+plane loses to one made on the ground an hour later instead of winning by
+arriving second. There is no conflict UI; a dropped operation just leaves the
+newer value in place.
+
+**A rejection arrives late, and is still reported.** A name the server considers
+a duplicate is only known to be one when the batch lands. That is surfaced as a
+snackbar, and the refresh that follows takes the optimistic row back off the
+screen. Both apps also say how much has not reached the server yet — a count
+from the queue, not a guess.
+
+**The queue is the one thing that is not a cache.** Everything else stored
+locally can be thrown away and refetched; a queued change exists nowhere else.
+On Android it therefore lives in its own Room database (`OutboxDatabase`),
+because the cache database falls back to a destructive migration and a queue
+must not; in the browser it is in IndexedDB rather than beside the cache in
+`localStorage`, which drops its oldest entries under quota pressure. It is
+discarded when the user signs out, and when a different person signs in — but
+**not** when a token merely expires, because that is the same person, who will
+sign in again and still wants their work.
+
+**The other device is told, not left to find out.** A write pushes a data-only
+Firebase Cloud Messaging message naming which slices of the ledger moved
+(`accounts`, `transactions`, `summary`, …), and the receiving app refetches
+those and nothing else — a transaction added in the browser should not cost the
+phone its subscription list. The device that made the change is left out, since
+it already has the answer. Nothing is ever shown: the user made the change
+themselves, so a notification would be noise. Push is an optimisation and
+nothing may be built on a message arriving — delivery is not promised, and a
+deployment with no FCM configured simply never sends one. Setting it up is in
+[webapp/README.md](webapp/README.md).
+
+**Pull-to-refresh is still a full sync, not a top-up.** The per-screen loads
+only fold rows in, so something deleted elsewhere would otherwise linger here
+indefinitely. A full sync replaces accounts, types, categories, tags, settings,
+the round-up rule, subscriptions and payees from the API, and only once that has
+succeeded discards the cached transactions, budgets, income plans and summaries,
+so the screens on show load theirs again. A failed sync (offline, expired
+session) leaves the last-seen ledger untouched rather than empty. A slice
+refresh — what a push or a landed batch asks for — is the same mechanism aimed
+at less of the ledger.
 
 ## Provisioning
 

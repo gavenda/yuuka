@@ -120,6 +120,95 @@ application, and point `AUTH0_AUDIENCE` at the real value first. One deployment
 carries both the site and the API, so there is nothing to keep in sync between
 them.
 
+## Cloud Messaging
+
+Both apps are offline-first: a change is written to the local database and sent
+when there is a connection. That leaves one problem push solves — a change made
+in one app leaves the other's copy quietly wrong until something makes it ask
+again. Firebase Cloud Messaging is how the server says which parts of the
+ledger moved, so the other app refetches those and nothing else.
+
+It is entirely optional. With nothing configured, the Worker sends no messages,
+neither client registers, and both still sync on open, on reconnect and on
+pull-to-refresh. Set it up when you want the two to keep up with each other in
+seconds rather than on next open.
+
+### 1. Create the Firebase project
+
+1. Open the [Firebase console](https://console.firebase.google.com) and
+   **Add project**. Analytics is not used; skip it.
+2. Note the **Project ID** (something like `yuuka-1a2b3`). Everything below
+   hangs off it.
+
+### 2. Register the Android app
+
+1. In the console, **Project settings → General → Your apps → Add app →
+   Android**.
+2. Package name: `dev.gavenda.yuuka` — it must match `applicationId` in
+   `app/build.gradle.kts` exactly.
+3. Download `google-services.json` and put it at **`app/google-services.json`**
+   (beside `app/build.gradle.kts`, not at the repository root).
+
+That is the whole Android side. `app/build.gradle.kts` applies the
+`com.google.gms.google-services` plugin only when that file is present, so a
+checkout without it still builds — it just builds without push, and says so in
+the Gradle log. The file contains no secrets, but it is per-project, so keep it
+out of the repository if the project is shared.
+
+### 3. Register the web app
+
+1. **Project settings → General → Your apps → Add app → Web**.
+2. Copy the config values into `webapp/.env` (see `.env.example`):
+   `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
+   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
+   `VITE_FIREBASE_APP_ID`.
+3. **Project settings → Cloud Messaging → Web configuration → Web Push
+   certificates → Generate key pair**. Copy the key pair's public key into
+   `VITE_FIREBASE_VAPID_KEY`.
+
+All six are public identifiers that the page ships anyway — they are not
+secrets, which is why `public/firebase-messaging-sw.js` is allowed to take them
+on its registration URL rather than repeating them.
+
+Web push needs a secure context: it works on `https://` and on `localhost`, and
+not on a plain-HTTP LAN address.
+
+### 4. Give the Worker a service account
+
+The server sends through FCM's HTTP v1 API, which authenticates as a service
+account rather than with the old server key.
+
+1. **Project settings → Service accounts → Generate new private key**. A JSON
+   file downloads. It _is_ a secret — do not commit it.
+2. Set three Worker secrets from it:
+
+```bash
+bunx wrangler secret put FCM_PROJECT_ID     # "project_id" in the JSON
+bunx wrangler secret put FCM_CLIENT_EMAIL   # "client_email"
+bunx wrangler secret put FCM_PRIVATE_KEY    # "private_key", newlines and all
+```
+
+`FCM_PRIVATE_KEY` is a PEM blob with real newlines in it. Pasting it into
+`wrangler secret put` works; if whatever you pipe it through turns the newlines
+into a literal `\n`, that is accepted too — `server/fcm.ts` puts them back.
+
+For local development, put the same three in `webapp/.dev.vars`.
+
+### 5. Check it
+
+Sign in on both, make a change in one, and the other should catch up within a
+second or two without being touched. If it does not:
+
+- `wrangler tail` shows `FCM send failed` with the status FCM gave, which is
+  usually a wrong project id or a key that was not pasted whole.
+- A token FCM rejects as dead is deleted from the `devices` table on the spot,
+  so a device that has been reinstalled sorts itself out on next start.
+- On the web, an unregistered service worker or a refused notification
+  permission both mean no token; the browser console says which.
+
+Nothing anywhere depends on a message arriving. If push is broken, the apps are
+exactly as up to date as they would be without it.
+
 ## API
 
 All routes are under `/api`. Everything except `/api/health` requires an Auth0

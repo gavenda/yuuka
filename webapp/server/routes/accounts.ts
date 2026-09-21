@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { invalidateAllSummaries, invalidateSummaries } from '../cache';
 import { monthOf, splitOccurrence } from '../dates';
 import { badRequest, conflict, notFound } from '../errors';
-import { newId } from '../ids';
+import { alreadyOwned, newId } from '../ids';
 import { toAccount, toTransaction, type AccountRow } from '../mappers';
 import { payeeKind, rememberPayee } from '../payees';
 import { buildUpdate, NOW_SQL, toSqliteBool } from '../sql';
@@ -54,7 +54,17 @@ export const accountRoutes = new Hono<AppEnv>()
 	.post('/', async (c) => {
 		const input = await parseJson(c, accountCreateSchema);
 		const userId = c.get('userId');
-		const id = newId('acc');
+		const id = input.id ?? newId('acc');
+
+		// A queued create can arrive twice — the batch landed but its answer did
+		// not. Because the client named the row, the repeat is recognisable, and
+		// answering with what is already there is what makes a replay safe.
+		if (input.id && (await alreadyOwned(c.env.DB, 'accounts', id, userId))) {
+			const existing = await c.env.DB.prepare(`${SELECT_WITH_BALANCE} WHERE a.id = ? AND a.user_id = ? GROUP BY a.id`)
+				.bind(id, userId)
+				.first<AccountRow>();
+			return c.json({ account: toAccount(existing!) });
+		}
 
 		// Guarded the same way transactions are: the type has to be the caller's,
 		// checked in the statement that performs the write.
@@ -130,7 +140,15 @@ export const accountRoutes = new Hono<AppEnv>()
 		const id = c.req.param('id');
 		const userId = c.get('userId');
 		const input = await parseJson(c, accountAdjustSchema);
-		const txnId = newId('txn');
+		const txnId = input.id ?? newId('txn');
+
+		// Replay of a queued adjustment. Recomputing the difference would post a
+		// second, wrong amount — the account has already moved — so the row the
+		// first attempt wrote is the answer.
+		if (input.id && (await alreadyOwned(c.env.DB, 'transactions', txnId, userId))) {
+			return c.json({ transaction: toTransaction((await loadOne(c.env.DB, userId, txnId))!) });
+		}
+
 		const payee = input.payee || 'Balance adjustment';
 		const occurrence = splitOccurrence(input.occurredOn);
 

@@ -99,12 +99,56 @@ keep that honest:
   has answered they drop the other snapshots: a write can move figures in a month
   or filter the person is not looking at, and only the API knows.
 
-Writes are not queued. There is no offline outbox, as in the Android app: a
-write goes to the API first and fails with "Network error" when offline, and the
-copy only ever changes by what the API returned. `App.vue` shows an offline strip
-(`lib/online.ts`, a hint only — nothing decides on `navigator.onLine`) and runs
-`fullSync` (`lib/sync.ts`) when the browser reports a connection again, which
-fetches whatever is already loaded and leaves anything unopened alone.
+**Writes are queued, and never wait for the network.** Every mutation goes
+through `queued()` in `lib/queue.ts`, which writes the call to an outbox and
+answers immediately with a provisional result built by `lib/provisional.ts` — the
+row the user typed, plus the fields the API would have filled in. The stores are
+unchanged by this: they are handed the same shape the API returns and cannot tell
+which side built it, which is why making the app offline-first did not mean
+touching eight stores. The rules the whole thing rests on are in the root
+CLAUDE.md; what is specific here:
+
+- **The outbox is IndexedDB, not `localStorage`.** `lib/cache.ts` drops its
+  oldest entries under quota pressure, which is correct for a cache and
+  catastrophic for unsent work. `lib/outbox.ts` is therefore separate, keyed by
+  an auto-incrementing sequence that is also the order operations are sent in,
+  and every accessor degrades to "no queue" rather than throwing — a browser
+  that refuses IndexedDB falls back to sending the write immediately, which is
+  how the app behaved before there was a queue.
+- **`lib/http.ts` exists so the queue can use `request()`.** It holds the
+  transport — `ApiError`, the token provider, the one `fetch` — apart from
+  `api.ts`, which imports the queue, which would otherwise import `api.ts` back.
+  `api.ts` re-exports `ApiError` and friends so nothing that already imports them
+  from `@/lib/api` had to move.
+- **Two registrations break the other cycles.** `setLedgerView` (in
+  `provisional.ts`) hands the queue what it needs to know about the ledger, and
+  `installSliceRefresher` (in `lib/sync.ts`) hands it a way to refetch. Both are
+  called from `App.vue`, once Pinia is up. Neither module may import a store.
+- **`lib/slices.ts` is the twin of `server/notify.ts`.** The same slice names and
+  the same path-to-slices mapping, because both sides have to agree on what a
+  write disturbs. Android has a third copy in `sync/Slices.kt`. Change one,
+  change all three.
+- **`roundUpFor` in `provisional.ts` is the twin of `computeRoundUp` in
+  `server/routes/transactions.ts`.** A round-up worked out differently here would
+  show one figure and save another. `provisional.spec.ts` pins the arithmetic and
+  the four conditions that decide whether one triggers at all.
+
+`App.vue` shows one strip for both states: offline with nothing waiting, and
+anything waiting whether online or not, with a "Try now" that calls `flush()`.
+`lib/online.ts` is still a hint only — nothing decides on `navigator.onLine`, and
+a flush is always attempted. `fullSync` (`lib/sync.ts`) still runs on the browser
+reporting a connection again; `refreshSlices` beside it is the narrower version a
+push or a landed batch asks for.
+
+**Push is `lib/push.ts` plus `public/firebase-messaging-sw.js`.** Firebase is
+imported dynamically, so it is not in the first paint for a feature that is an
+optimisation. The messaging service worker is registered under a scope of its own
+(`/firebase-cloud-messaging-push-scope`) so it never fights Workbox's generated
+`sw.js` for a registration, and it is served from `public/` — so it cannot read
+`import.meta.env`, and takes the (public) Firebase config on its registration URL
+instead of repeating it. It shows nothing; a message arriving with a tab open
+goes to `onMessage` and refreshes the named slices, and one arriving with no tab
+open is deliberately dropped, since there is no screen to bring up to date.
 
 The copy holds one person's books, so it is bound to them. The router guard calls
 `adoptCacheFor(sub)` once the session has settled, which clears it when a
@@ -214,6 +258,45 @@ past, since the API refuses a start date before today.
 **Account logos load with `referrerpolicy="no-referrer"`.** The URL lands in an
 `<img src>`, and the policy stops browsing from leaking which account is being
 viewed to the image's host.
+
+**The batch endpoint replays through this same app.** `POST /api/sync/batch`
+(`server/routes/sync.ts`, `server/sync.ts`) takes a list of operations that each
+name a method, an `/api/…` path and a body, and dispatches them through the
+Worker's own router — so a queued call reaches the same route, the same
+validation and the same in-statement ownership checks an online call would.
+Nothing in `sync.ts` knows what a transfer is or when a round-up triggers;
+re-implementing any of that here is how the two paths would drift, and an
+ownership check only the online path performs would be a hole. The route is
+mounted with a dispatcher closure rather than importing the app, which is what
+keeps that from being a cycle, and it refuses an operation naming `/api/sync`,
+`/api/auth` or `/api/devices`.
+
+Staleness is checked in `sync.ts` alone, before dispatch: `GUARDS` maps the
+operation's `entity` (a closed enum — no caller-supplied table name ever reaches
+SQL) to where that row's `updated_at` lives, and an operation older than it is
+answered `stale` and skipped. A transfer has no `updated_at` of its own, so the
+newest of its legs stands in. Anything not in the map is applied unconditionally.
+
+**Creates accept a client-chosen id.** Every create schema in `schemas.ts` takes
+an optional `id` in the server's own shape (`clientId`), and the routes use it
+when given. Each of those routes also answers a repeat with the row that is
+already there (`alreadyOwned` in `ids.ts`) rather than a duplicate or a unique
+violation — that, plus a DELETE of something already gone reporting success, is
+what makes replaying a batch safe. `POST /transactions` additionally takes
+`roundUpIds` and `POST /transactions/transfer` an `ids` object, so the rows a
+client already drew for a round-up or a transfer keep their names.
+
+**Change notification is one middleware, not thirteen call sites.** `server/index.ts`
+wraps every route: after a successful non-GET, `slicesForPath` derives what the
+write disturbed and `notifyChange` (`server/notify.ts`) fans it out over
+`ctx.waitUntil`, so the push is off the response's critical path and a route
+added later is covered without anyone remembering. A sub-request from a batch
+carries `X-Yuuka-Batch` and is skipped — the batch sends one push for the lot
+when it has finished. Sending is `server/fcm.ts`: FCM HTTP v1, authenticated by
+a service-account JWT exchanged for an access token that is cached in KV for
+slightly under its hour. Every part of it is best-effort; a failed send must
+never fail the write that triggered it, and a token FCM rejects as dead is
+deleted from `devices` on the spot rather than by a cron.
 
 ## Security invariants
 
@@ -367,8 +450,10 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-498 tests: 360 against the API in `test/`, 138 over the browser helpers as
-`*.spec.ts` beside the code they cover. `src/testing/memoryStorage.ts` gives a
+587 tests: 392 against the API in `test/`, 195 over the browser helpers as
+`*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
+endpoint — ordering, replay, last-write-wins and what an operation may not
+target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a
 spec an in-memory `localStorage` to install — Node's own needs a backing file.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the
