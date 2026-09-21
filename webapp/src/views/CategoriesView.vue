@@ -8,6 +8,8 @@ import ModalDialog from '@/components/ModalDialog.vue';
 import { api, ApiError } from '@/lib/api';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
+import { colorProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Category, CategoryKind } from '@/types';
@@ -87,6 +89,28 @@ const KIND_CHOICES = [
 
 const archivedCount = computed(() => ledger.categories.filter((category) => category.archived).length);
 
+/** A subcategory takes its parent's kind, so that is the kind its name has to be unique within. */
+const effectiveKind = computed(() => (form.parentId ? (ledger.categoriesById.get(form.parentId)?.kind ?? form.kind) : form.kind));
+
+const validation = useFormValidation({
+	'category-name': () =>
+		nameProblem(
+			form.name,
+			(name) =>
+				ledger.categories.some(
+					(category) =>
+						category.id !== editing.value?.id &&
+						category.name === name &&
+						category.kind === effectiveKind.value &&
+						(category.parentId ?? '') === form.parentId,
+				),
+			'A category with that name already exists here.',
+		),
+	'category-color': () => colorProblem(form.color),
+});
+const { error: fieldError, touch } = validation;
+const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
+
 /** True once the form's colour has strayed from the validated palette onto a hand-picked hex. */
 const isCustomColor = computed(() => !PALETTE.some((slot) => slot.light === form.color));
 
@@ -97,6 +121,7 @@ function pickCustomColor(event: Event): void {
 function openCreate(section: Section, parentId = ''): void {
 	editing.value = null;
 	error.value = null;
+	validation.reset();
 
 	const siblings = ledger.categories.filter((category) => category.kind === section.kind).length;
 	Object.assign(form, {
@@ -111,6 +136,7 @@ function openCreate(section: Section, parentId = ''): void {
 function openEdit(category: Category): void {
 	editing.value = category;
 	error.value = null;
+	validation.reset();
 	Object.assign(form, {
 		name: category.name,
 		kind: category.kind,
@@ -121,11 +147,14 @@ function openEdit(category: Category): void {
 }
 
 async function save(): Promise<void> {
+	error.value = null;
+	if (!validation.isValid.value) return;
+
 	// Kind is only meaningful when creating a top-level category; a child
 	// inherits its parent's, and the API ignores what is sent anyway.
 	const payload = editing.value
-		? { name: form.name, kind: form.kind, color: form.color }
-		: { name: form.name, kind: form.kind, color: form.color, parentId: form.parentId || null };
+		? { name: form.name.trim(), kind: form.kind, color: form.color }
+		: { name: form.name.trim(), kind: form.kind, color: form.color, parentId: form.parentId || null };
 
 	try {
 		if (editing.value) await api.updateCategory(editing.value.id, payload);
@@ -236,10 +265,20 @@ onMounted(() => ledger.load());
 		</button>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit category' : 'New category'" @close="dialogOpen = false">
-			<form class="space-y-4" @submit.prevent="save">
+			<form class="space-y-4" novalidate @submit.prevent="save" @input="validation.onInput">
 				<div class="field">
 					<label class="label" for="category-name">Name</label>
-					<input id="category-name" v-model="form.name" class="input" required placeholder="Groceries" />
+					<input
+						id="category-name"
+						v-model="form.name"
+						class="input"
+						required
+						placeholder="Groceries"
+						:aria-invalid="fieldError('category-name') ? true : undefined"
+						:aria-describedby="describe('category-name')"
+						@blur="touch('category-name')"
+					/>
+					<FieldSupport id="category-name" :error="fieldError('category-name')" />
 				</div>
 
 				<div v-if="!editing" class="field">
@@ -298,13 +337,17 @@ onMounted(() => ledger.load());
 							v-if="isCustomColor"
 							v-model="form.color"
 							class="input input-sm w-28 font-mono"
+							id="category-color"
 							required
-							pattern="^#[0-9a-fA-F]{6}$"
 							maxlength="7"
 							placeholder="#64748b"
 							aria-label="Custom colour hex value"
+							:aria-invalid="fieldError('category-color') ? true : undefined"
+							:aria-describedby="describe('category-color')"
+							@blur="touch('category-color')"
 						/>
 					</div>
+					<FieldSupport id="category-color" :error="fieldError('category-color')" class="!px-0" />
 				</fieldset>
 
 				<p v-if="error" class="banner-error" role="alert">
@@ -313,7 +356,9 @@ onMounted(() => ledger.load());
 
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary">{{ editing ? 'Save changes' : 'Add category' }}</button>
+					<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
+						{{ editing ? 'Save changes' : 'Add category' }}
+					</button>
 				</div>
 			</form>
 		</ModalDialog>

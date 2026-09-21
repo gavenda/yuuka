@@ -8,6 +8,7 @@ import dev.gavenda.yuuka.data.local.toEntity
 import dev.gavenda.yuuka.sync.Outbox
 import dev.gavenda.yuuka.data.model.*
 import dev.gavenda.yuuka.data.remote.YuukaApi
+import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.data.remote.apiCall
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -161,14 +162,18 @@ class LedgerRepository(
     }
 
     /**
-     * A type still in use cannot be deleted, and only the API knows for certain
-     * how many accounts hold it — so this one is sent rather than queued, and
-     * the caller still gets the 409 that points at archiving instead.
+     * A type still in use cannot be deleted. Every account, archived ones
+     * included, is held here, so the question is answered from Room and a type
+     * in use gets the 409 that points at archiving without a round trip; the
+     * delete itself is queued.
      */
     suspend fun deleteAccountType(id: String) {
-        apiCall { api.deleteAccountType(id) }
+        val inUse = accountDao.countByType(id)
+        if (inUse > 0) {
+            throw ApiError(409, "$inUse account(s) still use this type. Move them to another type first, or archive this one to hide it.")
+        }
         accountTypeDao.deleteById(id)
-        refreshAccounts()
+        outbox.enqueue("DELETE", "/api/account-types/$id", entity = "accountType", rowId = id)
     }
 
     suspend fun createAccount(
@@ -255,18 +260,27 @@ class LedgerRepository(
 
     /** Throws [dev.gavenda.yuuka.data.remote.ApiError] with status 409 when the account still has transactions and [includeTransactions] is false. */
     suspend fun deleteAccount(id: String, includeTransactions: Boolean = false) {
-        // The 409 is a question about data this device already holds, so it is
-        // asked online; only the confirmed delete that follows is queued.
+        // Whether the account has history is answered from what is cached: a
+        // transaction held here, or a balance that has moved off its starting
+        // one. An account the cache cannot vouch for is queued as it is, and if
+        // the API knows of transactions after all it refuses, late, and the
+        // refresh puts the account back.
         if (!includeTransactions) {
-            apiCall { api.deleteAccount(id, false) }
-            accountDao.deleteById(id)
-            refreshAccounts()
-            return
+            val account = accountDao.byId(id)
+            val cached = transactionDao.countByAccountId(id)
+            if (cached > 0 || (account != null && account.balance != account.startingBalance)) {
+                throw ApiError(409, "Account still has ${if (cached > 0) "$cached transaction(s)" else "transactions"}. Archive it instead, or delete them too.")
+            }
         }
 
         accountDao.deleteById(id)
         transactionDao.deleteByAccountId(id)
-        outbox.enqueue("DELETE", "/api/accounts/$id?includeTransactions=true", entity = "account", rowId = id)
+        outbox.enqueue(
+            "DELETE",
+            if (includeTransactions) "/api/accounts/$id?includeTransactions=true" else "/api/accounts/$id",
+            entity = "account",
+            rowId = id,
+        )
     }
 
     suspend fun createCategory(name: String, kind: CategoryKind, color: String, parentId: String?) {

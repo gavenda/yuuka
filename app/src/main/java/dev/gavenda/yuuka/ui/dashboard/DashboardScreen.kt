@@ -88,7 +88,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleLarge)
                         val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
@@ -117,7 +117,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleLarge)
                         val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import SelectField from '@/components/SelectField.vue';
+import PreferenceSelect from '@/components/PreferenceSelect.vue';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
 import SettingRow from '@/components/SettingRow.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { ApiError } from '@/lib/api';
+import { supportId, useFormValidation } from '@/lib/validation';
 import { SAVE } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
@@ -19,6 +21,7 @@ const roundUpEnabledDraft = ref(ledger.roundUpRule?.enabled ?? false);
 const roundToDraft = ref<1000 | 10000>(ledger.roundUpRule?.roundTo ?? 1000);
 const roundUpDestinationDraft = ref(ledger.roundUpRule?.destinationAccountId ?? '');
 const roundUpCategoryDraft = ref(ledger.roundUpRule?.categoryId ?? '');
+/** A failure that belongs to no one field — the save itself went wrong. */
 const error = ref<string | null>(null);
 const saving = ref(false);
 
@@ -33,7 +36,15 @@ const destinationChanged = computed(() => (roundUpDestinationDraft.value || null
 const categoryChanged = computed(() => (roundUpCategoryDraft.value || null) !== (ledger.roundUpRule?.categoryId ?? null));
 const changed = computed(() => enabledChanged.value || roundToChanged.value || destinationChanged.value || categoryChanged.value);
 // A destination is required once the rule is on — nothing sensible to save without one.
-const isValid = computed(() => !roundUpEnabledDraft.value || Boolean(roundUpDestinationDraft.value));
+const validation = useFormValidation({
+	'round-up-destination': () =>
+		!roundUpEnabledDraft.value || ledger.activeAccounts.some((account) => account.id === roundUpDestinationDraft.value)
+			? null
+			: 'Choose a destination account to enable Save the Change.',
+});
+const { error: fieldError, touch } = validation;
+// Turning the rule on without a destination is the mistake, so it is said the moment the switch is thrown.
+watch(roundUpEnabledDraft, (enabled) => enabled && touch('round-up-destination'));
 
 // The screen shows what is actually saved, so it follows the rule: on arrival, once it has loaded, and after a save.
 watch(
@@ -50,7 +61,8 @@ watch(
 onMounted(() => ledger.load());
 
 async function save(): Promise<void> {
-	if (saving.value || !isValid.value || !changed.value) return;
+	if (saving.value || !changed.value) return;
+	if (!validation.isValid.value) return;
 
 	saving.value = true;
 	error.value = null;
@@ -73,7 +85,7 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="space-y-5" @submit.prevent="save">
+	<form class="space-y-5" novalidate @submit.prevent="save" @input="validation.onInput">
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Round-ups</h2>
 			<div class="divide-y divide-outline-variant px-5">
@@ -101,20 +113,27 @@ async function save(): Promise<void> {
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Where it goes</h2>
 			<div class="divide-y divide-outline-variant px-5">
-				<SettingRow title="Destination account" description="Where the rounded-up spare change is deposited." for="round-up-destination">
-					<SelectField id="round-up-destination" v-model="roundUpDestinationDraft" :options="destinationChoices" dense />
-					<p v-if="roundUpEnabledDraft && !roundUpDestinationDraft" class="mt-2 text-xs text-warning" role="alert">
-						Choose a destination account to enable Save the Change.
-					</p>
-				</SettingRow>
+				<div class="py-1">
+					<PreferenceSelect
+						id="round-up-destination"
+						v-model="roundUpDestinationDraft"
+						label="Destination account"
+						:options="destinationChoices"
+						:invalid="Boolean(fieldError('round-up-destination'))"
+						:describedby="fieldError('round-up-destination') ? supportId('round-up-destination') : undefined"
+						@blur="touch('round-up-destination')"
+					/>
+					<FieldSupport id="round-up-destination" :error="fieldError('round-up-destination')" class="!px-0" />
+				</div>
 
-				<SettingRow
-					title="Cashflow category"
-					description="Optional. Lets you budget the round-ups, the same as a plain transfer."
-					for="round-up-category"
-				>
-					<SelectField id="round-up-category" v-model="roundUpCategoryDraft" :options="categoryChoices" dense />
-				</SettingRow>
+				<div class="py-1">
+					<PreferenceSelect
+						id="round-up-category"
+						v-model="roundUpCategoryDraft"
+						label="Cashflow category"
+						:options="categoryChoices"
+					/>
+				</div>
 			</div>
 		</section>
 
@@ -126,6 +145,11 @@ async function save(): Promise<void> {
 			{{ error }}
 		</p>
 
-		<FabButton :label="saving ? 'Saving…' : 'Save'" :icon="SAVE" :disabled="saving || !isValid || !changed" @click="save" />
+		<FabButton
+			:label="saving ? 'Saving…' : 'Save'"
+			:icon="SAVE"
+			:disabled="saving || !changed || !validation.isValid.value"
+			@click="save"
+		/>
 	</form>
 </template>

@@ -7,6 +7,8 @@ import { api, ApiError } from '@/lib/api';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { formatCount } from '@/lib/count';
 import { showSnackbar } from '@/lib/snackbar';
+import { colorProblem, nameProblem, sameName, supportId, useFormValidation } from '@/lib/validation';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Tag } from '@/types';
 import { computed, onMounted, reactive, ref } from 'vue';
@@ -20,6 +22,18 @@ const saving = ref(false);
 const search = ref('');
 
 const form = reactive({ name: '', color: PALETTE[0].light });
+
+const validation = useFormValidation({
+	'tag-name': () =>
+		nameProblem(
+			form.name,
+			(name) => ledger.tags.some((tag) => tag.id !== editing.value?.id && sameName(tag.name, name)),
+			'A tag with that name already exists.',
+		),
+	'tag-color': () => colorProblem(form.color),
+});
+const { error: fieldError, touch } = validation;
+const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
 
 /** A long list is searched rather than scrolled; the box only appears once there is enough to lose something in. */
 const SEARCH_FROM = 8;
@@ -39,6 +53,7 @@ const visible = computed(() => {
 function openCreate(): void {
 	editing.value = null;
 	error.value = null;
+	validation.reset();
 	Object.assign(form, { name: '', color: nextColor(ledger.tags.length) });
 	dialogOpen.value = true;
 }
@@ -46,15 +61,16 @@ function openCreate(): void {
 function openEdit(tag: Tag): void {
 	editing.value = tag;
 	error.value = null;
+	validation.reset();
 	Object.assign(form, { name: tag.name, color: tag.color });
 	dialogOpen.value = true;
 }
 
 async function save(): Promise<void> {
-	const name = form.name.trim();
-	if (!name) return;
-
 	error.value = null;
+	if (!validation.isValid.value) return;
+
+	const name = form.name.trim();
 	saving.value = true;
 
 	try {
@@ -139,10 +155,20 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 		</template>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit tag' : 'New tag'" @close="dialogOpen = false">
-			<form class="space-y-4" @submit.prevent="save">
+			<form class="space-y-4" novalidate @submit.prevent="save" @input="validation.onInput">
 				<div class="field">
 					<label class="label" for="tag-name">Name</label>
-					<input id="tag-name" v-model="form.name" class="input" required maxlength="80" placeholder="Reimbursable" />
+					<input
+						id="tag-name"
+						v-model="form.name"
+						class="input"
+						required
+						placeholder="Reimbursable"
+						:aria-invalid="fieldError('tag-name') ? true : undefined"
+						:aria-describedby="describe('tag-name')"
+						@blur="touch('tag-name')"
+					/>
+					<FieldSupport id="tag-name" :error="fieldError('tag-name')" />
 				</div>
 
 				<fieldset>
@@ -186,13 +212,17 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 							v-if="isCustomColor"
 							v-model="form.color"
 							class="input input-sm w-28 font-mono"
+							id="tag-color"
 							required
-							pattern="^#[0-9a-fA-F]{6}$"
 							maxlength="7"
 							placeholder="#64748b"
 							aria-label="Custom colour hex value"
+							:aria-invalid="fieldError('tag-color') ? true : undefined"
+							:aria-describedby="describe('tag-color')"
+							@blur="touch('tag-color')"
 						/>
 					</div>
+					<FieldSupport id="tag-color" :error="fieldError('tag-color')" class="!px-0" />
 				</fieldset>
 
 				<p v-if="error" class="banner-error" role="alert">
@@ -201,7 +231,7 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="saving || !form.name.trim()">
+					<button type="submit" class="btn-primary" :disabled="saving || !validation.isValid.value">
 						{{ editing ? 'Save changes' : 'Add tag' }}
 					</button>
 				</div>

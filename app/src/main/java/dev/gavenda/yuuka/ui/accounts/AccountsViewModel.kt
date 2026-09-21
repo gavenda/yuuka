@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
-import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.domain.today
-import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
 import dev.gavenda.yuuka.repository.TransactionRepository
 import kotlinx.coroutines.flow.*
@@ -50,7 +48,6 @@ data class AccountsUiState(
 /** Mirrors `AccountsView.vue` and the account-type CRUD in `AccountTypeManager.vue`. */
 class AccountsViewModel(
     private val ledgerRepository: LedgerRepository,
-    private val budgetRepository: BudgetRepository,
     private val transactionRepository: TransactionRepository,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
@@ -78,8 +75,6 @@ class AccountsViewModel(
         showArchived.value = !showArchived.value
     }
 
-    private suspend fun resyncBudget() = runCatching { budgetRepository.refreshSummary(currentMonth()) }
-
     suspend fun createAccount(
         name: String,
         typeId: String,
@@ -90,7 +85,6 @@ class AccountsViewModel(
         roundUpSource: Boolean = false,
     ) {
         ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
-        resyncBudget()
     }
 
     suspend fun updateAccount(
@@ -104,18 +98,15 @@ class AccountsViewModel(
         roundUpSource: Boolean? = null,
     ) {
         ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
-        resyncBudget()
     }
 
     suspend fun setArchived(id: String, archived: Boolean) {
         ledgerRepository.setAccountArchived(id, archived)
-        resyncBudget()
     }
 
     /** May throw [dev.gavenda.yuuka.data.remote.ApiError] with status 409 when the account still has transactions. */
     suspend fun deleteAccount(id: String, includeTransactions: Boolean = false) {
         ledgerRepository.deleteAccount(id, includeTransactions)
-        resyncBudget()
     }
 
     /**
@@ -125,8 +116,6 @@ class AccountsViewModel(
      */
     suspend fun adjustBalance(id: String, balance: Long, payee: String) {
         transactionRepository.adjustAccountBalance(id, balance, today(), payee, notes = "")
-        ledgerRepository.refreshAccounts()
-        resyncBudget()
     }
 
     suspend fun createAccountType(name: String) {

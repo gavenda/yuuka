@@ -46,7 +46,7 @@ class PushRegistrar(
     /** Also called by [YuukaMessagingService] when FCM rotates the token behind us. */
     suspend fun register(token: String) {
         try {
-            apiCall { api.registerDevice(DeviceRegistrationRequest(token = token, deviceId = deviceId.value)) }
+            apiCall { api.registerDevice(DeviceRegistrationRequest(token = token, deviceId = deviceId.value, platform = "android")) }
             registered = token
         } catch (error: Exception) {
             Log.i(TAG, "Could not register for push; will try again on next start.", error)

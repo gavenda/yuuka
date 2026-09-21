@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import SelectField from '@/components/SelectField.vue';
-import { namedOptions } from '@/lib/selectOptions';
+import FilterSheet from '@/components/FilterSheet.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
@@ -28,8 +27,10 @@ const editing = ref<Transaction | null>(null);
 const editingTransferToAccountId = ref<string | null>(null);
 const formRef = ref<InstanceType<typeof TransactionForm> | null>(null);
 const search = ref('');
-const accountFilter = ref('');
-const categoryFilter = ref('');
+const accountFilter = ref<string[]>([]);
+const categoryFilter = ref<string[]>([]);
+const tagFilter = ref<string[]>([]);
+const openFilter = ref<'accounts' | 'categories' | 'tags' | null>(null);
 const month = ref(budget.month);
 
 const currency = computed(() => ledger.displayCurrency);
@@ -50,15 +51,25 @@ const days = computed(() =>
 	})),
 );
 
-const accountFilterChoices = computed(() => namedOptions(ledger.accounts, { value: '', label: 'All accounts' }));
-const categoryFilterChoices = computed(() =>
-	namedOptions(ledger.categories, { value: '', label: 'All categories' }, { value: 'none', label: 'Uncategorized' }),
-);
+const accountOptions = computed(() => ledger.accounts.map((account) => ({ id: account.id, label: account.name })));
+const categoryOptions = computed(() => [
+	{ id: 'none', label: 'Uncategorized' },
+	...ledger.categories.map((category) => ({ id: category.id, label: category.name })),
+]);
+const tagOptions = computed(() => ledger.tags.map((tag) => ({ id: tag.id, label: tag.name })));
+
+/** In the order they were picked; anything no longer in the list is not counted. */
+const accountLabel = computed(() => {
+	const labels = accountFilter.value.flatMap((id) => accountOptions.value.find((option) => option.id === id)?.label ?? []);
+	if (!labels.length) return 'All accounts';
+	return labels.length === 1 ? labels[0] : `${labels[0]} & more`;
+});
 
 const filters = computed(() => ({
 	month: month.value,
-	accountId: accountFilter.value || undefined,
-	categoryId: categoryFilter.value || undefined,
+	accountId: accountFilter.value.join(',') || undefined,
+	categoryId: categoryFilter.value.join(',') || undefined,
+	tagId: tagFilter.value.join(',') || undefined,
 	search: search.value.trim() || undefined,
 }));
 
@@ -137,23 +148,119 @@ async function remove(): Promise<void> {
 			<MonthSwitcher v-model="month" />
 		</header>
 
-		<!-- Filters sit in one row above the list. -->
-		<div class="grid gap-3 sm:grid-cols-3">
-			<div class="field">
-				<label class="label" for="filter-search">Search</label>
-				<input id="filter-search" v-model="search" class="input" type="search" placeholder="Payee, notes or tag" />
-			</div>
+		<!-- One row of filters, each opening a sheet of chips, then the search. The account button is only as wide as its label, a spacer pushes the tag and category icons (with a badge) to the end. -->
+		<div class="flex items-center">
+			<button
+				type="button"
+				class="state-layer focus-ring type-label-large flex min-h-10 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3"
+				:class="accountFilter.length ? 'text-primary' : 'text-on-surface'"
+				aria-haspopup="dialog"
+				@click="openFilter = 'accounts'"
+			>
+				<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="currentColor" aria-hidden="true">
+					<path
+						d="M21 7.28V5c0-1.1-.9-2-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-2.28A2 2 0 0 0 22 15V9a2 2 0 0 0-1-1.72zM20 9v6h-7V9h7zM5 19V5h14v2h-6a2 2 0 0 0-2 2v6c0 1.1.9 2 2 2h6v2H5z"
+					/>
+					<circle cx="16" cy="12" r="1.5" />
+				</svg>
+				<span class="truncate">{{ accountLabel }}</span>
+				<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z" /></svg>
+			</button>
 
-			<div class="field">
-				<label class="label" for="filter-account">Account</label>
-				<SelectField id="filter-account" v-model="accountFilter" :options="accountFilterChoices" />
-			</div>
+			<div class="flex-1" aria-hidden="true" />
 
-			<div class="field">
-				<label class="label" for="filter-category">Category</label>
-				<SelectField id="filter-category" v-model="categoryFilter" :options="categoryFilterChoices" />
-			</div>
+			<button
+				type="button"
+				class="btn-icon relative"
+				:class="{ '!text-primary': tagFilter.length }"
+				aria-label="Filter by tag"
+				aria-haspopup="dialog"
+				@click="openFilter = 'tags'"
+			>
+				<svg
+					viewBox="0 0 24 24"
+					class="size-6"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+					<circle cx="7.5" cy="7.5" r="1" fill="currentColor" />
+				</svg>
+				<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
+			</button>
+
+			<button
+				type="button"
+				class="btn-icon relative"
+				:class="{ '!text-primary': categoryFilter.length }"
+				aria-label="Filter by category"
+				aria-haspopup="dialog"
+				@click="openFilter = 'categories'"
+			>
+				<svg
+					viewBox="0 0 24 24"
+					class="size-6"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					aria-hidden="true"
+				>
+					<path d="M4 6h16M7 12h10M10 18h4" />
+				</svg>
+				<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
+			</button>
 		</div>
+
+		<div class="relative">
+			<svg
+				viewBox="0 0 24 24"
+				class="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-on-surface-variant"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				aria-hidden="true"
+			>
+				<circle cx="11" cy="11" r="7" />
+				<path d="M20 20l-3.5-3.5" />
+			</svg>
+			<input
+				v-model="search"
+				class="input rounded-full border-transparent bg-card pl-12"
+				type="search"
+				aria-label="Search"
+				placeholder="Search payee, notes or tag"
+			/>
+		</div>
+
+		<FilterSheet
+			v-model="accountFilter"
+			:open="openFilter === 'accounts'"
+			title="Filter by account"
+			:options="accountOptions"
+			empty-text="No accounts yet"
+			@close="openFilter = null"
+		/>
+		<FilterSheet
+			v-model="categoryFilter"
+			:open="openFilter === 'categories'"
+			title="Filter by category"
+			:options="categoryOptions"
+			empty-text="No categories yet"
+			@close="openFilter = null"
+		/>
+		<FilterSheet
+			v-model="tagFilter"
+			:open="openFilter === 'tags'"
+			title="Filter by tag"
+			:options="tagOptions"
+			empty-text="No tags yet"
+			@close="openFilter = null"
+		/>
 
 		<p v-if="store.error" class="banner-error" role="alert">
 			{{ store.error }}

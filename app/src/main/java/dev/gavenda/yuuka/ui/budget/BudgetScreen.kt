@@ -58,7 +58,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             stringResource(R.string.planned_income_label).uppercase(),
@@ -275,6 +275,8 @@ private fun BudgetRow(
     var editing by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(if (entry.plannedPercent != null) "percent" else "amount") }
     var draft by remember { mutableStateOf("") }
+    // A fresh form each time the row is opened, so an earlier attempt's errors do not greet the next one.
+    val form = remember(editing) { FormValidation() }
     val amountPlaceholder = stringResource(R.string.placeholder_amount_decimal)
     val percentPlaceholder = stringResource(R.string.placeholder_percent_zero)
 
@@ -285,7 +287,7 @@ private fun BudgetRow(
         if (saving) saveStarted = true else if (saveStarted) { editing = false; saveStarted = false }
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(entry.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -306,7 +308,16 @@ private fun BudgetRow(
                         label = { it.second },
                         enabled = !saving,
                     )
-                    val percentInvalid = mode == "percent" && draft.isNotBlank() && parsePercent(draft) == null
+                    // Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative.
+                    val plannedAmount = if (mode == "amount") parseMoney(draft) else null
+                    val plannedProblem = when {
+                        draft.isBlank() -> null
+                        mode == "percent" -> if (parsePercent(draft) == null) stringResource(R.string.percent_range_hint) else null
+                        plannedAmount == null -> stringResource(R.string.error_budget_number)
+                        plannedAmount < 0 -> stringResource(R.string.error_budget_negative)
+                        else -> null
+                    }
+                    val plannedField = form.field("planned", plannedProblem)
                     DenseOutlinedTextField(
                         value = draft,
                         onValueChange = { draft = it },
@@ -317,8 +328,7 @@ private fun BudgetRow(
                         prefix = if (mode == "amount") currencySymbol(currency) else "",
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         enabled = !saving,
-                        isError = percentInvalid,
-                        supportingText = if (percentInvalid) stringResource(R.string.percent_range_hint) else null,
+                        field = plannedField,
                     )
                     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         androidx.compose.material3.OutlinedButton(
@@ -329,7 +339,7 @@ private fun BudgetRow(
                             Text(stringResource(R.string.action_cancel))
                         }
                         androidx.compose.material3.Button(
-                            enabled = !saving && !percentInvalid,
+                            enabled = !saving && form.valid(plannedField),
                             modifier = Modifier.weight(1f),
                             onClick = {
                                 if (draft.isBlank()) {
@@ -337,7 +347,7 @@ private fun BudgetRow(
                                 } else if (mode == "percent") {
                                     parsePercent(draft)?.let { onSetPercent(entry.categoryId, it) }
                                 } else {
-                                    parseMoney(draft)?.takeIf { it >= 0 }?.let { onSetAmount(entry.categoryId, it) }
+                                    plannedAmount?.let { onSetAmount(entry.categoryId, it) }
                                 }
                             },
                         ) {

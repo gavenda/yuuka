@@ -249,7 +249,7 @@ private fun SubscriptionRow(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, subscription.payee), onDelete, danger = true)
         },
     ) {
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -309,7 +309,6 @@ private fun SubscriptionForm(
     var categoryId by remember(editing) { mutableStateOf(editing?.categoryId ?: "") }
     var startOn by remember(editing) { mutableStateOf(initialStart) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
-    var localError by remember(editing) { mutableStateOf<String?>(null) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
 
     val categoryGroups = remember(direction, categories) {
@@ -317,9 +316,28 @@ private fun SubscriptionForm(
     }
     val selectable = remember(categoryGroups) { categoryGroups.flatMap { listOf(it.parent) + it.children } }
 
-    val amountError = stringResource(R.string.error_amount_greater_than_zero)
-    val payeeError = stringResource(R.string.error_payee_required)
-    val accountError = stringResource(R.string.error_choose_account)
+    // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
+    val form = rememberFormValidation()
+    val amountMinor = parseMoney(amount)
+    val payeeField = form.field(
+        "payee",
+        when {
+            payee.isBlank() -> stringResource(R.string.error_payee_required)
+            payee.trim().length > PAYEE_MAX -> stringResource(R.string.error_too_long, PAYEE_MAX)
+            else -> null
+        },
+    )
+    val amountField = form.field(
+        "amount",
+        when {
+            amount.isBlank() -> stringResource(R.string.error_amount_required)
+            amountMinor == null -> stringResource(R.string.error_amount_number)
+            amountMinor <= 0 -> stringResource(R.string.error_amount_greater_than_zero)
+            else -> null
+        },
+    )
+    val accountField = form.field("account", if (accounts.none { it.id == accountId }) stringResource(R.string.error_choose_account) else null)
+    val notesField = form.field("notes", if (notes.trim().length > NOTES_MAX) stringResource(R.string.error_too_long, NOTES_MAX) else null)
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -343,6 +361,7 @@ private fun SubscriptionForm(
             label = stringResource(R.string.label_payee),
             placeholder = stringResource(R.string.placeholder_subscription_payee),
             payees = payees,
+            field = payeeField,
             onSelect = { entry ->
                 // A transfer's history is not a subscription's to reuse.
                 if (entry.kind == PayeeKind.transfer) {
@@ -362,53 +381,30 @@ private fun SubscriptionForm(
             },
         )
 
-        OutlinedTextField(
+        YuukaTextField(
             value = amount,
             onValueChange = { amount = it },
-            label = { Text(stringResource(R.string.label_amount)) },
-            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
+            label = stringResource(R.string.label_amount),
+            placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            field = amountField,
         )
 
-        var accountMenuOpen by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = accountMenuOpen, onExpandedChange = { accountMenuOpen = it }) {
-            OutlinedTextField(
-                value = accounts.firstOrNull { it.id == accountId }?.name ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.label_account)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountMenuOpen) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(expanded = accountMenuOpen, onDismissRequest = { accountMenuOpen = false }) {
-                accounts.forEach { account ->
-                    DropdownMenuItem(text = { Text(account.name) }, onClick = { accountId = account.id; accountMenuOpen = false })
-                }
-            }
-        }
+        DropdownField(
+            label = stringResource(R.string.label_account),
+            value = accounts.firstOrNull { it.id == accountId }?.name ?: "",
+            options = accounts.map { SelectOption(it.id, it.name) },
+            onSelect = { accountId = it },
+            field = accountField,
+        )
 
-        var categoryMenuOpen by remember { mutableStateOf(false) }
         val uncategorizedLabel = stringResource(R.string.category_uncategorized)
-        ExposedDropdownMenuBox(expanded = categoryMenuOpen, onExpandedChange = { categoryMenuOpen = it }) {
-            OutlinedTextField(
-                value = selectable.firstOrNull { it.id == categoryId }?.name ?: uncategorizedLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.label_category)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenuOpen) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(expanded = categoryMenuOpen, onDismissRequest = { categoryMenuOpen = false }) {
-                DropdownMenuItem(text = { Text(uncategorizedLabel) }, onClick = { categoryId = ""; categoryMenuOpen = false })
-                categoryGroups.forEach { group ->
-                    DropdownMenuItem(text = { Text(group.parent.name) }, onClick = { categoryId = group.parent.id; categoryMenuOpen = false })
-                    group.children.forEach { child ->
-                        DropdownMenuItem(text = { Text("    ${child.name}") }, onClick = { categoryId = child.id; categoryMenuOpen = false })
-                    }
-                }
-            }
-        }
+        DropdownField(
+            label = stringResource(R.string.label_category),
+            value = selectable.firstOrNull { it.id == categoryId }?.name ?: uncategorizedLabel,
+            options = categoryOptions(categoryGroups, uncategorizedLabel).map { SelectOption(it.value ?: "", it.label, it.indent) },
+            onSelect = { categoryId = it },
+        )
 
         PickerField(
             value = startOn.format(DateTimeFormatter.ISO_LOCAL_DATE),
@@ -431,36 +427,21 @@ private fun SubscriptionForm(
             )
         }
 
-        OutlinedTextField(
+        YuukaTextField(
             value = notes,
             onValueChange = { notes = it },
-            label = { Text(stringResource(R.string.label_notes)) },
-            placeholder = { Text(stringResource(R.string.placeholder_optional)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_notes),
+            placeholder = stringResource(R.string.placeholder_optional),
+            field = notesField,
         )
-
-        localError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = !submitting,
+                enabled = !submitting && form.valid(payeeField, amountField, accountField, notesField),
                 onClick = {
-                    val minor = parseMoney(amount)
-                    if (payee.isBlank()) {
-                        localError = payeeError
-                        return@Button
-                    }
-                    if (minor == null || minor <= 0) {
-                        localError = amountError
-                        return@Button
-                    }
-                    if (accountId.isBlank()) {
-                        localError = accountError
-                        return@Button
-                    }
-                    localError = null
+                    val minor = amountMinor ?: return@Button
 
                     onSubmit(
                         SubscriptionSubmission(

@@ -8,7 +8,9 @@ import FabButton from '@/components/FabButton.vue';
 import ModalDialog from '@/components/ModalDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import PayeeInput from '@/components/PayeeInput.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { api, ApiError } from '@/lib/api';
+import { supportId, useFormValidation } from '@/lib/validation';
 import { showSnackbar } from '@/lib/snackbar';
 import { formatLongDate } from '@/lib/dates';
 import { parseMoney, toDecimalString } from '@/lib/money';
@@ -30,8 +32,8 @@ const store = useSubscriptionStore();
 
 const dialogOpen = ref(false);
 const editing = ref<Subscription | null>(null);
+/** A failure that belongs to no one field — the save itself went wrong. Each field's own problem is drawn beside it. */
 const error = ref<string | null>(null);
-const submitting = ref(false);
 
 const form = reactive({
 	direction: 'expense' as Direction,
@@ -48,6 +50,26 @@ let initialStartOn = '';
 
 /** The API measures "not in the past" against the UTC calendar, so the picker does too. */
 const earliest = utcToday();
+
+const validation = useFormValidation({
+	payee: () => (form.payee.trim() ? (form.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null) : 'Enter who gets paid.'),
+	'subscription-amount': () => {
+		if (!form.amount.trim()) return 'Enter an amount.';
+		const minor = parseMoney(form.amount);
+		if (minor === null) return 'Enter an amount as a number, such as 12.99.';
+		return minor > 0 ? null : 'Enter an amount greater than zero.';
+	},
+	'subscription-account': () => (ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : 'Choose an account.'),
+	// A date left as it was is fine even when it has since slipped into the past; choosing a new one is not.
+	'subscription-notes': () => (form.notes.trim().length > 500 ? 'Use 500 characters or fewer.' : null),
+	'subscription-start': () => {
+		if (!form.startOn) return 'Enter a date.';
+		const unchanged = editing.value !== null && form.startOn === initialStartOn;
+		return form.startOn < earliest && !unchanged ? 'The start date cannot be in the past.' : null;
+	},
+});
+const { error: fieldError, touch } = validation;
+const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
 
 const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
@@ -73,6 +95,7 @@ onMounted(async () => {
 function openCreate(): void {
 	editing.value = null;
 	error.value = null;
+	validation.reset();
 
 	const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
 	// Tomorrow, not today: today's run has already happened by the time anyone is here to set one up.
@@ -93,6 +116,7 @@ function openCreate(): void {
 function openEdit(subscription: Subscription): void {
 	editing.value = subscription;
 	error.value = null;
+	validation.reset();
 	initialStartOn = subscription.nextRunOn;
 
 	Object.assign(form, {
@@ -126,25 +150,19 @@ async function applyPayee(entry: Payee): Promise<void> {
 
 async function submit(): Promise<void> {
 	error.value = null;
-
-	const minor = parseMoney(form.amount);
-	if (minor === null || minor <= 0) {
-		error.value = 'Enter an amount greater than zero.';
-		return;
-	}
+	if (!validation.isValid.value) return;
+	const minor = parseMoney(form.amount) as number;
 
 	const payload: Record<string, unknown> = {
 		accountId: form.accountId,
 		categoryId: form.categoryId || null,
 		amount: form.direction === 'expense' ? -minor : minor,
-		payee: form.payee,
+		payee: form.payee.trim(),
 		notes: form.notes,
 	};
 
 	// Editing the date restarts the schedule from it; leaving it alone keeps the schedule as it is.
 	if (!editing.value || form.startOn !== initialStartOn) payload.startOn = form.startOn;
-
-	submitting.value = true;
 
 	try {
 		if (editing.value) await api.updateSubscription(editing.value.id, payload);
@@ -155,8 +173,6 @@ async function submit(): Promise<void> {
 		await store.refresh();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the subscription.';
-	} finally {
-		submitting.value = false;
 	}
 }
 
@@ -260,7 +276,7 @@ async function remove(subscription: Subscription): Promise<void> {
 		</ul>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit subscription' : 'New subscription'" @close="dialogOpen = false">
-			<form class="space-y-4" @submit.prevent="submit">
+			<form class="space-y-4" novalidate @submit.prevent="submit" @input="validation.onInput">
 				<ConnectedButtonGroup
 					:model-value="form.direction"
 					label="Kind of subscription"
@@ -268,17 +284,48 @@ async function remove(subscription: Subscription): Promise<void> {
 					@update:model-value="setDirection"
 				/>
 
-				<PayeeInput v-model="form.payee" label="Payee" placeholder="Who gets paid, e.g. Netflix" @select="applyPayee" />
+				<div>
+					<PayeeInput
+						v-model="form.payee"
+						label="Payee"
+						placeholder="Who gets paid, e.g. Netflix"
+						:invalid="Boolean(fieldError('payee'))"
+						:describedby="describe('payee')"
+						@select="applyPayee"
+						@blur="touch('payee')"
+					/>
+					<FieldSupport id="payee" :error="fieldError('payee')" />
+				</div>
 
 				<div class="field">
 					<label class="label" for="subscription-amount">Amount</label>
-					<input id="subscription-amount" v-model="form.amount" class="input tabular" inputmode="decimal" placeholder="0.00" required />
+					<input
+						id="subscription-amount"
+						v-model="form.amount"
+						class="input tabular"
+						inputmode="decimal"
+						placeholder="0.00"
+						required
+						:aria-invalid="fieldError('subscription-amount') ? true : undefined"
+						:aria-describedby="describe('subscription-amount')"
+						@blur="touch('subscription-amount')"
+					/>
+					<FieldSupport id="subscription-amount" :error="fieldError('subscription-amount')" />
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="field">
 						<label class="label" for="subscription-account">Account</label>
-						<SelectField id="subscription-account" v-model="form.accountId" :options="accountChoices" required />
+						<SelectField
+							id="subscription-account"
+							v-model="form.accountId"
+							:options="accountChoices"
+							required
+							:invalid="Boolean(fieldError('subscription-account'))"
+							:describedby="describe('subscription-account')"
+							@blur="touch('subscription-account')"
+						/>
+						<FieldSupport id="subscription-account" :error="fieldError('subscription-account')" />
 					</div>
 
 					<div class="field">
@@ -296,16 +343,32 @@ async function remove(subscription: Subscription): Promise<void> {
 						class="input"
 						:min="editing && editing.nextRunOn < earliest ? undefined : earliest"
 						required
+						:aria-invalid="fieldError('subscription-start') ? true : undefined"
+						:aria-describedby="supportId('subscription-start')"
+						@blur="touch('subscription-start')"
 					/>
-					<p class="mt-1 text-xs text-on-surface-variant">
-						Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.
-						<template v-if="editing">Changing the date restarts the schedule from it.</template>
-					</p>
+					<FieldSupport
+						id="subscription-start"
+						:error="fieldError('subscription-start')"
+						:hint="
+							'Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.' +
+							(editing ? ' Changing the date restarts the schedule from it.' : '')
+						"
+					/>
 				</div>
 
 				<div class="field">
 					<label class="label" for="subscription-notes">Notes</label>
-					<input id="subscription-notes" v-model="form.notes" class="input" placeholder="Optional" />
+					<input
+						id="subscription-notes"
+						v-model="form.notes"
+						class="input"
+						placeholder="Optional"
+						:aria-invalid="fieldError('subscription-notes') ? true : undefined"
+						:aria-describedby="describe('subscription-notes')"
+						@blur="touch('subscription-notes')"
+					/>
+					<FieldSupport id="subscription-notes" :error="fieldError('subscription-notes')" />
 				</div>
 
 				<p v-if="error" class="banner-error" role="alert">
@@ -314,7 +377,7 @@ async function remove(subscription: Subscription): Promise<void> {
 
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="submitting">
+					<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
 						{{ editing ? 'Save changes' : 'Add subscription' }}
 					</button>
 				</div>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import SelectField from '@/components/SelectField.vue';
+import PreferenceSelect from '@/components/PreferenceSelect.vue';
 import { namedOptions } from '@/lib/selectOptions';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FabButton from '@/components/FabButton.vue';
 import SettingRow from '@/components/SettingRow.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { ApiError } from '@/lib/api';
+import { currencyProblem, supportId, useFormValidation } from '@/lib/validation';
 import { SAVE } from '@/lib/icons';
 import { formatMoney } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
@@ -22,11 +24,15 @@ const draft = ref(ledger.displayCurrency);
 const budgetModeDraft = ref(ledger.budgetMode);
 const defaultAccountDraft = ref(ledger.defaultAccountId ?? '');
 const defaultAccountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'First active account' }));
+/** A failure that belongs to no one field — the save itself went wrong. */
 const error = ref<string | null>(null);
 const saving = ref(false);
 
+const validation = useFormValidation({ 'display-currency': () => currencyProblem(draft.value) });
+const { error: fieldError, touch } = validation;
+
 const normalised = computed(() => draft.value.trim().toUpperCase());
-const isValid = computed(() => /^[A-Za-z]{3}$/.test(draft.value.trim()));
+const isValid = computed(() => validation.isValid.value);
 const currencyChanged = computed(() => normalised.value !== ledger.displayCurrency);
 const budgetModeChanged = computed(() => budgetModeDraft.value !== ledger.budgetMode);
 const defaultAccountChanged = computed(() => (defaultAccountDraft.value || null) !== ledger.defaultAccountId);
@@ -47,7 +53,8 @@ watch(
 onMounted(() => ledger.load());
 
 async function save(): Promise<void> {
-	if (saving.value || !isValid.value || !changed.value) return;
+	if (saving.value || !changed.value) return;
+	if (!validation.isValid.value) return;
 
 	saving.value = true;
 	error.value = null;
@@ -71,7 +78,7 @@ async function save(): Promise<void> {
 </script>
 
 <template>
-	<form class="space-y-5" @submit.prevent="save">
+	<form class="space-y-5" novalidate @submit.prevent="save" @input="validation.onInput">
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Currency</h2>
 			<div class="divide-y divide-outline-variant px-5">
@@ -88,11 +95,14 @@ async function save(): Promise<void> {
 						list="currency-suggestions"
 						autocomplete="off"
 						required
+						:aria-invalid="fieldError('display-currency') ? true : undefined"
+						:aria-describedby="fieldError('display-currency') ? supportId('display-currency') : undefined"
+						@blur="touch('display-currency')"
 					/>
 					<datalist id="currency-suggestions">
 						<option v-for="code in SUGGESTIONS" :key="code" :value="code" />
 					</datalist>
-					<p v-if="draft.trim() && !isValid" class="mt-2 text-xs text-warning" role="alert">Use a 3-letter currency code, such as PHP.</p>
+					<FieldSupport id="display-currency" :error="fieldError('display-currency')" class="!px-3" />
 				</SettingRow>
 
 				<SettingRow title="Preview" description="How an amount will read in this currency.">
@@ -127,9 +137,14 @@ async function save(): Promise<void> {
 		<section class="card">
 			<h2 class="type-title-small px-5 pt-4 text-primary">Transactions</h2>
 			<div class="px-5">
-				<SettingRow title="Default account" description="Which account a new transaction opens on." for="default-account">
-					<SelectField id="default-account" v-model="defaultAccountDraft" :options="defaultAccountChoices" dense />
-				</SettingRow>
+				<div class="py-1">
+					<PreferenceSelect
+						id="default-account"
+						v-model="defaultAccountDraft"
+						label="Default account"
+						:options="defaultAccountChoices"
+					/>
+				</div>
 			</div>
 		</section>
 
@@ -137,6 +152,6 @@ async function save(): Promise<void> {
 			{{ error }}
 		</p>
 
-		<FabButton :label="saving ? 'Saving…' : 'Save'" :icon="SAVE" :disabled="saving || !isValid || !changed" @click="save" />
+		<FabButton :label="saving ? 'Saving…' : 'Save'" :icon="SAVE" :disabled="saving || !changed || !isValid" @click="save" />
 	</form>
 </template>

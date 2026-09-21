@@ -312,12 +312,26 @@ export const settingsUpdateSchema = z
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
+/** One id, or several separated by commas, as a filter that matches any of them. */
+const idList = z
+	.string()
+	.transform((value) =>
+		value
+			.split(',')
+			.map((id) => id.trim())
+			.filter(Boolean),
+	)
+	.pipe(z.array(z.string().min(1)).min(1).max(50));
+
 export const transactionQuerySchema = z.object({
 	month: monthString.optional(),
 	from: dateString.optional(),
 	to: dateString.optional(),
-	accountId: z.string().min(1).optional(),
-	categoryId: z.string().min(1).optional(),
+	accountId: idList.optional(),
+	/** `none` stands for uncategorised, alongside real ids. */
+	categoryId: idList.optional(),
+	/** A transaction wearing any of these tags. */
+	tagId: idList.optional(),
 	search: z.string().trim().max(120).optional(),
 	limit: z.coerce.number().int().min(1).max(200).default(50),
 	offset: z.coerce.number().int().min(0).default(0),

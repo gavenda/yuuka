@@ -185,6 +185,19 @@ describe('tags on a transaction', () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0].tags[0].name).toBe('Holiday');
 	});
+
+	it('can be filtered on, matching a transaction that wears any of them', async () => {
+		const trip = await makeTag(call, 'Holiday');
+		const work = await makeTag(call, 'Work');
+		const unused = await makeTag(call, 'Unused');
+		await post({ accountId, amount: -1000, occurredOn: '2026-09-03', payee: 'Ferry', tagIds: [trip] });
+		await post({ accountId, amount: -2000, occurredOn: '2026-09-04', payee: 'Pens', tagIds: [work] });
+		await post({ accountId, amount: -3000, occurredOn: '2026-09-05', payee: 'Bakery' });
+
+		expect(await listing(`?tagId=${trip}`)).toHaveLength(1);
+		expect(await listing(`?tagId=${trip},${work}`)).toHaveLength(2);
+		expect(await listing(`?tagId=${unused}`)).toHaveLength(0);
+	});
 });
 
 describe('transaction count', () => {

@@ -46,9 +46,15 @@ data class SyncResultDto(
 @Serializable
 data class SyncBatchResponse(val results: List<SyncResultDto>)
 
+/**
+ * The server requires `platform`, so it cannot carry a Kotlin default: the
+ * shared [apiJson] leaves defaults off the wire — deliberately, since an
+ * omitted field means "leave this alone" everywhere else in the API — and a
+ * registration without it is refused as a malformed body.
+ */
 @Serializable
 data class DeviceRegistrationRequest(
     val token: String,
     val deviceId: String,
-    val platform: String = "android",
+    val platform: String,
 )

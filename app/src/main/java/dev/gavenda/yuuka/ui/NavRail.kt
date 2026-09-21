@@ -330,7 +330,13 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
                 containerColor = if (shown.enabled) {
                     FloatingActionButtonDefaults.containerColor
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    // Opaque and tinted like the rest of the surfaces: a translucent container lets the button's own shadow show through it.
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                },
+                elevation = if (shown.enabled) {
+                    FloatingActionButtonDefaults.elevation()
+                } else {
+                    FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
                 },
                 contentColor = if (shown.enabled) {
                     contentColorFor(FloatingActionButtonDefaults.containerColor)

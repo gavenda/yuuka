@@ -22,9 +22,13 @@ const props = defineProps<{
 	dense?: boolean;
 	required?: boolean;
 	disabled?: boolean;
+	/** The choice is not acceptable: the field takes the error outline. What is wrong is said beneath it, in a `FieldSupport`. */
+	invalid?: boolean;
+	/** The id of that supporting text. */
+	describedby?: string;
 }>();
 
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+const emit = defineEmits<{ 'update:modelValue': [value: string]; blur: [] }>();
 
 const open = ref(false);
 const active = ref(-1);
@@ -111,6 +115,8 @@ function choose(index: number): void {
 	emit('update:modelValue', option.value);
 	close();
 	trigger.value?.focus();
+	// A choice counts as visiting the field; focus never left it, so there is no blur to say so.
+	emit('blur');
 }
 
 /** Moves the highlight to the next choosable option in a direction, without wrapping, as a native list does not. */
@@ -238,12 +244,17 @@ onBeforeUnmount(() => {
 			:aria-controls="listboxId"
 			:aria-activedescendant="open && active >= 0 ? optionId(active) : undefined"
 			:aria-required="required"
+			:aria-invalid="invalid || undefined"
+			:aria-describedby="describedby"
 			:disabled="disabled"
 			class="input flex cursor-pointer items-center gap-2 text-left"
-			:class="[dense ? 'input-sm' : '', open ? 'border-primary ring-1 ring-primary' : '']"
+			:class="[dense ? 'input-sm' : '', open && !invalid ? 'border-primary ring-1 ring-primary' : '']"
 			@click="open ? close() : show()"
 			@keydown="onKeydown"
-			@blur="close"
+			@blur="
+				close();
+				emit('blur');
+			"
 		>
 			<span class="min-w-0 flex-1 truncate" :class="isPlaceholder ? 'text-on-surface-variant/70' : ''">
 				{{ selected?.label?.trim() || ' ' }}

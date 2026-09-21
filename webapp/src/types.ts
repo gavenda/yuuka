@@ -215,8 +215,12 @@ export interface TransactionFilters {
 	month?: string;
 	from?: string;
 	to?: string;
+	/** One id, or several separated by commas: a transaction on any of them matches. */
 	accountId?: string;
+	/** The same, with `none` for uncategorised. */
 	categoryId?: string;
+	/** The same: a transaction wearing any of these tags. */
+	tagId?: string;
 	search?: string;
 	limit?: number;
 	offset?: number;

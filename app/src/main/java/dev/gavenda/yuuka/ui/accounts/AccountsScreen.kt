@@ -25,7 +25,11 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.data.remote.ApiError
+import dev.gavenda.yuuka.domain.LOGO_URL_MAX
+import dev.gavenda.yuuka.domain.PAYEE_MAX
 import dev.gavenda.yuuka.domain.formatMoney
+import dev.gavenda.yuuka.domain.isCurrencyCode
+import dev.gavenda.yuuka.domain.isHttpUrl
 import dev.gavenda.yuuka.domain.parseMoney
 import dev.gavenda.yuuka.domain.toDecimalString
 import dev.gavenda.yuuka.ui.common.*
@@ -285,7 +289,7 @@ private fun AccountCard(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, account.name), onDelete, danger = true)
         },
     ) {
-        Card(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+        Card(colors = yuukaCardColors(), onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name, style = MaterialTheme.typography.bodyLarge)
@@ -314,42 +318,59 @@ private fun AccountFormContent(
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
     var roundUpSource by remember { mutableStateOf(account?.roundUpSource ?: false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var typeMenuOpen by remember { mutableStateOf(false) }
-
-    val startingBalanceErrorMessage = stringResource(R.string.error_starting_balance_number)
-    val nameTypeRequiredErrorMessage = stringResource(R.string.error_name_type_required)
+    // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
+    val form = rememberFormValidation()
+    val startingBalanceMinor = parseMoney(startingBalance)
+    val nameField = form.field("name", nameProblem(name))
+    val typeField = form.field("type", if (accountTypes.none { it.id == typeId }) stringResource(R.string.error_choose_type) else null)
+    val balanceField = form.field("balance", if (startingBalanceMinor == null) stringResource(R.string.error_starting_balance_number) else null)
+    val currencyField = form.field(
+        "currency",
+        when {
+            currency.isBlank() -> stringResource(R.string.error_currency_required)
+            !isCurrencyCode(currency) -> stringResource(R.string.currency_hint_3letter)
+            else -> null
+        },
+    )
+    val logoField = form.field(
+        "logo",
+        when {
+            logoUrl.isBlank() -> null
+            logoUrl.trim().length > LOGO_URL_MAX -> stringResource(R.string.error_too_long, LOGO_URL_MAX)
+            !isHttpUrl(logoUrl) -> stringResource(R.string.error_logo_url)
+            else -> null
+        },
+    )
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (account != null) stringResource(R.string.edit_account) else stringResource(R.string.new_account), style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth())
+        YuukaTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.label_name), singleLine = true, field = nameField)
 
-        ExposedDropdownMenuBox(expanded = typeMenuOpen, onExpandedChange = { typeMenuOpen = it }) {
-            OutlinedTextField(
-                value = accountTypes.firstOrNull { it.id == typeId }?.name ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.label_type)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuOpen) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(expanded = typeMenuOpen, onDismissRequest = { typeMenuOpen = false }) {
-                accountTypes.forEach { type ->
-                    DropdownMenuItem(text = { Text(type.name) }, onClick = { typeId = type.id; typeMenuOpen = false })
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = startingBalance,
-            onValueChange = { startingBalance = it },
-            label = { Text(stringResource(R.string.label_starting_balance)) },
-            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
-            modifier = Modifier.fillMaxWidth(),
+        DropdownField(
+            label = stringResource(R.string.label_type),
+            value = accountTypes.firstOrNull { it.id == typeId }?.name ?: "",
+            options = accountTypes.map { SelectOption(it.id, it.name) },
+            onSelect = { typeId = it },
+            field = typeField,
         )
 
-        OutlinedTextField(value = currency, onValueChange = { currency = it.uppercase() }, label = { Text(stringResource(R.string.label_currency)) }, modifier = Modifier.fillMaxWidth())
+        YuukaTextField(
+            value = startingBalance,
+            onValueChange = { startingBalance = it },
+            label = stringResource(R.string.label_starting_balance),
+            placeholder = stringResource(R.string.placeholder_amount_decimal),
+            singleLine = true,
+            field = balanceField,
+        )
+
+        YuukaTextField(
+            value = currency,
+            onValueChange = { currency = it.uppercase() },
+            label = stringResource(R.string.label_currency),
+            singleLine = true,
+            field = currencyField,
+        )
 
         // Whether this account's own purchases round up under Save the Change. The rule itself (how much, and where it goes) lives on that screen.
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -364,7 +385,7 @@ private fun AccountFormContent(
             YuukaSwitch(checked = roundUpSource, onCheckedChange = { roundUpSource = it })
         }
 
-        OutlinedTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = { Text(stringResource(R.string.label_logo_url)) }, modifier = Modifier.fillMaxWidth())
+        YuukaTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = stringResource(R.string.label_logo_url), singleLine = true, field = logoField)
 
         // Always shown, not only once a logo is entered; it has no effect until the account has one.
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -372,24 +393,14 @@ private fun AccountFormContent(
             YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
         }
 
-        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
-
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = !submitting,
+                enabled = !submitting && form.valid(nameField, typeField, balanceField, currencyField, logoField),
                 onClick = {
-                    val balance = parseMoney(startingBalance)
-                    if (balance == null) {
-                        error = startingBalanceErrorMessage
-                        return@Button
-                    }
-                    if (name.isBlank() || typeId.isBlank()) {
-                        error = nameTypeRequiredErrorMessage
-                        return@Button
-                    }
-                    onSave(name, typeId, currency, balance, logoUrl.trim(), invertDark, roundUpSource)
+                    val balance = startingBalanceMinor ?: return@Button
+                    onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark, roundUpSource)
                 },
             ) {
                 if (submitting) {
@@ -406,11 +417,18 @@ private fun AccountFormContent(
 private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: (Long, String) -> Unit, onCancel: () -> Unit) {
     var balance by remember { mutableStateOf(toDecimalString(account.balance)) }
     var payee by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-
-    val balanceErrorMessage = stringResource(R.string.error_balance_number)
-    val unchangedErrorMessage = stringResource(R.string.error_balance_unchanged)
-    val difference = parseMoney(balance)?.let { it - account.balance }
+    val form = rememberFormValidation()
+    val targetMinor = parseMoney(balance)
+    val difference = targetMinor?.let { it - account.balance }
+    val balanceField = form.field(
+        "balance",
+        when {
+            targetMinor == null -> stringResource(R.string.error_balance_number)
+            targetMinor == account.balance -> stringResource(R.string.error_balance_unchanged)
+            else -> null
+        },
+    )
+    val payeeField = form.field("payee", if (payee.trim().length > PAYEE_MAX) stringResource(R.string.error_too_long, PAYEE_MAX) else null)
 
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.adjust_balance), style = MaterialTheme.typography.titleMedium)
@@ -421,12 +439,13 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        OutlinedTextField(
+        YuukaTextField(
             value = balance,
             onValueChange = { balance = it },
-            label = { Text(stringResource(R.string.label_new_balance)) },
-            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_new_balance),
+            placeholder = stringResource(R.string.placeholder_amount_decimal),
+            singleLine = true,
+            field = balanceField,
         )
 
         if (difference != null && difference != 0L) {
@@ -440,30 +459,21 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
             )
         }
 
-        OutlinedTextField(
+        YuukaTextField(
             value = payee,
             onValueChange = { payee = it },
-            label = { Text(stringResource(R.string.label_payee_optional)) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_payee_optional),
+            singleLine = true,
+            field = payeeField,
         )
-
-        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = !submitting,
+                enabled = !submitting && form.valid(balanceField, payeeField),
                 onClick = {
-                    val target = parseMoney(balance)
-                    if (target == null) {
-                        error = balanceErrorMessage
-                        return@Button
-                    }
-                    if (target == account.balance) {
-                        error = unchangedErrorMessage
-                        return@Button
-                    }
+                    val target = targetMinor ?: return@Button
                     onSave(target, payee.trim())
                 },
             ) {
@@ -489,6 +499,15 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
     val addKey = "type-add"
     val adding = busy.isBusy(addKey)
 
+    // Types are unique by name, so a name is checked against the others (a rename may keep its own).
+    val addForm = rememberFormValidation()
+    val addField = addForm.field("name", nameProblem(newName, R.string.error_name_taken_account_type) { name -> types.any { it.name == name } })
+    val renameForm = remember(editingId) { FormValidation() }
+    val renameField = renameForm.field(
+        "name",
+        nameProblem(draftName, R.string.error_name_taken_account_type) { name -> types.any { it.id != editingId && it.name == name } },
+    )
+
     val typeAddedMessage = stringResource(R.string.type_added)
     val typeRenamedMessage = stringResource(R.string.type_renamed)
     val typeRestoredMessage = stringResource(R.string.type_restored)
@@ -503,15 +522,17 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        // Top-aligned: a field in error grows a line beneath itself, and the button stays beside the field, not the line.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.Top) {
             DenseOutlinedTextField(
                 value = newName,
                 onValueChange = { newName = it },
                 placeholder = stringResource(R.string.placeholder_add_a_type),
+                field = addField,
                 modifier = Modifier.weight(1f),
             )
             Button(
-                enabled = newName.isNotBlank() && !adding,
+                enabled = !adding && addForm.valid(addField),
                 onClick = {
                     val name = newName.trim()
                     busy.run(addKey, snackbarHostState, successMessage = typeAddedMessage, onSuccess = { newName = "" }) {
@@ -532,10 +553,10 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
             if (editingId == type.id) {
                 val renameKey = "type-rename:${type.id}"
                 val renaming = busy.isBusy(renameKey)
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    DenseOutlinedTextField(value = draftName, onValueChange = { draftName = it }, modifier = Modifier.weight(1f), enabled = !renaming)
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.Top) {
+                    DenseOutlinedTextField(value = draftName, onValueChange = { draftName = it }, field = renameField, modifier = Modifier.weight(1f), enabled = !renaming)
                     TextButton(
-                        enabled = !renaming,
+                        enabled = !renaming && renameForm.valid(renameField),
                         onClick = {
                             val name = draftName.trim()
                             busy.run(renameKey, snackbarHostState, successMessage = typeRenamedMessage, onSuccess = { editingId = null }) {

@@ -22,9 +22,15 @@ import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
+import dev.gavenda.yuuka.ui.common.DropdownField
+import dev.gavenda.yuuka.ui.common.FieldError
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
 import dev.gavenda.yuuka.ui.common.PickerField
+import dev.gavenda.yuuka.ui.common.SelectOption
+import dev.gavenda.yuuka.ui.common.YuukaTextField
+import dev.gavenda.yuuka.ui.common.categoryOptions
+import dev.gavenda.yuuka.ui.common.rememberFormValidation
 import dev.gavenda.yuuka.ui.common.YuukaDatePickerDialog
 import dev.gavenda.yuuka.ui.common.YuukaTimePickerDialog
 import java.time.LocalDate
@@ -100,7 +106,6 @@ fun TransactionForm(
     onCancel: () -> Unit,
 ) {
     var fields by remember(editing) { mutableStateOf(seedFrom(editing, transferToAccountId, defaultAccountId, accounts)) }
-    var localError by remember(editing) { mutableStateOf<String?>(null) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val isEditing = editing != null
@@ -116,6 +121,41 @@ fun TransactionForm(
             },
         )
     }
+
+    // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
+    val form = rememberFormValidation()
+    val amountMinor = parseMoney(fields.amount)
+    val payeeField = form.field(
+        "payee",
+        if (fields.payee.trim().length > PAYEE_MAX) stringResource(R.string.error_too_long, PAYEE_MAX) else null,
+    )
+    val amountField = form.field(
+        "amount",
+        when {
+            fields.amount.isBlank() -> stringResource(R.string.error_amount_required)
+            amountMinor == null -> stringResource(R.string.error_amount_number)
+            amountMinor <= 0 -> stringResource(R.string.error_amount_greater_than_zero)
+            else -> null
+        },
+    )
+    val accountField = form.field("account", if (accounts.none { it.id == fields.accountId }) stringResource(R.string.error_choose_account) else null)
+    val toAccountField = form.field(
+        "to-account",
+        when {
+            fields.mode != FormMode.TRANSFER -> null
+            accounts.none { it.id == fields.toAccountId } -> stringResource(R.string.error_choose_to_account)
+            fields.toAccountId == fields.accountId -> stringResource(R.string.error_choose_different_accounts)
+            else -> null
+        },
+    )
+    val notesField = form.field(
+        "notes",
+        if (fields.notes.trim().length > NOTES_MAX) stringResource(R.string.error_too_long, NOTES_MAX) else null,
+    )
+    val tagsField = form.field(
+        "tags",
+        if (fields.tagIds.size > MAX_TAGS_PER_TRANSACTION) stringResource(R.string.error_too_many_tags, MAX_TAGS_PER_TRANSACTION) else null,
+    )
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (!isEditing) {
@@ -133,87 +173,58 @@ fun TransactionForm(
             label = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_name) else stringResource(R.string.label_payee),
             placeholder = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.placeholder_transfer_name) else stringResource(R.string.placeholder_who_was_paid),
             payees = payees,
+            field = payeeField,
             onSelect = { entry ->
+                // The shape it was last filed under comes back too, unless an existing row is being edited (its mode is fixed).
+                // A category from the other mode's set is dropped rather than carried over, as switching the mode by hand does.
+                val mode = if (isEditing) fields.mode else FormMode.valueOf(entry.kind.name.uppercase())
                 fields = fields.copy(
+                    mode = mode,
                     payee = entry.payee,
                     accountId = entry.accountId ?: fields.accountId,
-                    toAccountId = if (fields.mode == FormMode.TRANSFER) entry.toAccountId ?: fields.toAccountId else fields.toAccountId,
-                    categoryId = entry.categoryId ?: fields.categoryId,
+                    toAccountId = if (mode == FormMode.TRANSFER) entry.toAccountId ?: fields.toAccountId else fields.toAccountId,
+                    categoryId = entry.categoryId ?: if (mode == fields.mode) fields.categoryId else "",
                     notes = fields.notes.ifBlank { entry.notes },
                 )
             },
         )
 
-        OutlinedTextField(
+        YuukaTextField(
             value = fields.amount,
             onValueChange = { fields = fields.copy(amount = it) },
-            label = { Text(stringResource(R.string.label_amount)) },
-            placeholder = { Text(stringResource(R.string.placeholder_amount_decimal)) },
+            label = stringResource(R.string.label_amount),
+            placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            field = amountField,
         )
 
-        var accountMenuOpen by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = accountMenuOpen, onExpandedChange = { accountMenuOpen = it }) {
-            OutlinedTextField(
-                value = accounts.firstOrNull { it.id == fields.accountId }?.name ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_from_account) else stringResource(R.string.label_account)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountMenuOpen) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(expanded = accountMenuOpen, onDismissRequest = { accountMenuOpen = false }) {
-                accounts.forEach { account ->
-                    DropdownMenuItem(text = { Text(account.name) }, onClick = { fields = fields.copy(accountId = account.id); accountMenuOpen = false })
-                }
-            }
-        }
+        val accountOptions = accounts.map { SelectOption(it.id, it.name) }
+        DropdownField(
+            label = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_from_account) else stringResource(R.string.label_account),
+            value = accounts.firstOrNull { it.id == fields.accountId }?.name ?: "",
+            options = accountOptions,
+            onSelect = { fields = fields.copy(accountId = it) },
+            field = accountField,
+        )
 
         if (fields.mode == FormMode.TRANSFER) {
-            var toMenuOpen by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = toMenuOpen, onExpandedChange = { toMenuOpen = it }) {
-                OutlinedTextField(
-                    value = accounts.firstOrNull { it.id == fields.toAccountId }?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.label_to_account)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = toMenuOpen) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                )
-                ExposedDropdownMenu(expanded = toMenuOpen, onDismissRequest = { toMenuOpen = false }) {
-                    accounts.forEach { account ->
-                        DropdownMenuItem(text = { Text(account.name) }, onClick = { fields = fields.copy(toAccountId = account.id); toMenuOpen = false })
-                    }
-                }
-            }
+            DropdownField(
+                label = stringResource(R.string.label_to_account),
+                value = accounts.firstOrNull { it.id == fields.toAccountId }?.name ?: "",
+                options = accountOptions,
+                onSelect = { fields = fields.copy(toAccountId = it) },
+                field = toAccountField,
+            )
         }
 
-        var categoryMenuOpen by remember { mutableStateOf(false) }
         val uncategorizedLabel = stringResource(R.string.category_uncategorized)
         val selectedCategoryLabel = categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == fields.categoryId }?.name ?: uncategorizedLabel
-        ExposedDropdownMenuBox(expanded = categoryMenuOpen, onExpandedChange = { categoryMenuOpen = it }) {
-            OutlinedTextField(
-                value = selectedCategoryLabel,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_cashflow_category) else stringResource(R.string.label_category)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryMenuOpen) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(expanded = categoryMenuOpen, onDismissRequest = { categoryMenuOpen = false }) {
-                DropdownMenuItem(text = { Text(uncategorizedLabel) }, onClick = { fields = fields.copy(categoryId = ""); categoryMenuOpen = false })
-                categoryGroups.forEach { group ->
-                    DropdownMenuItem(text = { Text(group.parent.name) }, onClick = { fields = fields.copy(categoryId = group.parent.id); categoryMenuOpen = false })
-                    group.children.forEach { child ->
-                        DropdownMenuItem(
-                            text = { Text("    ${child.name}") },
-                            onClick = { fields = fields.copy(categoryId = child.id); categoryMenuOpen = false },
-                        )
-                    }
-                }
-            }
-        }
+        DropdownField(
+            label = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_cashflow_category) else stringResource(R.string.label_category),
+            value = selectedCategoryLabel,
+            options = categoryOptions(categoryGroups, uncategorizedLabel).map { SelectOption(it.value ?: "", it.label, it.indent) },
+            onSelect = { fields = fields.copy(categoryId = it) },
+        )
 
         val optionalPlaceholder = stringResource(R.string.placeholder_optional)
 
@@ -264,12 +275,12 @@ fun TransactionForm(
             )
         }
 
-        OutlinedTextField(
+        YuukaTextField(
             value = fields.notes,
             onValueChange = { fields = fields.copy(notes = it) },
-            label = { Text(stringResource(R.string.label_notes)) },
-            placeholder = { Text(optionalPlaceholder) },
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(R.string.label_notes),
+            placeholder = optionalPlaceholder,
+            field = notesField,
         )
 
         // Tags, unlike the category, are any number of labels. They change no figure.
@@ -280,43 +291,30 @@ fun TransactionForm(
                     val selected = tag.id in fields.tagIds
                     FilterChip(
                         selected = selected,
-                        onClick = { fields = fields.copy(tagIds = if (selected) fields.tagIds - tag.id else fields.tagIds + tag.id) },
+                        onClick = {
+                            tagsField.touch()
+                            fields = fields.copy(tagIds = if (selected) fields.tagIds - tag.id else fields.tagIds + tag.id)
+                        },
                         label = { Text(tag.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         leadingIcon = { Box(Modifier.size(8.dp).clip(CircleShape).background(tagColor(tag.color))) },
                     )
                 }
             }
+            FieldError(tagsField.error)
         }
 
-        val shownError = localError ?: error
-        if (shownError != null) {
-            Text(shownError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        // What is wrong with a field is said beside the field. This is for a failure that is no one field's — the save itself.
+        if (error != null) {
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
-
-        val amountGreaterThanZeroError = stringResource(R.string.error_amount_greater_than_zero)
-        val chooseDifferentAccountsError = stringResource(R.string.error_choose_different_accounts)
-        val chooseAccountError = stringResource(R.string.error_choose_account)
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                enabled = !submitting,
+                enabled = !submitting && form.valid(payeeField, amountField, accountField, toAccountField, notesField, tagsField),
                 onClick = {
-                    val minor = parseMoney(fields.amount)
-                    if (minor == null || minor <= 0) {
-                        localError = amountGreaterThanZeroError
-                        return@Button
-                    }
-                    if (fields.mode == FormMode.TRANSFER && fields.accountId == fields.toAccountId) {
-                        localError = chooseDifferentAccountsError
-                        return@Button
-                    }
-                    if (fields.accountId.isBlank() || (fields.mode == FormMode.TRANSFER && fields.toAccountId.isBlank())) {
-                        localError = chooseAccountError
-                        return@Button
-                    }
-                    localError = null
+                    val minor = amountMinor ?: return@Button
 
                     val datePart = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
                     val occurredOn = fields.time?.takeUnless { isAutomated }?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart

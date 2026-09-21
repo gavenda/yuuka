@@ -92,13 +92,15 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AccountFilterButton(
-                    options = accountOptions,
-                    selected = state.accountFilter,
-                    allLabel = stringResource(R.string.all_accounts),
-                    onClick = { openFilter = FilterKind.ACCOUNTS },
-                    modifier = Modifier.weight(1f, fill = true),
-                )
+                // The button is only as wide as its label; the box takes the rest of the row, which pushes the icons to the end.
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    AccountFilterButton(
+                        options = accountOptions,
+                        selected = state.accountFilter,
+                        allLabel = stringResource(R.string.all_accounts),
+                        onClick = { openFilter = FilterKind.ACCOUNTS },
+                    )
+                }
                 FilterIconButton(
                     icon = Icons.Outlined.Sell,
                     description = stringResource(R.string.filter_by_tag),
@@ -133,8 +135,8 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                             singleLine = true,
                             shape = CircleShape,
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                focusedContainerColor = yuukaSearchContainer(),
+                                unfocusedContainerColor = yuukaSearchContainer(),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
@@ -173,7 +175,12 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                                 MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.labelMedium)
                             }
                         }
-                        items(rows) { row ->
+                        items(rows, key = { row ->
+                            when (row) {
+                                is TransactionRow.Transfer -> row.id
+                                is TransactionRow.Single -> row.transaction.id
+                            }
+                        }) { row ->
                             TransactionRowItem(
                                 row = row,
                                 currency = state.currency,
@@ -331,6 +338,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
         actions = { ActionIconButton(ActionIcon.DELETE, stringResource(R.string.action_delete), onDelete, danger = true) },
     ) {
         Card(
+            colors = yuukaCardColors(),
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
         ) {
@@ -493,7 +501,7 @@ private fun AccountFilterButton(
         ),
         modifier = modifier,
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))

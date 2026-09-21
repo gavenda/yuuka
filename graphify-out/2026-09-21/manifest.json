@@ -1,8 +1,8 @@
 {
   "app/build.gradle.kts": {
-    "mtime": 1789921040.661359,
-    "seen": 1789923252.534614,
-    "ast_hash": "c9a0fd083ca88faf12b29207ec1577c2",
+    "mtime": 1789992297.3580775,
+    "seen": 1789999442.5570889,
+    "ast_hash": "986029557b5ac4c70547e4c55043a174",
     "semantic_hash": ""
   },
   "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/1.json": {
@@ -24,15 +24,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/YuukaApplication.kt": {
-    "mtime": 1789677930.0878358,
-    "seen": 1789684275.66003,
-    "ast_hash": "e70d21824d638b4e0fd71ca2dc8491eb",
-    "semantic_hash": "e70d21824d638b4e0fd71ca2dc8491eb"
+    "mtime": 1789981925.4360127,
+    "seen": 1789982134.6425502,
+    "ast_hash": "3f0dd2630c3e36be9afe4d51d325741f",
+    "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/AuthManager.kt": {
-    "mtime": 1789748235.0385253,
-    "seen": 1789748246.1099856,
-    "ast_hash": "987e73df774e9387a840e081a415d74f",
+    "mtime": 1789981925.435803,
+    "seen": 1789982134.6425507,
+    "ast_hash": "d8e5c278cceb37a3901815cec8511b32",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/auth/IdTokenClaims.kt": {
@@ -42,27 +42,27 @@
     "semantic_hash": "1432fd6e6c2438b676db949ceb680604"
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/Mappers.kt": {
-    "mtime": 1789920938.5544047,
-    "seen": 1789923252.5347621,
-    "ast_hash": "56b64a5993068f09686f95ae93b01d5b",
+    "mtime": 1789981841.3765676,
+    "seen": 1789982134.6425664,
+    "ast_hash": "af4abdce1c7ccd5b85f31a0b29b32efa",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/YuukaDatabase.kt": {
-    "mtime": 1789920938.5544047,
-    "seen": 1789923252.534763,
-    "ast_hash": "5aa68ec44059551635d1ef064b73ffb2",
+    "mtime": 1789981710.063945,
+    "seen": 1789982134.6425676,
+    "ast_hash": "3914517653136b28cbf5bd3e125f0bff",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/dao/BudgetDao.kt": {
-    "mtime": 1789746959.204,
-    "seen": 1789747133.297614,
-    "ast_hash": "388980e9cd846da1764c845e1affe44d",
+    "mtime": 1789981490.965823,
+    "seen": 1789982134.642568,
+    "ast_hash": "ba8489a21cdd4d98b0223971f25447c2",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/dao/LedgerDao.kt": {
-    "mtime": 1789799208.805433,
-    "seen": 1789799407.4542515,
-    "ast_hash": "24dafb92ce63aabda21031affd986a1b",
+    "mtime": 1789999860.1279693,
+    "seen": 1789999888.63377,
+    "ast_hash": "fae3404a00be77295f5d58ca059c5773",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/dao/PayeeDao.kt": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/dao/TransactionDao.kt": {
-    "mtime": 1789939243.351504,
-    "seen": 1789939332.325623,
-    "ast_hash": "222b5195f9c7a87cccf6333018e0ca2b",
+    "mtime": 1789999860.128105,
+    "seen": 1789999888.6338174,
+    "ast_hash": "7708fd1dceb71b707de2c0334e3842bf",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/entity/Entities.kt": {
@@ -108,10 +108,10 @@
     "semantic_hash": "4e0b281248596da5f6f4da9674bcd34e"
   },
   "app/src/main/java/dev/gavenda/yuuka/data/remote/AuthInterceptor.kt": {
-    "mtime": 1789677930.0880702,
-    "seen": 1789684275.6600358,
-    "ast_hash": "53065f90a23f5a6ed6062a371ff34734",
-    "semantic_hash": "53065f90a23f5a6ed6062a371ff34734"
+    "mtime": 1789981736.7206159,
+    "seen": 1789982134.6426933,
+    "ast_hash": "8df95393fa3cf248ad49e5585aa5c00b",
+    "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/remote/NetworkJson.kt": {
     "mtime": 1789677930.0880702,
@@ -126,9 +126,9 @@
     "semantic_hash": "911e31a203da5c14d5069456f626e1e0"
   },
   "app/src/main/java/dev/gavenda/yuuka/data/remote/YuukaApi.kt": {
-    "mtime": 1789939504.9964862,
-    "seen": 1789939595.0194802,
-    "ast_hash": "f9c13b6342ebed885e1980a0b70e90e7",
+    "mtime": 1789981369.6465452,
+    "seen": 1789982134.642723,
+    "ast_hash": "1c6beb0cc974047d51c7a5bbf60b3d05",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/remote/dto/Responses.kt": {
@@ -138,27 +138,27 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/di/DatabaseModule.kt": {
-    "mtime": 1789799208.80566,
-    "seen": 1789799407.4543881,
-    "ast_hash": "fe355b4356f0dca52591424cca90c2a8",
+    "mtime": 1789981710.0636716,
+    "seen": 1789982134.6427395,
+    "ast_hash": "1cd8559190a8666c5414f11a22af0d72",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/di/NetworkModule.kt": {
-    "mtime": 1789835654.3522556,
-    "seen": 1789835776.756775,
-    "ast_hash": "cae1e96115d86b830e390aae6d554f54",
+    "mtime": 1789981736.7207372,
+    "seen": 1789982134.6427398,
+    "ast_hash": "ed4d61b0127acabe54b24a1aa5a37905",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/di/RepositoryModule.kt": {
-    "mtime": 1789799208.805686,
-    "seen": 1789799407.4544039,
-    "ast_hash": "3df27f48bc1cc6b26d5eae8d7342ae42",
+    "mtime": 1789981765.847754,
+    "seen": 1789982134.6427402,
+    "ast_hash": "1e7c12f645ec851a13da5e35fd55b4a4",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/di/ViewModelModule.kt": {
-    "mtime": 1789812526.238427,
-    "seen": 1789812552.8972023,
-    "ast_hash": "451e142ac8d1d4ba4534ac465b7e2a18",
+    "mtime": 1789999872.558809,
+    "seen": 1789999888.6340744,
+    "ast_hash": "b1df540093c5dcbba9211723a7358f5b",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/domain/AmountVisibility.kt": {
@@ -216,15 +216,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/BudgetRepository.kt": {
-    "mtime": 1789677930.0882175,
-    "seen": 1789684275.6600428,
-    "ast_hash": "976eae8213021e5ed9e812fb199f0564",
+    "mtime": 1789981668.236279,
+    "seen": 1789982134.6429486,
+    "ast_hash": "06d4646f401927ed7fb2d57700b9bd01",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/LedgerRepository.kt": {
-    "mtime": 1789920938.5545652,
-    "seen": 1789923252.5352316,
-    "ast_hash": "7987606b4d860f09a5abed12a84a84f9",
+    "mtime": 1789999860.1287186,
+    "seen": 1789999888.6342843,
+    "ast_hash": "adfbb23b81c14c286edd131da030a928",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/PayeeRepository.kt": {
@@ -234,9 +234,9 @@
     "semantic_hash": "2ac8c39d8d0ced8287b858d5d8f1afb3"
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/TransactionRepository.kt": {
-    "mtime": 1789939579.466508,
-    "seen": 1789939595.019812,
-    "ast_hash": "5eb0438e50857c720f231f28e95b47ed",
+    "mtime": 1789999413.49631,
+    "seen": 1789999442.5579307,
+    "ast_hash": "f81c9fc5199ccbccb88272bfa070e118",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/Destinations.kt": {
@@ -246,21 +246,21 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/YuukaApp.kt": {
-    "mtime": 1789842122.013502,
-    "seen": 1789881845.461519,
-    "ast_hash": "b5e3ff23c24cb2ea22b0304942212a99",
+    "mtime": 1789981994.7495365,
+    "seen": 1789982134.6429827,
+    "ast_hash": "585a5d4e21cab958f37f93fa18da846d",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/accounts/AccountsScreen.kt": {
-    "mtime": 1789925040.2840967,
-    "seen": 1789925052.5657113,
-    "ast_hash": "b315dc60dca139658794385c1ad5f75c",
+    "mtime": 1790002775.8866518,
+    "seen": 1790003138.4123707,
+    "ast_hash": "b83f2656b75f7ea40cd94bddb0de1db9",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/accounts/AccountsViewModel.kt": {
-    "mtime": 1789746959.133,
-    "seen": 1789747133.297978,
-    "ast_hash": "48a15430b13e537e2a7fe9f1647affce",
+    "mtime": 1789999872.5583036,
+    "seen": 1789999888.6344821,
+    "ast_hash": "cef73a53e21a3a6da327c9a91d06964c",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/auth/AuthScreen.kt": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetScreen.kt": {
-    "mtime": 1789925040.2605927,
-    "seen": 1789925052.565754,
-    "ast_hash": "a690f7392d4f0cc75c6b2b44bbbf5663",
+    "mtime": 1790002857.0303557,
+    "seen": 1790003138.4124026,
+    "ast_hash": "65a943906051fddf2dea39c1423ba436",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/budget/BudgetViewModel.kt": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/categories/CategoriesScreen.kt": {
-    "mtime": 1789925040.2815785,
-    "seen": 1789925052.565774,
-    "ast_hash": "86fc694627c310f4688d092a15b62425",
+    "mtime": 1790002817.434077,
+    "seen": 1790003138.4124186,
+    "ast_hash": "120f5b9a58550a0c09c4da8af64d2247",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/categories/CategoriesViewModel.kt": {
@@ -336,9 +336,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/PayeeField.kt": {
-    "mtime": 1789747109.209,
-    "seen": 1789747133.298044,
-    "ast_hash": "0a22360106d8e17ab61d3ba69ef3a1ac",
+    "mtime": 1790002642.3185132,
+    "seen": 1790003138.412644,
+    "ast_hash": "3d54a4606bff968915514c83d6520e43",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/ScreenStatus.kt": {
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsScreen.kt": {
-    "mtime": 1789925040.285547,
-    "seen": 1789925052.5662518,
-    "ast_hash": "d1f589cd5c3a75b1af1d20bc7587b479",
+    "mtime": 1790002887.2343545,
+    "seen": 1790003138.4128532,
+    "ast_hash": "dd6ea6ec067007865148e2095464f8c4",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/settings/SettingsViewModel.kt": {
@@ -414,21 +414,21 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/transactions/TransactionForm.kt": {
-    "mtime": 1789799303.948489,
-    "seen": 1789799407.4553282,
-    "ast_hash": "26ef1307eb4624cbeab873bf7b6bcba9",
+    "mtime": 1790002711.49452,
+    "seen": 1790003138.4129755,
+    "ast_hash": "c4a5362f8eac7fdaf36ea45b450a44a7",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/transactions/TransactionsScreen.kt": {
-    "mtime": 1789939579.4667985,
-    "seen": 1789939595.0205965,
-    "ast_hash": "ef111e3d2412b3190eb165e6ff6a056d",
+    "mtime": 1789999413.4982917,
+    "seen": 1789999442.5587692,
+    "ast_hash": "f95c0837dc7de2a260b9adb3270cc594",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/transactions/TransactionsViewModel.kt": {
-    "mtime": 1789939579.4670377,
-    "seen": 1789939595.020597,
-    "ast_hash": "78c67a9d44ff1b56bbacb46a55d2ae9b",
+    "mtime": 1789999872.5586457,
+    "seen": 1789999888.6351771,
+    "ast_hash": "64091ef056ef1a286b43fa034874d04f",
     "semantic_hash": ""
   },
   "app/src/test/java/dev/gavenda/yuuka/ExampleUnitTest.kt": {
@@ -438,10 +438,10 @@
     "semantic_hash": ""
   },
   "build.gradle.kts": {
-    "mtime": 1789677930.0895402,
-    "seen": 1789684275.6600592,
-    "ast_hash": "9274829dad05a2d8a892a117d38f1261",
-    "semantic_hash": "9274829dad05a2d8a892a117d38f1261"
+    "mtime": 1789981293.3947785,
+    "seen": 1789982134.6437774,
+    "ast_hash": "14f74ed1572a9b8c6c94cf3a1250ea96",
+    "semantic_hash": ""
   },
   "gradlew": {
     "mtime": 1789677930.089706,
@@ -522,9 +522,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1789920938.5542967,
-    "seen": 1789923252.5373209,
-    "ast_hash": "e1ee389f0275af933c01fa3983296155",
+    "mtime": 1790003135.6257455,
+    "seen": 1790003138.414546,
+    "ast_hash": "4dd8848a78a420cbb469c4e131bf20c6",
     "semantic_hash": ""
   },
   ".vscode/extensions.json": {
@@ -534,15 +534,15 @@
     "semantic_hash": ""
   },
   "webapp/package.json": {
-    "mtime": 1789921040.6616192,
-    "seen": 1789923252.536125,
-    "ast_hash": "c04d8dfc17b38212e5ff6bb4180a0897",
+    "mtime": 1789992297.358752,
+    "seen": 1789999442.5588777,
+    "ast_hash": "e27cfc163651c1578ac7408f4a31fec2",
     "semantic_hash": ""
   },
   "webapp/src/App.vue": {
-    "mtime": 1789840128.7571166,
-    "seen": 1789840472.5356023,
-    "ast_hash": "a59814e21f8154bc0b02adaeeb203787",
+    "mtime": 1789981179.2785022,
+    "seen": 1789982134.643991,
+    "ast_hash": "7fd4596e3c847c81878b6b9504f81209",
     "semantic_hash": ""
   },
   "webapp/src/components/AccountLogo.vue": {
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "webapp/src/components/AccountTypeManager.vue": {
-    "mtime": 1789834506.6486938,
-    "seen": 1789835776.7581277,
-    "ast_hash": "23c828d0566f2daf1b5a0c34549a8338",
+    "mtime": 1790002435.0547981,
+    "seen": 1790003138.4134746,
+    "ast_hash": "f5ef4535a7ce5f0169e49342156e4968",
     "semantic_hash": ""
   },
   "webapp/src/components/AccountWatermark.vue": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "webapp/src/components/PayeeInput.vue": {
-    "mtime": 1789785184.4891005,
-    "seen": 1789785556.8201585,
-    "ast_hash": "8ada3c1eb68398874ff16ca3d32ba9a3",
+    "mtime": 1790002167.1202736,
+    "seen": 1790003138.4135823,
+    "ast_hash": "22046f74abcb0fb61fbab4b87066543b",
     "semantic_hash": ""
   },
   "webapp/src/components/PhilippinesIncomeCalculator.vue": {
@@ -624,15 +624,15 @@
     "semantic_hash": ""
   },
   "webapp/src/components/TransactionForm.vue": {
-    "mtime": 1789830757.3905838,
-    "seen": 1789835776.7583313,
-    "ast_hash": "10bf7011a9f7ad391c50b96bf8d29682",
+    "mtime": 1790003118.0855687,
+    "seen": 1790003138.4136791,
+    "ast_hash": "a31fc8ccdd02a95e15f1fc5918d7cd0c",
     "semantic_hash": ""
   },
   "webapp/src/lib/api.ts": {
-    "mtime": 1789799018.1867654,
-    "seen": 1789799407.4559417,
-    "ast_hash": "4c614b7f1b1e1b6acafa74621bcf2ebe",
+    "mtime": 1789981246.8213003,
+    "seen": 1789982134.6442387,
+    "ast_hash": "767014a47307f986361f53606ea9deeb",
     "semantic_hash": ""
   },
   "webapp/src/lib/auth0.ts": {
@@ -738,15 +738,15 @@
     "semantic_hash": ""
   },
   "webapp/src/main.ts": {
-    "mtime": 1789782254.4229605,
-    "seen": 1789782497.5724072,
-    "ast_hash": "3c6ee309a67552981cbeb4def559a8ca",
+    "mtime": 1789981925.450143,
+    "seen": 1789982134.6445663,
+    "ast_hash": "f94c957a7ec53311ee356b5f4a13f084",
     "semantic_hash": ""
   },
   "webapp/src/router/index.ts": {
-    "mtime": 1789812447.232946,
-    "seen": 1789812552.8990653,
-    "ast_hash": "200252793741de3d2df1abbf2fa643fc",
+    "mtime": 1789981162.183923,
+    "seen": 1789982134.6445665,
+    "ast_hash": "66355dda3b8603685d958e140faa7163",
     "semantic_hash": ""
   },
   "webapp/src/router/router.spec.ts": {
@@ -780,9 +780,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/AccountsView.vue": {
-    "mtime": 1789835253.3699715,
-    "seen": 1789835776.7587395,
-    "ast_hash": "130acc2553b8858b15ee6029c1e09634",
+    "mtime": 1790002270.10767,
+    "seen": 1790003138.4142115,
+    "ast_hash": "aca032890e6f83db5bc00eea81b64aca",
     "semantic_hash": ""
   },
   "webapp/src/views/BudgetView.vue": {
@@ -792,9 +792,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/CategoriesView.vue": {
-    "mtime": 1789920938.5722187,
-    "seen": 1789923252.5370317,
-    "ast_hash": "627df402aa385e5a5a0d27f77071cd44",
+    "mtime": 1790002308.709838,
+    "seen": 1790003138.414222,
+    "ast_hash": "00412fc0d63656781ed9191fbaa13e75",
     "semantic_hash": ""
   },
   "webapp/src/views/DashboardView.vue": {
@@ -816,15 +816,15 @@
     "semantic_hash": ""
   },
   "webapp/src/views/TransactionsView.vue": {
-    "mtime": 1789830757.3920624,
-    "seen": 1789835776.7587776,
+    "mtime": 1790001525.6919246,
+    "seen": 1790001568.995769,
     "ast_hash": "cce762eeb640408b0d0ed1ffe555b8a6",
     "semantic_hash": ""
   },
   "webapp/src/vite-env.d.ts": {
-    "mtime": 1789782254.4228723,
-    "seen": 1789782497.572478,
-    "ast_hash": "a52be96e217121ed5a66fd6485000589",
+    "mtime": 1789981125.2052884,
+    "seen": 1789982134.6447463,
+    "ast_hash": "4fb400dc7293499ac5f60253f03cb95e",
     "semantic_hash": ""
   },
   "webapp/test/account-logos.spec.ts": {
@@ -972,15 +972,15 @@
     "semantic_hash": ""
   },
   "webapp/CLAUDE.md": {
-    "mtime": 1789920938.57163,
-    "seen": 1789923252.5373213,
-    "ast_hash": "306ac55addc4bfb804fb55578131126b",
+    "mtime": 1790001549.6670454,
+    "seen": 1790001568.9960868,
+    "ast_hash": "f68e4a8e2586a4b5eda7bb9df260f882",
     "semantic_hash": ""
   },
   "webapp/README.md": {
-    "mtime": 1789939504.9977517,
-    "seen": 1789939595.0220299,
-    "ast_hash": "8d71f9305bd517165d8df5282d3a5d1f",
+    "mtime": 1789982109.896582,
+    "seen": 1789982134.6450393,
+    "ast_hash": "19b63587554e6db7fad476e9050ba1a5",
     "semantic_hash": ""
   },
   "webapp/index.html": {
@@ -1020,9 +1020,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/DenseTextField.kt": {
-    "mtime": 1789746959.176,
-    "seen": 1789747133.297983,
-    "ast_hash": "4d824cf9305a8741ca94c09f2fef26db",
+    "mtime": 1790002642.3191035,
+    "seen": 1790003138.4125535,
+    "ast_hash": "eb3701e0d2c3c4f76c9c53ab7f02dd96",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/ColorWheel.kt": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/android-release.yml": {
-    "mtime": 1789679950.2774336,
-    "seen": 1789684275.6601017,
-    "ast_hash": "82d076ba4ee0e7c1d4af1f7c6659e3fa",
+    "mtime": 1789992209.8019187,
+    "seen": 1789992232.0699072,
+    "ast_hash": "4c267c7c722b9f304371774fe0d9112c",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/BusyState.kt": {
@@ -1068,9 +1068,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/savethechange/SaveTheChangeScreen.kt": {
-    "mtime": 1789925040.2860014,
-    "seen": 1789925052.5662315,
-    "ast_hash": "bbc821ec675eab0d49f1264dfa1907ca",
+    "mtime": 1790002887.2342799,
+    "seen": 1790003138.4128377,
+    "ast_hash": "63e9a9189f4fff8ecbc2d95b3576ad64",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/savethechange/SaveTheChangeViewModel.kt": {
@@ -1098,9 +1098,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/SyncRepository.kt": {
-    "mtime": 1789781132.3713338,
-    "seen": 1789781412.2662542,
-    "ast_hash": "379fd7bac3960c34d0892504fa46d833",
+    "mtime": 1789999413.4971688,
+    "seen": 1789999442.5579302,
+    "ast_hash": "346508b6786cc7c337ce67a252362df8",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/domain/CollapsedSections.kt": {
@@ -1188,15 +1188,15 @@
     "semantic_hash": ""
   },
   "webapp/server/ids.ts": {
-    "mtime": 1789677930.1091177,
-    "seen": 1789779230.5200915,
-    "ast_hash": "ffff5a97cff5a1dc87672901c5be8fe5",
+    "mtime": 1789980336.8724408,
+    "seen": 1789982134.6438477,
+    "ast_hash": "f5e29c1768a32dc9499ccd3940382735",
     "semantic_hash": ""
   },
   "webapp/server/index.ts": {
-    "mtime": 1789798871.7095737,
-    "seen": 1789799407.455487,
-    "ast_hash": "184a62d573f8ad153fa350f922e3c0cc",
+    "mtime": 1789980607.4682395,
+    "seen": 1789982134.6438482,
+    "ast_hash": "b5fee719bbb94122b2bc6bcb21175d60",
     "semantic_hash": ""
   },
   "webapp/server/mappers.ts": {
@@ -1218,15 +1218,15 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/account-types.ts": {
-    "mtime": 1789677930.1091177,
-    "seen": 1789779230.5200934,
-    "ast_hash": "c8d286e5bea60790c446b1932125f0ec",
+    "mtime": 1789980406.7071502,
+    "seen": 1789982134.643876,
+    "ast_hash": "ac5b27530ad034a5630a79ff3e496a32",
     "semantic_hash": ""
   },
   "webapp/server/routes/accounts.ts": {
-    "mtime": 1789905007.1369302,
-    "seen": 1789920438.0483894,
-    "ast_hash": "5cf088377c78cc49ba80804f16ccae0d",
+    "mtime": 1789980418.4552636,
+    "seen": 1789982134.6438766,
+    "ast_hash": "a1cd62fb15baeacef6ad78268302544b",
     "semantic_hash": ""
   },
   "webapp/server/routes/auth.ts": {
@@ -1242,9 +1242,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/categories.ts": {
-    "mtime": 1789920938.5718462,
-    "seen": 1789923252.5362482,
-    "ast_hash": "2cd18eb0af26fc24fec916dea841ff5a",
+    "mtime": 1789981246.4532967,
+    "seen": 1789982134.643896,
+    "ast_hash": "df14712d4f1c09c94557a01b96d1dee3",
     "semantic_hash": ""
   },
   "webapp/server/routes/income-plan.ts": {
@@ -1278,15 +1278,15 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/transactions.ts": {
-    "mtime": 1789939504.997937,
-    "seen": 1789939595.020923,
-    "ast_hash": "6d5cc91825985060bd2af407a9441039",
+    "mtime": 1789980379.055175,
+    "seen": 1789982134.643946,
+    "ast_hash": "e816afddbf6fc432ce9b0ac9be84f496",
     "semantic_hash": ""
   },
   "webapp/server/schemas.ts": {
-    "mtime": 1789939504.9979842,
-    "seen": 1789939595.0209234,
-    "ast_hash": "758ad128f36cce9a3c8068a81b3cfe7e",
+    "mtime": 1789980499.8690903,
+    "seen": 1789982134.6439462,
+    "ast_hash": "ac1cbf6644b992840f0a197f5c09ffba",
     "semantic_hash": ""
   },
   "webapp/server/sql.ts": {
@@ -1326,9 +1326,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/local/dao/SubscriptionDao.kt": {
-    "mtime": 1789781132.3507738,
-    "seen": 1789781412.2659042,
-    "ast_hash": "26cd70ac9d06ac721948eea58a0d3231",
+    "mtime": 1789981490.9657454,
+    "seen": 1789982134.642586,
+    "ast_hash": "4696f2b2f884f323a2e691c151210890",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/data/model/Subscriptions.kt": {
@@ -1344,21 +1344,21 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/repository/SubscriptionRepository.kt": {
-    "mtime": 1789781132.3647554,
-    "seen": 1789781412.2662535,
-    "ast_hash": "295b1161f65a506f952af12fc2c3260b",
+    "mtime": 1789981668.2364957,
+    "seen": 1789982134.6429636,
+    "ast_hash": "40839a7f183d2950ac8bc68e042b9d42",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/common/PickerField.kt": {
-    "mtime": 1789781191.6820564,
-    "seen": 1789781412.2666423,
+    "mtime": 1790000975.3348975,
+    "seen": 1790001316.7134545,
     "ast_hash": "d2e9423070949093b0fa667e065fbbbf",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/subscriptions/SubscriptionsScreen.kt": {
-    "mtime": 1789925040.2846446,
-    "seen": 1789925052.5662715,
-    "ast_hash": "e6d37f45e3beb7a30203474df1fb0c4f",
+    "mtime": 1790002837.5759845,
+    "seen": 1790003138.412869,
+    "ast_hash": "e372dc69d1b46a5984cf2c4630d6a277",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/subscriptions/SubscriptionsViewModel.kt": {
@@ -1374,9 +1374,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/subscriptions.ts": {
-    "mtime": 1789920938.5719047,
-    "seen": 1789923252.536278,
-    "ast_hash": "012193cfac5f4511a6efc0b34c912dec",
+    "mtime": 1789980424.1674054,
+    "seen": 1789982134.6439345,
+    "ast_hash": "7d82e95cf8d89b638d63012447a18513",
     "semantic_hash": ""
   },
   "webapp/server/subscriptions.ts": {
@@ -1404,9 +1404,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/SubscriptionsView.vue": {
-    "mtime": 1789830757.3924208,
-    "seen": 1789835776.758776,
-    "ast_hash": "f2e6abf942c7daf11f9c43ce17a4be51",
+    "mtime": 1790003118.0858102,
+    "seen": 1790003138.4142523,
+    "ast_hash": "aeb91500bdd001f352dd97bc58fed5b6",
     "semantic_hash": ""
   },
   "webapp/test/subscriptions.spec.ts": {
@@ -1434,9 +1434,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/cache.ts": {
-    "mtime": 1789824515.970525,
-    "seen": 1789835776.7583647,
-    "ast_hash": "c2904ebf21377bab1e3ed6382169db09",
+    "mtime": 1789981162.1837044,
+    "seen": 1789982134.6442585,
+    "ast_hash": "fdd8221276778184552cb8f6f6e740d4",
     "semantic_hash": ""
   },
   "webapp/src/lib/online.ts": {
@@ -1464,9 +1464,9 @@
     "semantic_hash": ""
   },
   "webapp/src/lib/sync.ts": {
-    "mtime": 1789782217.0633314,
-    "seen": 1789782497.5723782,
-    "ast_hash": "6fb5f18dec01a53664413d9e0125449e",
+    "mtime": 1789981040.064133,
+    "seen": 1789982134.6445374,
+    "ast_hash": "809d05d4a999cee80444c28e669779d1",
     "semantic_hash": ""
   },
   "webapp/src/stores/localCopy.spec.ts": {
@@ -1572,15 +1572,15 @@
     "semantic_hash": ""
   },
   "webapp/src/views/SaveTheChangeView.vue": {
-    "mtime": 1789834394.404,
-    "seen": 1789835776.7587743,
-    "ast_hash": "7ae7084983ad8cd0d91e85065413da56",
+    "mtime": 1790002420.4012783,
+    "seen": 1790003138.4142513,
+    "ast_hash": "35299578a9e302a2633f859273d09f45",
     "semantic_hash": ""
   },
   "webapp/src/views/SettingsView.vue": {
-    "mtime": 1789830765.315847,
-    "seen": 1789835776.7587752,
-    "ast_hash": "241d516743657649c6394c294edda282",
+    "mtime": 1790002420.4007041,
+    "seen": 1790003138.4142518,
+    "ast_hash": "b377c6387d0743fee483366b9e915a65",
     "semantic_hash": ""
   },
   "webapp/src/components/SettingRow.vue": {
@@ -1608,9 +1608,9 @@
     "semantic_hash": ""
   },
   "webapp/server/routes/tags.ts": {
-    "mtime": 1789824487.061259,
-    "seen": 1789835776.7580483,
-    "ast_hash": "1953b6e7d8340ca88a3aa1fea23443cc",
+    "mtime": 1789981246.494297,
+    "seen": 1789982134.6439455,
+    "ast_hash": "ae71d33a59d45d73963cedc0c1b2e20f",
     "semantic_hash": ""
   },
   "webapp/test/tags.spec.ts": {
@@ -1620,9 +1620,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/tags/TagsScreen.kt": {
-    "mtime": 1789925040.283632,
-    "seen": 1789925052.5662909,
-    "ast_hash": "888b9a06d75e7931a8a04161b26bffb4",
+    "mtime": 1790002817.4346228,
+    "seen": 1790003138.412884,
+    "ast_hash": "b212f65a2e82e1dd31758fc34855ca16",
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/tags/TagsViewModel.kt": {
@@ -1632,9 +1632,9 @@
     "semantic_hash": ""
   },
   "webapp/src/views/TagsView.vue": {
-    "mtime": 1789827905.449253,
-    "seen": 1789835776.7587771,
-    "ast_hash": "15799b891b0bc4cabc6c9be3297ca590",
+    "mtime": 1790002308.7100098,
+    "seen": 1790003138.4142528,
+    "ast_hash": "94cb9e85d619d697d98f7e57feabb1a9",
     "semantic_hash": ""
   },
   "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/7.json": {
@@ -1656,9 +1656,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/dev/gavenda/yuuka/ui/NavRail.kt": {
-    "mtime": 1789842122.0137444,
-    "seen": 1789881845.4615183,
-    "ast_hash": "9c55313b6f6ee74e06d1e30820c1f300",
+    "mtime": 1789942290.338,
+    "seen": 1789982134.6429822,
+    "ast_hash": "83854a33f3cfcbee577cca4e6b311142",
     "semantic_hash": ""
   },
   "app/src/test/java/dev/gavenda/yuuka/domain/CountsTest.kt": {
@@ -1668,15 +1668,15 @@
     "semantic_hash": ""
   },
   "webapp/src/components/SelectField.spec.ts": {
-    "mtime": 1789830821.4044144,
-    "seen": 1789835776.7582855,
+    "mtime": 1790001525.6911604,
+    "seen": 1790001568.9950638,
     "ast_hash": "590033f925f6c6db6599aa9e749b1445",
     "semantic_hash": ""
   },
   "webapp/src/components/SelectField.vue": {
-    "mtime": 1789830765.3159554,
-    "seen": 1789835776.758286,
-    "ast_hash": "a06380fee89d8d1684726faee5dfb846",
+    "mtime": 1790002167.1196856,
+    "seen": 1790003138.413622,
+    "ast_hash": "f8d7051ea3c8677730eb22f6b8cb0ed7",
     "semantic_hash": ""
   },
   "webapp/src/lib/count.spec.ts": {
@@ -1728,9 +1728,9 @@
     "semantic_hash": ""
   },
   "webapp/src/components/BudgetCard.vue": {
-    "mtime": 1789881823.357733,
-    "seen": 1789881845.46269,
-    "ast_hash": "1336a3aec122822708445165f8573126",
+    "mtime": 1790002391.6373913,
+    "seen": 1790003138.4134946,
+    "ast_hash": "d037634a78a7847c91273cbe7f1c528e",
     "semantic_hash": ""
   },
   "webapp/scripts/README.md": {
@@ -1743,6 +1743,264 @@
     "mtime": 1789920938.5543504,
     "seen": 1789923252.5346894,
     "ast_hash": "1be050c98aefc2392f723e8f788d5374",
+    "semantic_hash": ""
+  },
+  "app/schemas/dev.gavenda.yuuka.data.local.OutboxDatabase/1.json": {
+    "mtime": 1789981814.557513,
+    "seen": 1789982134.6424375,
+    "ast_hash": "1ce5e5e8a904457efdd3a8b9c0759d6d",
+    "semantic_hash": ""
+  },
+  "app/schemas/dev.gavenda.yuuka.data.local.YuukaDatabase/9.json": {
+    "mtime": 1789981814.5530133,
+    "seen": 1789982134.6425211,
+    "ast_hash": "c550882fed913e33a5e39b0a59e1ddfb",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/Ids.kt": {
+    "mtime": 1789981345.934247,
+    "seen": 1789982134.6425657,
+    "ast_hash": "9cd8e3c3efec8a2aa591ca771246bb54",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/local/OutboxDatabase.kt": {
+    "mtime": 1789981324.547046,
+    "seen": 1789982134.6425667,
+    "ast_hash": "39bb8493048db3414d39c10c9cf0a8b1",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/local/Provisional.kt": {
+    "mtime": 1789981515.2115455,
+    "seen": 1789982134.6425672,
+    "ast_hash": "db2a585712590ac793fdb7be2db2fa32",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/local/dao/OutboxDao.kt": {
+    "mtime": 1789981312.0999284,
+    "seen": 1789982134.642569,
+    "ast_hash": "46212e89da847cfd494f7b5449d6d7ef",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/local/entity/OutboxEntity.kt": {
+    "mtime": 1789981303.9108505,
+    "seen": 1789982134.642603,
+    "ast_hash": "661cadd3aa5da70700c122a7dd13fec2",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/data/remote/dto/SyncDto.kt": {
+    "mtime": 1789998989.5900853,
+    "seen": 1789999442.5576234,
+    "ast_hash": "a0c861992aeb69cea771418e7d9fa32c",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/DeviceId.kt": {
+    "mtime": 1789981369.6334677,
+    "seen": 1789982134.642965,
+    "ast_hash": "6e1bb8a32f1b80afb2fbf4ff49f07c58",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/NetworkMonitor.kt": {
+    "mtime": 1789981423.012616,
+    "seen": 1789982134.6429656,
+    "ast_hash": "c953c6053e24ce9cc97989cfbee47bb9",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/Outbox.kt": {
+    "mtime": 1789999860.1278257,
+    "seen": 1789999888.6343687,
+    "ast_hash": "378418c3c28b7a8243f72fe3b0fa28b0",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/PushRegistrar.kt": {
+    "mtime": 1789998989.596866,
+    "seen": 1789999442.5579734,
+    "ast_hash": "b3985fa5362159b699a692a2dbd698ba",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/Slices.kt": {
+    "mtime": 1789981345.9351923,
+    "seen": 1789982134.6429667,
+    "ast_hash": "75b60795b3898798def4ee5ac9f99481",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/SyncWorker.kt": {
+    "mtime": 1789981423.0130413,
+    "seen": 1789982134.642967,
+    "ast_hash": "2626d49bc7d4e10f83117e1d36cf3265",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/sync/YuukaMessagingService.kt": {
+    "mtime": 1789981447.7782896,
+    "seen": 1789982134.6429675,
+    "ast_hash": "cffe1143e3890654a703b26cd707ad51",
+    "semantic_hash": ""
+  },
+  "webapp/public/firebase-messaging-sw.js": {
+    "mtime": 1789981096.1893127,
+    "seen": 1789982134.6437936,
+    "ast_hash": "f858ae5f2025a4c7b2d19d3fd4deb605",
+    "semantic_hash": ""
+  },
+  "webapp/server/env.d.ts": {
+    "mtime": 1789980446.7047157,
+    "seen": 1789982134.6438382,
+    "ast_hash": "c61a35d9095ee1c480f0ae3c0766aa34",
+    "semantic_hash": ""
+  },
+  "webapp/server/fcm.ts": {
+    "mtime": 1789981246.3972962,
+    "seen": 1789982134.6438475,
+    "ast_hash": "7fad66a5ea3e0fcadd35d040c42ccb58",
+    "semantic_hash": ""
+  },
+  "webapp/server/notify.ts": {
+    "mtime": 1789980258.3321135,
+    "seen": 1789982134.6438668,
+    "ast_hash": "f98e3a5440bea6311ab634643834ab99",
+    "semantic_hash": ""
+  },
+  "webapp/server/routes/devices.ts": {
+    "mtime": 1789980464.951884,
+    "seen": 1789982134.6438966,
+    "ast_hash": "801bbf446173df8f6a7ef2562195fe9e",
+    "semantic_hash": ""
+  },
+  "webapp/server/routes/sync.ts": {
+    "mtime": 1789981246.489297,
+    "seen": 1789982134.6439445,
+    "ast_hash": "1396d92fcda5c1c75ca29a78d0d71ff7",
+    "semantic_hash": ""
+  },
+  "webapp/server/sync.ts": {
+    "mtime": 1789980607.468006,
+    "seen": 1789982134.6439645,
+    "ast_hash": "786ca7d21d2b6464cfb4abf7de26dc3b",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/device.ts": {
+    "mtime": 1789980744.3849916,
+    "seen": 1789982134.6443152,
+    "ast_hash": "cc9d705c3a317e8229cff3d779bc33be",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/http.ts": {
+    "mtime": 1789981246.8653007,
+    "seen": 1789982134.6443248,
+    "ast_hash": "20845d8f454e4ca77d8c719deafabe72",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/ids.ts": {
+    "mtime": 1789980753.2181478,
+    "seen": 1789982134.6443346,
+    "ast_hash": "84aed6ad2f4d3bddf04717e0726c465b",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/outbox.ts": {
+    "mtime": 1789980781.5746303,
+    "seen": 1789982134.6443634,
+    "ast_hash": "76877925ce5c0c3d753298f7d72ecd6e",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/provisional.spec.ts": {
+    "mtime": 1789981235.3591878,
+    "seen": 1789982134.6444404,
+    "ast_hash": "15714215c21d7e4e630c31c58e041364",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/provisional.ts": {
+    "mtime": 1789981017.3952618,
+    "seen": 1789982134.644441,
+    "ast_hash": "6b3206d13ef5e30b5b3b65425d5119ea",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/push.ts": {
+    "mtime": 1789981096.2015748,
+    "seen": 1789982134.6444414,
+    "ast_hash": "414883e1cf443b5effce41615900adab",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/queue.ts": {
+    "mtime": 1789981246.9323013,
+    "seen": 1789982134.6444514,
+    "ast_hash": "a805b822791f40bd38ec952f5b4a4994",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/slices.ts": {
+    "mtime": 1789980792.9934745,
+    "seen": 1789982134.64448,
+    "ast_hash": "9570185b0a60a9598ecb29bea6578114",
+    "semantic_hash": ""
+  },
+  "webapp/test/devices.spec.ts": {
+    "mtime": 1789980687.028905,
+    "seen": 1789982134.6448343,
+    "ast_hash": "2398b0d2442041f0c40af196c29f53b8",
+    "semantic_hash": ""
+  },
+  "webapp/test/sync.spec.ts": {
+    "mtime": 1789981247.3653057,
+    "seen": 1789982134.6449256,
+    "ast_hash": "4c4efa2c7c991d925fad7d3a8795265c",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/ui/common/SelectField.kt": {
+    "mtime": 1790001565.2765377,
+    "seen": 1790001568.9939818,
+    "ast_hash": "46546e3d3b378fdd20ab7aa6a25cafe6",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/PreferenceSelect.spec.ts": {
+    "mtime": 1790001525.7010562,
+    "seen": 1790001568.9950511,
+    "ast_hash": "e3c8193f0a6ca8932d2f3d168469146e",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/PreferenceSelect.vue": {
+    "mtime": 1790002429.7318144,
+    "seen": 1790003138.4136026,
+    "ast_hash": "85b499ad6d6a212b27c779c1fe5a468b",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/domain/Validation.kt": {
+    "mtime": 1790002608.3054814,
+    "seen": 1790003138.412146,
+    "ast_hash": "b85ec418f519da34b0a2b8d0af499ba6",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/ui/common/FormFields.kt": {
+    "mtime": 1790003062.5800865,
+    "seen": 1790003138.4125688,
+    "ast_hash": "4a6ab4714dd1f4db7000dbbe24420db3",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/dev/gavenda/yuuka/ui/common/FormValidation.kt": {
+    "mtime": 1790002631.2038372,
+    "seen": 1790003138.4125695,
+    "ast_hash": "bf7ed20f1ae6a58c8b1a95c08c6e8d0f",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/dev/gavenda/yuuka/domain/ValidationTest.kt": {
+    "mtime": 1790002608.3064816,
+    "seen": 1790003138.4130893,
+    "ast_hash": "86f8f10935b00cabb544dd9ae575430f",
+    "semantic_hash": ""
+  },
+  "webapp/src/components/FieldSupport.vue": {
+    "mtime": 1790002144.9953613,
+    "seen": 1790003138.413534,
+    "ast_hash": "6b8308d381b937650a7677f6fd987eeb",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/validation.spec.ts": {
+    "mtime": 1790002471.2733579,
+    "seen": 1790003138.414117,
+    "ast_hash": "4f8ae37f4f527ba58b908ed1ce115749",
+    "semantic_hash": ""
+  },
+  "webapp/src/lib/validation.ts": {
+    "mtime": 1790002435.6018064,
+    "seen": 1790003138.4141176,
+    "ast_hash": "360dfeb894886f5bb06941071975f991",
     "semantic_hash": ""
   }
 }

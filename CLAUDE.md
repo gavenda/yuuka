@@ -291,6 +291,26 @@ snackbar, and the refresh that follows takes the optimistic row back off the
 screen. Both apps also say how much has not reached the server yet — a count
 from the queue, not a guess.
 
+**A form is reactive: it answers for its own errors, live, beside the field.** A
+save never waits for the server, so everything the API would refuse for the form's
+own values — an empty or over-long name, a name already taken (tags, account types
+and sibling categories are unique), an amount that is not a positive number, a
+missing or identical account, a colour that is not `#rrggbb`, a currency that is
+not three letters, a logo that is not http(s), more than ten tags — is checked on
+the device, mirroring the API's rules, so it never comes back later as a snackbar
+after the form has closed. The rules are re-run on every change, and the save
+button is disabled the moment any of them fails and enabled the moment the last is
+fixed, so an invalid form cannot be submitted at all. Following Material 3, the
+reason is said beside the field: once a field has been touched (typed in, chosen
+from or left) it takes the error colour and shows its error in place of its hint,
+read out to a screen reader, and the error clears as soon as the value is
+acceptable. An untouched field stays quiet, so a blank form is not covered in red
+before anyone has done anything, though its save button is already off. A banner is
+kept only for a failure that belongs to no field (the save itself). The rules live
+in `useFormValidation` (`lib/validation.ts`, with `FieldSupport.vue`) on the web
+and in `FormValidation` (`ui/common/FormValidation.kt`, with `YuukaTextField` and
+`DropdownField`) on Android; the shared rules are `domain/Validation.kt`.
+
 **The queue is the one thing that is not a cache.** Everything else stored
 locally can be thrown away and refetched; a queued change exists nowhere else.
 On Android it therefore lives in its own Room database (`OutboxDatabase`),

@@ -12,14 +12,15 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * The pull-to-refresh sync. The API is the source of truth and Room only a
  * cache of it, and the per-screen `refresh*` calls only ever fold rows in — a
  * transaction, budget or summary deleted elsewhere (the web app, another
  * device) would stay on this one forever. A full sync is what lets them go:
- * it discards everything cached for the paged and per-month data and has the
- * screens on show load it again.
+ * it has the screens on show load the paged and per-month data again, and
+ * discards what is cached for the budgets and summaries.
  */
 class SyncRepository(
     private val database: YuukaDatabase,
@@ -33,7 +34,22 @@ class SyncRepository(
 ) {
     private val _synced = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    /** Emits after a full sync has emptied the cache; a screen holding per-month or paged data reloads its own view on it. */
+    /**
+     * Set when a sync has left the cached transactions possibly out of date. They are not cleared then — an
+     * emptied table is what made the list flicker — but swapped for a fresh fetch by whoever shows them
+     * ([TransactionRepository.resync]), or discarded by the next one to open ([discardStaleTransactions]).
+     */
+    private val transactionsStale = AtomicBoolean(false)
+
+    /** For a screen that has just brought the cache up to date itself. */
+    fun markTransactionsFresh() = transactionsStale.set(false)
+
+    /** For a screen opening on a cache a sync has left behind: nothing is on show yet, so clearing costs no flicker. */
+    suspend fun discardStaleTransactions() {
+        if (transactionsStale.getAndSet(false)) transactionDao.clear()
+    }
+
+    /** Emits after a full sync has marked the cache stale; a screen holding per-month or paged data reloads its own view on it. */
     val synced: SharedFlow<Unit> = _synced.asSharedFlow()
 
     /**
@@ -69,8 +85,8 @@ class SyncRepository(
         // and letting them load again is how those catch up — the same
         // mechanism a full sync uses, without touching the whole-list data.
         if (wanted.any { it in setOf(Slices.TRANSACTIONS, Slices.BUDGETS, Slices.INCOME_PLAN, Slices.SUMMARY) }) {
+            if (Slices.TRANSACTIONS in wanted) transactionsStale.set(true)
             database.withTransaction {
-                if (Slices.TRANSACTIONS in wanted) transactionDao.clear()
                 if (Slices.BUDGETS in wanted) budgetDao.clear()
                 if (Slices.INCOME_PLAN in wanted) incomePlanDao.clear()
                 if (Slices.SUMMARY in wanted) summaryDao.clear()
@@ -90,8 +106,8 @@ class SyncRepository(
         payeeRepository.refresh()
         subscriptionRepository.refresh()
 
+        transactionsStale.set(true)
         database.withTransaction {
-            transactionDao.clear()
             budgetDao.clear()
             incomePlanDao.clear()
             summaryDao.clear()

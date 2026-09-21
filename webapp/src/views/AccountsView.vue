@@ -13,6 +13,8 @@ import StatCard from '@/components/StatCard.vue';
 import { api, ApiError } from '@/lib/api';
 import { parseMoney, toDecimalString } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
+import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
@@ -37,6 +39,16 @@ const form = reactive({
 	roundUpSource: false,
 });
 
+const validation = useFormValidation({
+	'account-name': () => nameProblem(form.name),
+	'account-type': () => (ledger.accountTypes.some((type) => type.id === form.typeId) ? null : 'Choose a type.'),
+	'account-balance': () => (parseMoney(form.startingBalance) === null ? 'Enter a number, such as 1250.00.' : null),
+	'account-currency': () => currencyProblem(form.currency),
+	'account-logo': () => logoUrlProblem(form.logoUrl),
+});
+const { error: fieldError, touch } = validation;
+const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
+
 const adjustDialogOpen = ref(false);
 const adjusting = ref<Account | null>(null);
 const adjustError = ref<string | null>(null);
@@ -44,6 +56,16 @@ const adjustForm = reactive({
 	balance: '0.00',
 	payee: '',
 });
+
+const adjustValidation = useFormValidation({
+	'adjust-balance': () => {
+		const target = parseMoney(adjustForm.balance);
+		if (target === null) return 'Enter a number, such as 1250.00.';
+		return adjusting.value && target === adjusting.value.balance ? 'That is already the current balance.' : null;
+	},
+	'adjust-payee': () => (adjustForm.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null),
+});
+const { error: adjustFieldError, touch: adjustTouch } = adjustValidation;
 
 /** Today, in the account's own local timezone rather than UTC — matches how a transaction date picker behaves elsewhere. */
 function today(): string {
@@ -115,6 +137,7 @@ const groups = computed<AccountGroup[]>(() => {
 function openCreate(): void {
 	editing.value = null;
 	error.value = null;
+	validation.reset();
 	Object.assign(form, {
 		name: '',
 		typeId: ledger.activeAccountTypes[0]?.id ?? '',
@@ -130,6 +153,7 @@ function openCreate(): void {
 function openEdit(account: Account): void {
 	editing.value = account;
 	error.value = null;
+	validation.reset();
 	Object.assign(form, {
 		name: account.name,
 		typeId: account.typeId,
@@ -143,16 +167,14 @@ function openEdit(account: Account): void {
 }
 
 async function save(): Promise<void> {
-	const startingBalance = parseMoney(form.startingBalance);
-	if (startingBalance === null) {
-		error.value = 'Starting balance must be a number.';
-		return;
-	}
+	error.value = null;
+	if (!validation.isValid.value) return;
+	const startingBalance = parseMoney(form.startingBalance) as number;
 
 	const payload = {
-		name: form.name,
+		name: form.name.trim(),
 		typeId: form.typeId,
-		currency: form.currency,
+		currency: form.currency.trim().toUpperCase(),
 		startingBalance,
 		logoUrl: form.logoUrl.trim(),
 		logoInvertDark: form.logoInvertDark,
@@ -174,6 +196,7 @@ async function save(): Promise<void> {
 function openAdjust(account: Account): void {
 	adjusting.value = account;
 	adjustError.value = null;
+	adjustValidation.reset();
 	Object.assign(adjustForm, { balance: toDecimalString(account.balance), payee: '' });
 	adjustDialogOpen.value = true;
 }
@@ -182,15 +205,9 @@ async function saveAdjustment(): Promise<void> {
 	const account = adjusting.value;
 	if (!account) return;
 
-	const balance = parseMoney(adjustForm.balance);
-	if (balance === null) {
-		adjustError.value = 'Balance must be a number.';
-		return;
-	}
-	if (balance === account.balance) {
-		adjustError.value = 'That is already the current balance.';
-		return;
-	}
+	adjustError.value = null;
+	if (!adjustValidation.isValid.value) return;
+	const balance = parseMoney(adjustForm.balance) as number;
 
 	try {
 		await api.adjustAccount(account.id, { balance, occurredOn: today(), payee: adjustForm.payee.trim() || undefined });
@@ -300,24 +317,56 @@ onMounted(() => ledger.load());
 		</ModalDialog>
 
 		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit account' : 'New account'" @close="dialogOpen = false">
-			<form class="space-y-4" @submit.prevent="save">
+			<form class="space-y-4" novalidate @submit.prevent="save" @input="validation.onInput">
 				<div class="field">
 					<label class="label" for="account-name">Name</label>
-					<input id="account-name" v-model="form.name" class="input" required placeholder="Everyday checking" />
+					<input
+						id="account-name"
+						v-model="form.name"
+						class="input"
+						required
+						placeholder="Everyday checking"
+						:aria-invalid="fieldError('account-name') ? true : undefined"
+						:aria-describedby="describe('account-name')"
+						@blur="touch('account-name')"
+					/>
+					<FieldSupport id="account-name" :error="fieldError('account-name')" />
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="field">
 						<label class="label" for="account-type">Type</label>
-						<SelectField id="account-type" v-model="form.typeId" :options="typeChoices" required />
+						<SelectField
+							id="account-type"
+							v-model="form.typeId"
+							:options="typeChoices"
+							required
+							:invalid="Boolean(fieldError('account-type'))"
+							:describedby="describe('account-type')"
+							@blur="touch('account-type')"
+						/>
+						<FieldSupport id="account-type" :error="fieldError('account-type')" />
 					</div>
 
 					<div class="field">
 						<label class="label" for="account-balance">Starting balance</label>
-						<input id="account-balance" v-model="form.startingBalance" class="input tabular" inputmode="decimal" placeholder="0.00" />
+						<input
+							id="account-balance"
+							v-model="form.startingBalance"
+							class="input tabular"
+							inputmode="decimal"
+							placeholder="0.00"
+							:aria-invalid="fieldError('account-balance') ? true : undefined"
+							:aria-describedby="supportId('account-balance')"
+							@blur="touch('account-balance')"
+						/>
+						<FieldSupport
+							id="account-balance"
+							:error="fieldError('account-balance')"
+							hint="The balance before any transaction below was recorded."
+						/>
 					</div>
 				</div>
-				<p class="-mt-2 text-xs text-on-surface-variant">The balance before any transaction below was recorded.</p>
 
 				<div class="field">
 					<label class="label" for="account-currency">Currency</label>
@@ -328,7 +377,11 @@ onMounted(() => ledger.load());
 						maxlength="3"
 						required
 						:placeholder="ledger.displayCurrency"
+						:aria-invalid="fieldError('account-currency') ? true : undefined"
+						:aria-describedby="describe('account-currency')"
+						@blur="touch('account-currency')"
 					/>
+					<FieldSupport id="account-currency" :error="fieldError('account-currency')" />
 				</div>
 
 				<!-- A switch, not a checkbox: text and explanation on the left, the switch on the right, and the text toggles it. -->
@@ -351,7 +404,11 @@ onMounted(() => ledger.load());
 								type="url"
 								inputmode="url"
 								placeholder="https://example.com/logo.png"
+								:aria-invalid="fieldError('account-logo') ? true : undefined"
+								:aria-describedby="describe('account-logo')"
+								@blur="touch('account-logo')"
 							/>
+							<FieldSupport id="account-logo" :error="fieldError('account-logo')" />
 						</div>
 					</div>
 					<div class="mt-3 flex items-center justify-between gap-4">
@@ -366,13 +423,15 @@ onMounted(() => ledger.load());
 
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary">{{ editing ? 'Save changes' : 'Add account' }}</button>
+					<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
+						{{ editing ? 'Save changes' : 'Add account' }}
+					</button>
 				</div>
 			</form>
 		</ModalDialog>
 
 		<ModalDialog :open="adjustDialogOpen" title="Adjust balance" @close="adjustDialogOpen = false">
-			<form v-if="adjusting" class="space-y-4" @submit.prevent="saveAdjustment">
+			<form v-if="adjusting" class="space-y-4" novalidate @submit.prevent="saveAdjustment" @input="adjustValidation.onInput">
 				<p class="text-sm text-on-surface-variant">
 					{{ adjusting.name }}'s current balance is
 					<MoneyText :amount="adjusting.balance" :currency="adjusting.currency" class="font-medium text-on-surface" />. Enter what it should
@@ -381,7 +440,17 @@ onMounted(() => ledger.load());
 
 				<div class="field">
 					<label class="label" for="adjust-balance">New balance</label>
-					<input id="adjust-balance" v-model="adjustForm.balance" class="input tabular" inputmode="decimal" placeholder="0.00" />
+					<input
+						id="adjust-balance"
+						v-model="adjustForm.balance"
+						class="input tabular"
+						inputmode="decimal"
+						placeholder="0.00"
+						:aria-invalid="adjustFieldError('adjust-balance') ? true : undefined"
+						:aria-describedby="adjustFieldError('adjust-balance') ? supportId('adjust-balance') : undefined"
+						@blur="adjustTouch('adjust-balance')"
+					/>
+					<FieldSupport id="adjust-balance" :error="adjustFieldError('adjust-balance')" />
 				</div>
 
 				<p v-if="adjustDifference !== null && adjustDifference !== 0" class="text-sm text-on-surface-variant">
@@ -392,7 +461,16 @@ onMounted(() => ledger.load());
 
 				<div class="field">
 					<label class="label" for="adjust-payee">Payee (optional)</label>
-					<input id="adjust-payee" v-model="adjustForm.payee" class="input" placeholder="Balance adjustment" />
+					<input
+						id="adjust-payee"
+						v-model="adjustForm.payee"
+						class="input"
+						placeholder="Balance adjustment"
+						:aria-invalid="adjustFieldError('adjust-payee') ? true : undefined"
+						:aria-describedby="adjustFieldError('adjust-payee') ? supportId('adjust-payee') : undefined"
+						@blur="adjustTouch('adjust-payee')"
+					/>
+					<FieldSupport id="adjust-payee" :error="adjustFieldError('adjust-payee')" />
 				</div>
 
 				<p v-if="adjustError" class="banner-error" role="alert">
@@ -401,7 +479,7 @@ onMounted(() => ledger.load());
 
 				<div class="flex justify-end gap-2 pt-2">
 					<button type="button" class="btn-text" @click="adjustDialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary">Save adjustment</button>
+					<button type="submit" class="btn-primary" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
 				</div>
 			</form>
 		</ModalDialog>

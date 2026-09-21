@@ -412,7 +412,7 @@ one-offs: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`,
 wash. Fields are outlined text fields: a `.field` wrapper holds a `.label` and a
 `.input`, and the label sits raised in the border's notch, cut out in the colour
 of whatever the field sits on (`--surface-under`). Three components carry markup a
-class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few), `SelectField` (the exposed dropdown menu that replaces every native `<select>`: give it `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field and never reach for a `<select>` again) and `FabButton` (the one
+class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few), `SelectField` (the exposed dropdown menu that replaces every native `<select>`: give it `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field and never reach for a `<select>` again; it is the field in every form), `PreferenceSelect` (the same choice set the way Android's settings set one, for the Settings and Save the Change screens only: a row with the label and the current choice beneath it, opening a dialog of radio buttons; a form never uses it) and `FabButton` (the one
 action a screen leads with, registered in `src/lib/fab.ts`: a phone gets the floating
 button, and from `sm` up `NavRail` shows the same action under its menu button, as an
 icon FAB while slim and an extended one when open). Navigation is a rail from the `sm` breakpoint (`NavRail`, whose icons are Android's own Material Filled set (`src/lib/icons.ts`, from
@@ -450,7 +450,7 @@ carries a visible text label — colour never carries meaning alone.
 
 ## Tests
 
-587 tests: 392 against the API in `test/`, 195 over the browser helpers as
+598 tests: 392 against the API in `test/`, 206 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

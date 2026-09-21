@@ -5,6 +5,8 @@ import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
+import { supportId, useFormValidation } from '@/lib/validation';
 import { computed, ref } from 'vue';
 
 const props = withDefaults(defineProps<{ entry: CategoryBreakdown; currency?: string }>(), { currency: DEFAULT_CURRENCY });
@@ -27,9 +29,25 @@ const mode = ref<'amount' | 'percent'>('amount');
 const draft = ref('');
 const saving = ref(false);
 
-const percentInvalid = computed(() => mode.value === 'percent' && draft.value.trim() !== '' && parsePercent(draft.value) === null);
+/** Every card has its own field, so the id carries the category; a card is never reused for another one. */
+const fieldId = `budget-${props.entry.categoryId}`;
+
+const validation = useFormValidation({
+	[fieldId]: () => {
+		// Empty clears the plan, which is a change like any other.
+		if (draft.value.trim() === '') return null;
+		if (mode.value === 'percent') return parsePercent(draft.value) === null ? 'Enter a percentage between 0 and 100.' : null;
+
+		const value = parseMoney(draft.value);
+		if (value === null) return 'Enter an amount as a number, such as 250.00.';
+		return value < 0 ? 'A budget cannot be negative.' : null;
+	},
+});
+
+const { error: fieldError, touch } = validation;
 
 function start(): void {
+	validation.reset();
 	if (props.entry.plannedPercent !== null) {
 		mode.value = 'percent';
 		draft.value = String(props.entry.plannedPercent);
@@ -44,21 +62,20 @@ function selectMode(next: 'amount' | 'percent'): void {
 	if (mode.value === next) return;
 	mode.value = next;
 	draft.value = '';
+	validation.reset();
 }
 
 async function commit(): Promise<void> {
+	if (!validation.isValid.value) return;
+
 	let change: { amount: number } | { percent: number };
 
 	if (draft.value.trim() === '') {
 		change = { amount: 0 };
 	} else if (mode.value === 'percent') {
-		const value = parsePercent(draft.value);
-		if (value === null) return;
-		change = { percent: value };
+		change = { percent: parsePercent(draft.value) as number };
 	} else {
-		const value = parseMoney(draft.value);
-		if (value === null || value < 0) return;
-		change = { amount: value };
+		change = { amount: parseMoney(draft.value) as number };
 	}
 
 	saving.value = true;
@@ -105,7 +122,14 @@ const arc = computed(() => {
 			</span>
 		</div>
 
-		<form v-if="editing" class="mt-2 space-y-2" @submit.prevent="commit" @keydown.esc="editing = false">
+		<form
+			v-if="editing"
+			class="mt-2 space-y-2"
+			novalidate
+			@submit.prevent="commit"
+			@input="validation.onInput"
+			@keydown.esc="editing = false"
+		>
 			<ConnectedButtonGroup
 				:model-value="mode"
 				label="Enter as"
@@ -126,23 +150,26 @@ const arc = computed(() => {
 						{{ currencySymbol(currency) }}
 					</span>
 					<input
+						:id="fieldId"
 						v-model="draft"
 						class="input tabular"
-						:class="[mode === 'amount' ? 'pl-10' : '', percentInvalid ? 'border-error' : '']"
+						:class="mode === 'amount' ? 'pl-10' : ''"
 						inputmode="decimal"
 						:aria-label="mode === 'percent' ? 'Planned percent of income' : 'Planned amount'"
-						:aria-invalid="percentInvalid"
+						:aria-invalid="fieldError(fieldId) ? true : undefined"
+						:aria-describedby="fieldError(fieldId) ? supportId(fieldId) : undefined"
 						:placeholder="mode === 'percent' ? '0' : '0.00'"
 						:disabled="saving"
 						autofocus
+						@blur="touch(fieldId)"
 					/>
 				</div>
-				<p v-if="percentInvalid" class="mt-1 px-4 text-xs text-error" role="alert">Enter a percentage between 0 and 100</p>
+				<FieldSupport :id="fieldId" :error="fieldError(fieldId)" />
 			</div>
 
 			<div class="flex gap-2">
 				<button type="button" class="btn-outlined flex-1" :disabled="saving" @click="editing = false">Cancel</button>
-				<button type="submit" class="btn-primary flex-1" :disabled="saving || percentInvalid">Save</button>
+				<button type="submit" class="btn-primary flex-1" :disabled="saving || !validation.isValid.value">Save</button>
 			</div>
 		</form>
 

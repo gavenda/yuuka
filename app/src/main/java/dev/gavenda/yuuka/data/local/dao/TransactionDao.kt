@@ -105,6 +105,9 @@ interface TransactionDao {
     @Query("DELETE FROM transaction_tags WHERE transactionId IN (SELECT id FROM transactions WHERE accountId = :accountId)")
     suspend fun deleteTagLinksOfAccount(accountId: String)
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE accountId = :accountId")
+    suspend fun countByAccountId(accountId: String): Int
+
     @Query("DELETE FROM transactions WHERE accountId = :accountId")
     suspend fun deleteRowsByAccountId(accountId: String)
 
@@ -135,5 +138,13 @@ interface TransactionDao {
     suspend fun clear() {
         clearTagLinks()
         clearRows()
+    }
+
+    /** Swaps the cache for these rows in one transaction, so an observer sees the old list and then the new one, never an empty one between. */
+    @Transaction
+    suspend fun replaceAll(transactions: List<TransactionEntity>, links: List<TransactionTagEntity>) {
+        clear()
+        insertRows(transactions)
+        insertTagLinks(links)
     }
 }

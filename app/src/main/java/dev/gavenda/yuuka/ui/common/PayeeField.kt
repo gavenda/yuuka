@@ -25,18 +25,20 @@ fun PayeeField(
     onSelect: (Payee) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    field: FieldState? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val matches = remember(payees, value) { rankPayees(payees, value) }
     val showList = focused && matches.isNotEmpty() && !isExhausted(matches, value)
 
     androidx.compose.foundation.layout.Box(modifier = modifier) {
-        OutlinedTextField(
+        YuukaTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label) },
-            placeholder = placeholder?.let { { Text(it) } },
+            label = label,
+            placeholder = placeholder,
             singleLine = true,
+            field = field,
             modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         )
 

@@ -28,6 +28,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.domain.PALETTE
+import dev.gavenda.yuuka.domain.isHexColour
+import dev.gavenda.yuuka.domain.sameName
 import dev.gavenda.yuuka.domain.formatCount
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -121,6 +123,7 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
             WithSnackbarOverlay {
                 TagForm(
                     editing = editing,
+                    existing = state.tags,
                     initialColor = viewModel.nextColor(),
                     submitting = submitting,
                     onSave = { name, color ->
@@ -150,7 +153,7 @@ private fun TagRow(tag: Tag, deleting: Boolean, onEdit: () -> Unit, onDelete: ()
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, tag.name), onDelete, danger = true, loading = deleting)
         },
     ) {
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -180,6 +183,7 @@ private fun colorFromHex(hex: String): Color =
 @Composable
 private fun TagForm(
     editing: Tag?,
+    existing: List<Tag>,
     initialColor: String,
     submitting: Boolean,
     onSave: (String, String) -> Unit,
@@ -188,15 +192,23 @@ private fun TagForm(
     var name by remember { mutableStateOf(editing?.name ?: "") }
     var color by remember { mutableStateOf(editing?.color ?: initialColor) }
 
+    // Tags are unique per person whatever the case, so a name is checked against the others (an edit may keep its own).
+    val form = rememberFormValidation()
+    val nameField = form.field(
+        "name",
+        nameProblem(name, R.string.error_name_taken_tag) { taken -> existing.any { it.id != editing?.id && sameName(it.name, taken) } },
+    )
+    val colourField = form.field("colour", if (!isHexColour(color)) stringResource(R.string.hex_colour_hint) else null)
+
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (editing != null) stringResource(R.string.edit_tag) else stringResource(R.string.new_tag), style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(
+        YuukaTextField(
             value = name,
-            onValueChange = { name = it.take(80) },
-            label = { Text(stringResource(R.string.label_name)) },
+            onValueChange = { name = it },
+            label = stringResource(R.string.label_name),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            field = nameField,
         )
 
         val isCustomColor = PALETTE.none { it.light.equals(color, ignoreCase = true) }
@@ -250,19 +262,13 @@ private fun TagForm(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
 
-            OutlinedTextField(
+            YuukaTextField(
                 value = color,
                 onValueChange = { color = it },
-                label = { Text(stringResource(R.string.custom_colour_hex)) },
-                placeholder = { Text(stringResource(R.string.placeholder_hex_sample)) },
+                label = stringResource(R.string.custom_colour_hex),
+                placeholder = stringResource(R.string.placeholder_hex_sample),
                 singleLine = true,
-                isError = !isValidColor,
-                supportingText = if (!isValidColor) {
-                    { Text(stringResource(R.string.hex_colour_hint)) }
-                } else {
-                    null
-                },
-                modifier = Modifier.fillMaxWidth(),
+                field = colourField,
             )
         }
 
@@ -270,8 +276,8 @@ private fun TagForm(
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                onClick = { if (name.isNotBlank() && isValidColor) onSave(name.trim(), color) },
-                enabled = name.isNotBlank() && isValidColor && !submitting,
+                onClick = { onSave(name.trim(), color) },
+                enabled = !submitting && form.valid(nameField, colourField),
             ) {
                 if (submitting) {
                     MutationLoadingIndicator()

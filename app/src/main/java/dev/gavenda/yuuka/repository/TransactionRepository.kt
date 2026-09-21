@@ -27,6 +27,9 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** The API's largest page, so a resync makes as few round trips as it can. */
+private const val RESYNC_PAGE = 200
+
 /**
  * Mirrors the web app's `transactions` Pinia store (`src/stores/transactions.ts`), backed by Room.
  *
@@ -94,6 +97,31 @@ class TransactionRepository(
         }
         store(page.transactions)
         return page
+    }
+
+    /**
+     * The refetch after a sync: pulls back as much as was on screen (everything, when a filter narrows the cache),
+     * and only then replaces the cache with it in one step. Clearing first and refilling as the pages arrive is
+     * what made the list empty out and flicker; here the last-seen rows stay up until the new ones are ready, and
+     * a failed fetch leaves them alone. Returns the API's total and how many rows it now holds.
+     */
+    suspend fun resync(filters: TransactionFilters, loaded: Int): Pair<Int, Int> {
+        val rows = mutableListOf<Transaction>()
+        var total: Int
+        do {
+            val page = apiCall {
+                api.listTransactions(
+                    month = filters.month,
+                    search = filters.search?.takeIf { it.isNotBlank() },
+                    limit = RESYNC_PAGE,
+                    offset = rows.size,
+                )
+            }
+            rows += page.transactions
+            total = page.total
+        } while (page.transactions.isNotEmpty() && rows.size < total && (filters.narrowsCache || rows.size < loaded))
+        dao.replaceAll(rows.map { it.toEntity() }, rows.flatMap { it.tagLinks() })
+        return total to rows.size
     }
 
     /** Returns the "Save the Change" round-up this create triggered, if any — its destination-account leg, ready to surface as feedback. */

@@ -31,6 +31,10 @@ interface AccountDao {
     @Query("DELETE FROM accounts WHERE id = :id")
     suspend fun deleteById(id: String)
 
+    /** Archived accounts included: a type they hold is still in use. */
+    @Query("SELECT COUNT(*) FROM accounts WHERE typeId = :typeId")
+    suspend fun countByType(typeId: String): Int
+
     @Query("DELETE FROM accounts")
     suspend fun clear()
 

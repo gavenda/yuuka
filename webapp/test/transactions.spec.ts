@@ -114,6 +114,16 @@ describe('transactions', () => {
 			expect((await json<{ total: number }>(await call('/transactions?categoryId=none'))).total).toBe(1);
 		});
 
+		it('takes several categories at once, the uncategorised among them', async () => {
+			expect((await json<{ total: number }>(await call(`/transactions?categoryId=${categoryId},none`))).total).toBe(3);
+			expect((await json<{ total: number }>(await call('/transactions?categoryId=none,none'))).total).toBe(1);
+		});
+
+		it('takes several accounts at once', async () => {
+			expect((await json<{ total: number }>(await call(`/transactions?accountId=${accountId},acc_elsewhere`))).total).toBe(3);
+			expect((await json<{ total: number }>(await call('/transactions?accountId=acc_elsewhere'))).total).toBe(0);
+		});
+
 		it('searches payee and notes', async () => {
 			expect((await json<{ total: number }>(await call('/transactions?search=Corner'))).total).toBe(1);
 			expect((await json<{ total: number }>(await call('/transactions?search=withdrawal'))).total).toBe(1);

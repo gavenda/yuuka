@@ -4,8 +4,8 @@ import { isExhausted, rankPayees } from '@/lib/payees';
 import type { Payee } from '@/types';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ modelValue: string; label: string; placeholder?: string }>();
-const emit = defineEmits<{ 'update:modelValue': [string]; select: [Payee] }>();
+const props = defineProps<{ modelValue: string; label: string; placeholder?: string; invalid?: boolean; describedby?: string }>();
+const emit = defineEmits<{ 'update:modelValue': [string]; select: [Payee]; blur: [] }>();
 
 /**
  * The whole history is fetched once when the form opens and filtered here.
@@ -101,10 +101,13 @@ function hint(entry: Payee): string {
 			role="combobox"
 			aria-autocomplete="list"
 			:aria-expanded="showList"
+			:aria-invalid="invalid || undefined"
+			:aria-describedby="describedby"
 			aria-controls="payee-suggestions"
 			:placeholder="placeholder"
 			@input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
 			@focus="open = true"
+			@blur="emit('blur')"
 			@keydown="onKeydown"
 		/>
 

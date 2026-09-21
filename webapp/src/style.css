@@ -21,19 +21,21 @@
 	--color-on-error: #690005;
 	--color-error-container: #93000a;
 	--color-on-error-container: #ffb4ab;
-	--color-surface: #121316;
+	--color-background: #141927;
+	--color-card: #2a3350;
+	--color-surface: #0e121b;
 	--color-on-surface: #e3e2e6;
 	--color-surface-variant: #43474e;
 	--color-on-surface-variant: #c4c6cf;
-	--color-surface-dim: #121316;
-	--color-surface-bright: #38393c;
-	--color-surface-container-lowest: #0d0e11;
-	--color-surface-container-low: #1a1c1e;
-	--color-surface-container: #1e2023;
-	--color-surface-container-high: #292a2d;
-	--color-surface-container-highest: #343538;
+	--color-surface-dim: #0e121b;
+	--color-surface-bright: #3a4460;
+	--color-surface-container-lowest: #0a0e16;
+	--color-surface-container-low: #181d2d;
+	--color-surface-container: #1e2438;
+	--color-surface-container-high: #2a3350;
+	--color-surface-container-highest: #3a4460;
 	--color-outline: #8e9099;
-	--color-outline-variant: #43474e;
+	--color-outline-variant: #3a4056;
 	--color-inverse-surface: #e3e2e6;
 	--color-inverse-on-surface: #2f3033;
 	--color-inverse-primary: #005eb4;
@@ -66,19 +68,21 @@
 	--color-on-error: #ffffff;
 	--color-error-container: #ffdad6;
 	--color-on-error-container: #410002;
-	--color-surface: #faf9fd;
+	--color-background: #e6edf7;
+	--color-card: #ffffff;
+	--color-surface: #f5f8fc;
 	--color-on-surface: #1a1c1e;
 	--color-surface-variant: #e0e2ec;
 	--color-on-surface-variant: #43474e;
-	--color-surface-dim: #dad9dd;
-	--color-surface-bright: #faf9fd;
+	--color-surface-dim: #d6dfeb;
+	--color-surface-bright: #f5f8fc;
 	--color-surface-container-lowest: #ffffff;
-	--color-surface-container-low: #f4f3f7;
-	--color-surface-container: #eeedf1;
-	--color-surface-container-high: #e9e7eb;
-	--color-surface-container-highest: #e3e2e6;
+	--color-surface-container-low: #f2f5fb;
+	--color-surface-container: #e3ebf4;
+	--color-surface-container-high: #d9e3ef;
+	--color-surface-container-highest: #cdd9ea;
 	--color-outline: #74777f;
-	--color-outline-variant: #c4c6cf;
+	--color-outline-variant: #bfcad9;
 	--color-inverse-surface: #2f3033;
 	--color-inverse-on-surface: #f1f0f4;
 	--color-inverse-primary: #a8c8ff;
@@ -142,11 +146,11 @@
 	html {
 		scroll-behavior: smooth;
 		/* Where a field's label notch cuts the border: the colour of whatever the field sits on. */
-		--surface-under: var(--color-surface);
+		--surface-under: var(--color-background);
 	}
 
 	body {
-		@apply bg-surface text-on-surface antialiased;
+		@apply bg-background text-on-surface antialiased;
 	}
 
 	/* Money and other figures line up in columns when digits are tabular. */
@@ -261,10 +265,11 @@
 }
 
 @layer components {
-	/* Cards are elevated cards: a tonal surface a step above the page, lifted by level 1. */
+	/* Cards are filled cards, flat like the Android app's: white in light mode so they stand clear of
+	   the tinted page, the tonal step above the page in dark mode. */
 	.card {
-		--surface-under: var(--color-surface-container-low);
-		@apply rounded-md bg-surface-container-low shadow-elevation-1;
+		--surface-under: var(--color-card);
+		@apply rounded-md bg-card;
 	}
 
 	/*
@@ -290,11 +295,28 @@
 		@apply text-primary;
 	}
 
+	/* An invalid field: the outline, the label and the supporting text all turn to the error colour, and the outline thickens on focus as it does when valid. */
+	.field:has([aria-invalid='true']) > .label {
+		@apply text-error;
+	}
+
+	.field-support {
+		@apply mt-1 flex items-start gap-1 px-4 text-xs text-on-surface-variant;
+	}
+
+	.field-support-error {
+		@apply text-error;
+	}
+
 	.input {
 		@apply block min-h-14 w-full rounded-xs border border-outline bg-transparent px-4 py-2 text-base text-on-surface;
 		@apply placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none;
 		@apply disabled:border-on-surface/12 disabled:text-on-surface/38;
 		@apply transition-colors;
+	}
+
+	.input[aria-invalid='true'] {
+		@apply border-error focus:border-error focus:ring-error;
 	}
 
 	/* For fields set inline beside other controls, where 56dp is too tall. */
@@ -434,6 +456,11 @@
 
 	button.chip[aria-pressed='true'] {
 		@apply border-transparent bg-secondary-container text-on-secondary-container;
+	}
+
+	/* The count on an icon button: how many choices a filter has on. */
+	.badge {
+		@apply type-label-small absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-error px-1 text-on-error;
 	}
 
 	.banner-error {

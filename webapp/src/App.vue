@@ -73,7 +73,7 @@ const contentInset = computed(() => {
 /** The top app bar names the screen; the views underneath don't repeat it. */
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'yuuka');
 
-/** The phone's bar sits on the page's surface until content scrolls beneath it, then lifts a tonal step. */
+/** The phone's bar sits on the page's background until content scrolls beneath it, then lifts a tonal step. */
 const scrolled = ref(false);
 function onScroll(): void {
 	scrolled.value = window.scrollY > 0;
@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
 		<header
 			v-if="showShell && !isLoading"
 			class="sticky top-0 z-30 transition-colors sm:hidden"
-			:class="scrolled ? 'bg-surface-container' : 'bg-surface'"
+			:class="scrolled ? 'bg-surface-container' : 'bg-background'"
 		>
 			<div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4">
 				<RouterLink to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">

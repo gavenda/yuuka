@@ -29,6 +29,7 @@ import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.domain.CollapsedSections
 import dev.gavenda.yuuka.domain.PALETTE
+import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -77,7 +78,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             state.sections.forEach { section ->
                 val expanded = section.key !in collapsedSections
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(
                                 modifier = Modifier
@@ -184,6 +185,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                     initialSection = section ?: state.sections.first(),
                     parentId = creatingParentId,
                     editing = editing,
+                    existing = state.categories,
                     submitting = submitting,
                     parentOptionsFor = { viewModel.parentOptionsFor(it.kind) },
                     nextColorFor = { viewModel.nextColorFor(it.kind) },
@@ -232,7 +234,8 @@ private fun CategoryRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                // Opaque, so it hides the actions behind it, but the card's own colour so it reads as part of the card.
+                .background(yuukaCardColor())
                 .clickable(onClick = onEdit)
                 .padding(start = if (indent) 24.dp else 0.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -267,6 +270,8 @@ private fun CategoryFormContent(
     initialSection: CategorySection,
     parentId: String?,
     editing: Category?,
+    /** Every category there is, archived ones included: a name is unique among its siblings whatever their state. */
+    existing: List<Category>,
     submitting: Boolean,
     parentOptionsFor: (CategorySection) -> List<Category>,
     nextColorFor: (CategorySection) -> String,
@@ -279,10 +284,22 @@ private fun CategoryFormContent(
 
     val kind = editing?.kind ?: selectedSection.kind
 
+    // A subcategory takes its parent's kind, and its name has to be unique among its siblings of that kind.
+    val siblingsParentId = editing?.parentId ?: parentId
+    val effectiveKind = siblingsParentId?.let { id -> existing.firstOrNull { it.id == id }?.kind } ?: kind
+    val form = rememberFormValidation()
+    val nameField = form.field(
+        "name",
+        nameProblem(name, R.string.error_name_taken_category) { taken ->
+            existing.any { it.id != editing?.id && it.name == taken && it.kind == effectiveKind && it.parentId == siblingsParentId }
+        },
+    )
+    val colourField = form.field("colour", if (!isHexColour(color)) stringResource(R.string.hex_colour_hint) else null)
+
     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(if (editing != null) stringResource(R.string.edit_category) else stringResource(R.string.new_category), style = MaterialTheme.typography.titleMedium)
 
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.label_name)) }, modifier = Modifier.fillMaxWidth())
+        YuukaTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.label_name), singleLine = true, field = nameField)
 
         if (editing == null && parentId == null) {
             Text(stringResource(R.string.label_kind), style = MaterialTheme.typography.labelMedium)
@@ -358,19 +375,13 @@ private fun CategoryFormContent(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
 
-            OutlinedTextField(
+            YuukaTextField(
                 value = color,
                 onValueChange = { color = it },
-                label = { Text(stringResource(R.string.custom_colour_hex)) },
-                placeholder = { Text(stringResource(R.string.placeholder_hex_sample)) },
+                label = stringResource(R.string.custom_colour_hex),
+                placeholder = stringResource(R.string.placeholder_hex_sample),
                 singleLine = true,
-                isError = !isValidColor,
-                supportingText = if (!isValidColor) {
-                    { Text(stringResource(R.string.hex_colour_hint)) }
-                } else {
-                    null
-                },
-                modifier = Modifier.fillMaxWidth(),
+                field = colourField,
             )
         }
 
@@ -378,8 +389,8 @@ private fun CategoryFormContent(
             TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 modifier = Modifier.weight(1f),
-                onClick = { if (name.isNotBlank() && isValidColor) onSave(name, kind, color) },
-                enabled = name.isNotBlank() && isValidColor && !submitting,
+                onClick = { onSave(name.trim(), kind, color) },
+                enabled = !submitting && form.valid(nameField, colourField),
             ) {
                 if (submitting) {
                     MutationLoadingIndicator()

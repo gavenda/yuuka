@@ -8,6 +8,9 @@ import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
 import dev.gavenda.yuuka.data.remote.apiJson
 import dev.gavenda.yuuka.data.remote.dto.SyncOperationDto
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonElement
@@ -60,6 +64,9 @@ class Outbox(
     private val batchSize = 200
 
     private val flushLock = Mutex()
+
+    /** Outlives any screen, so a save made just before leaving one is still sent. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _syncing = MutableStateFlow(false)
     private val _synced = MutableSharedFlow<List<String>>(extraBufferCapacity = 8)
@@ -109,7 +116,8 @@ class Outbox(
             ),
         )
 
-        flush()
+        // Sent in the background: the caller is told the change is saved the moment it is written down.
+        scope.launch { runCatching { flush() } }
     }
 
     /**

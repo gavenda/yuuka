@@ -14,9 +14,9 @@ import org.koin.dsl.module
 
 val viewModelModule = module {
     viewModel { DashboardViewModel(get(), get(), get(), get()) }
-    viewModel { TransactionsViewModel(get(), get(), get(), get(), get()) }
+    viewModel { TransactionsViewModel(get(), get(), get(), get()) }
     viewModel { BudgetViewModel(get(), get(), get()) }
-    viewModel { AccountsViewModel(get(), get(), get()) }
+    viewModel { AccountsViewModel(get(), get()) }
     viewModel { CategoriesViewModel(get()) }
     viewModel { TagsViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }

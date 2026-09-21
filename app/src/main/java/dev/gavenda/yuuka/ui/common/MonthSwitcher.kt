@@ -41,7 +41,7 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
         )
     }
 
-    OutlinedCard(modifier = modifier) {
+    Card(colors = yuukaCardColors(), modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),

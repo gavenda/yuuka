@@ -68,8 +68,8 @@ fun StatCard(
     }
 
     if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier.fillMaxWidth()) { body() }
+        Card(colors = yuukaCardColors(), onClick = onClick, modifier = modifier.fillMaxWidth()) { body() }
     } else {
-        Card(modifier = modifier.fillMaxWidth()) { body() }
+        Card(colors = yuukaCardColors(), modifier = modifier.fillMaxWidth()) { body() }
     }
 }

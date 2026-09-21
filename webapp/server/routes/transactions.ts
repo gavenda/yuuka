@@ -262,12 +262,23 @@ export const transactionRoutes = new Hono<AppEnv>()
 			values.push(query.to);
 		}
 		if (query.accountId) {
-			conditions.push('t.account_id = ?');
-			values.push(query.accountId);
+			conditions.push(`t.account_id IN (${query.accountId.map(() => '?').join(', ')})`);
+			values.push(...query.accountId);
 		}
 		if (query.categoryId) {
-			conditions.push(query.categoryId === 'none' ? 't.category_id IS NULL' : 't.category_id = ?');
-			if (query.categoryId !== 'none') values.push(query.categoryId);
+			const ids = query.categoryId.filter((id) => id !== 'none');
+			const clauses = [
+				...(ids.length ? [`t.category_id IN (${ids.map(() => '?').join(', ')})`] : []),
+				...(ids.length < query.categoryId.length ? ['t.category_id IS NULL'] : []),
+			];
+			conditions.push(`(${clauses.join(' OR ')})`);
+			values.push(...ids);
+		}
+		if (query.tagId) {
+			conditions.push(
+				`EXISTS (SELECT 1 FROM transaction_tags ft WHERE ft.transaction_id = t.id AND ft.tag_id IN (${query.tagId.map(() => '?').join(', ')}))`,
+			);
+			values.push(...query.tagId);
 		}
 		if (query.search) {
 			conditions.push(

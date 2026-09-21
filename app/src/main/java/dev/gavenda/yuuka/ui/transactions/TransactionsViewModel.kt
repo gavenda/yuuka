@@ -12,7 +12,6 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.repository.*
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -76,9 +75,8 @@ data class TransactionFormState(
 class TransactionsViewModel(
     private val ledgerRepository: LedgerRepository,
     private val transactionRepository: TransactionRepository,
-    private val budgetRepository: BudgetRepository,
     val payeeRepository: PayeeRepository,
-    syncRepository: SyncRepository,
+    private val syncRepository: SyncRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
@@ -128,7 +126,7 @@ class TransactionsViewModel(
             searchInput.debounce(250.milliseconds).distinctUntilChanged().collect { reload() }
         }
 
-        viewModelScope.launch { syncRepository.synced.collect { reload() } }
+        viewModelScope.launch { syncRepository.synced.collect { resync() } }
 
         viewModelScope.launch {
             filterKey.flatMapLatest { f ->
@@ -139,7 +137,10 @@ class TransactionsViewModel(
                 .collect { rows -> _uiState.update { it.copy(rows = rows) } }
         }
 
-        reload()
+        viewModelScope.launch {
+            syncRepository.discardStaleTransactions()
+            reload()
+        }
     }
 
     fun setMonth(next: String) {
@@ -176,6 +177,25 @@ class TransactionsViewModel(
     }
 
     private var firstPageJob: Job? = null
+
+    /**
+     * What a sync asks for. Unlike [reload] it keeps the filters, how much is loaded and the status where they
+     * are, and the list stays up while the rows are fetched: they replace the cache in one step, so what is on
+     * screen changes once, in place. A failure leaves the last-seen rows rather than an error over them.
+     */
+    private fun resync() {
+        val f = currentFilters()
+        firstPageJob?.cancel()
+        firstPageJob = viewModelScope.launch {
+            try {
+                val (total, count) = transactionRepository.resync(f, _uiState.value.loadedCount)
+                syncRepository.markTransactionsFresh()
+                limit.value = f.rowLimit(count)
+                _uiState.update { it.copy(total = total, loadedCount = count) }
+            } catch (_: ApiError) {
+            }
+        }
+    }
 
     /** Cancels the one still running, so quick changes to the filters cannot leave an older answer's total on screen. */
     private fun refreshFirstPage(f: TransactionFilters) {
@@ -303,7 +323,6 @@ class TransactionsViewModel(
 
                 val isEditing = editing != null
                 closeForm()
-                refreshAfterMutation()
 
                 val baseMessage = when (submission) {
                     is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
@@ -340,7 +359,6 @@ class TransactionsViewModel(
             _uiState.update { it.copy(deletingId = transaction.id) }
             try {
                 transactionRepository.deleteTransactionOrTransfer(transaction)
-                refreshAfterMutation()
                 _events.tryEmit(if (isTransfer) "Transfer deleted" else "Transaction deleted")
             } catch (e: ApiError) {
                 _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not delete.")) }
@@ -348,13 +366,5 @@ class TransactionsViewModel(
                 _uiState.update { it.copy(deletingId = null) }
             }
         }
-    }
-
-    private suspend fun refreshAfterMutation() = coroutineScope {
-        val f = filterKey.value
-        val loaded = _uiState.value.loadedCount
-        launch { runCatching { ledgerRepository.refreshAccounts() } }
-        launch { runCatching { budgetRepository.refreshSummary(f.month ?: currentMonth()) } }
-        launch { runCatching { transactionRepository.refreshPage(f, limit = loaded, offset = 0) } }
     }
 }

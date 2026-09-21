@@ -31,14 +31,17 @@ fun DenseOutlinedTextField(
     enabled: Boolean = true,
     isError: Boolean = false,
     supportingText: String? = null,
+    /** Ties the field to a form's validation: it takes the error colour and says what is wrong in place of [supportingText]. */
+    field: FieldState? = null,
     /** Non-null shows a trailing clear icon (per M3's text field guidance) whenever there's text to clear. */
     onClear: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val error = field?.error
     BasicTextField(
         value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
+        onValueChange = { field?.touch(); onValueChange(it) },
+        modifier = modifier.tracked(field),
         enabled = enabled,
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
@@ -52,11 +55,13 @@ fun DenseOutlinedTextField(
                 singleLine = true,
                 visualTransformation = VisualTransformation.None,
                 interactionSource = interactionSource,
-                isError = isError,
+                isError = isError || error != null,
                 placeholder = placeholder?.let { { Text(it) } },
                 prefix = prefix?.let { { Text(it) } },
-                supportingText = supportingText?.let { { Text(it) } },
-                trailingIcon = if (onClear != null && value.isNotEmpty()) {
+                supportingText = supportText(error, supportingText),
+                trailingIcon = if (error != null) {
+                    { ErrorIcon() }
+                } else if (onClear != null && value.isNotEmpty()) {
                     {
                         IconButton(onClick = onClear, enabled = enabled) {
                             Icon(Icons.Filled.Cancel, contentDescription = stringResource(R.string.cd_clear))

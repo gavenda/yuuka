@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import ActionIcon from '@/components/ActionIcon.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { api, ApiError } from '@/lib/api';
+import { nameProblem, supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { AccountType } from '@/types';
 import { computed, ref } from 'vue';
@@ -11,9 +13,20 @@ const emit = defineEmits<{ changed: [] }>();
 const newName = ref('');
 const editingId = ref<string | null>(null);
 const draftName = ref('');
+/** A failure that belongs to no one field — the change itself went wrong. */
 const error = ref<string | null>(null);
 const busy = ref(false);
 const showArchived = ref(false);
+
+/** Types are unique by name, so a name is checked against the others (a rename may keep its own). */
+const isTaken = (name: string, exceptId?: string): boolean =>
+	ledger.accountTypes.some((type) => type.id !== exceptId && type.name === name);
+const TAKEN = 'You already have an account type with that name.';
+
+const addValidation = useFormValidation({ 'new-account-type': () => nameProblem(newName.value, (name) => isTaken(name), TAKEN) });
+const renameValidation = useFormValidation({
+	'rename-account-type': () => nameProblem(draftName.value, (name) => isTaken(name, editingId.value ?? undefined), TAKEN),
+});
 
 const visible = computed(() => ledger.accountTypes.filter((type) => showArchived.value || !type.archived));
 const archivedCount = computed(() => ledger.accountTypes.filter((type) => type.archived).length);
@@ -37,23 +50,27 @@ async function run(action: () => Promise<unknown>): Promise<boolean> {
 }
 
 async function add(): Promise<void> {
+	if (!addValidation.isValid.value) return;
 	const name = newName.value.trim();
-	if (!name) return;
 
 	// Put new types after the existing ones rather than at the top.
 	const sortOrder = ledger.accountTypes.reduce((highest, type) => Math.max(highest, type.sortOrder), -1) + 1;
-	if (await run(() => api.createAccountType({ name, sortOrder }))) newName.value = '';
+	if (await run(() => api.createAccountType({ name, sortOrder }))) {
+		newName.value = '';
+		addValidation.reset();
+	}
 }
 
 function startRename(type: AccountType): void {
 	editingId.value = type.id;
 	draftName.value = type.name;
 	error.value = null;
+	renameValidation.reset();
 }
 
 async function commitRename(id: string): Promise<void> {
+	if (!renameValidation.isValid.value) return;
 	const name = draftName.value.trim();
-	if (!name) return;
 	if (await run(() => api.updateAccountType(id, { name }))) editingId.value = null;
 }
 
@@ -69,12 +86,21 @@ async function remove(type: AccountType): Promise<void> {
 	<div class="space-y-4">
 		<p class="text-sm text-on-surface-variant">These are your own labels. Rename one and every account using it follows.</p>
 
-		<form class="flex items-start gap-2 pt-2" @submit.prevent="add">
+		<form class="flex items-start gap-2 pt-2" novalidate @submit.prevent="add" @input="addValidation.onInput">
 			<div class="field min-w-0 flex-1">
 				<label class="label" for="new-account-type">New type</label>
-				<input id="new-account-type" v-model="newName" class="input" placeholder="e.g. Crypto Wallet" />
+				<input
+					id="new-account-type"
+					v-model="newName"
+					class="input"
+					placeholder="e.g. Crypto Wallet"
+					:aria-invalid="addValidation.error('new-account-type') ? true : undefined"
+					:aria-describedby="addValidation.error('new-account-type') ? supportId('new-account-type') : undefined"
+					@blur="addValidation.touch('new-account-type')"
+				/>
+				<FieldSupport id="new-account-type" :error="addValidation.error('new-account-type')" />
 			</div>
-			<button type="submit" class="btn-primary mt-2 shrink-0" :disabled="busy || !newName.trim()">Add</button>
+			<button type="submit" class="btn-primary mt-2 shrink-0" :disabled="busy || !addValidation.isValid.value">Add</button>
 		</form>
 
 		<p v-if="error" class="banner-error" role="alert">
@@ -83,10 +109,29 @@ async function remove(type: AccountType): Promise<void> {
 
 		<ul class="divide-y divide-outline-variant">
 			<li v-for="type in visible" :key="type.id" class="group flex items-center gap-2 py-2.5">
-				<form v-if="editingId === type.id" class="flex flex-1 gap-2" @submit.prevent="commitRename(type.id)">
-					<input v-model="draftName" class="input input-sm" autofocus @keydown.esc="editingId = null" />
-					<button type="submit" class="btn-primary btn-sm" :disabled="busy">Save</button>
-					<button type="button" class="btn-text btn-sm" @click="editingId = null">Cancel</button>
+				<form
+					v-if="editingId === type.id"
+					class="min-w-0 flex-1"
+					novalidate
+					@submit.prevent="commitRename(type.id)"
+					@input="renameValidation.onInput"
+				>
+					<div class="flex gap-2">
+						<input
+							id="rename-account-type"
+							v-model="draftName"
+							class="input input-sm"
+							aria-label="Type name"
+							autofocus
+							:aria-invalid="renameValidation.error('rename-account-type') ? true : undefined"
+							:aria-describedby="renameValidation.error('rename-account-type') ? supportId('rename-account-type') : undefined"
+							@blur="renameValidation.touch('rename-account-type')"
+							@keydown.esc="editingId = null"
+						/>
+						<button type="submit" class="btn-primary btn-sm" :disabled="busy || !renameValidation.isValid.value">Save</button>
+						<button type="button" class="btn-text btn-sm" @click="editingId = null">Cancel</button>
+					</div>
+					<FieldSupport id="rename-account-type" :error="renameValidation.error('rename-account-type')" class="!px-3" />
 				</form>
 
 				<template v-else>

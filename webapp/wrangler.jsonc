@@ -47,6 +47,15 @@
 		// the default categories.
 		"SEED_DEMO_DATA": "true",
 	},
+	// Workers Logs. Without this the Worker's own `console.warn`/`console.error`
+	// — an FCM send that failed, a notification that threw — go nowhere, and a
+	// push that was never sent looks exactly like one that was. Sampling is
+	// full: the traffic is one person's ledger, not a firehose.
+	// https://developers.cloudflare.com/workers/observability/logs/workers-logs/
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1,
+	},
 	// Posts due subscriptions. Cron Triggers always run in UTC, and every
 	// subscription posts at 00:00 UTC — the user never picks a time.
 	// https://developers.cloudflare.com/workers/configuration/cron-triggers/
