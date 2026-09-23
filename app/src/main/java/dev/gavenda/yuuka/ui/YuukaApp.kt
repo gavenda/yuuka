@@ -259,7 +259,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     }
                                 }
                             },
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                         )
                     }
                 },
@@ -312,7 +311,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     },
                 ) {
                     composable(YuukaDestination.DASHBOARD.route) {
-                        DashboardScreen(onViewAllTransactions = { navigateToTopLevel(YuukaDestination.TRANSACTIONS.route) })
+                        DashboardScreen()
                     }
                     composable(YuukaDestination.TRANSACTIONS.route) { TransactionsScreen() }
                     composable(YuukaDestination.BUDGET.route) { BudgetScreen() }
@@ -330,13 +329,14 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         )
                     }
                     composable(SAVE_THE_CHANGE_ROUTE) {
-                        SaveTheChangeScreen(
-                            onSaveStateChange = { enabled, saving, save ->
-                                detailSaveEnabled = enabled
-                                detailSaving = saving
-                                detailSaveAction = save
-                            },
-                        )
+//                        SaveTheChangeScreen(
+//                            onSaveStateChange = { enabled, saving, save ->
+//                                detailSaveEnabled = enabled
+//                                detailSaving = saving
+//                                detailSaveAction = save
+//                            },
+//                        )
+                        ExpressiveLargeSettingsScreen()
                     }
                 }
                 }

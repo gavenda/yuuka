@@ -60,7 +60,8 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
     val accountOptions = remember(state.accounts) { state.accounts.map { FilterOption(it.id, it.name) } }
     val categoryOptions = remember(state.categories, uncategorizedLabel) {
-        listOf(FilterOption(UNCATEGORIZED_FILTER_ID, uncategorizedLabel)) + state.categories.map { FilterOption(it.id, it.name) }
+        listOf(FilterOption(UNCATEGORIZED_FILTER_ID, uncategorizedLabel)) +
+            state.categories.filter { it.parentId == null }.map { FilterOption(it.id, it.name) }
     }
     val tagOptions = remember(state.tags) { state.tags.map { FilterOption(it.id, it.name) } }
     var openFilter by remember { mutableStateOf<FilterKind?>(null) }
@@ -135,8 +136,8 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                             singleLine = true,
                             shape = CircleShape,
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = yuukaSearchContainer(),
-                                unfocusedContainerColor = yuukaSearchContainer(),
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
@@ -338,7 +339,6 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
         actions = { ActionIconButton(ActionIcon.DELETE, stringResource(R.string.action_delete), onDelete, danger = true) },
     ) {
         Card(
-            colors = yuukaCardColors(),
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
         ) {

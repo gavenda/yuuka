@@ -103,11 +103,7 @@ class TransactionsViewModel(
         viewModelScope.launch { ledgerRepository.accounts.collect { list -> _uiState.update { it.copy(accounts = list) } } }
         viewModelScope.launch {
             ledgerRepository.categories.collect { list ->
-                _uiState.update {
-                    it.copy(categories = list.filter { cat ->
-                        cat.parentId == null
-                    })
-                }
+                _uiState.update { it.copy(categories = list) }
             }
         }
         viewModelScope.launch { ledgerRepository.tags.collect { list -> _uiState.update { it.copy(tags = list) } } }

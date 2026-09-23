@@ -18,7 +18,6 @@
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
     <string name="action_today">Today</string>
-    <string name="action_view_all">View all</string>
     <string name="action_log_in">Log in</string>
     <string name="action_sign_out">Sign out</string>
     <string name="save_changes">Save changes</string>
@@ -102,8 +101,6 @@
     <string name="dashboard_no_spending">No spending recorded this month.</string>
     <string name="dashboard_where_money_went">Where the money went</string>
     <string name="dashboard_nothing_recorded_month">Nothing recorded this month.</string>
-    <string name="dashboard_recent_activity">Recent activity</string>
-    <string name="dashboard_nothing_recorded_month_yet">Nothing recorded this month yet</string>
     <plurals name="days_count">
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>

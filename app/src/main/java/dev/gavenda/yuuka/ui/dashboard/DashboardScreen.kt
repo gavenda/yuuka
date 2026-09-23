@@ -2,18 +2,12 @@ package dev.gavenda.yuuka.ui.dashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material3.Card
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,7 +20,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modifier, viewModel: DashboardViewModel = koinViewModel()) {
+fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val visibility = koinInject<AmountVisibility>()
 
@@ -88,7 +82,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleLarge)
                         val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
@@ -117,7 +111,7 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
             }
 
             item {
-                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleLarge)
                         val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)
@@ -132,88 +126,6 @@ fun DashboardScreen(onViewAllTransactions: () -> Unit, modifier: Modifier = Modi
                             CategoryBarList(entries, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
                         }
                     }
-                }
-            }
-
-            item {
-                Surface(
-                    modifier = Modifier.bleed(16.dp),
-                    shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize),
-                    color = MaterialTheme.colorScheme.recentContainer,
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(stringResource(R.string.dashboard_recent_activity), style = MaterialTheme.typography.titleLarge)
-                            TextButton(
-                                onClick = onViewAllTransactions,
-                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
-                            ) { Text(stringResource(R.string.action_view_all)) }
-                        }
-
-                        if (state.recentRows.isEmpty()) {
-                            EmptyState(stringResource(R.string.dashboard_nothing_recorded_month_yet))
-                        } else {
-                            Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                state.recentRows.forEach { row -> RecentActivityRow(row, state.currency) }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// The container is the lightest layer: brightest in light mode, lifted above the page in dark mode, where "lowest" would recess it.
-private val ColorScheme.isDark get() = background.luminance() < 0.5f
-private val ColorScheme.recentContainer get() = if (isDark) surfaceContainerHigh else surfaceContainerLowest
-private val ColorScheme.recentTile get() = if (isDark) surfaceContainer else surfaceContainerLow
-
-@Composable
-private fun RecentActivityRow(row: TransactionRow, currency: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.recentTile,
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            when (row) {
-                is TransactionRow.Transfer -> {
-                    Column(Modifier.weight(1f)) {
-                        val from = row.fromAccountName.orEmpty()
-                        val to = row.toAccountName.orEmpty()
-                        if (row.payee.isBlank()) {
-                            AccountFlow(from, to, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                        } else {
-                            Text(row.payee, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                listOfNotNull(formatDate(row.leg.occurredOn), formatTime(row.leg.occurredOn)).joinToString(" · ") + " · ",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            AccountFlow(from, to)
-                        }
-                    }
-                    MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency)
-                }
-
-                is TransactionRow.Single -> {
-                    val transaction = row.transaction
-                    Column(Modifier.weight(1f)) {
-                        Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            listOfNotNull(formatDate(transaction.occurredOn), formatTime(transaction.occurredOn)).joinToString(" · ") + " · ${transaction.accountName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency)
                 }
             }
         }

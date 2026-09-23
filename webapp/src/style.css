@@ -5,89 +5,84 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 .dark {
-	--color-primary: #a8c8ff;
-	--color-on-primary: #003062;
-	--color-primary-container: #00468a;
-	--color-on-primary-container: #d5e3ff;
-	--color-secondary: #bdc7dc;
-	--color-on-secondary: #273141;
-	--color-secondary-container: #3e4758;
-	--color-on-secondary-container: #d9e3f8;
-	--color-tertiary: #dbbce1;
-	--color-on-tertiary: #3e2845;
-	--color-tertiary-container: #563e5d;
-	--color-on-tertiary-container: #f8d8fe;
-	--color-error: #ffb4ab;
-	--color-on-error: #690005;
-	--color-error-container: #93000a;
-	--color-on-error-container: #ffb4ab;
-	--color-background: #141927;
-	--color-card: #2a3350;
-	--color-surface: #0e121b;
-	--color-on-surface: #e3e2e6;
-	--color-surface-variant: #43474e;
-	--color-on-surface-variant: #c4c6cf;
-	--color-surface-dim: #0e121b;
-	--color-surface-bright: #3a4460;
-	--color-surface-container-lowest: #0a0e16;
-	--color-surface-container-low: #181d2d;
-	--color-surface-container: #1e2438;
-	--color-surface-container-high: #2a3350;
-	--color-surface-container-highest: #3a4460;
-	--color-outline: #8e9099;
-	--color-outline-variant: #3a4056;
-	--color-inverse-surface: #e3e2e6;
-	--color-inverse-on-surface: #2f3033;
-	--color-inverse-primary: #005eb4;
-	--color-positive: #61dcb0;
-	--color-warning: #ffb77c;
+	--color-primary: #abb3ff;
+	--color-on-primary: #001491;
+	--color-primary-container: #8c98ff;
+	--color-on-primary-container: #000750;
+	--color-secondary: #b8b0ff;
+	--color-on-secondary: #271284;
+	--color-secondary-container: #7166d0;
+	--color-on-secondary-container: #ffffff;
+	--color-tertiary: #ff9fdf;
+	--color-on-tertiary: #5e024e;
+	--color-tertiary-container: #f88cd7;
+	--color-on-tertiary-container: #4c003e;
+	--color-error: #ff9da8;
+	--color-on-error: #5f001c;
+	--color-error-container: #d73357;
+	--color-on-error-container: #ffffff;
+	--color-background: #0d072e;
+	--color-surface: #0d072e;
+	--color-on-surface: #ffffff;
+	--color-surface-variant: #241d54;
+	--color-on-surface-variant: #b9b3e3;
+	--color-surface-dim: #0d072e;
+	--color-surface-bright: #2a235e;
+	--color-surface-container-lowest: #000000;
+	--color-surface-container-low: #120c37;
+	--color-surface-container: #181241;
+	--color-surface-container-high: #1e184a;
+	--color-surface-container-highest: #241d54;
+	--color-outline: #938ebc;
+	--color-outline-variant: #746eaa;
+	--color-inverse-surface: #fcf8ff;
+	--color-inverse-on-surface: #37335b;
+	--color-inverse-primary: #3545c6;
 	color-scheme: dark;
 }
 
-/* The Android app's Material 3 scheme (`ui/theme/Color.kt`, `ExtendedColors.kt`),
-   role for role: the tonal-spot set generated from the brand blue #2A78D6.
-   Regenerate the whole set from a new seed rather than editing single roles,
-   and keep the two in step. The `.dark` block below replaces the same
-   variables, so a utility such as `bg-surface` follows the theme with no
-   `dark:` variant. `positive` and `warning` are the extended roles the scheme
-   has no slot for; negative is `error` and a transfer is `primary`. */
+/* The Android app's Material 3 scheme (`ui/theme/Color.kt`), role for role: the
+   medium-contrast set generated from the brand seed #4C5CDC. Regenerate the
+   whole set from a new seed rather than editing single roles, and keep the two
+   in step. The `.dark` block below replaces the same variables, so a utility
+   such as `bg-surface` follows the theme with no `dark:` variant. There is no
+   extended role for inflows or a nearly-spent budget: negative is `error`, a
+   transfer is `primary`, an inflow is `secondary` and a nearly-spent budget is
+   `tertiary`. */
 @theme static {
-	--color-primary: #005eb4;
-	--color-on-primary: #ffffff;
-	--color-primary-container: #d5e3ff;
-	--color-on-primary-container: #001b3c;
-	--color-secondary: #555f71;
-	--color-on-secondary: #ffffff;
-	--color-secondary-container: #d9e3f8;
-	--color-on-secondary-container: #121c2b;
-	--color-tertiary: #6f5675;
-	--color-on-tertiary: #ffffff;
-	--color-tertiary-container: #f8d8fe;
-	--color-on-tertiary-container: #28132f;
-	--color-error: #ba1a1a;
-	--color-on-error: #ffffff;
-	--color-error-container: #ffdad6;
-	--color-on-error-container: #410002;
-	--color-background: #e6edf7;
-	--color-card: #ffffff;
-	--color-surface: #f5f8fc;
-	--color-on-surface: #1a1c1e;
-	--color-surface-variant: #e0e2ec;
-	--color-on-surface-variant: #43474e;
-	--color-surface-dim: #d6dfeb;
-	--color-surface-bright: #f5f8fc;
+	--color-primary: #182ab0;
+	--color-on-primary: #cdd1ff;
+	--color-primary-container: #5767e7;
+	--color-on-primary-container: #ffffff;
+	--color-secondary: #3b2d97;
+	--color-on-secondary: #d5cfff;
+	--color-secondary-container: #7166d0;
+	--color-on-secondary-container: #ffffff;
+	--color-tertiary: #71185e;
+	--color-on-tertiary: #ffc2e8;
+	--color-tertiary-container: #b25197;
+	--color-on-tertiary-container: #ffffff;
+	--color-error: #83002a;
+	--color-on-error: #ffc6ca;
+	--color-error-container: #d73357;
+	--color-on-error-container: #ffffff;
+	--color-background: #f9f5ff;
+	--color-surface: #f9f5ff;
+	--color-on-surface: #1e1a40;
+	--color-surface-variant: #ded8ff;
+	--color-on-surface-variant: #3e3a62;
+	--color-surface-dim: #d5cfff;
+	--color-surface-bright: #f9f5ff;
 	--color-surface-container-lowest: #ffffff;
-	--color-surface-container-low: #f2f5fb;
-	--color-surface-container: #e3ebf4;
-	--color-surface-container-high: #d9e3ef;
-	--color-surface-container-highest: #cdd9ea;
-	--color-outline: #74777f;
-	--color-outline-variant: #bfcad9;
-	--color-inverse-surface: #2f3033;
-	--color-inverse-on-surface: #f1f0f4;
-	--color-inverse-primary: #a8c8ff;
-	--color-positive: #006c50;
-	--color-warning: #b46200;
+	--color-surface-container-low: #f3eeff;
+	--color-surface-container: #eae5ff;
+	--color-surface-container-high: #e4dfff;
+	--color-surface-container-highest: #ded8ff;
+	--color-outline: #5b5780;
+	--color-outline-variant: #7670ab;
+	--color-inverse-surface: #0d072e;
+	--color-inverse-on-surface: #c5bfef;
+	--color-inverse-primary: #8794ff;
 	--color-scrim: #000000;
 
 	/* Shape: the M3 corner scale. `rounded-full` is the scale's "full". */
@@ -265,11 +260,11 @@
 }
 
 @layer components {
-	/* Cards are filled cards, flat like the Android app's: white in light mode so they stand clear of
-	   the tinted page, the tonal step above the page in dark mode. */
+	/* Cards are filled cards, the theme's own surface-container-low step above the page,
+	   matching the Android app's default `Card` container colour. */
 	.card {
-		--surface-under: var(--color-card);
-		@apply rounded-md bg-card;
+		--surface-under: var(--color-surface-container-low);
+		@apply rounded-md bg-surface-container-low;
 	}
 
 	/*

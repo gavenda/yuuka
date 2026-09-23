@@ -10,8 +10,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
-import dev.gavenda.yuuka.ui.theme.ExtendedColors
-import dev.gavenda.yuuka.ui.theme.extendedColors
 import org.koin.compose.koinInject
 import kotlin.math.abs
 
@@ -20,15 +18,14 @@ enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER }
 
 /**
  * The colour a figure reads in, taken from the theme so it follows dynamic colour:
- * negative is `error`, transfers are `primary`, and inflows use the extended
- * [positive][ExtendedColors.positive] role.
+ * negative is `error`, transfers are `primary`, and inflows are `secondary`.
  */
 @Composable
 fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
     MoneyTone.TRANSFER -> MaterialTheme.colorScheme.primary
     MoneyTone.NEUTRAL -> LocalContentColor.current
     MoneyTone.SIGNED -> when {
-        amount > 0 -> MaterialTheme.extendedColors.positive
+        amount > 0 -> MaterialTheme.colorScheme.secondary
         amount < 0 -> MaterialTheme.colorScheme.error
         else -> LocalContentColor.current
     }

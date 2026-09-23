@@ -136,7 +136,6 @@ fun YuukaTextField(
  * error through [field]; unlike it, it keeps the menu's arrow as its trailing icon, as Material 3 does. A field
  * that only ever opens a menu has nothing to blur, so it counts as visited when its menu closes.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> DropdownField(
     label: String,

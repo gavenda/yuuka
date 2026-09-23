@@ -7,7 +7,7 @@ const props = withDefaults(
 	defineProps<{
 		amount: number;
 		currency?: string;
-		/** Colour by sign: green for inflows, red for outflows. */
+		/** Colour by sign: secondary for inflows, red for outflows. */
 		signed?: boolean;
 		/** Always show a leading + or -. */
 		explicit?: boolean;
@@ -26,7 +26,7 @@ const formatted = computed(() => {
 const tone = computed(() => {
 	if (props.transfer) return 'text-primary';
 	if (!props.signed) return 'text-on-surface';
-	if (props.amount > 0) return 'text-positive';
+	if (props.amount > 0) return 'text-secondary';
 	if (props.amount < 0) return 'text-error';
 	return 'text-on-surface-variant';
 });

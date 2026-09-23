@@ -294,7 +294,7 @@ onBeforeUnmount(() => {
 		<p
 			v-if="showShell && !isLoading && (!isOnline || hasUnsentChanges)"
 			role="status"
-			class="bg-warning/10 px-4 py-2 text-center text-xs text-warning"
+			class="bg-tertiary/10 px-4 py-2 text-center text-xs text-tertiary"
 		>
 			<template v-if="hasUnsentChanges">
 				{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved here,

@@ -230,7 +230,7 @@ async function remove(): Promise<void> {
 			</svg>
 			<input
 				v-model="search"
-				class="input rounded-full border-transparent bg-card pl-12"
+				class="input rounded-full border-transparent bg-surface-container-low pl-12"
 				type="search"
 				aria-label="Search"
 				placeholder="Search payee, notes or tag"

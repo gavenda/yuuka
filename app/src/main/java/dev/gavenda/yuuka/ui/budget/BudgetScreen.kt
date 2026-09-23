@@ -58,7 +58,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
+                Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             stringResource(R.string.planned_income_label).uppercase(),
@@ -287,7 +287,7 @@ private fun BudgetRow(
         if (saving) saveStarted = true else if (saveStarted) { editing = false; saveStarted = false }
     }
 
-    Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(entry.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

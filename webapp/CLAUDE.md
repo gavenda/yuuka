@@ -380,14 +380,15 @@ the plot rather than inside it, so the plot's edge cannot cut it off; scrolling 
 axis figures (`axisScale`, `compactAmount`) are amounts like any other and are masked with them.
 
 **The theme is the Android app's Material 3 scheme.** `src/style.css` declares
-every role from `ui/theme/Color.kt` and `ExtendedColors.kt` as a Tailwind colour
-(`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`,
-`text-error`, `text-positive`, …), with the dark values replacing the same
-variables under `.dark`. Use the roles, never the palette scales (`slate-*`,
-`blue-*`…), and never a `dark:` variant for colour: the role already follows the
-theme. Negative is `error`, a transfer is `primary`, inflows are `positive`, and
-a nearly-spent budget is `warning`. Dynamic colour is an Android 12+ feature, so
-the web app uses the static scheme.
+every role from `ui/theme/Color.kt` as a Tailwind colour (`bg-surface`,
+`text-on-surface-variant`, `border-outline-variant`, `bg-primary`, `text-error`,
+`text-secondary`, …), with the dark values replacing the same variables under
+`.dark`. Use the roles, never the palette scales (`slate-*`, `blue-*`…), and
+never a `dark:` variant for colour: the role already follows the theme. There is
+no extended role for inflows or a nearly-spent budget: negative is `error`, a
+transfer is `primary`, an inflow is `secondary`, and a nearly-spent budget is
+`tertiary`. Dynamic colour is an Android 12+ feature, so the web app uses the
+static scheme.
 
 **Settings and Save the Change are screens, not a popup**, as on Android (`/settings` and
 `/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). They are titled cards of `SettingRow`s (label and

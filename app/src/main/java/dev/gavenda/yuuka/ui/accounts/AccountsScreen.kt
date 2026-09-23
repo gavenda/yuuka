@@ -289,7 +289,7 @@ private fun AccountCard(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, account.name), onDelete, danger = true)
         },
     ) {
-        Card(colors = yuukaCardColors(), onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+        Card(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name, style = MaterialTheme.typography.bodyLarge)

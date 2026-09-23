@@ -153,7 +153,7 @@ private fun TagRow(tag: Tag, deleting: Boolean, onEdit: () -> Unit, onDelete: ()
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, tag.name), onDelete, danger = true, loading = deleting)
         },
     ) {
-        Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,

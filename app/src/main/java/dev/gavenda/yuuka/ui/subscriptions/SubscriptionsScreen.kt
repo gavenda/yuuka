@@ -249,7 +249,7 @@ private fun SubscriptionRow(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, subscription.payee), onDelete, danger = true)
         },
     ) {
-        Card(colors = yuukaCardColors(), modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,

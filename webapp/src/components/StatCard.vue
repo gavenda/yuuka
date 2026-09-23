@@ -24,7 +24,7 @@ const formatted = computed(() => {
 
 const tone = computed(() => {
 	if (!props.signed) return 'text-on-surface';
-	if (props.amount > 0) return 'text-positive';
+	if (props.amount > 0) return 'text-secondary';
 	if (props.amount < 0) return 'text-error';
 	return 'text-on-surface';
 });

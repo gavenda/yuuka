@@ -47,12 +47,12 @@ export function nextColor(existingCount: number): string {
  * Status colours are reserved for state and never used as a series colour.
  * Each is paired with a visible label wherever it appears. They come from the
  * theme (see `src/style.css`), as in the Android app: "good" only means on
- * track and borrows the primary colour, "warning" is the extended warning role
+ * track and borrows the primary colour, "warning" borrows the tertiary colour
  * and "critical" is the error colour.
  */
 export const STATUS = {
 	good: 'var(--color-primary)',
-	warning: 'var(--color-warning)',
+	warning: 'var(--color-tertiary)',
 	critical: 'var(--color-error)',
 } as const;
 
