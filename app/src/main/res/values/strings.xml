@@ -231,7 +231,6 @@
     <string name="budget_mode_monthly_hint">Each month keeps its own planned amount, set separately.</string>
     <string name="default_account">Default account</string>
     <string name="first_active_account">First active account</string>
-    <string name="settings_saved">Settings saved</string>
     <string name="could_not_save_setting">Could not save the setting.</string>
     <string name="about">About</string>
     <string name="version">Version</string>
@@ -241,16 +240,21 @@
     <string name="destination_save_the_change">Save the Change</string>
     <string name="save_the_change_enabled">Round up purchases</string>
     <string name="save_the_change_description">Rounds up ordinary expenses on the accounts you\'ve opted in, and moves the difference into your chosen account.</string>
-    <string name="save_the_change_accounts_hint">Which accounts round up their own purchases is set per account, from that account\'s edit form under Accounts.</string>
-    <string name="round_up_purchases_account_label">Round up purchases (Save the Change)</string>
-    <string name="round_up_purchases_account_hint">Every expense on this account rounds up to the nearest ₱10 or ₱100.</string>
+    <string name="save_the_change_accounts_hint">A purchase on the destination account itself never rounds up.</string>
+    <string name="round_up_purchases_account_label">Accounts that round up</string>
+    <string name="save_the_change_no_accounts">None chosen</string>
+    <string name="save_the_change_choose_accounts">Choose accounts</string>
+    <plurals name="round_up_accounts_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
     <string name="round_to_label">Round up to the nearest</string>
     <string name="round_to_ten">₱10</string>
     <string name="round_to_hundred">₱100</string>
     <string name="destination_account">Destination account</string>
     <string name="choose_an_account">Choose an account</string>
-    <string name="save_the_change_saved">Save the Change updated</string>
     <string name="could_not_save_round_up_rule">Could not save Save the Change.</string>
+    <string name="could_not_save_account">Could not save the account.</string>
 
     <!-- Transaction form -->
     <string name="label_payee">Payee</string>

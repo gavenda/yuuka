@@ -5,7 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -54,9 +54,8 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
 
     Scaffold(
         modifier = modifier,
-        // The outer app bar's Scaffold already insets for system bars — an inset-aware
-        // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = WindowInsets(0),
+        topBar = { ScreenTopBar(stringResource(R.string.destination_tags)) },
+        
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_tag),
@@ -68,7 +67,8 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Rows of the block sit a hair apart, the way a settings group is drawn.
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item {
                 Text(
@@ -102,10 +102,12 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
                         )
                     }
                 } else {
-                    items(state.visible, key = { it.id }) { tag ->
+                    itemsIndexed(state.visible, key = { _, tag -> tag.id }) { index, tag ->
                         val deleteKey = "delete:${tag.id}"
                         TagRow(
                             tag,
+                            // Tags are one list rather than groups of a few, so the whole list is the block.
+                            position = positionInGroup(index, state.visible.lastIndex),
                             deleting = busy.isBusy(deleteKey),
                             onEdit = { editing = tag },
                             onDelete = { busy.run(deleteKey, snackbarHostState, successMessage = tagDeletedMessage) { viewModel.deleteTag(tag.id) } },
@@ -144,30 +146,29 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
     }
 }
 
-/** One card per tag, its count at the end. */
+/** One row per tag — its colour leading, its count at the end — drawn as one of a connected block. */
 @Composable
-private fun TagRow(tag: Tag, deleting: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, tag.name), onDelete, danger = true, loading = deleting)
         },
     ) {
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
-            Row(
-                modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(colorFromHex(tag.color)))
-                Text(tag.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        ListItem(
+            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+            onClick = onEdit,
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(colorFromHex(tag.color))) },
+            content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
+            trailingContent = {
                 Text(
                     pluralStringResource(R.plurals.tag_transaction_count, tag.transactionCount, formatCount(tag.transactionCount.toLong())),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-        }
+            },
+        )
     }
 }
 

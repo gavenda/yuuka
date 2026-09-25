@@ -253,6 +253,15 @@ class LedgerRepository(
         outbox.enqueue("PATCH", "/api/accounts/$id", body, entity = "account", rowId = id)
     }
 
+    /**
+     * Whether this account's own purchases round up. It is set from the Save the Change screen, beside the
+     * rule it feeds, rather than on the account's form, so only that one column is sent.
+     */
+    suspend fun setAccountRoundUpSource(id: String, roundUpSource: Boolean) {
+        accountDao.byId(id)?.let { accountDao.upsert(it.copy(roundUpSource = roundUpSource, updatedAt = Provisional.touchedAt())) }
+        outbox.enqueue("PATCH", "/api/accounts/$id", buildJsonObject { put("roundUpSource", roundUpSource) }, entity = "account", rowId = id)
+    }
+
     suspend fun setAccountArchived(id: String, archived: Boolean) {
         accountDao.byId(id)?.let { accountDao.upsert(it.copy(archived = archived, updatedAt = Provisional.touchedAt())) }
         outbox.enqueue("PATCH", "/api/accounts/$id", buildJsonObject { put("archived", archived) }, entity = "account", rowId = id)

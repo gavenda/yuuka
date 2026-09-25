@@ -57,9 +57,8 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
 
     Scaffold(
         modifier = modifier,
-        // The outer app bar's Scaffold already insets for system bars — an inset-aware
-        // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = WindowInsets(0),
+        topBar = { ScreenTopBar(stringResource(R.string.destination_categories)) },
+        
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_category),

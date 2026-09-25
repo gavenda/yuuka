@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.1"
+agp = "9.4.1"
 coreKtx = "1.19.0"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -8,8 +8,8 @@ lifecycleRuntimeKtx = "2.11.0"
 lifecycleViewmodelCompose = "2.11.0"
 lifecycleRuntimeCompose = "2.11.0"
 activityCompose = "1.13.0"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
+kotlin = "2.2.10"
+ksp = "2.3.6"
 composeBom = "2025.12.00"
 # Pinned above the BOM's 1.4.0 for the Material 3 Expressive LoadingIndicator/PullToRefresh
 # APIs (still @ExperimentalMaterial3ExpressiveApi; bump alongside the BOM once it catches up).

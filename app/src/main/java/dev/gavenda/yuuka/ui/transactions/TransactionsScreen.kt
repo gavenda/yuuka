@@ -7,8 +7,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -27,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,6 +45,8 @@ import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatTime
 import dev.gavenda.yuuka.ui.common.*
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -66,11 +73,49 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     val tagOptions = remember(state.tags) { state.tags.map { FilterOption(it.id, it.name) } }
     var openFilter by remember { mutableStateOf<FilterKind?>(null) }
 
+    // The search bar owns the text; what is typed is handed to the view model, which does the filtering.
+    val searchFieldState = rememberTextFieldState(state.searchText)
+    val searchBarState = rememberSearchBarState()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(searchFieldState) {
+        snapshotFlow { searchFieldState.text.toString() }.collectLatest(viewModel::setSearchText)
+    }
+
+    // One input field, shown by the bar in the page and again by the expanded search above it. Tapping
+    // the collapsed bar expands the search — that is what takes the focus and raises the keyboard, so
+    // the expanded half is not optional.
+    val searchInputField: @Composable () -> Unit = {
+        SearchBarDefaults.InputField(
+            textFieldState = searchFieldState,
+            searchBarState = searchBarState,
+            onSearch = { scope.launch { searchBarState.animateToCollapsed() } },
+            placeholder = { Text(stringResource(R.string.search_payee_notes)) },
+            leadingIcon = {
+                if (searchBarState.targetValue == SearchBarValue.Expanded) {
+                    IconButton(onClick = { scope.launch { searchBarState.animateToCollapsed() } }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                    }
+                } else {
+                    Icon(Icons.Filled.Search, contentDescription = null)
+                }
+            },
+            trailingIcon = {
+                if (searchFieldState.text.isNotEmpty()) {
+                    IconButton(onClick = { searchFieldState.clearText() }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
+                    }
+                }
+            },
+        )
+    }
+
+    // Scrolling down gives the list the bar's height back; the first scroll up returns it.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
-        modifier = modifier,
-        // The outer app bar's Scaffold already insets for system bars — an inset-aware
-        // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
+        
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_transaction),
@@ -82,13 +127,10 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         val error = (state.status as? ScreenStatus.Error)?.message
         val grouped = remember(state.rows) { groupByDate(state.rows) }
 
-        Column(modifier = Modifier.padding(padding).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            MonthSwitcher(
-                month = state.month,
-                onMonthChange = viewModel::setMonth,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            )
-
+        Column(
+            modifier = Modifier.padding(padding).fillMaxWidth().padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -118,34 +160,13 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
 
             LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 96.dp)) {
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-
-
-                        TextField(
-                            value = state.searchText,
-                            onValueChange = viewModel::setSearchText,
-                            placeholder = { Text(stringResource(R.string.search_payee_notes)) },
-                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                            trailingIcon = {
-                                if (state.searchText.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.setSearchText("") }) {
-                                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            shape = CircleShape,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                                errorIndicatorColor = Color.Transparent,
-                            ),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                    }
+                    // Material's own search bar rather than a text field dressed up as one.
+                    SearchBar(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        state = searchBarState,
+                        colors = SearchBarDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        inputField = searchInputField,
+                    )
                 }
 
                 if (error != null) {
@@ -163,27 +184,30 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                 } else {
                     grouped.forEach { (date, rows) ->
                         item {
+                            // A day's heading, drawn like the account groups': the date in primary, its
+                            // net at the end, inset past the rows it names.
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     formatLongDate(date),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                                 MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.labelMedium)
                             }
                         }
-                        items(rows, key = { row ->
+                        itemsIndexed(rows, key = { _, row ->
                             when (row) {
                                 is TransactionRow.Transfer -> row.id
                                 is TransactionRow.Single -> row.transaction.id
                             }
-                        }) { row ->
+                        }) { index, row ->
                             TransactionRowItem(
                                 row = row,
+                                position = positionInGroup(index, rows.lastIndex),
                                 currency = state.currency,
                                 onClick = {
                                     when (row) {
@@ -216,6 +240,59 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // What the search expands into: the same rows the page shows, already filtered by what is typed,
+    // so a match can be opened without leaving the search.
+    ExpandedFullScreenSearchBar(state = searchBarState, inputField = searchInputField) {
+        val matches = remember(state.rows) { groupByDate(state.rows) }
+        LazyColumn(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 16.dp)) {
+            if (state.rows.isEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.transactions_empty_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+            matches.forEach { (date, rows) ->
+                item {
+                    Text(
+                        formatLongDate(date),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
+                    )
+                }
+                itemsIndexed(rows, key = { _, row ->
+                    when (row) {
+                        is TransactionRow.Transfer -> "search:${row.id}"
+                        is TransactionRow.Single -> "search:${row.transaction.id}"
+                    }
+                }) { index, row ->
+                    TransactionRowItem(
+                        row = row,
+                        position = positionInGroup(index, rows.lastIndex),
+                        currency = state.currency,
+                        onClick = {
+                            scope.launch { searchBarState.animateToCollapsed() }
+                            when (row) {
+                                is TransactionRow.Transfer -> viewModel.openEdit(row.leg, row.toAccountId)
+                                is TransactionRow.Single -> viewModel.openEdit(row.transaction)
+                            }
+                        },
+                        onDelete = {
+                            pendingDelete = when (row) {
+                                is TransactionRow.Transfer -> row.leg
+                                is TransactionRow.Single -> row.transaction
+                            }
+                        },
+                    )
                 }
             }
         }
@@ -323,7 +400,13 @@ private fun dailyAccrued(rows: List<TransactionRow>): Long =
     rows.filterIsInstance<TransactionRow.Single>().sumOf { it.transaction.amount }
 
 @Composable
-private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: () -> Unit, onDelete: () -> Unit) {
+private fun TransactionRowItem(
+    row: TransactionRow,
+    position: ItemPosition,
+    currency: String,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val visibility = koinInject<AmountVisibility>()
     val notes = when (row) {
         is TransactionRow.Transfer -> row.notes
@@ -335,70 +418,91 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
     }
 
     SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
         actions = { ActionIconButton(ActionIcon.DELETE, stringResource(R.string.action_delete), onDelete, danger = true) },
     ) {
-        Card(
+        // One of the day's rows rather than a card of its own: round where the day starts and ends,
+        // near-square where it meets the row beside it, as the account groups are drawn.
+        Surface(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
+            shape = groupedItemShape(position),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                when (row) {
-                    is TransactionRow.Transfer -> {
-                        val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
-                        val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(title, style = MaterialTheme.typography.bodyMedium)
-                            AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
-                            formatTime(row.leg.occurredOn)?.let { time ->
-                                Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Column {
+            // The headline, what is under it and the figures at the end are a ListItem's own three slots;
+            // the card, the tap target and the notes row below stay outside it, so its container is
+            // transparent and it draws nothing of its own.
+            when (row) {
+                is TransactionRow.Transfer -> {
+                    val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
+                    val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
+                    ListItem(
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        content = { Text(title, style = MaterialTheme.typography.bodyMedium) },
+                        supportingContent = {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
+                                formatTime(row.leg.occurredOn)?.let { time ->
+                                    Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                visibility.displayMoney(row.leg.runningBalance, currency),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            row.categoryName?.let { name -> CategoryLabel(name, row.categoryColor) }
-                        }
-                    }
-
-                    is TransactionRow.Single -> {
-                        val transaction = row.transaction
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) }, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                transaction.accountName.orEmpty(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (transaction.automated) {
+                        },
+                        trailingContent = {
+                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    stringResource(R.string.automated_badge),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    visibility.displayMoney(row.leg.runningBalance, currency),
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                                row.categoryName?.let { name -> CategoryLabel(name, row.categoryColor) }
                             }
-                            formatTime(transaction.occurredOn)?.let { time ->
-                                Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency, style = MaterialTheme.typography.bodyMedium)
+                        },
+                    )
+                }
+
+                is TransactionRow.Single -> {
+                    val transaction = row.transaction
+                    ListItem(
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        content = {
                             Text(
-                                visibility.displayMoney(transaction.runningBalance, currency),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) },
+                                style = MaterialTheme.typography.bodyMedium,
                             )
-                            transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
-                        }
-                    }
+                        },
+                        supportingContent = {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    transaction.accountName.orEmpty(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                if (transaction.automated) {
+                                    Text(
+                                        stringResource(R.string.automated_badge),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                formatTime(transaction.occurredOn)?.let { time ->
+                                    Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        },
+                        trailingContent = {
+                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    visibility.displayMoney(transaction.runningBalance, currency),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
+                            }
+                        },
+                    )
                 }
             }
 
@@ -434,6 +538,7 @@ private fun TransactionRowItem(row: TransactionRow, currency: String, onClick: (
                     }
                 }
             }
+          }
         }
     }
 }

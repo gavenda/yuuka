@@ -1,4 +1,5 @@
 import java.util.Properties
+import com.google.gms.googleservices.GoogleServicesPlugin
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,13 +9,12 @@ plugins {
     // Declared here, applied below: the plugin reads `google-services.json`, and
     // a checkout that has not been given one must still build — without push —
     // rather than fail. The `plugins` block cannot ask whether the file exists.
-    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.google.services)
 }
 
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-} else {
-    logger.lifecycle("app/google-services.json is missing: building without Cloud Messaging. See README.")
+googleServices {
+    // Options: MissingGoogleServicesStrategy.ERROR, WARN, or IGNORE
+    missingGoogleServicesStrategy = GoogleServicesPlugin.MissingGoogleServicesStrategy.WARN
 }
 
 val keystoreProperties = Properties().apply {
@@ -35,6 +35,7 @@ android {
     defaultConfig {
         applicationId = "dev.gavenda.yuuka"
         minSdk = 36
+        //noinspection OldTargetApi
         targetSdk = 36
         versionCode = 26
         versionName = "2.6.0"
@@ -132,7 +133,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

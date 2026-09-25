@@ -3,7 +3,7 @@ package dev.gavenda.yuuka.ui.subscriptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -62,9 +62,8 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
 
     Scaffold(
         modifier = modifier,
-        // The outer app bar's Scaffold already insets for system bars — an inset-aware
-        // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = WindowInsets(0),
+        topBar = { ScreenTopBar(stringResource(R.string.destination_subscriptions)) },
+        
         floatingActionButton = {
             // Nowhere to post to until there is an account.
             if (activeAccounts.isNotEmpty()) {
@@ -128,10 +127,12 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                 }
             }
 
-            items(state.subscriptions, key = { it.id }) { subscription ->
+            itemsIndexed(state.subscriptions, key = { _, subscription -> subscription.id }) { index, subscription ->
                 val toggleKey = "toggle:${subscription.id}"
                 SubscriptionRow(
                     subscription = subscription,
+                    // One list rather than groups of a few, so the block runs the length of it.
+                    position = positionInGroup(index, state.subscriptions.lastIndex),
                     currency = accountsById[subscription.accountId]?.currency ?: DEFAULT_CURRENCY,
                     toggling = busy.isBusy(toggleKey),
                     onEdit = { editing = subscription },
@@ -227,6 +228,7 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
 @Composable
 private fun SubscriptionRow(
     subscription: Subscription,
+    position: ItemPosition,
     currency: String,
     toggling: Boolean,
     onEdit: () -> Unit,
@@ -238,7 +240,7 @@ private fun SubscriptionRow(
         if (subscription.enabled) " · " + stringResource(R.string.subscription_next, formatLongDate(subscription.nextRunOn)) else ""
 
     SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
         actions = {
             ActionIconButton(
                 if (subscription.enabled) ActionIcon.PAUSE else ActionIcon.RESUME,
@@ -249,33 +251,36 @@ private fun SubscriptionRow(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, subscription.payee), onDelete, danger = true)
         },
     ) {
-        Card(modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val dot = subscription.categoryColor?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
-                        if (dot != null) Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
-                        Text(subscription.payee, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
-                        if (!subscription.enabled) {
-                            Text(
-                                stringResource(R.string.subscription_paused_badge),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+        ListItem(
+            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+            onClick = onEdit,
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            content = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val dot = subscription.categoryColor?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+                    if (dot != null) Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+                    Text(subscription.payee, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
+                    if (!subscription.enabled) {
+                        Text(
+                            stringResource(R.string.subscription_paused_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
+                }
+            },
+            supportingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (subtitle.isNotEmpty()) {
                         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text(schedule, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            },
+            trailingContent = {
                 MoneyText(subscription.amount, tone = MoneyTone.SIGNED, explicit = true, currency = currency, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+            },
+        )
     }
 }
 

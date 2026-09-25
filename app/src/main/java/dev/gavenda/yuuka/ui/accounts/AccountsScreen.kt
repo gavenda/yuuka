@@ -4,7 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -14,7 +14,9 @@ import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -59,11 +61,13 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
     val couldNotDeleteAccountMessage = stringResource(R.string.could_not_delete_account)
     val deleteAccountTransactionsConfirmTemplate = stringResource(R.string.delete_account_transactions_confirm)
 
+    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
-        modifier = modifier,
-        // The outer app bar's Scaffold already insets for system bars — an inset-aware
-        // nested Scaffold here would add a second, phantom gap above the content.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = { LargeScreenTopBar(stringResource(R.string.destination_accounts), scrollBehavior) },
+        
         floatingActionButton = {
             val newAccountLabel = stringResource(R.string.new_account)
             val editTypesLabel = stringResource(R.string.edit_account_types)
@@ -116,24 +120,32 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            // The rows of a type are a hair apart, the way a settings group is drawn; the space between
+            // one type and the next comes from the header's own padding.
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            item { StatCard(stringResource(R.string.net_worth), state.netWorth, currency = state.displayCurrency, hero = true) }
-
             if (state.groups.isEmpty()) {
                 item { EmptyState(stringResource(R.string.no_accounts_yet), description = stringResource(R.string.accounts_empty_description)) }
             } else {
                 state.groups.forEach { group ->
                     item(key = "type:${group.id}") {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${group.name} (${group.accounts.size})", style = MaterialTheme.typography.titleSmall)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                "${group.name} (${group.accounts.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                             MoneyText(group.total, tone = MoneyTone.SIGNED, currency = group.currency)
                         }
                     }
-                    items(group.accounts, key = { it.id }) { account ->
+                    itemsIndexed(group.accounts, key = { _, account -> account.id }) { index, account ->
                         val archiveKey = "archive:${account.id}"
                         AccountCard(
                             account = account,
+                            position = positionInGroup(index, group.accounts.lastIndex),
                             archiving = busy.isBusy(archiveKey),
                             onEdit = { editing = account },
                             onAdjust = { adjusting = account },
@@ -183,7 +195,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                     accountTypes = state.accountTypes.filter { !it.archived },
                     displayCurrency = state.displayCurrency,
                     submitting = submitting,
-                    onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource ->
+                    onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark ->
                         busy.run(
                             formKey,
                             snackbarHostState,
@@ -191,9 +203,9 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                             onSuccess = { creating = false; editing = null },
                         ) {
                             if (editing != null) {
-                                viewModel.updateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource)
+                                viewModel.updateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark)
                             } else {
-                                viewModel.createAccount(name, typeId, currency, startingBalance, logoUrl, invertDark, roundUpSource)
+                                viewModel.createAccount(name, typeId, currency, startingBalance, logoUrl, invertDark)
                             }
                         }
                     },
@@ -270,6 +282,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
 @Composable
 private fun AccountCard(
     account: Account,
+    position: ItemPosition,
     archiving: Boolean,
     onEdit: () -> Unit,
     onAdjust: () -> Unit,
@@ -289,16 +302,28 @@ private fun AccountCard(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, account.name), onDelete, danger = true)
         },
     ) {
-        Card(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name, style = MaterialTheme.typography.bodyLarge)
+        // One of a type's rows rather than a card of its own: square where it meets its neighbours,
+        // round on the group's outer edges, the same block the settings groups are drawn as.
+        // The row is a ListItem outright — it takes the tap and paints its own fill, so the group's
+        // shape is all that is left to clip it to.
+        ListItem(
+            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+            onClick = onEdit,
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            content = {
+                Text(
+                    if (account.archived) stringResource(R.string.name_archived, account.name) else account.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            supportingContent = {
+                Column {
                     Text(account.currency, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     MoneyText(account.balance, tone = MoneyTone.SIGNED, currency = account.currency, modifier = Modifier.padding(top = 4.dp))
                 }
-                AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28)
-            }
-        }
+            },
+            trailingContent = { AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28) },
+        )
     }
 }
 
@@ -308,7 +333,8 @@ private fun AccountFormContent(
     accountTypes: List<AccountType>,
     displayCurrency: String,
     submitting: Boolean,
-    onSave: (String, String, String, Long, String, Boolean, Boolean) -> Unit,
+    // Whether the account's purchases round up is not here: it is chosen on the Save the Change screen, beside the rule it feeds.
+    onSave: (String, String, String, Long, String, Boolean) -> Unit,
     onCancel: () -> Unit,
 ) {
     var name by remember { mutableStateOf(account?.name ?: "") }
@@ -317,7 +343,6 @@ private fun AccountFormContent(
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
-    var roundUpSource by remember { mutableStateOf(account?.roundUpSource ?: false) }
     // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
     val form = rememberFormValidation()
     val startingBalanceMinor = parseMoney(startingBalance)
@@ -372,19 +397,6 @@ private fun AccountFormContent(
             field = currencyField,
         )
 
-        // Whether this account's own purchases round up under Save the Change. The rule itself (how much, and where it goes) lives on that screen.
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.round_up_purchases_account_label), style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    stringResource(R.string.round_up_purchases_account_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            YuukaSwitch(checked = roundUpSource, onCheckedChange = { roundUpSource = it })
-        }
-
         YuukaTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = stringResource(R.string.label_logo_url), singleLine = true, field = logoField)
 
         // Always shown, not only once a logo is entered; it has no effect until the account has one.
@@ -400,7 +412,7 @@ private fun AccountFormContent(
                 enabled = !submitting && form.valid(nameField, typeField, balanceField, currencyField, logoField),
                 onClick = {
                     val balance = startingBalanceMinor ?: return@Button
-                    onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark, roundUpSource)
+                    onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark)
                 },
             ) {
                 if (submitting) {

@@ -49,4 +49,9 @@ class SaveTheChangeViewModel(private val ledgerRepository: LedgerRepository) : V
     suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) {
         ledgerRepository.updateRoundUpRule(enabled, roundTo, destinationAccountId, clearDestination, categoryId, clearCategory)
     }
+
+    /** Which accounts take part, set here rather than on each account's own form. */
+    suspend fun setRoundUpSource(accountId: String, roundUpSource: Boolean) {
+        ledgerRepository.setAccountRoundUpSource(accountId, roundUpSource)
+    }
 }

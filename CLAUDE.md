@@ -217,6 +217,19 @@ destination account itself simply doesn't round up — the rest of that
 account's spending is unaffected. Editing a transaction, transfers and
 balance adjustments never trigger it; only a plain `POST /transactions` does.
 
+Which accounts take part is part of the rule to the person setting it, so on
+Android the whole of it — the switch, the ₱10/₱100 step, the accounts that round
+up, where the change lands and what it is filed under — is on the Save the Change
+screen, and the account form says nothing about round-ups. The opt-in is still
+`accounts.round_up_source` on each account, set one account at a time with the
+narrowest possible `PATCH`, so an edit of an account's name can never quietly
+take it off. Settings and Save the Change carry no Save on Android: every choice
+on them is picked from a list, so it is written as it is made, the way the theme
+switches always behaved. The one exception is a rule switched on before a
+destination is chosen — it cannot be saved, so it waits on the screen with the
+error beside the field and is written the moment an account is picked. (The web
+app still saves both screens by hand and keeps the opt-in on the account form.)
+
 **Account logos are linked, not uploaded.** An account may carry an image URL the
 client loads from wherever it lives — no upload, no copy, no storage beyond the
 string. The scheme is restricted to http(s), because the value ends up in an
@@ -237,8 +250,9 @@ three destinations as the phone's bottom bar (Dashboard, Transactions, Accounts)
 Categories and Tags under "More", ahead of Subscriptions. An open rail sits beside the page from 1024 (on Android, an Expanded width class, 840dp) and floats over a scrim
 below it, and the open/closed choice is remembered locally — but a narrow window never starts
 with it floating. The rail marks the current destination, so a wide window has no top bar; it also carries the
-screen's leading action as its FAB, under the menu button (an icon while slim, extended when open),
-Save on Settings and Save the Change included. The hide-amounts switch and the account sit at the
+screen's leading action as its FAB, under the menu button (an icon while slim, extended when open).
+Settings and Save the Change lend it none on Android: neither screen has a Save, because a choice made
+on either is written the moment it is made (see below). The hide-amounts switch and the account sit at the
 foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material 3
 `WideNavigationRail`, or its modal variant when floating) hosted by `YuukaApp`; a screen's leading
 action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
@@ -349,17 +363,6 @@ and categories, and — unless demo seeding is switched off — sample accounts,
 transactions and budgets dated into the month the user joined, so the first
 dashboard has figures on it. How this stays safe under concurrent requests is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-Rules:
-
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 
 ### Yuuka API
 

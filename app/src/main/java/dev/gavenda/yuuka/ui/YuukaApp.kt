@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -43,12 +44,11 @@ import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
 import dev.gavenda.yuuka.ui.categories.CategoriesScreen
-import dev.gavenda.yuuka.ui.common.FabEntry
+import dev.gavenda.yuuka.ui.common.AppBarShell
+import dev.gavenda.yuuka.ui.common.LocalAppBarShell
 import dev.gavenda.yuuka.ui.common.LocalRailFabHost
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.RailFabHost
-import dev.gavenda.yuuka.ui.common.RegisterRailFab
 import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
 import dev.gavenda.yuuka.ui.settings.SettingsScreen
@@ -57,15 +57,10 @@ import dev.gavenda.yuuka.ui.tags.TagsScreen
 import dev.gavenda.yuuka.ui.transactions.TransactionsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Surface
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.res.pluralStringResource
 import dev.gavenda.yuuka.sync.Outbox
 
 /**
@@ -77,8 +72,17 @@ import dev.gavenda.yuuka.sync.Outbox
  * - On a wider window a navigation rail takes over both (see [YuukaNavRail]). It marks the current
  *   destination, so there is no top app bar, and it carries the screen's leading action as its FAB
  *   ([ScreenFab]) — including Save on Settings and Save the Change.
+ *
+ * The shell draws no app bar of its own: a screen knows its own title and its own actions, so each one
+ * puts a [ScreenTopBar] (or a [DetailTopBar]) in its own Scaffold. What those bars share — the drawer
+ * button, the hide-amounts switch, back, and whether a rail has taken the bar's place — is handed down
+ * in [LocalAppBarShell].
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalMaterial3WindowSizeClassApi::class,
+)
 @Composable
 fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
@@ -93,13 +97,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     var isSyncing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
-    // Lifted by whichever drawer-only detail screen (Settings, Save the Change) is
-    // currently shown, so its Save action can live in the shared top app bar. At
-    // most one such screen is ever the current route, so one set of vars suffices.
-    var detailSaveEnabled by remember { mutableStateOf(false) }
-    var detailSaving by remember { mutableStateOf(false) }
-    var detailSaveAction by remember { mutableStateOf({}) }
-
     val authManager = koinInject<AuthManager>()
     val authState by authManager.authState.collectAsStateWithLifecycle()
     val claims = (authState as? AuthState.Authenticated)?.credentials?.idToken?.let(::decodeIdTokenClaims)
@@ -108,14 +105,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val brandName = stringResource(R.string.brand_name)
     val settingsLabel = stringResource(R.string.destination_settings)
     val saveTheChangeLabel = stringResource(R.string.destination_save_the_change)
-    val drawerDetailRoutes = setOf(SETTINGS_ROUTE, SAVE_THE_CHANGE_ROUTE)
-    val title = currentDestination?.let { stringResource(it.labelRes) }
-        ?: when (currentRoute) {
-            SETTINGS_ROUTE -> settingsLabel
-            SAVE_THE_CHANGE_ROUTE -> saveTheChangeLabel
-            else -> brandName
-        }
-
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -211,9 +200,9 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 }
             },
             state = pullToRefreshState,
-            // Wraps the whole Scaffold (app bar included) rather than nesting inside its body:
-            // Scaffold always draws its topBar after the body, so an indicator nested in the body
-            // would render behind the app bar's opaque surface whenever the two overlap.
+            // Wraps the whole Scaffold rather than nesting inside a screen's body: a Scaffold always
+            // draws its topBar after the body, so an indicator nested in the body would render behind
+            // the screen's app bar whenever the two overlap.
             indicator = {
                 PullToRefreshDefaults.LoadingIndicator(
                     state = pullToRefreshState,
@@ -224,43 +213,13 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                topBar = {
-                    // The rail marks the current destination, holds the hide-amounts switch and carries the
-                    // Save action, so a wide window has no bar at all.
-                    if (!useRail) {
-                        TopAppBar(
-                            title = { Text(title) },
-                            navigationIcon = {
-                                if (currentDestination != null) {
-                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                        Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.cd_menu))
-                                    }
-                                } else if (currentRoute in drawerDetailRoutes) {
-                                    IconButton(onClick = { navController.popBackStack() }) {
-                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                                    }
-                                }
-                            },
-                            actions = {
-                                if (currentDestination != null) {
-                                    IconButton(onClick = amountVisibility::toggle) {
-                                        Icon(
-                                            if (hidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
-                                            contentDescription = stringResource(if (hidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
-                                        )
-                                    }
-                                } else if (currentRoute in drawerDetailRoutes) {
-                                    IconButton(onClick = detailSaveAction, enabled = detailSaveEnabled) {
-                                        if (detailSaving) {
-                                            MutationLoadingIndicator(size = 24.dp)
-                                        } else {
-                                            Icon(Icons.Filled.Save, contentDescription = stringResource(R.string.action_save))
-                                        }
-                                    }
-                                }
-                            },
-                        )
-                    }
+                // Each screen brings its own app bar, which pads itself for the status bar; the shell
+                // must not pad for it a second time. A rail window has no bar at all, so there the
+                // shell is still what keeps the page out from under the status bar.
+                contentWindowInsets = if (useRail) {
+                    ScaffoldDefaults.contentWindowInsets
+                } else {
+                    ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 },
                 bottomBar = {
                     if (!useRail && currentDestination != null) {
@@ -277,10 +236,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 },
             ) { padding ->
-                Column(modifier = Modifier.padding(padding)) {
-                    UnsentChangesBanner(count = unsentChanges, sending = isSending)
-
                 NavHost(
+                    modifier = Modifier.padding(padding),
                     navController = navController,
                     startDestination = YuukaDestination.DASHBOARD.route,
                     enterTransition = {
@@ -319,49 +276,34 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     composable(YuukaDestination.CATEGORIES.route) { CategoriesScreen() }
                     composable(YuukaDestination.TAGS.route) { TagsScreen() }
                     composable(YuukaDestination.SUBSCRIPTIONS.route) { SubscriptionsScreen() }
-                    composable(SETTINGS_ROUTE) {
-                        SettingsScreen(
-                            onSaveStateChange = { enabled, saving, save ->
-                                detailSaveEnabled = enabled
-                                detailSaving = saving
-                                detailSaveAction = save
-                            },
-                        )
-                    }
-                    composable(SAVE_THE_CHANGE_ROUTE) {
-//                        SaveTheChangeScreen(
-//                            onSaveStateChange = { enabled, saving, save ->
-//                                detailSaveEnabled = enabled
-//                                detailSaving = saving
-//                                detailSaveAction = save
-//                            },
-//                        )
-                        ExpressiveLargeSettingsScreen()
-                    }
-                }
+                    composable(SETTINGS_ROUTE) { SettingsScreen() }
+                    composable(SAVE_THE_CHANGE_ROUTE) { SaveTheChangeScreen() }
                 }
             }
         }
     }
 
+    // What every screen's own app bar shares. Remembered rather than rebuilt, so a screen's bar
+    // recomposes when one of these actually moves and not on every pass through the shell.
+    val appBarShell = remember(useRail, hidden, unsentChanges, isSending) {
+        AppBarShell(
+            useRail = useRail,
+            amountsHidden = hidden,
+            unsentChanges = unsentChanges,
+            sending = isSending,
+            onOpenNavigation = { scope.launch { drawerState.open() } },
+            onBack = { navController.popBackStack() },
+            onToggleAmounts = amountVisibility::toggle,
+        )
+    }
+
     CompositionLocalProvider(
         LocalSnackbarHostState provides snackbarHostState,
+        LocalAppBarShell provides appBarShell,
         // Only a rail has a place to put a screen's FAB; without one each screen draws its own.
         LocalRailFabHost provides if (useRail) fabHost else null,
     ) {
         if (useRail) {
-            // Settings and Save the Change save from their leading action too, as the web app's do.
-            if (currentRoute in drawerDetailRoutes) {
-                RegisterRailFab(
-                    FabEntry(
-                        label = stringResource(R.string.action_save),
-                        icon = Icons.Filled.Save,
-                        onClick = detailSaveAction,
-                        enabled = detailSaveEnabled,
-                        busy = detailSaving,
-                    ),
-                )
-            }
             Row(modifier = modifier) {
                 YuukaNavRail(
                     docked = railDocked,
@@ -393,12 +335,21 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 gesturesEnabled = currentDestination != null,
                 drawerContent = {
                     ModalDrawerSheet {
-                        AccountSummary(
-                            claims = claims,
-                            fallbackName = brandName,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        )
-                        HorizontalDivider()
+                        // The same card the open rail puts the signed-in account in, so the two
+                        // shells introduce the user the same way — here it spans the sheet, and
+                        // lines up with the destinations below it.
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                            onClick = {},
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        ) {
+                            AccountSummary(
+                                claims = claims,
+                                fallbackName = brandName,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
+                        }
                         Column(
                             modifier = Modifier
                                 .weight(1f)
@@ -416,8 +367,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                 )
                             }
-                            // Grouped with Budget/Categories rather than Settings below the
-                            // divider — it's a ledger concern, not app configuration.
+                            // Grouped with Budget/Categories rather than with Settings at the foot —
+                            // it's a ledger concern, not app configuration.
                             NavigationDrawerItem(
                                 label = { Text(saveTheChangeLabel) },
                                 icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
@@ -429,7 +380,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             )
                         }
-                        HorizontalDivider()
                         NavigationDrawerItem(
                             label = { Text(settingsLabel) },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -472,38 +422,4 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideDirection(
     val toIndex = bottomNavRoutes.indexOf(targetState.destination.route)
     if (fromIndex == -1 || toIndex == -1) return null
     return if (toIndex >= fromIndex) 1 else -1
-}
-
-/**
- * What has not reached the server yet.
- *
- * Writes are local-first, so a save no longer fails for want of a connection
- * and there is nothing to warn about — but a figure the server has not been
- * told about is worth naming, both so the user knows their morning's spending
- * is still only on this phone and so a queue that has stopped draining is
- * visible rather than silent. It says nothing at all when there is nothing
- * waiting, which is almost always.
- */
-@Composable
-private fun UnsentChangesBanner(count: Int, sending: Boolean) {
-    AnimatedVisibility(visible = count > 0) {
-        Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = pluralStringResource(
-                    if (sending) R.plurals.sync_sending else R.plurals.sync_unsent,
-                    count,
-                    count,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
-    }
 }

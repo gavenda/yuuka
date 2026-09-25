@@ -82,9 +82,8 @@ class AccountsViewModel(
         startingBalance: Long,
         logoUrl: String,
         logoInvertDark: Boolean,
-        roundUpSource: Boolean = false,
     ) {
-        ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
+        ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
     }
 
     suspend fun updateAccount(
@@ -95,9 +94,10 @@ class AccountsViewModel(
         startingBalance: Long,
         logoUrl: String,
         logoInvertDark: Boolean,
-        roundUpSource: Boolean? = null,
     ) {
-        ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark, roundUpSource)
+        // The round-up opt-in is deliberately left out: the Save the Change screen owns it, and an edit
+        // here must not quietly take it off an account.
+        ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
     }
 
     suspend fun setArchived(id: String, archived: Boolean) {
