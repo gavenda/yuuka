@@ -10,7 +10,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.clearText
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -66,7 +70,7 @@ fun SettingsScreen(
     var budgetModeDraft by remember { mutableStateOf(state.budgetMode) }
     var defaultAccountDraft by remember { mutableStateOf(state.defaultAccountId) }
     var isAccountSheetOpen by remember { mutableStateOf(false) }
-    val currencySearchState = rememberSearchBarState()
+    var isCurrencySheetOpen by remember { mutableStateOf(false) }
     val currencyFieldState = rememberTextFieldState("")
 
     val couldNotSaveSettingMessage = stringResource(R.string.could_not_save_setting)
@@ -97,6 +101,8 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier,
         topBar = { DetailTopBar(title = stringResource(R.string.destination_settings)) },
         
@@ -112,7 +118,7 @@ fun SettingsScreen(
                 SettingsGroupContainer {
                     Row(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
-                        .clickable { scope.launch { currencySearchState.animateToExpanded() } }
+                        .clickable { isCurrencySheetOpen = true }
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -235,7 +241,7 @@ fun SettingsScreen(
                             Text(
                                 stringResource(R.string.version_value, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -245,54 +251,73 @@ fun SettingsScreen(
         }
     }
 
-    // The currency picker IS the search: it opens already expanded, which is the only state where
-    // Material's input field keeps focus (in touch mode the field's focus and the bar's expansion are
-    // one and the same — a collapsed bar clears focus, which is why a bar with nothing to expand into
-    // never raises the keyboard).
-    ExpandedFullScreenSearchBar(
-        state = currencySearchState,
-        inputField = {
-            SearchBarDefaults.InputField(
-                textFieldState = currencyFieldState,
-                searchBarState = currencySearchState,
-                onSearch = {},
-                placeholder = { Text("Search currency name or code...") },
-                leadingIcon = {
-                    IconButton(onClick = { scope.launch { currencySearchState.animateToCollapsed() } }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                },
-                trailingIcon = {
-                    if (currencyFieldState.text.isNotEmpty()) {
-                        IconButton(onClick = { currencyFieldState.clearText() }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear))
-                        }
-                    }
-                },
-            )
-        },
-    ) {
-        val query = currencyFieldState.text.toString()
-        val filteredCurrencies = currencies.filter {
-            it.displayName.contains(query, ignoreCase = true) || it.currencyCode.contains(query, ignoreCase = true)
+    // A bottom sheet whose first row is drawn like a search bar; it is a plain text field, not Material's
+    // SearchBar, so nothing here expands or takes the screen over.
+    if (isCurrencySheetOpen) {
+        val closeCurrencySheet = {
+            currencyFieldState.clearText()
+            isCurrencySheetOpen = false
         }
+        val searchFocus = remember { FocusRequester() }
+        LaunchedEffect(Unit) { searchFocus.requestFocus() }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ModalBottomSheet(
+            onDismissRequest = closeCurrencySheet,
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
-            itemsIndexed(filteredCurrencies) { index, currency ->
-                ExpressiveCurrencyItemRow(
-                    currency = currency,
-                    isSelected = currency.currencyCode == currencyDraft,
-                    position = positionInGroup(index, filteredCurrencies.lastIndex),
-                    onClick = {
-                        currencyDraft = currency.currencyCode
-                        persist(currency.currencyCode, budgetModeDraft, defaultAccountDraft)
-                        currencyFieldState.clearText()
-                        scope.launch { currencySearchState.animateToCollapsed() }
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+                TextField(
+                    state = currencyFieldState,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp).focusRequester(searchFocus),
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    shape = CircleShape,
+                    placeholder = { Text("Search currency name or code...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (currencyFieldState.text.isNotEmpty()) {
+                            IconButton(onClick = { currencyFieldState.clearText() }) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear))
+                            }
+                        }
                     },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        errorIndicatorColor = Color.Transparent,
+                    ),
                 )
+
+                val query = currencyFieldState.text.toString()
+                // The current selection leads the list, so it is the first thing seen on opening.
+                val filteredCurrencies = remember(query, currencyDraft) {
+                    currencies
+                        .filter {
+                            it.displayName.contains(query, ignoreCase = true) || it.currencyCode.contains(query, ignoreCase = true)
+                        }
+                        .sortedByDescending { it.currencyCode == currencyDraft }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    itemsIndexed(filteredCurrencies, key = { _, currency -> currency.currencyCode }) { index, currency ->
+                        ExpressiveCurrencyItemRow(
+                            currency = currency,
+                            isSelected = currency.currencyCode == currencyDraft,
+                            position = positionInGroup(index, filteredCurrencies.lastIndex),
+                            onClick = {
+                                currencyDraft = currency.currencyCode
+                                persist(currency.currencyCode, budgetModeDraft, defaultAccountDraft)
+                                closeCurrencySheet()
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -301,7 +326,7 @@ fun SettingsScreen(
     if (isAccountSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isAccountSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, // Elevated depth background
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() }) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
@@ -414,7 +439,6 @@ fun ExpressiveSwitchSettingItem(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.primary)
         )
     }
 }

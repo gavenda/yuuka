@@ -104,9 +104,9 @@ fun DailySpendChart(
     val selectedEntry = selected?.let { days.getOrNull(it) }
 
     val colors = MaterialTheme.colorScheme
-    val dayStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSurfaceVariant)
-    val selectedDayStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSurface, fontWeight = FontWeight.Medium)
-    val axisStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSurfaceVariant)
+    val dayStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSecondaryContainer.copy(alpha = 0.72f))
+    val selectedDayStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSecondaryContainer, fontWeight = FontWeight.Medium)
+    val axisStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSecondaryContainer.copy(alpha = 0.72f))
     val averageStyle = MaterialTheme.typography.labelSmall.copy(color = colors.primary, fontWeight = FontWeight.Medium)
     val glyphStyle = MaterialTheme.typography.labelMedium.copy(
         color = colors.onTertiaryContainer,
@@ -162,7 +162,7 @@ fun DailySpendChart(
                                 val fade = if (selected == null || selected == index) 1f else DIMMED_ALPHA
 
                                 val barColor = when {
-                                    entry.amount <= 0 -> colors.surfaceVariant
+                                    entry.amount <= 0 -> colors.onSecondaryContainer.copy(alpha = 0.16f)
                                     highlighted -> colors.tertiary
                                     else -> colors.primary
                                 }
@@ -282,7 +282,7 @@ fun DailySpendChart(
 private fun LegendItem(swatch: @Composable () -> Unit, label: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         swatch()
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f))
     }
 }
 
@@ -351,26 +351,26 @@ fun CategoryBarList(entries: List<RankableEntry>, modifier: Modifier = Modifier,
             val share = if (total > 0) ((entry.actual.toDouble() / total.toDouble()) * 100).toInt() else 0
             val fraction = if (max > 0) (entry.actual.toFloat() / max.toFloat()).coerceIn(0f, 1f) else 0f
             val color =
-                runCatching { Color(android.graphics.Color.parseColor(entry.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)
+                harmonisedColor(entry.color, MaterialTheme.colorScheme.primary)
 
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
                         entry.name,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
                         "${visibility.displayMoney(entry.actual, currency)} · $share%",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                     )
                 }
                 LinearProgressIndicator(
                     progress = { fraction },
                     modifier = Modifier.padding(top = 4.dp).fillMaxWidth().height(8.dp),
                     color = color,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f),
                     drawStopIndicator = {},
                 )
             }

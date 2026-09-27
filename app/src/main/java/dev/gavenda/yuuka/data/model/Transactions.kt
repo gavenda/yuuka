@@ -1,8 +1,10 @@
 package dev.gavenda.yuuka.data.model
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 /** The part of a [Tag] a transaction carries: enough to draw its chip. */
+@Immutable
 @Serializable
 data class TransactionTag(
     val id: String,
@@ -10,6 +12,7 @@ data class TransactionTag(
     val color: String,
 )
 
+@Immutable
 @Serializable
 data class Transaction(
     val id: String,
@@ -73,6 +76,7 @@ data class IncomePlan(
     val updatedAt: String? = null,
 )
 
+@Immutable
 @Serializable
 data class SubcategoryBreakdown(
     val categoryId: String,
@@ -82,6 +86,7 @@ data class SubcategoryBreakdown(
     val actual: Long,
 )
 
+@Immutable
 @Serializable
 data class CategoryBreakdown(
     val categoryId: String,
@@ -97,6 +102,7 @@ data class CategoryBreakdown(
     val children: List<SubcategoryBreakdown> = emptyList(),
 )
 
+@Immutable
 @Serializable
 data class DailySpend(val date: String, val amount: Long)
 

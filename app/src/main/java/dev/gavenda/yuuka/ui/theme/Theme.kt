@@ -2,110 +2,44 @@ package dev.gavenda.yuuka.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MotionScheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.materialkolor.DynamicMaterialExpressiveTheme
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.materialkolor.rememberDynamicMaterialThemeState
 
-private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    primaryContainer = DarkPrimaryContainer,
-    onPrimaryContainer = DarkOnPrimaryContainer,
-    inversePrimary = DarkInversePrimary,
-    secondary = DarkSecondary,
-    onSecondary = DarkOnSecondary,
-    secondaryContainer = DarkSecondaryContainer,
-    onSecondaryContainer = DarkOnSecondaryContainer,
-    tertiary = DarkTertiary,
-    onTertiary = DarkOnTertiary,
-    tertiaryContainer = DarkTertiaryContainer,
-    onTertiaryContainer = DarkOnTertiaryContainer,
-    background = DarkBackground,
-    onBackground = DarkOnSurface,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    surfaceTint = DarkPrimary,
-    inverseSurface = DarkInverseSurface,
-    inverseOnSurface = DarkInverseOnSurface,
-    error = DarkError,
-    onError = DarkOnError,
-    errorContainer = DarkErrorContainer,
-    onErrorContainer = DarkOnErrorContainer,
-    outline = DarkOutline,
-    outlineVariant = DarkOutlineVariant,
-    surfaceBright = DarkSurfaceBright,
-    surfaceDim = DarkSurfaceDim,
-    surfaceContainer = DarkSurfaceContainer,
-    surfaceContainerHigh = DarkSurfaceContainerHigh,
-    surfaceContainerHighest = DarkSurfaceContainerHighest,
-    surfaceContainerLow = DarkSurfaceContainerLow,
-    surfaceContainerLowest = DarkSurfaceContainerLowest,
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    primaryContainer = LightPrimaryContainer,
-    onPrimaryContainer = LightOnPrimaryContainer,
-    inversePrimary = LightInversePrimary,
-    secondary = LightSecondary,
-    onSecondary = LightOnSecondary,
-    secondaryContainer = LightSecondaryContainer,
-    onSecondaryContainer = LightOnSecondaryContainer,
-    tertiary = LightTertiary,
-    onTertiary = LightOnTertiary,
-    tertiaryContainer = LightTertiaryContainer,
-    onTertiaryContainer = LightOnTertiaryContainer,
-    background = LightBackground,
-    onBackground = LightOnSurface,
-    surface = LightSurface,
-    onSurface = LightOnSurface,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceVariant,
-    surfaceTint = LightPrimary,
-    inverseSurface = LightInverseSurface,
-    inverseOnSurface = LightInverseOnSurface,
-    error = LightError,
-    onError = LightOnError,
-    errorContainer = LightErrorContainer,
-    onErrorContainer = LightOnErrorContainer,
-    outline = LightOutline,
-    outlineVariant = LightOutlineVariant,
-    surfaceBright = LightSurfaceBright,
-    surfaceDim = LightSurfaceDim,
-    surfaceContainer = LightSurfaceContainer,
-    surfaceContainerHigh = LightSurfaceContainerHigh,
-    surfaceContainerHighest = LightSurfaceContainerHighest,
-    surfaceContainerLow = LightSurfaceContainerLow,
-    surfaceContainerLowest = LightSurfaceContainerLowest,
-)
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun YuukaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    // Seeds the palette from the wallpaper's accent (always available: minSdk is past Android 12).
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    // The system's own accent, taken as the seed so MaterialKolor still builds the whole expressive scheme from it.
+    val context = LocalContext.current
+    val dynamicThemeState = rememberDynamicMaterialThemeState(
+        isDark = darkTheme,
+        style = PaletteStyle.Vibrant,
+        specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        seedColor = SeedColor,
+        contrastLevel = -1.0,
+        modifyColorScheme = { colorScheme ->
+            if (dynamicColor) {
+                if (darkTheme)
+                    dynamicDarkColorScheme(context) else
+                    dynamicLightColorScheme(context)
+            } else colorScheme
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    )
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -118,10 +52,10 @@ fun YuukaTheme(
         }
     }
 
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
+    DynamicMaterialExpressiveTheme(
+        state = dynamicThemeState,
         motionScheme = MotionScheme.expressive(),
-        content = content
+        animate = true,
+        content = content,
     )
 }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +52,16 @@ class AppBarShell(
 
 /** Provided by the app shell for as long as a signed-in screen is on show. */
 val LocalAppBarShell = compositionLocalOf { AppBarShell() }
+
+/**
+ * Hangs an app bar's scroll behaviour on a screen's `Scaffold` — but only where there is a bar. A rail window
+ * draws none, so nothing ever tells the behaviour how tall it is; left connected it would take every scroll as the
+ * bar collapsing and the page would not move.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Modifier.appBarScroll(scrollBehavior: TopAppBarScrollBehavior): Modifier =
+    if (LocalAppBarShell.current.useRail) this else this.nestedScroll(scrollBehavior.nestedScrollConnection)
 
 /**
  * A top-level destination's app bar: its title, the drawer button and the hide-amounts switch, with the
@@ -87,7 +98,11 @@ fun ScreenTopBar(
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun LargeScreenTopBar(title: String, scrollBehavior: TopAppBarScrollBehavior) {
+fun LargeScreenTopBar(
+    title: String,
+    scrollBehavior: TopAppBarScrollBehavior,
+    actions: @Composable RowScope.() -> Unit = { AmountVisibilityAction() },
+) {
     val shell = LocalAppBarShell.current
     Column {
         // A rail window has no bar at all — it already marks the destination and carries both actions.
@@ -95,7 +110,7 @@ fun LargeScreenTopBar(title: String, scrollBehavior: TopAppBarScrollBehavior) {
             LargeFlexibleTopAppBar(
                 title = { Text(title) },
                 navigationIcon = { NavigationMenuButton() },
-                actions = { AmountVisibilityAction() },
+                actions = actions,
                 scrollBehavior = scrollBehavior,
             )
         }
@@ -138,13 +153,15 @@ fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: 
  * The app bar of a screen reached from the drawer rather than a tab (Settings, Save the Change): back
  * where the drawer button would be.
  *
+ * They show no amounts either, so the bar has no hide-amounts switch.
+ *
  * These screens carry no Save — a choice made on one of them is written the moment it is made, the
  * same way the theme switches always were — so the bar has no action of its own to state and the rail
  * no leading action to lend them.
  */
 @Composable
 fun DetailTopBar(title: String) {
-    ScreenTopBar(title = title, navigationIcon = { BackButton() })
+    ScreenTopBar(title = title, navigationIcon = { BackButton() }, actions = {})
 }
 
 /** Opens the phone's navigation drawer. */
@@ -193,8 +210,8 @@ fun AmountVisibilityAction() {
 private fun UnsentChangesBanner(count: Int, sending: Boolean) {
     AnimatedVisibility(visible = count > 0) {
         Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(

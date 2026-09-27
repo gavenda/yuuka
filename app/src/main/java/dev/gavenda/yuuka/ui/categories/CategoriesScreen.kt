@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui.categories
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,13 +11,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -28,11 +35,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.domain.CollapsedSections
 import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.ui.common.*
-import org.koin.compose.koinInject
+import dev.gavenda.yuuka.ui.settings.SettingsGroupContainer
+import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.core.graphics.toColorInt
 
@@ -46,8 +53,8 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
-    val sectionState = koinInject<CollapsedSections>()
-    val collapsedSections by sectionState.categories.collectAsStateWithLifecycle()
+    // A family shows its subcategories once opened; every family starts closed.
+    val expandedFamilies = rememberSaveable { mutableStateListOf<String>() }
 
     val categoryRestoredMessage = stringResource(R.string.category_restored)
     val categoryArchivedMessage = stringResource(R.string.category_archived)
@@ -55,9 +62,14 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     val categoryUpdatedMessage = stringResource(R.string.category_updated)
     val categoryAddedMessage = stringResource(R.string.category_added)
 
+    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
-        modifier = modifier,
-        topBar = { ScreenTopBar(stringResource(R.string.destination_categories)) },
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
+        topBar = { LargeScreenTopBar(stringResource(R.string.destination_categories), scrollBehavior, actions = {}) },
         
         floatingActionButton = {
             ScreenFab(
@@ -69,6 +81,9 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxWidth(),
+            // Sections sit apart the way the settings groups do: a heading, then one card of rows.
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (state.categories.isEmpty()) {
                 item {
@@ -80,43 +95,37 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
             }
 
             state.sections.forEach { section ->
-                val expanded = section.key !in collapsedSections
-                item {
-                    Column(
-                        modifier = Modifier
-                            .clickable { sectionState.toggleCategorySection(section.key) }
-                            .animateContentSize(),
-                    ) {
-                        ListItem(
-                            content = { Text(section.title) },
-                            supportingContent = { Text(section.description) },
-                            trailingContent = {
-                                Icon(
-                                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                                    contentDescription = if (expanded) stringResource(
-                                        R.string.cd_collapse_section,
-                                        section.title
-                                    ) else stringResource(R.string.cd_expand_section, section.title),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        )
-
-                        if (expanded && section.families.isEmpty()) {
-                            Text(
-                                stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else if (expanded) {
-                            Column {
+                item(key = "section:${section.key}") {
+                    // The settings screen spaces a heading from its card by 16dp on top of the heading's own padding.
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Drawn as the settings screen draws its groups: the heading in the accent colour, then one card
+                        // holding every row of the section.
+                        SettingsGroupHeader(title = "${section.title} (${section.families.size})")
+                        Box(modifier = Modifier.clip(RoundedCornerShape(28.dp))) {
+                            SettingsGroupContainer {
+                                if (section.families.isEmpty()) {
+                                    Text(
+                                        stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(20.dp),
+                                    )
+                                }
                                 section.families.forEach { family ->
+                                    val familyExpanded = family.parent.id in expandedFamilies
                                     val archiveKey = "archive:${family.parent.id}"
                                     val deleteKey = "delete:${family.parent.id}"
                                     CategoryRow(
                                         family.parent,
+                                        subCount = family.children.size,
+                                        expanded = familyExpanded,
                                         archiving = busy.isBusy(archiveKey),
                                         deleting = busy.isBusy(deleteKey),
+                                        onClick = {
+                                            if (family.children.isNotEmpty()) {
+                                                if (familyExpanded) expandedFamilies.remove(family.parent.id) else expandedFamilies.add(family.parent.id)
+                                            }
+                                        },
                                         onEdit = { editing = family.parent },
                                         onArchive = {
                                             busy.run(
@@ -136,32 +145,37 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                                         },
                                         onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
                                     )
-                                    family.children.forEach { child ->
-                                        val childArchiveKey = "archive:${child.id}"
-                                        val childDeleteKey = "delete:${child.id}"
-                                        CategoryRow(
-                                            child,
-                                            indent = true,
-                                            archiving = busy.isBusy(childArchiveKey),
-                                            deleting = busy.isBusy(childDeleteKey),
-                                            onEdit = { editing = child },
-                                            onArchive = {
-                                                busy.run(
-                                                    childArchiveKey,
-                                                    snackbarHostState,
-                                                    successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
-                                                ) { viewModel.setArchived(child.id, !child.archived) }
-                                            },
-                                            onDelete = {
-                                                busy.run(
-                                                    childDeleteKey,
-                                                    snackbarHostState,
-                                                    successMessage = categoryDeletedMessage
-                                                ) {
-                                                    viewModel.deleteCategory(child.id)
-                                                }
-                                            },
-                                        )
+                                    AnimatedVisibility(visible = familyExpanded) {
+                                        Column {
+                                            family.children.forEach { child ->
+                                                val childArchiveKey = "archive:${child.id}"
+                                                val childDeleteKey = "delete:${child.id}"
+                                                CategoryRow(
+                                                    child,
+                                                    indent = true,
+                                                    archiving = busy.isBusy(childArchiveKey),
+                                                    deleting = busy.isBusy(childDeleteKey),
+                                                    onClick = { editing = child },
+                                                    onEdit = { editing = child },
+                                                    onArchive = {
+                                                        busy.run(
+                                                            childArchiveKey,
+                                                            snackbarHostState,
+                                                            successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
+                                                        ) { viewModel.setArchived(child.id, !child.archived) }
+                                                    },
+                                                    onDelete = {
+                                                        busy.run(
+                                                            childDeleteKey,
+                                                            snackbarHostState,
+                                                            successMessage = categoryDeletedMessage
+                                                        ) {
+                                                            viewModel.deleteCategory(child.id)
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -222,9 +236,17 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     }
 }
 
+/**
+ * One row of a section's card. A parent with subcategories opens and closes them on tap; editing is on the
+ * swipe, beside archive and delete. A subcategory's tap edits it. The row paints the card's own colour, which is
+ * what keeps the swipe's actions hidden behind it until it is dragged.
+ */
 @Composable
 private fun CategoryRow(
     category: Category,
+    onClick: () -> Unit,
+    subCount: Int = 0,
+    expanded: Boolean = false,
     indent: Boolean = false,
     archiving: Boolean = false,
     deleting: Boolean = false,
@@ -233,9 +255,15 @@ private fun CategoryRow(
     onDelete: () -> Unit,
     onAddSub: (() -> Unit)? = null,
 ) {
+    val chevron by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "family-chevron",
+    )
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
+            ActionIconButton(ActionIcon.EDIT, stringResource(R.string.cd_rename_item, category.name), onEdit)
             ActionIconButton(
                 if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
                 stringResource(R.string.cd_archive_item, category.name),
@@ -252,21 +280,48 @@ private fun CategoryRow(
         },
     ) {
         ListItem(
-            modifier = if (indent) Modifier.padding(start = 16.dp) else Modifier.padding(start = 0.dp),
-            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp),
+            onClick = onClick,
+            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
             leadingContent = {
                 Box(
-                    modifier = Modifier.size(12.dp).clip(CircleShape).background(colorFromHex(category.color)),
+                    modifier = Modifier
+                        .size(if (indent) 10.dp else 12.dp)
+                        .clip(CircleShape)
+                        .background(harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant)),
                 )
+            },
+            supportingContent = if (subCount > 0) {
+                { Text(pluralStringResource(R.plurals.subcategories_count, subCount, subCount)) }
+            } else {
+                null
+            },
+            trailingContent = if (onAddSub != null || subCount > 0) {
+                {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (onAddSub != null) IconButton(onClick = onAddSub) {
+                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_sub))
+                        }
+                        if (subCount > 0) Icon(
+                            Icons.Filled.ExpandMore,
+                            contentDescription = if (expanded) {
+                                stringResource(R.string.cd_collapse_section, category.name)
+                            } else {
+                                stringResource(R.string.cd_expand_section, category.name)
+                            },
+                            modifier = Modifier.graphicsLayer { rotationZ = chevron },
+                        )
+                    }
+                }
+            } else {
+                null
             },
             content = {
                 Text(
                     if (category.archived) stringResource(R.string.name_archived, category.name) else category.name,
+                    style = if (indent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                 )
             },
-            trailingContent = {
-                if (onAddSub != null) TextButton(onClick = onAddSub) { Text(stringResource(R.string.add_sub)) }
-            }
         )
     }
 }

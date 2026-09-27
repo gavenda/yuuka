@@ -101,6 +101,10 @@
     <string name="dashboard_no_spending">No spending recorded this month.</string>
     <string name="dashboard_where_money_went">Where the money went</string>
     <string name="dashboard_nothing_recorded_month">Nothing recorded this month.</string>
+    <plurals name="subcategories_count">
+        <item quantity="one">%d subcategory</item>
+        <item quantity="other">%d subcategories</item>
+    </plurals>
     <plurals name="days_count">
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>

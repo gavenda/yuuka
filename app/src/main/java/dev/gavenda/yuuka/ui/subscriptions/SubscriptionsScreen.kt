@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -60,9 +61,14 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
     val pausedMessage = stringResource(R.string.subscription_paused)
     val resumedMessage = stringResource(R.string.subscription_resumed)
 
+    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
-        modifier = modifier,
-        topBar = { ScreenTopBar(stringResource(R.string.destination_subscriptions)) },
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
+        topBar = { LargeScreenTopBar(stringResource(R.string.destination_subscriptions), scrollBehavior) },
         
         floatingActionButton = {
             // Nowhere to post to until there is an account.
@@ -79,15 +85,6 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
             modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
         ) {
-            item {
-                Text(
-                    stringResource(R.string.subscriptions_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
-
             if (state.subscriptions.isNotEmpty()) {
                 item {
                     val pausedCount = state.subscriptions.count { !it.enabled }
@@ -97,12 +94,11 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(stringResource(R.string.subscriptions_total_per_month), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.subscriptions_total_per_month), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                             MoneyText(
                                 monthlyTotal(state.subscriptions),
                                 currency = state.displayCurrency,
-                                tone = MoneyTone.SIGNED,
-                                explicit = true,
+                                tone = MoneyTone.SIGNED_ALERT,
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
@@ -251,36 +247,39 @@ private fun SubscriptionRow(
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, subscription.payee), onDelete, danger = true)
         },
     ) {
-        ListItem(
-            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+        // One of the list's rows, drawn by hand: the surface takes the tap and the group's shape, and the
+        // headline with what is under it and the amount at the end are a plain row.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            content = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val dot = subscription.categoryColor?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
-                    if (dot != null) Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
-                    Text(subscription.payee, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f, fill = false))
-                    if (!subscription.enabled) {
-                        Text(
-                            stringResource(R.string.subscription_paused_badge),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+            shape = groupedItemShape(position),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val dot = harmonisedColorOrNull(subscription.categoryColor)
+                        if (dot != null) Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+                        Text(subscription.payee, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
+                        if (!subscription.enabled) {
+                            Text(
+                                stringResource(R.string.subscription_paused_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
-                }
-            },
-            supportingContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (subtitle.isNotEmpty()) {
                         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text(schedule, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            },
-            trailingContent = {
-                MoneyText(subscription.amount, tone = MoneyTone.SIGNED, explicit = true, currency = currency, style = MaterialTheme.typography.bodyMedium)
-            },
-        )
+                MoneyText(subscription.amount, tone = MoneyTone.SIGNED_ALERT, currency = currency, style = MaterialTheme.typography.titleMedium)
+            }
+        }
     }
 }
 

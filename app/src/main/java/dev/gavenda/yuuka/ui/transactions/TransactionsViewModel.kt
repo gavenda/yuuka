@@ -11,6 +11,7 @@ import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.repository.*
 import dev.gavenda.yuuka.ui.common.ScreenStatus
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -127,7 +128,7 @@ class TransactionsViewModel(
         viewModelScope.launch {
             filterKey.flatMapLatest { f ->
                 limit.flatMapLatest { l ->
-                    transactionRepository.observePage(f, l).map(::mergeTransferRows)
+                    transactionRepository.observePage(f, l).map(::mergeTransferRows).flowOn(Dispatchers.Default)
                 }
             }
                 .collect { rows -> _uiState.update { it.copy(rows = rows) } }

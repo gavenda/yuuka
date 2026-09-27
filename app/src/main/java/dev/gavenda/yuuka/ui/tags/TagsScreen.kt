@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,9 +53,14 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
     val tagUpdatedMessage = stringResource(R.string.tag_updated)
     val tagDeletedMessage = stringResource(R.string.tag_deleted)
 
+    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
     Scaffold(
-        modifier = modifier,
-        topBar = { ScreenTopBar(stringResource(R.string.destination_tags)) },
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
+        topBar = { LargeScreenTopBar(stringResource(R.string.destination_tags), scrollBehavior, actions = {}) },
         
         floatingActionButton = {
             ScreenFab(
@@ -70,14 +76,6 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
             // Rows of the block sit a hair apart, the way a settings group is drawn.
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            item {
-                Text(
-                    stringResource(R.string.tags_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
             if (state.tags.isEmpty()) {
                 item { EmptyState(stringResource(R.string.no_tags_yet), description = stringResource(R.string.tags_empty_description)) }
             } else {
@@ -159,7 +157,7 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: 
             modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
             onClick = onEdit,
             colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(colorFromHex(tag.color))) },
+            leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
             trailingContent = {
                 Text(

@@ -18,6 +18,8 @@ import dev.gavenda.yuuka.data.remote.apiCall
 import dev.gavenda.yuuka.data.remote.apiJson
 import dev.gavenda.yuuka.sync.Outbox
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -40,8 +42,10 @@ class BudgetRepository(
     private val incomePlanDao: IncomePlanDao,
     private val summaryDao: SummaryDao,
 ) {
+    // The summary is stored as the API's JSON and decoded here; off the main thread, or opening the dashboard parses it mid-transition.
     fun observeSummary(month: String): Flow<Summary?> =
         summaryDao.observe(month).map { entity -> entity?.let { apiJson.decodeFromString(Summary.serializer(), it.json) } }
+            .flowOn(Dispatchers.Default)
 
     fun observeBudgets(month: String): Flow<List<Budget>> = budgetDao.observeForMonth(month).map { list -> list.map { it.toDomain() } }
 

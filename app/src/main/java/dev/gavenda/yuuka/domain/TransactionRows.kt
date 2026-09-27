@@ -1,10 +1,12 @@
 package dev.gavenda.yuuka.domain
 
+import androidx.compose.runtime.Immutable
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionTag
 import kotlin.math.abs
 
 /** A transfer is two linked rows; every list shows them as the single movement they represent. Mirrors `src/lib/transactionRows.ts`. */
+@Immutable
 sealed interface TransactionRow {
     data class Single(val transaction: Transaction) : TransactionRow
 
@@ -28,13 +30,14 @@ sealed interface TransactionRow {
 fun mergeTransferRows(group: List<Transaction>): List<TransactionRow> {
     val rows = mutableListOf<TransactionRow>()
     val paired = mutableSetOf<String>()
+    val byTransfer = group.filter { it.transferId != null }.groupBy { it.transferId }
 
     for (transaction in group) {
         if (transaction.id in paired) continue
 
         val transferId = transaction.transferId
         if (transferId != null) {
-            val other = group.firstOrNull { it.transferId == transferId && it.id != transaction.id }
+            val other = byTransfer[transferId]?.firstOrNull { it.id != transaction.id }
             if (other != null) {
                 paired.add(transaction.id)
                 paired.add(other.id)

@@ -57,7 +57,8 @@ fun MonthTitle(month: String, onMonthChange: (String) -> Unit, modifier: Modifie
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             IconButton(onClick = { onMonthChange(addMonths(month, -1)) }, modifier = Modifier.size(40.dp)) {
@@ -85,6 +86,7 @@ fun MonthTitle(month: String, onMonthChange: (String) -> Unit, modifier: Modifie
                 TextButton(
                     onClick = { onMonthChange(currentMonth()) },
                     contentPadding = PaddingValues(horizontal = 8.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
                 ) {
                     Text(stringResource(R.string.action_today), style = MaterialTheme.typography.labelMedium)
                 }
@@ -110,7 +112,13 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
         )
     }
 
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -135,7 +143,10 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
             }
 
             if (!isCurrent) {
-                TextButton(onClick = { onMonthChange(currentMonth()) }) {
+                TextButton(
+                    onClick = { onMonthChange(currentMonth()) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
+                ) {
                     Text(stringResource(R.string.action_today))
                 }
             }

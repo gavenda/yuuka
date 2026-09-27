@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
@@ -32,8 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -73,47 +77,19 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     val tagOptions = remember(state.tags) { state.tags.map { FilterOption(it.id, it.name) } }
     var openFilter by remember { mutableStateOf<FilterKind?>(null) }
 
-    // The search bar owns the text; what is typed is handed to the view model, which does the filtering.
+    // The field owns the text; what is typed is handed to the view model, which does the filtering.
     val searchFieldState = rememberTextFieldState(state.searchText)
-    val searchBarState = rememberSearchBarState()
-    val scope = rememberCoroutineScope()
     LaunchedEffect(searchFieldState) {
         snapshotFlow { searchFieldState.text.toString() }.collectLatest(viewModel::setSearchText)
-    }
-
-    // One input field, shown by the bar in the page and again by the expanded search above it. Tapping
-    // the collapsed bar expands the search — that is what takes the focus and raises the keyboard, so
-    // the expanded half is not optional.
-    val searchInputField: @Composable () -> Unit = {
-        SearchBarDefaults.InputField(
-            textFieldState = searchFieldState,
-            searchBarState = searchBarState,
-            onSearch = { scope.launch { searchBarState.animateToCollapsed() } },
-            placeholder = { Text(stringResource(R.string.search_payee_notes)) },
-            leadingIcon = {
-                if (searchBarState.targetValue == SearchBarValue.Expanded) {
-                    IconButton(onClick = { scope.launch { searchBarState.animateToCollapsed() } }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
-                    }
-                } else {
-                    Icon(Icons.Filled.Search, contentDescription = null)
-                }
-            },
-            trailingIcon = {
-                if (searchFieldState.text.isNotEmpty()) {
-                    IconButton(onClick = { searchFieldState.clearText() }) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
-                    }
-                }
-            },
-        )
     }
 
     // Scrolling down gives the list the bar's height back; the first scroll up returns it.
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
         
         floatingActionButton = {
@@ -131,6 +107,11 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             modifier = Modifier.padding(padding).fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            SearchField(
+                state = searchFieldState,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -159,16 +140,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             }
 
             LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 96.dp)) {
-                item {
-                    // Material's own search bar rather than a text field dressed up as one.
-                    SearchBar(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        state = searchBarState,
-                        colors = SearchBarDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                        inputField = searchInputField,
-                    )
-                }
-
                 if (error != null) {
                     item { Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
                 }
@@ -196,7 +167,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
-                                MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.labelMedium)
+                                MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.titleMedium)
                             }
                         }
                         itemsIndexed(rows, key = { _, row ->
@@ -240,59 +211,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-
-    // What the search expands into: the same rows the page shows, already filtered by what is typed,
-    // so a match can be opened without leaving the search.
-    ExpandedFullScreenSearchBar(state = searchBarState, inputField = searchInputField) {
-        val matches = remember(state.rows) { groupByDate(state.rows) }
-        LazyColumn(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 16.dp)) {
-            if (state.rows.isEmpty()) {
-                item {
-                    Text(
-                        stringResource(R.string.transactions_empty_title),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
-            }
-            matches.forEach { (date, rows) ->
-                item {
-                    Text(
-                        formatLongDate(date),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
-                    )
-                }
-                itemsIndexed(rows, key = { _, row ->
-                    when (row) {
-                        is TransactionRow.Transfer -> "search:${row.id}"
-                        is TransactionRow.Single -> "search:${row.transaction.id}"
-                    }
-                }) { index, row ->
-                    TransactionRowItem(
-                        row = row,
-                        position = positionInGroup(index, rows.lastIndex),
-                        currency = state.currency,
-                        onClick = {
-                            scope.launch { searchBarState.animateToCollapsed() }
-                            when (row) {
-                                is TransactionRow.Transfer -> viewModel.openEdit(row.leg, row.toAccountId)
-                                is TransactionRow.Single -> viewModel.openEdit(row.transaction)
-                            }
-                        },
-                        onDelete = {
-                            pendingDelete = when (row) {
-                                is TransactionRow.Transfer -> row.leg
-                                is TransactionRow.Single -> row.transaction
-                            }
-                        },
-                    )
                 }
             }
         }
@@ -430,17 +348,15 @@ private fun TransactionRowItem(
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
           Column {
-            // The headline, what is under it and the figures at the end are a ListItem's own three slots;
-            // the card, the tap target and the notes row below stay outside it, so its container is
-            // transparent and it draws nothing of its own.
+            // The headline, what is under it and the figures at the end sit in a plain row of two columns;
+            // the card, the tap target and the notes row below stay outside it.
             when (row) {
                 is TransactionRow.Transfer -> {
                     val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
                     val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
-                    ListItem(
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        content = { Text(title, style = MaterialTheme.typography.bodyMedium) },
-                        supportingContent = {
+                    TransactionSummary(
+                        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
+                        supporting = {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
                                 formatTime(row.leg.occurredOn)?.let { time ->
@@ -448,13 +364,14 @@ private fun TransactionRowItem(
                                 }
                             }
                         },
-                        trailingContent = {
+                        trailing = {
                             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.bodyMedium)
+                                MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.titleMedium)
                                 Text(
                                     visibility.displayMoney(row.leg.runningBalance, currency),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    // An overdrawn account reads in the error colour, as its balance does on the Accounts screen.
+                                    color = if (row.leg.runningBalance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 row.categoryName?.let { name -> CategoryLabel(name, row.categoryColor) }
                             }
@@ -464,20 +381,19 @@ private fun TransactionRowItem(
 
                 is TransactionRow.Single -> {
                     val transaction = row.transaction
-                    ListItem(
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        content = {
+                    TransactionSummary(
+                        title = {
                             Text(
                                 transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) },
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         },
-                        supportingContent = {
+                        supporting = {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
                                     transaction.accountName.orEmpty(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.tertiary,
                                 )
                                 if (transaction.automated) {
                                     Text(
@@ -491,13 +407,14 @@ private fun TransactionRowItem(
                                 }
                             }
                         },
-                        trailingContent = {
+                        trailing = {
                             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                MoneyText(transaction.amount, tone = MoneyTone.SIGNED, currency = currency, style = MaterialTheme.typography.bodyMedium)
+                                MoneyText(transaction.amount, tone = MoneyTone.SIGNED_ALERT, currency = currency, style = MaterialTheme.typography.titleMedium)
                                 Text(
                                     visibility.displayMoney(transaction.runningBalance, currency),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    // An overdrawn account reads in the error colour, as its balance does on the Accounts screen.
+                                    color = if (transaction.runningBalance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
                             }
@@ -505,42 +422,75 @@ private fun TransactionRowItem(
                     )
                 }
             }
-
-            // Notes on the left, tags as chips at the right end of the same row, centred on each other.
-            // The icon stays with the note's first line.
-            if (notes.isNotEmpty() || tags.isNotEmpty()) {
-                HorizontalDivider()
-                BoxWithConstraints {
-                    val maxChipsWidth = maxWidth * 0.6f
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (notes.isNotEmpty()) {
-                                Icon(
-                                    Icons.Filled.EditNote,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    notes,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        }
-                        // Sized to what they hold, but never past 60% of the row, so a long tag list wraps rather than crowding the notes out.
-                        if (tags.isNotEmpty()) TagChips(tags, modifier = Modifier.widthIn(max = maxChipsWidth))
-                    }
-                }
-            }
           }
         }
     }
+}
+
+/** Filters the list as it is typed. A plain text field drawn as a search bar — nothing here expands or takes the screen over. */
+@Composable
+private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
+    val onContainer = MaterialTheme.colorScheme.onSurface
+    val subtle = MaterialTheme.colorScheme.onSurfaceVariant
+    TextField(
+        state = state,
+        modifier = modifier,
+        lineLimits = TextFieldLineLimits.SingleLine,
+        shape = CircleShape,
+        textStyle = MaterialTheme.typography.bodyLarge,
+        placeholder = { Text(stringResource(R.string.search_payee_notes)) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            if (state.text.isNotEmpty()) {
+                IconButton(onClick = { state.clearText() }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
+                }
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            focusedTextColor = onContainer,
+            unfocusedTextColor = onContainer,
+            cursorColor = onContainer,
+            focusedPlaceholderColor = subtle,
+            unfocusedPlaceholderColor = subtle,
+            focusedLeadingIconColor = subtle,
+            unfocusedLeadingIconColor = subtle,
+            focusedTrailingIconColor = subtle,
+            unfocusedTrailingIconColor = subtle,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+        ),
+    )
+}
+
+/** A transaction's headline and what is under it at the start, its figures at the end, top-aligned with each other. */
+@Composable
+private fun TransactionSummary(
+    title: @Composable () -> Unit,
+    supporting: @Composable () -> Unit,
+    trailing: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            title()
+            supporting()
+        }
+        trailing()
+    }
+}
+
+/** Caps the width at [fraction] of what the parent offers, without the subcomposition `BoxWithConstraints` costs per row. */
+private fun Modifier.maxWidthFraction(fraction: Float): Modifier = layout { measurable, constraints ->
+    val cap = (constraints.maxWidth * fraction).toInt()
+    val placeable = measurable.measure(constraints.copy(maxWidth = minOf(constraints.maxWidth, cap), minWidth = minOf(constraints.minWidth, cap)))
+    layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
 }
 
 /** A transaction's tags as small chips, wrapping onto further lines and packed toward the end of the row. */
@@ -558,7 +508,7 @@ private fun TagChips(tags: List<TransactionTag>, modifier: Modifier = Modifier) 
 /** Read-only on a card: it is a label, and a tap on the card still opens the transaction. */
 @Composable
 private fun TagChip(name: String, colorHex: String) {
-    val color = runCatching { Color(android.graphics.Color.parseColor(colorHex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
+    val color = harmonisedColor(colorHex, MaterialTheme.colorScheme.onSurfaceVariant)
     Surface(
         shape = MaterialTheme.shapes.small,
         color = Color.Transparent,
@@ -577,7 +527,7 @@ private fun TagChip(name: String, colorHex: String) {
 
 @Composable
 private fun CategoryLabel(name: String, colorHex: String?) {
-    val color = colorHex?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+    val color = harmonisedColorOrNull(colorHex)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (color != null) Box(Modifier.size(8.dp).clip(CircleShape).background(color))

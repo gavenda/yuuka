@@ -99,9 +99,9 @@ private fun MonthCell(
         selected = isSelected,
         onClick = onClick,
         shape = MaterialTheme.shapes.extraLarge,
-        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
         contentColor = when {
-            isSelected -> MaterialTheme.colorScheme.onPrimary
+            isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
             isCurrent -> MaterialTheme.colorScheme.primary
             else -> MaterialTheme.colorScheme.onSurface
         },

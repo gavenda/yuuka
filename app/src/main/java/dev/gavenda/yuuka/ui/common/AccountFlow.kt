@@ -23,7 +23,7 @@ fun AccountFlow(
     to: String,
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodySmall,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    color: Color = MaterialTheme.colorScheme.tertiary,
 ) {
     val iconSize = with(LocalDensity.current) { style.fontSize.toDp() } + 4.dp
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

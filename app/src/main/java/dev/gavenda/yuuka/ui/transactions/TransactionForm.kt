@@ -24,6 +24,7 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.DropdownField
 import dev.gavenda.yuuka.ui.common.FieldError
+import dev.gavenda.yuuka.ui.common.harmonisedColor
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
 import dev.gavenda.yuuka.ui.common.PickerField
@@ -88,7 +89,7 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
 
 @Composable
 private fun tagColor(hex: String): Color =
-    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
+    harmonisedColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

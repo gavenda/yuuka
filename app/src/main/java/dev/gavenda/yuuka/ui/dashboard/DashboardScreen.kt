@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.ui.dashboard
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,7 +34,9 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
         
     ) { padding ->
@@ -58,6 +61,7 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                             StatItem(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, state.currency),
                             StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency),
                         ),
+                        tone = StatTone.Tertiary,
                     )
                 }
 
@@ -90,11 +94,12 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                 signed = true,
                             ),
                         ),
+                        tone = StatTone.Tertiary,
                     )
                 }
 
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleLarge)
                             val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
@@ -108,14 +113,14 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                         pluralStringResource(R.plurals.days_count, spentDays, spentDays),
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                                 DailySpendChart(series, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
                             } else {
                                 Text(
                                     stringResource(R.string.dashboard_no_spending),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                             }
                         }
@@ -123,7 +128,7 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                 }
 
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleLarge)
                             val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)
@@ -132,7 +137,7 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                     stringResource(R.string.dashboard_nothing_recorded_month),
                                     modifier = Modifier.padding(top = 12.dp),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                             } else {
                                 CategoryBarList(entries, modifier = Modifier.padding(top = 12.dp), currency = state.currency)

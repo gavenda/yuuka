@@ -53,13 +53,13 @@ fun AccountLogo(name: String, logoUrl: String?, invertDark: Boolean, modifier: M
             modifier = modifier
                 .heightIn(max = size.dp)
                 .aspectRatio(1f)
-                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
+                .background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.small),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = name.trim().take(1).uppercase().ifEmpty { "?" },
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
     }

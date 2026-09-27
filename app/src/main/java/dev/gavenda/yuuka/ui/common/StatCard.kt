@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,6 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.ui.theme.compactFigure
+
+/** The container a [StatCard] is drawn on. */
+enum class StatTone { Surface, Secondary, Tertiary }
 
 /** One hero figure per view: everything else on the screen explains it. Mirrors `StatCard.vue`. */
 @Composable
@@ -26,19 +30,35 @@ fun StatCard(
     emphasized: Boolean = true,
     /** Non-null gives the card Material's press ripple, purely for touch feedback — pass `{}` where no action is needed. */
     onClick: (() -> Unit)? = null,
+    /** Draws the card on a secondary or tertiary container, with its figure in the container's own content colour. */
+    tone: StatTone = StatTone.Surface,
     icon: @Composable (() -> Unit)? = null,
 ) {
+    // On a tertiary container the inflow colour (tertiary) would all but vanish, so the figure keeps the content colour and the sign carries the direction.
+    val tinted = tone != StatTone.Surface
+    val scheme = MaterialTheme.colorScheme
+    val subtle = when (tone) {
+        StatTone.Surface -> scheme.onSurfaceVariant
+        StatTone.Secondary -> scheme.onSecondaryContainer.copy(alpha = 0.72f)
+        StatTone.Tertiary -> scheme.onTertiaryContainer.copy(alpha = 0.72f)
+    }
+    val cardColors = when (tone) {
+        StatTone.Surface -> CardDefaults.cardColors()
+        StatTone.Secondary -> CardDefaults.cardColors(containerColor = scheme.secondaryContainer, contentColor = scheme.onSecondaryContainer)
+        StatTone.Tertiary -> CardDefaults.cardColors(containerColor = scheme.tertiaryContainer, contentColor = scheme.onTertiaryContainer)
+    }
+
     val content: @Composable ColumnScope.() -> Unit = {
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = subtle,
         )
         MoneyText(
             amount = amount,
             modifier = Modifier.padding(top = 8.dp),
             currency = currency,
-            tone = if (signed) MoneyTone.SIGNED else MoneyTone.NEUTRAL,
+            tone = if (signed && !tinted) MoneyTone.SIGNED else MoneyTone.NEUTRAL,
             style = when {
                 !emphasized -> MaterialTheme.typography.bodyLarge
                 hero -> MaterialTheme.typography.displaySmall
@@ -51,7 +71,7 @@ fun StatCard(
                 text = caption,
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = subtle,
             )
         }
     }
@@ -68,8 +88,8 @@ fun StatCard(
     }
 
     if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier.fillMaxWidth()) { body() }
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), colors = cardColors) { body() }
     } else {
-        Card(modifier = modifier.fillMaxWidth()) { body() }
+        Card(modifier = modifier.fillMaxWidth(), colors = cardColors) { body() }
     }
 }

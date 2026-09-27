@@ -33,3 +33,11 @@ const val SETTINGS_ROUTE = "settings"
 
 /** Reached from the navigation drawer, grouped with the ledger destinations rather than [SETTINGS_ROUTE] — not a bottom-nav tab. */
 const val SAVE_THE_CHANGE_ROUTE = "save-the-change"
+
+/** Screens that show no amount, so the hide-amounts switch has nothing to mask there. */
+val AMOUNT_FREE_ROUTES = setOf(
+    YuukaDestination.CATEGORIES.route,
+    YuukaDestination.TAGS.route,
+    SETTINGS_ROUTE,
+    SAVE_THE_CHANGE_ROUTE,
+)

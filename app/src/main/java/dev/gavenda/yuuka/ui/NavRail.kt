@@ -243,14 +243,17 @@ fun YuukaNavRail(
             // The foot stays at the bottom of the rail however far the destinations above scroll. The display
             // switch is in reach in both states: a phone keeps it in its top bar, but a wide window has none.
             Column(verticalArrangement = Arrangement.spacedBy(spacing), modifier = Modifier.padding(vertical = 16.dp)) {
-                RailItem(
-                    label = stringResource(if (amountsHidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
-                    icon = if (amountsHidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
-                    selected = false,
-                    expanded = expanded,
-                    onClick = onToggleAmounts,
-                    labelWhenSlim = false,
-                )
+                // Not on a screen that shows no amount, where there is nothing for it to mask.
+                if (currentRoute !in AMOUNT_FREE_ROUTES) {
+                    RailItem(
+                        label = stringResource(if (amountsHidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
+                        icon = if (amountsHidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
+                        selected = false,
+                        expanded = expanded,
+                        onClick = onToggleAmounts,
+                        labelWhenSlim = false,
+                    )
+                }
 
                 // Only in the open rail, which grows out of nothing rather than appearing.
                 AnimatedVisibility(
@@ -263,7 +266,7 @@ fun YuukaNavRail(
                         onClick = {},
                         shape = RoundedCornerShape(32.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
                         )) {
                         AccountSummary(
                             claims = claims,
@@ -404,7 +407,6 @@ fun AccountSummary(claims: IdTokenClaims?, fallbackName: String, modifier: Modif
                 Text(
                     claims.email,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

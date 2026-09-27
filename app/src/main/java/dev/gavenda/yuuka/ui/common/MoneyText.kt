@@ -14,19 +14,25 @@ import org.koin.compose.koinInject
 import kotlin.math.abs
 
 /** Tone a figure reads in, mirroring `MoneyText.vue`'s colour rules. */
-enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER }
+/** [SIGNED_ALERT] is [SIGNED] with the negative side in `error` — for a figure where below zero is worth noticing, such as an account's balance or a transaction's amount. */
+enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER, SIGNED_ALERT }
 
 /**
  * The colour a figure reads in, taken from the theme so it follows dynamic colour:
- * negative is `error`, transfers are `primary`, and inflows are `secondary`.
+ * a routine outflow stays in the content colour (`error` is for errors, and a purchase is not one), inflows
+ * are `tertiary` and transfers `onSurfaceVariant`.
  */
 @Composable
 fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
     MoneyTone.TRANSFER -> MaterialTheme.colorScheme.primary
     MoneyTone.NEUTRAL -> LocalContentColor.current
-    MoneyTone.SIGNED -> when {
-        amount > 0 -> MaterialTheme.colorScheme.secondary
+    MoneyTone.SIGNED_ALERT -> when {
+        amount > 0 -> MaterialTheme.colorScheme.primary
         amount < 0 -> MaterialTheme.colorScheme.error
+        else -> LocalContentColor.current
+    }
+    MoneyTone.SIGNED -> when {
+        amount > 0 -> MaterialTheme.colorScheme.primary
         else -> LocalContentColor.current
     }
 }

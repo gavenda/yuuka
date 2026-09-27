@@ -342,7 +342,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
                             onClick = {},
                             shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
                         ) {
                             AccountSummary(
                                 claims = claims,

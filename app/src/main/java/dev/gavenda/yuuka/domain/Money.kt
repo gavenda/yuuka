@@ -44,6 +44,15 @@ fun currencySymbol(currency: String = DEFAULT_CURRENCY): String {
     }
 }
 
+/** The currency's full name, e.g. `"PHP"` -> `"Philippine Peso"`; a code it does not recognise is shown as itself. */
+fun currencyName(currency: String = DEFAULT_CURRENCY): String {
+    return try {
+        Currency.getInstance(currency).getDisplayName(Locale.getDefault())
+    } catch (_: IllegalArgumentException) {
+        currency
+    }
+}
+
 /** Formats without the currency symbol, for tables that label the currency once. */
 fun formatAmount(minor: Long): String {
     val format = NumberFormat.getNumberInstance(Locale.getDefault())

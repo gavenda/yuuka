@@ -35,7 +35,7 @@ data class StatItem(
  * one still lines up with the rest of the content.
  */
 @Composable
-fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed: Dp = 16.dp) {
+fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed: Dp = 16.dp, tone: StatTone = StatTone.Surface) {
     val state = rememberCarouselState { stats.size }
     HorizontalUncontainedCarousel(
         state = state,
@@ -62,6 +62,7 @@ fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed
                 caption = stat.caption,
                 signed = stat.signed,
                 compact = stat.compact,
+                tone = tone,
                 onClick = {},
             )
         }

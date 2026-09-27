@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.remote.ApiError
-import dev.gavenda.yuuka.ui.common.DetailTopBar
+import dev.gavenda.yuuka.ui.common.ScreenTopBar
 import dev.gavenda.yuuka.ui.common.FieldError
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.rememberFormValidation
@@ -96,8 +96,10 @@ fun SaveTheChangeScreen(
     }
 
     Scaffold(
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier,
-        topBar = { DetailTopBar(title = stringResource(R.string.destination_save_the_change)) },
+        topBar = { ScreenTopBar(stringResource(R.string.destination_save_the_change), actions = {}) },
         
     ) { padding ->
         Column(
@@ -186,7 +188,7 @@ fun SaveTheChangeScreen(
     if (isAccountSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isAccountSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
@@ -226,7 +228,7 @@ fun SaveTheChangeScreen(
     if (isSourceSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isSourceSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
@@ -277,7 +279,7 @@ fun SaveTheChangeScreen(
 
         ModalBottomSheet(
             onDismissRequest = { isCategorySheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(

@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -27,6 +28,7 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.data.remote.ApiError
+import dev.gavenda.yuuka.domain.currencyName
 import dev.gavenda.yuuka.domain.LOGO_URL_MAX
 import dev.gavenda.yuuka.domain.PAYEE_MAX
 import dev.gavenda.yuuka.domain.formatMoney
@@ -65,7 +67,9 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { LargeScreenTopBar(stringResource(R.string.destination_accounts), scrollBehavior) },
         
         floatingActionButton = {
@@ -138,7 +142,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary,
                             )
-                            MoneyText(group.total, tone = MoneyTone.SIGNED, currency = group.currency)
+                            MoneyText(group.total, tone = MoneyTone.SIGNED_ALERT, currency = group.currency, style = MaterialTheme.typography.titleMedium)
                         }
                     }
                     itemsIndexed(group.accounts, key = { _, account -> account.id }) { index, account ->
@@ -303,27 +307,30 @@ private fun AccountCard(
         },
     ) {
         // One of a type's rows rather than a card of its own: square where it meets its neighbours,
-        // round on the group's outer edges, the same block the settings groups are drawn as.
-        // The row is a ListItem outright — it takes the tap and paints its own fill, so the group's
-        // shape is all that is left to clip it to.
-        ListItem(
-            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+        // round on the group's outer edges, the same block the settings groups are drawn as. The surface
+        // takes the tap and the shape; what is in it is a plain row of a column and the logo.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            content = {
-                Text(
-                    if (account.archived) stringResource(R.string.name_archived, account.name) else account.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            },
-            supportingContent = {
-                Column {
-                    Text(account.currency, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    MoneyText(account.balance, tone = MoneyTone.SIGNED, currency = account.currency, modifier = Modifier.padding(top = 4.dp))
+            shape = groupedItemShape(position),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        if (account.archived) stringResource(R.string.name_archived, account.name) else account.name,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(currencyName(account.currency), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                    MoneyText(account.balance, tone = MoneyTone.SIGNED_ALERT, currency = account.currency, style = MaterialTheme.typography.titleMedium)
                 }
-            },
-            trailingContent = { AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28) },
-        )
+                AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28)
+            }
+        }
     }
 }
 
