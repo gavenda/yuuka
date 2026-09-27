@@ -125,9 +125,6 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE transferId = :transferId ORDER BY amount ASC")
     suspend fun byTransferId(transferId: String): List<TransactionEntity>
 
-    @Query("SELECT tagId FROM transaction_tags WHERE transactionId = :id")
-    suspend fun tagIdsOf(id: String): List<String>
-
     @Query("DELETE FROM transactions")
     suspend fun clearRows()
 

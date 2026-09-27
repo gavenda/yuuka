@@ -9,10 +9,7 @@ class ApiError(
     val status: Int,
     message: String,
     val details: Map<String, List<String>>? = null,
-) : Exception(message) {
-    /** True when the session is missing or expired and the user must sign in again. */
-    val isUnauthorized: Boolean get() = status == 401
-}
+) : Exception(message)
 
 @Serializable
 private data class ErrorBody(

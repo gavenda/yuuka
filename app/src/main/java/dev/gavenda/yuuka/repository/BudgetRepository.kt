@@ -8,10 +8,6 @@ import dev.gavenda.yuuka.data.local.dao.SummaryDao
 import dev.gavenda.yuuka.data.local.entity.BudgetEntity
 import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
 import dev.gavenda.yuuka.data.local.entity.SummaryEntity
-import dev.gavenda.yuuka.data.local.toDomain
-import dev.gavenda.yuuka.data.local.toEntity
-import dev.gavenda.yuuka.data.model.Budget
-import dev.gavenda.yuuka.data.model.IncomePlan
 import dev.gavenda.yuuka.data.model.Summary
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
@@ -47,24 +43,10 @@ class BudgetRepository(
         summaryDao.observe(month).map { entity -> entity?.let { apiJson.decodeFromString(Summary.serializer(), it.json) } }
             .flowOn(Dispatchers.Default)
 
-    fun observeBudgets(month: String): Flow<List<Budget>> = budgetDao.observeForMonth(month).map { list -> list.map { it.toDomain() } }
-
-    fun observeIncomePlan(month: String): Flow<IncomePlan?> = incomePlanDao.observe(month).map { it?.toDomain() }
-
     suspend fun refreshSummary(month: String): Summary {
         val summary = apiCall { api.summary(month) }
         summaryDao.upsert(SummaryEntity(month, apiJson.encodeToString(Summary.serializer(), summary), System.currentTimeMillis()))
         return summary
-    }
-
-    suspend fun refreshBudgets(month: String) {
-        val response = apiCall { api.listBudgets(month) }
-        budgetDao.replaceMonth(month, response.budgets.map { it.toEntity(month) })
-    }
-
-    suspend fun refreshIncomePlan(month: String) {
-        val response = apiCall { api.getIncomePlan(month) }
-        incomePlanDao.upsert(response.incomePlan.toEntity(month))
     }
 
     suspend fun setBudgetAmount(categoryId: String, month: String, amount: Long) = setBudget(categoryId, month, amount = amount, percent = null)

@@ -27,12 +27,6 @@ fun formatMonth(month: String): String {
     return "$monthName ${ym.year}"
 }
 
-/** `2026-09-15[T14:30]` -> `15 Sep`, rendered from the date part to dodge timezone shifts. */
-fun formatDate(date: String): String {
-    val local = LocalDate.parse(date.take(10))
-    return local.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
-}
-
 fun formatLongDate(date: String): String {
     val local = LocalDate.parse(date.take(10))
     return local.format(DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM).withLocale(Locale.getDefault()))

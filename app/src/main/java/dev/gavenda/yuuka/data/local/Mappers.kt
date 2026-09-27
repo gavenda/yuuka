@@ -41,14 +41,6 @@ fun RoundUpRuleEntity.toDomain() = RoundUpRule(enabled, roundTo, destinationAcco
 
 fun RoundUpRule.toEntity() = RoundUpRuleEntity(0, enabled, roundTo, destinationAccountId, categoryId, createdAt, updatedAt)
 
-fun BudgetEntity.toDomain() = Budget(id, categoryId, month, amount, percent, createdAt, updatedAt)
-
-fun Budget.toEntity(queriedMonth: String) = BudgetEntity(id, categoryId, month, amount, percent, queriedMonth, createdAt, updatedAt)
-
-fun IncomePlanEntity.toDomain() = IncomePlan(month, amount, enumValueOf<IncomePlanMode>(mode), grossAmount, createdAt, updatedAt)
-
-fun IncomePlan.toEntity(queriedMonth: String) = IncomePlanEntity(queriedMonth, month, amount, mode.name, grossAmount, createdAt, updatedAt)
-
 fun PayeeEntity.toDomain() = Payee(
     id = id,
     payee = payee,

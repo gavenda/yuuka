@@ -486,45 +486,6 @@ private fun TransactionSummary(
     }
 }
 
-/** Caps the width at [fraction] of what the parent offers, without the subcomposition `BoxWithConstraints` costs per row. */
-private fun Modifier.maxWidthFraction(fraction: Float): Modifier = layout { measurable, constraints ->
-    val cap = (constraints.maxWidth * fraction).toInt()
-    val placeable = measurable.measure(constraints.copy(maxWidth = minOf(constraints.maxWidth, cap), minWidth = minOf(constraints.minWidth, cap)))
-    layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
-}
-
-/** A transaction's tags as small chips, wrapping onto further lines and packed toward the end of the row. */
-@Composable
-private fun TagChips(tags: List<TransactionTag>, modifier: Modifier = Modifier) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        tags.forEach { tag -> TagChip(tag.name, tag.color) }
-    }
-}
-
-/** Read-only on a card: it is a label, and a tap on the card still opens the transaction. */
-@Composable
-private fun TagChip(name: String, colorHex: String) {
-    val color = harmonisedColor(colorHex, MaterialTheme.colorScheme.onSurfaceVariant)
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-            Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
 @Composable
 private fun CategoryLabel(name: String, colorHex: String?) {
     val color = harmonisedColorOrNull(colorHex)

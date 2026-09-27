@@ -27,14 +27,6 @@ val PALETTE = listOf(
     PaletteSlot("Red", "#e34948", "#e66767"),
 )
 
-private val DARK_BY_LIGHT: Map<String, String> = PALETTE.associate { it.light.lowercase() to it.dark }
-
-/** Maps a stored (light) colour onto its dark-mode step, leaving custom hexes alone. */
-fun paletteForMode(color: String, dark: Boolean): String {
-    if (!dark) return color
-    return DARK_BY_LIGHT[color.lowercase()] ?: color
-}
-
 /** The slot a new category should take, so defaults spread across the palette. */
 fun nextColor(existingCount: Int): String = PALETTE[existingCount % PALETTE.size].light
 

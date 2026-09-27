@@ -40,9 +40,6 @@ interface YuukaApi {
     @POST("account-types")
     suspend fun createAccountType(@Body body: JsonObject): AccountTypeResponse
 
-    @PATCH("account-types/{id}")
-    suspend fun updateAccountType(@Path("id") id: String, @Body body: JsonObject): AccountTypeResponse
-
     @DELETE("account-types/{id}")
     suspend fun deleteAccountType(@Path("id") id: String)
 
@@ -115,26 +112,8 @@ interface YuukaApi {
     @GET("subscriptions")
     suspend fun listSubscriptions(): SubscriptionsResponse
 
-    @POST("subscriptions")
-    suspend fun createSubscription(@Body body: JsonObject): SubscriptionResponse
-
-    @PATCH("subscriptions/{id}")
-    suspend fun updateSubscription(@Path("id") id: String, @Body body: JsonObject): SubscriptionResponse
-
-    @DELETE("subscriptions/{id}")
-    suspend fun deleteSubscription(@Path("id") id: String)
-
-    @GET("budgets")
-    suspend fun listBudgets(@Query("month") month: String): BudgetsResponse
-
     @PUT("budgets")
     suspend fun setBudget(@Body body: JsonObject): BudgetResponse
-
-    @DELETE("budgets/{id}")
-    suspend fun deleteBudget(@Path("id") id: String)
-
-    @GET("income-plan")
-    suspend fun getIncomePlan(@Query("month") month: String): IncomePlanResponse
 
     @PUT("income-plan")
     suspend fun setIncomePlan(@Body body: JsonObject): IncomePlanResponse
