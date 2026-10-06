@@ -217,20 +217,19 @@ destination account itself simply doesn't round up — the rest of that
 account's spending is unaffected. Editing a transaction, transfers and
 balance adjustments never trigger it; only a plain `POST /transactions` does.
 
-Which accounts take part is part of the rule to the person setting it, so on
-Android the whole of it — the switch, the ₱10/₱100 step, the accounts that round
+Which accounts take part is part of the rule to the person setting it, so in
+both apps the whole of it — the switch, the ₱10/₱100 step, the accounts that round
 up, where the change lands and what it is filed under — is on the Save the Change
 screen, and the account form says nothing about round-ups. The opt-in is still
 `accounts.round_up_source` on each account, set one account at a time with the
 narrowest possible `PATCH`, so an edit of an account's name can never quietly
-take it off. Settings and Save the Change carry no Save on Android: every choice
+take it off. Settings and Save the Change carry no Save: every choice
 on them is picked from a list, so it is written as it is made, the way the theme
 switches always behaved. The display currency is the deliberate exception: it
-relabels every figure in the app, so its full-screen list only marks a row and
+relabels every figure in the app, so its list only marks a row and
 writes on Save. The other exception is a rule switched on before a
 destination is chosen — it cannot be saved, so it waits on the screen with the
-error beside the field and is written the moment an account is picked. (The web
-app still saves both screens by hand and keeps the opt-in on the account form.)
+error beside the field and is written the moment an account is picked.
 
 **Account logos are linked, not uploaded.** An account may carry an image URL the
 client loads from wherever it lives — no upload, no copy, no storage beyond the
@@ -253,22 +252,36 @@ Categories and Tags under "More", ahead of Subscriptions. An open rail sits besi
 below it, and the open/closed choice is remembered locally — but a narrow window never starts
 with it floating. The rail marks the current destination, so a wide window has no top bar; it also carries the
 screen's leading action as its FAB, under the menu button (an icon while slim, extended when open).
-Settings and Save the Change lend it none on Android: neither screen has a Save, because a choice made
-on either is written the moment it is made (see below). The hide-amounts switch and the account sit at the
+Settings and Save the Change lend it none: neither screen has a Save, because a choice made
+on either is written the moment it is made (see above). The hide-amounts switch and the account sit at the
 foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material 3
 `WideNavigationRail`, or its modal variant when floating) hosted by `YuukaApp`; a screen's leading
 action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
 action to the rail, so a new screen never places its own. The web side is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
-**A form takes the screen over on Android.** The transaction, subscription, account, category and tag forms,
+**The web app is the Android app as a tablet draws it.** From the rail's breakpoint up, a screen in the
+browser is its Compose screen in a window with a rail: the same layout, the same colour roles (the scheme
+`ui/theme/Theme.kt` generates, written out in `webapp/src/style.css`), the same components and the same
+words. Compose is the specification, so a change to how a screen looks on Android is a change to its web
+view as well — the two are not allowed to drift. What that means for the web code is in
+[webapp/CLAUDE.md](webapp/CLAUDE.md).
+
+**A form takes the screen over.** The transaction, subscription, account, category and tag forms,
 the account type manager and the display-currency list open as Material 3 full-screen dialogs
-(`FullScreenDialog`, `ui/common/FullScreenDialog.kt`): close where the drawer button would be, the title, and
-Save as the bar's one action, bound to the same `form.valid(...)` a save button always was. Closing a form that
-no longer holds what it opened with asks before discarding. Material keeps that shape for a phone, so a window
-with a rail gets an ordinary dialog of the same content with its buttons at the foot. A new form goes through
-it rather than a sheet of its own; sheets remain for what is picked from a short list or applied live (filters,
-adjust balance, the Save the Change and default-account pickers).
+(`FullScreenDialog`, `ui/common/FullScreenDialog.kt`, on Android; `FormDialog.vue` on the web): close where the
+drawer button would be, the title, and Save as the bar's one action, bound to the same `form.valid(...)` a save
+button always was. Closing a form that no longer holds what it opened with asks before discarding. Material
+keeps that shape for a phone, so a window with a rail gets an ordinary dialog of the same content with its
+buttons at the foot. A new form goes through it rather than a sheet of its own; sheets remain for what is
+picked from a short list or applied live (filters, adjust balance, the Save the Change and default-account
+pickers).
+
+**A row's actions are behind a swipe.** A list row shows no buttons of its own: pressing it is its main
+action, and what else can be done to it — delete, archive, adjust, pause — is revealed by dragging the row
+left (`SwipeToRevealActions` on Android, `SwipeReveal.vue` on the web, where a held mouse drags as a finger
+does and the keyboard reaches the actions by Tab). Deleting what would take history with it, or cannot be
+undone from the list, asks first in a dialog; taking a label or a category off does not.
 
 ## Sync
 
@@ -332,7 +345,7 @@ read out to a screen reader, and the error clears as soon as the value is
 acceptable. An untouched field stays quiet, so a blank form is not covered in red
 before anyone has done anything, though its save button is already off. A banner is
 kept only for a failure that belongs to no field (the save itself). The rules live
-in `useFormValidation` (`lib/validation.ts`, with `FieldSupport.vue`) on the web
+in `useFormValidation` (`lib/validation.ts`, with `TextField.vue` and `FieldSupport.vue`) on the web
 and in `FormValidation` (`ui/common/FormValidation.kt`, with `YuukaTextField` and
 `DropdownField`) on Android; the shared rules are `domain/Validation.kt`.
 

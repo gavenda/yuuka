@@ -5,7 +5,9 @@
  * what keeps adjacent series apart under colour-vision deficiency, so a ninth
  * category reuses a slot rather than inventing a hue. Each slot carries its own
  * dark-mode step — the dark column is these hues re-stepped for a dark surface,
- * not an automatic lightening of the light one.
+ * not an automatic lightening of the light one. What is stored is always the
+ * light value, and a mark of it is drawn harmonised with the theme
+ * (`lib/harmonise.ts`), as on Android, in either scheme.
  *
  * Validated against this app's own surfaces (white cards in light mode,
  * slate-900 in dark): every slot clears the lightness band, chroma floor,
@@ -29,14 +31,6 @@ export const PALETTE: PaletteSlot[] = [
 	{ name: 'Violet', light: '#4a3aa7', dark: '#9085e9' },
 	{ name: 'Red', light: '#e34948', dark: '#e66767' },
 ];
-
-const DARK_BY_LIGHT = new Map(PALETTE.map((slot) => [slot.light.toLowerCase(), slot.dark]));
-
-/** Maps a stored (light) colour onto its dark-mode step, leaving custom hexes alone. */
-export function forMode(color: string, dark: boolean): string {
-	if (!dark) return color;
-	return DARK_BY_LIGHT.get(color.toLowerCase()) ?? color;
-}
 
 /** The slot a new category should take, so defaults spread across the palette. */
 export function nextColor(existingCount: number): string {

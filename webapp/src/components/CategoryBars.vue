@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { rankAndFold } from '@/lib/chart';
+import { useHarmonised } from '@/lib/harmonise';
 import { DEFAULT_CURRENCY } from '@/lib/money';
-import { forMode } from '@/lib/palette';
 import { displayMoney } from '@/lib/privacy';
-import { useTheme } from '@/lib/theme';
 import type { CategoryBreakdown } from '@/types';
 import { computed } from 'vue';
 
+/**
+ * A horizontal ranked bar per category (`CategoryBarList` in `BarCharts.kt`), each carrying its own value
+ * label — colour never carries the figure alone. A bar is Material's linear progress indicator: the
+ * category's colour as far as its share of the largest, then a gap, then the rest of the track.
+ */
 const props = withDefaults(defineProps<{ title: string; entries: CategoryBreakdown[]; currency?: string; limit?: number }>(), {
 	currency: DEFAULT_CURRENCY,
 	limit: 8,
 });
 
-const { theme } = useTheme();
+const harmonised = useHarmonised();
 
 const rows = computed(() => rankAndFold(props.entries, props.limit));
 
@@ -25,22 +29,24 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 
 <template>
 	<section class="card p-5">
-		<h2 class="type-title-small text-on-surface">{{ title }}</h2>
+		<h2 class="type-title-large">{{ title }}</h2>
 
-		<p v-if="!rows.length" class="mt-3 text-xs text-on-surface-variant">Nothing recorded this month.</p>
+		<p v-if="!rows.length" class="type-body-small mt-3">Nothing recorded this month.</p>
 
-		<ul v-else class="mt-3 space-y-2.5">
+		<ul v-else class="mt-3 flex flex-col gap-2.5">
 			<li v-for="row in rows" :key="row.categoryId">
-				<div class="flex justify-between gap-3 text-xs">
-					<span class="min-w-0 truncate text-on-surface">{{ row.name }}</span>
-					<span class="tabular shrink-0 text-on-surface-variant">{{ displayMoney(row.actual, currency) }} · {{ share(row.actual) }}%</span>
+				<div class="type-body-small flex justify-between gap-3">
+					<span class="min-w-0 truncate">{{ row.name }}</span>
+					<span class="tabular shrink-0">{{ displayMoney(row.actual, currency) }} · {{ share(row.actual) }}%</span>
 				</div>
 
-				<div class="mt-1 h-2 overflow-hidden rounded-full bg-surface-variant">
+				<div class="mt-1 flex h-2 gap-1">
 					<div
-						class="h-full rounded-full"
-						:style="{ width: `${fraction(row.actual) * 100}%`, backgroundColor: forMode(row.color, theme === 'dark') }"
+						v-if="fraction(row.actual) > 0"
+						class="h-full min-w-2 rounded-full"
+						:style="{ width: `${fraction(row.actual) * 100}%`, backgroundColor: harmonised(row.color) ?? 'var(--color-primary)' }"
 					/>
+					<div v-if="fraction(row.actual) < 1" class="h-full min-w-0 flex-1 rounded-full bg-secondary-container" />
 				</div>
 			</li>
 		</ul>

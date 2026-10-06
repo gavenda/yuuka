@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import SelectField from '@/components/SelectField.vue';
-import { categoryOptions, namedOptions } from '@/lib/selectOptions';
-import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
+import AlertDialog from '@/components/AlertDialog.vue';
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import ModalDialog from '@/components/ModalDialog.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
+import FormDialog from '@/components/FormDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import PayeeInput from '@/components/PayeeInput.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
+import PickerField from '@/components/PickerField.vue';
+import SelectField from '@/components/SelectField.vue';
+import SwipeReveal from '@/components/SwipeReveal.vue';
+import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
-import { supportId, useFormValidation } from '@/lib/validation';
-import { showSnackbar } from '@/lib/snackbar';
 import { formatLongDate } from '@/lib/dates';
+import { useHarmonised } from '@/lib/harmonise';
 import { parseMoney, toDecimalString } from '@/lib/money';
+import { categoryOptions, namedOptions } from '@/lib/selectOptions';
+import { showSnackbar } from '@/lib/snackbar';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
+import { supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import type { Payee, Subscription } from '@/types';
@@ -29,6 +34,7 @@ const DIRECTIONS: { value: Direction; label: string }[] = [
 
 const ledger = useLedgerStore();
 const store = useSubscriptionStore();
+const harmonised = useHarmonised();
 
 const dialogOpen = ref(false);
 const editing = ref<Subscription | null>(null);
@@ -47,16 +53,21 @@ const form = reactive({
 
 /** What the date field held when the dialog opened, so an untouched date is not sent as a request to restart the schedule. */
 let initialStartOn = '';
+/** What the whole form opened with, so that closing it can tell an entry from an untouched form. */
+const opened = ref('');
+const dirty = computed(() => JSON.stringify(form) !== opened.value);
+/** The subscription a delete has been asked for, while the question is still open. */
+const pendingDelete = ref<Subscription | null>(null);
 
 /** The API measures "not in the past" against the UTC calendar, so the picker does too. */
 const earliest = utcToday();
 
 const validation = useFormValidation({
-	payee: () => (form.payee.trim() ? (form.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null) : 'Enter who gets paid.'),
+	payee: () => (form.payee.trim() ? (form.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null) : 'Enter a payee.'),
 	'subscription-amount': () => {
 		if (!form.amount.trim()) return 'Enter an amount.';
 		const minor = parseMoney(form.amount);
-		if (minor === null) return 'Enter an amount as a number, such as 12.99.';
+		if (minor === null) return 'Enter an amount as a number, such as 45.99.';
 		return minor > 0 ? null : 'Enter an amount greater than zero.';
 	},
 	'subscription-account': () => (ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : 'Choose an account.'),
@@ -74,7 +85,7 @@ const describe = (id: string): string | undefined => (fieldError(id) ? supportId
 const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
 );
-const accountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Select an account', disabled: true }));
+const accountChoices = computed(() => namedOptions(ledger.activeAccounts));
 const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
 
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
@@ -110,6 +121,7 @@ function openCreate(): void {
 		startOn: initialStartOn,
 		notes: '',
 	});
+	opened.value = JSON.stringify(form);
 	dialogOpen.value = true;
 }
 
@@ -128,6 +140,7 @@ function openEdit(subscription: Subscription): void {
 		startOn: subscription.nextRunOn,
 		notes: subscription.notes,
 	});
+	opened.value = JSON.stringify(form);
 	dialogOpen.value = true;
 }
 
@@ -169,7 +182,7 @@ async function submit(): Promise<void> {
 		else await api.createSubscription(payload);
 
 		dialogOpen.value = false;
-		showSnackbar(editing.value ? 'Changes saved' : 'Subscription added');
+		showSnackbar(editing.value ? 'Subscription updated' : 'Subscription added');
 		await store.refresh();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the subscription.';
@@ -179,14 +192,17 @@ async function submit(): Promise<void> {
 async function togglePaused(subscription: Subscription): Promise<void> {
 	try {
 		await api.updateSubscription(subscription.id, { enabled: !subscription.enabled });
+		showSnackbar(subscription.enabled ? 'Subscription paused' : 'Subscription resumed');
 		await store.refresh();
 	} catch (caught) {
 		store.error = caught instanceof ApiError ? caught.message : 'Could not update the subscription.';
 	}
 }
 
-async function remove(subscription: Subscription): Promise<void> {
-	if (!confirm(`Delete ${subscription.payee}? Transactions it has already posted stay in your history.`)) return;
+async function remove(): Promise<void> {
+	const subscription = pendingDelete.value;
+	if (!subscription) return;
+	pendingDelete.value = null;
 
 	try {
 		await api.deleteSubscription(subscription.id);
@@ -196,194 +212,164 @@ async function remove(subscription: Subscription): Promise<void> {
 		store.error = caught instanceof ApiError ? caught.message : 'Could not delete the subscription.';
 	}
 }
+
+/** "Monthly on the 19th · next Oct 19, 2026"; a paused one has no next run to name. */
+function scheduleOf(subscription: Subscription): string {
+	const schedule = scheduleLabel(subscription.dayOfMonth);
+	return subscription.enabled ? `${schedule} · next ${formatLongDate(subscription.nextRunOn)}` : schedule;
+}
 </script>
 
 <template>
-	<div class="space-y-5">
-		<p class="text-sm text-on-surface-variant">
-			Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.
-		</p>
+	<div class="pt-3 pb-24">
+		<p v-if="store.error" class="type-body-medium px-4 py-2 text-error" role="alert">{{ store.error }}</p>
 
-		<p v-if="store.subscriptions.length" class="text-sm text-on-surface-variant">
-			Total per month
-			<MoneyText :amount="total" :currency="ledger.displayCurrency" signed explicit class="ml-1 text-base font-medium" />
-			<template v-if="pausedCount"> · {{ pausedCount }} paused, not counted</template>
-		</p>
-
-		<p v-if="store.error" class="banner-error" role="alert">
-			{{ store.error }}
-		</p>
+		<!-- What the active subscriptions come to in a month, signed like the amounts: a net outflow is negative. -->
+		<div v-if="store.subscriptions.length" class="px-4 py-2">
+			<div class="type-title-medium flex items-center justify-between gap-4">
+				<h2>Total per month</h2>
+				<MoneyText :amount="total" :currency="ledger.displayCurrency" tone="signed-alert" />
+			</div>
+			<p v-if="pausedCount > 0" class="type-body-small">{{ pausedCount }} paused, not counted</p>
+		</div>
 
 		<EmptyState
-			v-else-if="store.loaded && !store.subscriptions.length"
+			v-else-if="!store.loading"
+			class="mx-4 my-2"
 			title="No subscriptions yet"
-			description="Set up rent, streaming or a loan payment once and it will be posted for you every month."
-		>
-			<button type="button" class="btn-primary" :disabled="!ledger.activeAccounts.length" @click="openCreate">Add a subscription</button>
-		</EmptyState>
+			description="Set up rent, streaming or a loan payment once, and it will be posted for you every month."
+		/>
 
-		<ul v-else class="grid gap-4 sm:grid-cols-2">
-			<li
-				v-for="subscription in store.subscriptions"
-				:key="subscription.id"
-				class="card group flex items-center justify-between gap-3 p-5"
-				:class="subscription.enabled ? '' : 'opacity-70'"
-			>
-				<div class="min-w-0 flex-1">
-					<p class="flex min-w-0 items-center gap-2 font-medium text-on-surface">
-						<span
-							class="h-2.5 w-2.5 shrink-0 rounded-full"
-							:style="{ backgroundColor: subscription.categoryColor ?? '#898781' }"
-							aria-hidden="true"
+		<ul class="group-rows px-4">
+			<li v-for="subscription in store.subscriptions" :key="subscription.id">
+				<SwipeReveal>
+					<template #actions>
+						<ActionIcon
+							:icon="subscription.enabled ? 'pause' : 'resume'"
+							:label="`${subscription.enabled ? 'Pause' : 'Resume'} ${subscription.payee}`"
+							@click="togglePaused(subscription)"
 						/>
-						<span class="truncate">{{ subscription.payee }}</span>
-						<span
-							v-if="!subscription.enabled"
-							class="shrink-0 rounded bg-surface-container-high px-1.5 py-0.5 text-xs font-normal text-on-surface-variant"
-						>
-							Paused
+						<ActionIcon icon="delete" :label="`Delete ${subscription.payee}`" danger @click="pendingDelete = subscription" />
+					</template>
+
+					<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
+					<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(subscription)">
+						<span class="flex gap-4 px-4 py-3">
+							<span class="flex min-w-0 flex-1 flex-col gap-1">
+								<span class="flex items-center gap-2">
+									<span
+										v-if="subscription.categoryColor"
+										class="size-2 shrink-0 rounded-full"
+										:style="{ backgroundColor: harmonised(subscription.categoryColor) }"
+										aria-hidden="true"
+									/>
+									<span class="type-title-medium truncate">{{ subscription.payee }}</span>
+									<span v-if="!subscription.enabled" class="type-label-small shrink-0">Paused</span>
+								</span>
+								<span v-if="subscription.accountName || subscription.categoryName" class="type-body-small truncate">
+									{{ [subscription.accountName, subscription.categoryName].filter(Boolean).join(' · ') }}
+								</span>
+								<span class="type-body-small">{{ scheduleOf(subscription) }}</span>
+							</span>
+
+							<MoneyText
+								:amount="subscription.amount"
+								:currency="currencyOf(subscription)"
+								tone="signed-alert"
+								class="type-title-medium shrink-0"
+							/>
 						</span>
-					</p>
-
-					<p class="mt-0.5 truncate text-xs text-on-surface-variant">
-						{{ subscription.accountName }}<template v-if="subscription.categoryName"> · {{ subscription.categoryName }}</template>
-					</p>
-
-					<MoneyText
-						:amount="subscription.amount"
-						:currency="currencyOf(subscription)"
-						signed
-						explicit
-						class="mt-2 block text-lg font-medium"
-					/>
-
-					<p class="mt-1 text-xs text-on-surface-variant">
-						{{ scheduleLabel(subscription.dayOfMonth)
-						}}<template v-if="subscription.enabled"> · next {{ formatLongDate(subscription.nextRunOn) }}</template>
-					</p>
-				</div>
-
-				<div class="row-actions">
-					<ActionIcon icon="edit" :label="`Edit ${subscription.payee}`" @click="openEdit(subscription)" />
-					<ActionIcon
-						:icon="subscription.enabled ? 'pause' : 'resume'"
-						:label="`${subscription.enabled ? 'Pause' : 'Resume'} ${subscription.payee}`"
-						@click="togglePaused(subscription)"
-					/>
-					<ActionIcon icon="delete" :label="`Delete ${subscription.payee}`" danger @click="remove(subscription)" />
-				</div>
+					</button>
+				</SwipeReveal>
 			</li>
 		</ul>
 
-		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit subscription' : 'New subscription'" @close="dialogOpen = false">
-			<form class="space-y-4" novalidate @submit.prevent="submit" @input="validation.onInput">
-				<ConnectedButtonGroup
-					:model-value="form.direction"
-					label="Kind of subscription"
-					:options="DIRECTIONS"
-					@update:model-value="setDirection"
+		<FormDialog
+			:open="dialogOpen"
+			:title="editing ? 'Edit subscription' : 'New subscription'"
+			:save-enabled="validation.isValid.value"
+			:dirty="dirty"
+			@close="dialogOpen = false"
+			@save="submit"
+		>
+			<div class="contents" @input="validation.onInput">
+				<ConnectedButtonGroup :model-value="form.direction" label="Direction" :options="DIRECTIONS" @update:model-value="setDirection" />
+
+				<PayeeInput
+					v-model="form.payee"
+					label="Payee"
+					placeholder="Who gets paid, e.g. Netflix"
+					:error="fieldError('payee')"
+					@select="applyPayee"
+					@blur="touch('payee')"
+				/>
+
+				<TextField
+					id="subscription-amount"
+					v-model="form.amount"
+					label="Amount"
+					placeholder="0.00"
+					inputmode="decimal"
+					:error="fieldError('subscription-amount')"
+					@blur="touch('subscription-amount')"
 				/>
 
 				<div>
-					<PayeeInput
-						v-model="form.payee"
-						label="Payee"
-						placeholder="Who gets paid, e.g. Netflix"
-						:invalid="Boolean(fieldError('payee'))"
-						:describedby="describe('payee')"
-						@select="applyPayee"
-						@blur="touch('payee')"
+					<SelectField
+						id="subscription-account"
+						v-model="form.accountId"
+						label="Account"
+						:options="accountChoices"
+						:invalid="Boolean(fieldError('subscription-account'))"
+						:describedby="describe('subscription-account')"
+						@blur="touch('subscription-account')"
 					/>
-					<FieldSupport id="payee" :error="fieldError('payee')" />
+					<FieldSupport id="subscription-account" :error="fieldError('subscription-account')" />
 				</div>
 
-				<div class="field">
-					<label class="label" for="subscription-amount">Amount</label>
-					<input
-						id="subscription-amount"
-						v-model="form.amount"
-						class="input tabular"
-						inputmode="decimal"
-						placeholder="0.00"
-						required
-						:aria-invalid="fieldError('subscription-amount') ? true : undefined"
-						:aria-describedby="describe('subscription-amount')"
-						@blur="touch('subscription-amount')"
-					/>
-					<FieldSupport id="subscription-amount" :error="fieldError('subscription-amount')" />
-				</div>
+				<SelectField id="subscription-category" v-model="form.categoryId" label="Category" :options="categoryChoices" />
 
-				<div class="grid gap-4 sm:grid-cols-2">
-					<div class="field">
-						<label class="label" for="subscription-account">Account</label>
-						<SelectField
-							id="subscription-account"
-							v-model="form.accountId"
-							:options="accountChoices"
-							required
-							:invalid="Boolean(fieldError('subscription-account'))"
-							:describedby="describe('subscription-account')"
-							@blur="touch('subscription-account')"
-						/>
-						<FieldSupport id="subscription-account" :error="fieldError('subscription-account')" />
-					</div>
-
-					<div class="field">
-						<label class="label" for="subscription-category">Category</label>
-						<SelectField id="subscription-category" v-model="form.categoryId" :options="categoryChoices" />
-					</div>
-				</div>
-
-				<div class="field">
-					<label class="label" for="subscription-start">{{ editing ? 'Next posts on' : 'Starts on' }}</label>
-					<input
+				<div>
+					<!-- A date left as it was is fine even when it has since slipped into the past; choosing a new one is not. -->
+					<PickerField
 						id="subscription-start"
 						v-model="form.startOn"
+						:label="editing ? 'Next posts on' : 'Starts on'"
 						type="date"
-						class="input"
-						:min="editing && editing.nextRunOn < earliest ? undefined : earliest"
-						required
-						:aria-invalid="fieldError('subscription-start') ? true : undefined"
-						:aria-describedby="supportId('subscription-start')"
+						:min="editing && initialStartOn < earliest ? undefined : earliest"
+						:invalid="Boolean(fieldError('subscription-start'))"
+						describedby="subscription-start-support"
 						@blur="touch('subscription-start')"
 					/>
 					<FieldSupport
 						id="subscription-start"
 						:error="fieldError('subscription-start')"
-						:hint="
-							'Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.' +
-							(editing ? ' Changing the date restarts the schedule from it.' : '')
-						"
+						:hint="`Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.${editing ? ' Changing the date restarts the schedule from it.' : ''}`"
 					/>
 				</div>
 
-				<div class="field">
-					<label class="label" for="subscription-notes">Notes</label>
-					<input
-						id="subscription-notes"
-						v-model="form.notes"
-						class="input"
-						placeholder="Optional"
-						:aria-invalid="fieldError('subscription-notes') ? true : undefined"
-						:aria-describedby="describe('subscription-notes')"
-						@blur="touch('subscription-notes')"
-					/>
-					<FieldSupport id="subscription-notes" :error="fieldError('subscription-notes')" />
-				</div>
+				<TextField
+					id="subscription-notes"
+					v-model="form.notes"
+					label="Notes"
+					placeholder="Optional"
+					:error="fieldError('subscription-notes')"
+					@blur="touch('subscription-notes')"
+				/>
 
-				<p v-if="error" class="banner-error" role="alert">
-					{{ error }}
-				</p>
+				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+			</div>
+		</FormDialog>
 
-				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
-						{{ editing ? 'Save changes' : 'Add subscription' }}
-					</button>
-				</div>
-			</form>
-		</ModalDialog>
+		<AlertDialog :open="pendingDelete !== null" title="Delete this subscription?" @close="pendingDelete = null">
+			{{ pendingDelete?.payee }} will stop posting. Transactions it has already posted stay in your history.
+			<template #actions>
+				<button type="button" class="btn-text" @click="pendingDelete = null">Cancel</button>
+				<button type="button" class="btn-text" @click="remove">Delete</button>
+			</template>
+		</AlertDialog>
 
-		<FabButton label="Add subscription" :disabled="!ledger.activeAccounts.length" @click="openCreate" />
+		<!-- A subscription needs an account to post to, so there is nothing to lead with until there is one. -->
+		<FabButton v-if="ledger.activeAccounts.length" label="New subscription" @click="openCreate" />
 	</div>
 </template>

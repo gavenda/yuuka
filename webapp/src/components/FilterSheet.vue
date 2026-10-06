@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import ModalDialog from '@/components/ModalDialog.vue';
+import AppIcon from '@/components/AppIcon.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
+import { CHECK } from '@/lib/icons';
 
 /**
  * A multi-select filter as a sheet of chips, the way the Android app does it: every option is a chip to switch
@@ -22,13 +24,14 @@ function toggle(id: string): void {
 </script>
 
 <template>
-	<ModalDialog :open="open" :title="title" @close="emit('close')">
-		<div class="flex flex-col gap-3">
-			<div v-if="selected.length" class="flex justify-end">
-				<button type="button" class="btn-text btn-sm" @click="selected = []">Clear</button>
+	<BottomSheet :open="open" :label="title" @close="emit('close')">
+		<div class="flex flex-col gap-3 px-4 pb-6">
+			<div class="flex min-h-10 items-center justify-between">
+				<h2 class="type-title-medium">{{ title }}</h2>
+				<button v-if="selected.length" type="button" class="btn-text" @click="selected = []">Clear</button>
 			</div>
 
-			<p v-if="!options.length" class="text-sm text-on-surface-variant">{{ emptyText }}</p>
+			<p v-if="!options.length" class="type-body-medium">{{ emptyText }}</p>
 
 			<div v-else class="flex flex-wrap gap-2">
 				<button
@@ -39,20 +42,10 @@ function toggle(id: string): void {
 					:aria-pressed="selected.includes(option.id)"
 					@click="toggle(option.id)"
 				>
-					<svg
-						v-if="selected.includes(option.id)"
-						viewBox="0 0 20 20"
-						class="size-4 shrink-0"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						aria-hidden="true"
-					>
-						<path d="M4.5 10.5l3.5 3.5 7.5-8" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
+					<AppIcon v-if="selected.includes(option.id)" :icon="CHECK" :size="18" />
 					<span class="truncate">{{ option.label }}</span>
 				</button>
 			</div>
 		</div>
-	</ModalDialog>
+	</BottomSheet>
 </template>

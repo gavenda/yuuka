@@ -112,12 +112,10 @@ describe('SpendChart', () => {
 		expect(chart.text()).toContain('No spending recorded this month.');
 	});
 
-	it('swaps to the table of figures on request', async () => {
+	it('keeps the same figures as a table beside the chart, for whoever cannot see it', () => {
 		const chart = mount();
-		host!.querySelector<HTMLButtonElement>('button')!.click();
-		await nextTick();
 
-		expect(chart.bars()).toHaveLength(0);
+		expect(chart.bars()).toHaveLength(30);
 		expect(host!.querySelectorAll('tbody tr')).toHaveLength(3);
 	});
 });

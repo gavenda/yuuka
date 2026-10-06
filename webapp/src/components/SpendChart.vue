@@ -34,7 +34,6 @@ const TOOLTIP_HALF = 64;
 const DIMMED = 0.4;
 
 const { hidden } = useAmountVisibility();
-const showTable = ref(false);
 const scroller = ref<HTMLElement | null>(null);
 const scrollLeft = ref(0);
 const viewportWidth = ref(0);
@@ -76,7 +75,7 @@ const bars = computed(() =>
 			height,
 			y: TOP + PLOT - height,
 			highlighted,
-			fill: entry.amount <= 0 ? 'fill-surface-variant' : highlighted ? 'fill-tertiary' : 'fill-primary',
+			fill: entry.amount <= 0 ? 'fill-on-secondary-container/16' : highlighted ? 'fill-tertiary' : 'fill-primary',
 			badge: highlighted ? scallopPath(x + BAR / 2, TOP + PLOT - height + BADGE_INSET + BADGE / 2, BADGE / 2) : '',
 		};
 	}),
@@ -179,29 +178,23 @@ onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <template>
-	<section class="card p-5">
-		<header class="mb-4 flex flex-wrap items-start justify-between gap-3">
-			<div>
-				<h2 class="text-sm font-medium text-on-surface">Spending by day</h2>
-				<p class="mt-0.5 text-sm text-on-surface-variant">
-					{{ displayMoney(total, currency) }} across {{ spentDays.length }}
-					{{ spentDays.length === 1 ? 'day' : 'days' }}
-				</p>
-			</div>
+	<!-- On a secondary container, as on Android: the one card on the dashboard that is a picture rather than a figure. -->
+	<section class="card-secondary p-5">
+		<h2 class="type-title-large">Spending by day</h2>
 
-			<button type="button" class="btn-text btn-sm" @click="showTable = !showTable">
-				{{ showTable ? 'Show chart' : 'Show data' }}
-			</button>
-		</header>
+		<p v-if="!hasData" class="type-body-small">No spending recorded this month.</p>
 
-		<p v-if="!hasData" class="py-10 text-center text-sm text-on-surface-variant">No spending recorded this month.</p>
+		<template v-else>
+			<p class="type-body-small">
+				{{ displayMoney(total, currency) }} across {{ spentDays.length }}
+				{{ spentDays.length === 1 ? 'day' : 'days' }}
+			</p>
 
-		<div v-else-if="!showTable">
-			<div class="relative flex items-start">
+			<div class="relative mt-3 flex items-start">
 				<!-- A month is too many wide bars for a phone, so the plot scrolls sideways while the axis stays put. -->
 				<div
 					ref="scroller"
-					class="focus-ring min-w-0 flex-1 overflow-x-auto"
+					class="focus-ring min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]"
 					tabindex="0"
 					aria-label="Spending by day, scrolls sideways"
 					@scroll.passive="onScroll"
@@ -212,7 +205,7 @@ onBeforeUnmount(() => observer?.disconnect());
 							v-if="average !== null"
 							data-average
 							x1="0"
-							:x2="contentWidth"
+							:x2="Math.max(contentWidth, viewportWidth)"
 							:y1="yOf(average)"
 							:y2="yOf(average)"
 							class="stroke-primary"
@@ -241,8 +234,8 @@ onBeforeUnmount(() => observer?.disconnect());
 								:y="TOP + PLOT + 14"
 								text-anchor="middle"
 								dominant-baseline="central"
-								class="text-[10px]"
-								:class="shown === bar.index ? 'fill-on-surface font-medium' : 'fill-on-surface-variant'"
+								class="type-label-small"
+								:class="shown === bar.index ? 'fill-on-secondary-container' : 'fill-on-secondary-container/72'"
 							>
 								{{ bar.day }}
 							</text>
@@ -273,7 +266,7 @@ onBeforeUnmount(() => observer?.disconnect());
 						x="8"
 						:y="yOf(tick)"
 						dominant-baseline="central"
-						class="fill-on-surface-variant text-[10px]"
+						class="type-label-small fill-on-secondary-container/72"
 					>
 						{{ axisLabel(tick) }}
 					</text>
@@ -283,7 +276,7 @@ onBeforeUnmount(() => observer?.disconnect());
 						x="8"
 						:y="yOf(average)"
 						dominant-baseline="central"
-						class="fill-primary text-[10px] font-medium"
+						class="type-label-small fill-primary"
 					>
 						{{ axisLabel(average) }}
 					</text>
@@ -292,37 +285,40 @@ onBeforeUnmount(() => observer?.disconnect());
 				<div
 					v-if="tooltip"
 					data-tooltip
-					class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-sm bg-inverse-surface px-3 py-2 text-xs whitespace-nowrap text-inverse-on-surface shadow-elevation-2"
+					class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-sm bg-surface px-3 py-2 whitespace-nowrap text-on-surface shadow-elevation-2"
 					:style="tooltip.style"
 					aria-hidden="true"
 				>
-					<p class="font-medium">{{ formatLongDate(tooltip.bar.date) }}</p>
-					<p class="text-inverse-on-surface/72">{{ displayMoney(tooltip.bar.amount, currency) }}</p>
+					<p class="type-label-large">{{ formatLongDate(tooltip.bar.date) }}</p>
+					<p class="type-body-small">{{ displayMoney(tooltip.bar.amount, currency) }}</p>
 				</div>
 			</div>
 
-			<ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-on-surface-variant">
+			<ul class="type-label-small mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
 				<li class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-4 bg-primary" aria-hidden="true" /> Daily average</li>
 				<li class="flex items-center gap-1.5">
 					<span class="inline-block size-2.5 rounded-full bg-tertiary" aria-hidden="true" /> At or above average
 				</li>
 			</ul>
-		</div>
 
-		<!-- The table is the non-visual route to the same numbers. -->
-		<table v-else class="w-full text-sm">
-			<thead>
-				<tr class="border-b border-outline-variant text-left text-xs text-on-surface-variant">
-					<th class="py-2 font-medium">Date</th>
-					<th class="py-2 text-right font-medium">Spent</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="entry in spentDays" :key="entry.date" class="border-b border-outline-variant last:border-0">
-					<td class="py-2 text-on-surface">{{ formatLongDate(entry.date) }}</td>
-					<td class="tabular py-2 text-right text-on-surface">{{ displayMoney(entry.amount, currency) }}</td>
-				</tr>
-			</tbody>
-		</table>
+			<!-- The table is the non-visual route to the same numbers. -->
+			<table class="sr-only">
+				<caption>
+					Spending by day
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">Date</th>
+						<th scope="col">Spent</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="entry in spentDays" :key="entry.date">
+						<td>{{ formatLongDate(entry.date) }}</td>
+						<td>{{ displayMoney(entry.amount, currency) }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</template>
 	</section>
 </template>

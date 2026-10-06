@@ -1,10 +1,19 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
 import { api } from '@/lib/api';
+import { ERROR } from '@/lib/icons';
 import { isExhausted, rankPayees } from '@/lib/payees';
+import { supportId } from '@/lib/validation';
 import type { Payee } from '@/types';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const props = defineProps<{ modelValue: string; label: string; placeholder?: string; invalid?: boolean; describedby?: string }>();
+/**
+ * The payee field: an outlined text field that offers back what was last filed under a name as it is
+ * typed (`PayeeField` on Android), so the rest of the form can fill itself in. `error` is what the form's
+ * validation has to say about it.
+ */
+const props = defineProps<{ modelValue: string; label: string; placeholder?: string; error?: string | null }>();
 const emit = defineEmits<{ 'update:modelValue': [string]; select: [Payee]; blur: [] }>();
 
 /**
@@ -90,51 +99,48 @@ function hint(entry: Payee): string {
 </script>
 
 <template>
-	<div ref="root" class="field">
-		<label class="label" for="payee">{{ label }}</label>
+	<div ref="root">
+		<div class="field">
+			<input
+				id="payee"
+				:value="modelValue"
+				class="input"
+				:class="{ 'pr-12': error }"
+				autocomplete="off"
+				role="combobox"
+				aria-autocomplete="list"
+				:aria-expanded="showList"
+				:aria-invalid="error ? 'true' : undefined"
+				:aria-describedby="error ? supportId('payee') : undefined"
+				aria-controls="payee-suggestions"
+				:placeholder="placeholder ?? ' '"
+				@input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+				@focus="open = true"
+				@blur="emit('blur')"
+				@keydown="onKeydown"
+			/>
+			<label class="label" for="payee">{{ label }}</label>
+			<AppIcon v-if="error" :icon="ERROR" class="pointer-events-none absolute top-4 right-3 text-error" />
 
-		<input
-			id="payee"
-			:value="modelValue"
-			class="input"
-			autocomplete="off"
-			role="combobox"
-			aria-autocomplete="list"
-			:aria-expanded="showList"
-			:aria-invalid="invalid || undefined"
-			:aria-describedby="describedby"
-			aria-controls="payee-suggestions"
-			:placeholder="placeholder"
-			@input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-			@focus="open = true"
-			@blur="emit('blur')"
-			@keydown="onKeydown"
-		/>
-
-		<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute z-20 mt-1 max-h-64 w-full overflow-y-auto">
-			<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
-				<!-- mousedown, not click: the input's blur would otherwise close the
-				     list before the click landed. -->
-				<button
-					type="button"
-					class="menu-item flex items-center gap-2"
-					:class="index === active ? 'bg-on-surface/12' : ''"
-					@mousedown.prevent="choose(entry)"
-					@mouseenter="active = index"
-				>
-					<span
-						v-if="entry.categoryColor"
-						class="h-2.5 w-2.5 shrink-0 rounded-full"
-						:style="{ backgroundColor: entry.categoryColor }"
-						aria-hidden="true"
-					/>
-
-					<span class="min-w-0 flex-1">
-						<span class="block truncate">{{ entry.payee }}</span>
-						<span v-if="hint(entry)" class="block truncate text-xs text-on-surface-variant">{{ hint(entry) }}</span>
-					</span>
-				</button>
-			</li>
-		</ul>
+			<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute z-20 max-h-64 min-w-60 overflow-y-auto">
+				<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
+					<!-- mousedown, not click: the input's blur would otherwise close the
+					     list before the click landed. -->
+					<button
+						type="button"
+						class="menu-item py-1"
+						:class="index === active ? 'bg-on-surface/10' : ''"
+						@mousedown.prevent="choose(entry)"
+						@mouseenter="active = index"
+					>
+						<span class="min-w-0 flex-1">
+							<span class="block truncate">{{ entry.payee }}</span>
+							<span v-if="hint(entry)" class="type-body-small block truncate">{{ hint(entry) }}</span>
+						</span>
+					</button>
+				</li>
+			</ul>
+		</div>
+		<FieldSupport id="payee" :error="error" />
 	</div>
 </template>

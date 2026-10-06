@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import BudgetCard from '@/components/BudgetCard.vue';
+import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
+import DenseField from '@/components/DenseField.vue';
 import EmptyState from '@/components/EmptyState.vue';
+import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
-import PhilippinesIncomeCalculator from '@/components/PhilippinesIncomeCalculator.vue';
-import StatCard from '@/components/StatCard.vue';
+import StatCarousel, { type StatItem } from '@/components/StatCarousel.vue';
+import TopBar from '@/components/TopBar.vue';
 import { currencySymbol, parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
@@ -115,168 +117,137 @@ async function commitIncome(): Promise<void> {
 	}
 }
 
+/** The income figure as the closed card reads: what was typed or saved, or an invitation to set it. */
+const incomeLabel = computed(() => {
+	if (usingGross.value) return grossDraft.value > 0 ? displayMoney(grossDraft.value, 'PHP') : 'Set gross income';
+	return budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency.value) : 'Set income';
+});
+
+/** The month's plan in figures: what is planned and spent, then — once there is an income to share out — where it has gone. */
+const stats = computed<StatItem[]>(() => {
+	const list: StatItem[] = [
+		{ label: 'Planned', amount: totalPlanned.value, caption: 'Across expense categories' },
+		{
+			label: 'Spent',
+			amount: totalActual.value,
+			caption: totalPlanned.value > 0 ? `${percentOf(totalActual.value, totalPlanned.value)}% of plan` : 'No plan set',
+		},
+	];
+
+	if (netPayBreakdown.value) {
+		list.push({ label: 'Net pay', amount: netPayBreakdown.value.netPay, caption: 'Used as planned income', compact: true });
+	}
+
+	if (budget.plannedIncome > 0) {
+		list.push(
+			{ label: 'Allocated', amount: totalAllocated.value, caption: 'Planned across categories', compact: true },
+			{
+				label: 'Unallocated',
+				amount: unallocatedIncome.value,
+				caption: `${unallocatedPercent.value}% of planned income`,
+				signed: true,
+				compact: true,
+			},
+		);
+	}
+
+	return list;
+});
+
+const hasAnyCategories = computed(() => (budget.summary?.categories.length ?? 0) > 0);
+
 // Together, so the summary's saved copy is not held back by the ledger's round trip.
 onMounted(() => Promise.all([ledger.load(), budget.load()]));
 </script>
 
 <template>
-	<div class="space-y-6">
-		<header>
-			<MonthSwitcher v-model="month" />
-		</header>
+	<div class="flex flex-col gap-4 p-4">
+		<TopBar><MonthSwitcher v-model="month" /></TopBar>
 
-		<!-- Planned income, laid out as on Android: the label, then the figure large and centred, tapped to edit in place,
-		     the Gross/Fixed toggle beneath it, and its hint. Lists underneath read from the left. -->
-		<section class="card p-5 text-center">
-			<p class="type-label-medium mt-3 text-on-surface-variant uppercase">Planned income</p>
+		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 
-			<form v-if="editingIncome" class="mt-3 space-y-2" @submit.prevent="commitIncome">
-				<div class="relative">
-					<span
-						class="pointer-events-none absolute inset-y-0 left-4 grid place-items-center text-2xl text-on-surface-variant"
-						aria-hidden="true"
-					>
-						{{ currencySymbol(usingGross ? 'PHP' : currency) }}
-					</span>
-					<input
-						v-model="incomeDraft"
-						class="input tabular pr-12 pl-12 text-2xl"
-						inputmode="decimal"
-						aria-label="Planned income"
-						:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
-						:disabled="savingIncome"
-						autofocus
-						@keydown.esc="cancelEditingIncome"
-					/>
-					<button
-						v-if="incomeDraft"
-						type="button"
-						class="btn-icon-sm absolute top-1/2 right-2 -translate-y-1/2"
-						aria-label="Clear"
-						:disabled="savingIncome"
-						@click="incomeDraft = ''"
-					>
-						<svg viewBox="0 0 20 20" class="size-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-							<path d="M5 5l10 10M15 5L5 15" stroke-linecap="round" />
-						</svg>
-					</button>
-				</div>
+		<!-- Planned income: what a percentage-based budget is a share of. Pressing the figure edits it in place. -->
+		<section class="card flex flex-col items-center p-5">
+			<h2 class="type-label-medium pt-3 uppercase">Planned income</h2>
 
-				<div class="grid grid-cols-2 gap-2">
-					<button type="button" class="btn-text" :disabled="savingIncome" @click="cancelEditingIncome">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="savingIncome">{{ savingIncome ? 'Saving…' : 'Save' }}</button>
+			<!-- The field and its buttons are drawn for an ordinary surface, so they sit on an inset panel of one. -->
+			<form
+				v-if="editingIncome"
+				class="mt-3 w-full rounded-lg bg-surface p-3 [--surface-under:var(--color-surface)]"
+				novalidate
+				@submit.prevent="commitIncome"
+			>
+				<DenseField
+					id="planned-income"
+					v-model="incomeDraft"
+					class="type-headline-small"
+					label="Planned income"
+					inputmode="decimal"
+					autofocus
+					clearable
+					:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
+					:prefix="currencySymbol(usingGross ? 'PHP' : currency)"
+					:disabled="savingIncome"
+					@keydown.esc="cancelEditingIncome"
+				/>
+				<div class="flex gap-2 pt-2">
+					<button type="button" class="btn-text flex-1" :disabled="savingIncome" @click="cancelEditingIncome">Cancel</button>
+					<button type="submit" class="btn-primary flex-1" :disabled="savingIncome">Save</button>
 				</div>
 			</form>
 
-			<button
-				v-else
-				type="button"
-				class="state-layer focus-ring tabular mt-3 w-full cursor-pointer rounded-md px-3 py-2 text-3xl text-primary"
-				@click="startEditingIncome"
-			>
-				<template v-if="usingGross">{{ grossDraft > 0 ? displayMoney(grossDraft, 'PHP') : 'Set gross income' }}</template>
-				<template v-else>{{ budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency) : 'Set income' }}</template>
+			<button v-else type="button" class="btn-text type-headline-medium min-h-13 w-full" @click="startEditingIncome">
+				{{ incomeLabel }}
 			</button>
 
-			<!-- Switching modes changes what the same draft means, so it closes the editor rather than reinterpreting what is typed. -->
+			<!-- PH-specific: what is typed is gross pay, and the take-home net is what actually gets budgeted from. -->
 			<ConnectedButtonGroup
 				v-if="isPhp"
 				v-model="incomeMode"
-				class="mx-auto mt-2 max-w-xs"
-				label="Income entered as"
+				class="mt-2 w-full"
+				label="How planned income is set"
 				:options="[
 					{ value: 'gross', label: 'Gross' },
 					{ value: 'fixed', label: 'Fixed' },
 				]"
 			/>
 
-			<p class="mt-1 text-xs whitespace-pre-line text-on-surface-variant">{{ incomeHint }}</p>
+			<p class="type-body-small pt-1 text-center whitespace-pre-line">{{ incomeHint }}</p>
 
-			<div class="text-left">
-				<PhilippinesIncomeCalculator v-if="usingGross" :gross="grossDraft" />
-
-				<div v-if="budget.incomeBreakdown.length" class="mt-4">
-					<p class="type-title-small text-on-surface-variant">Income</p>
-					<ul class="mt-2 divide-y divide-outline-variant">
-						<li
-							v-for="entry in budget.incomeBreakdown"
-							:key="entry.categoryId"
-							class="flex items-center justify-between gap-3 py-2 text-sm"
-						>
-							<span class="text-on-surface-variant">{{ entry.name }}</span>
-							<span class="tabular text-on-surface">{{ displayMoney(entry.actual, currency) }}</span>
-						</li>
-					</ul>
-				</div>
-			</div>
-		</section>
-
-		<!-- One row each from md up; stacked on mobile. Columns follow however many cards are showing. -->
-		<div v-if="netPayBreakdown || budget.plannedIncome > 0" class="grid gap-6 md:auto-cols-fr md:grid-flow-col">
-			<StatCard v-if="netPayBreakdown" label="Net pay" :amount="netPayBreakdown.netPay" currency="PHP" caption="Used as planned income" />
-
-			<template v-if="budget.plannedIncome > 0">
-				<StatCard
-					label="Allocated"
-					:amount="totalAllocated"
-					:currency="currency"
-					caption="Planned across expense and cashflow categories"
-				/>
-				<StatCard
-					label="Unallocated"
-					:amount="unallocatedIncome"
-					:currency="currency"
-					signed
-					:caption="`${unallocatedPercent}% of planned income`"
-				/>
+			<template v-if="netPayBreakdown">
+				<h3 class="type-label-medium w-full pt-4">Monthly contributions</h3>
+				<ul class="type-body-medium w-full pt-1">
+					<li v-for="line in netPayBreakdown.contributions" :key="line.label" class="flex justify-between gap-3 py-1">
+						<span>{{ line.label }}</span>
+						<MoneyText :amount="line.amount" currency="PHP" />
+					</li>
+				</ul>
 			</template>
-		</div>
 
-		<div class="grid gap-6 md:auto-cols-fr md:grid-flow-col">
-			<StatCard label="Planned" :amount="totalPlanned" :currency="currency" caption="Across expense categories" />
-			<StatCard
-				label="Spent"
-				:amount="totalActual"
-				:currency="currency"
-				:caption="totalPlanned > 0 ? `${percentOf(totalActual, totalPlanned)}% of plan` : 'No plan set'"
-			/>
-			<StatCard label="Remaining" :amount="totalPlanned - totalActual" :currency="currency" signed caption="Planned minus spent" />
-
-			<StatCard
-				v-if="budget.cashflowBreakdown.length"
-				label="Moved to cashflow"
-				:amount="budget.summary?.cashflow ?? 0"
-				:currency="currency"
-				caption="Investments, savings and the like"
-			/>
-		</div>
-
-		<EmptyState
-			v-if="!budget.loading && !budget.expenseBreakdown.length"
-			title="No categories yet"
-			description="Budgets are set per category, so create a few first."
-		>
-			<RouterLink to="/categories" class="btn-primary">Add categories</RouterLink>
-		</EmptyState>
-
-		<section v-else>
-			<h2 class="type-title-small mb-3 text-on-surface">Expense</h2>
-
-			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-				<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
-			</div>
+			<template v-if="budget.incomeBreakdown.length">
+				<h3 class="type-label-medium w-full pt-4">Income</h3>
+				<ul class="type-body-medium w-full pt-1">
+					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex justify-between gap-3 py-1">
+						<span>{{ entry.name }}</span>
+						<MoneyText :amount="entry.actual" :currency="currency" />
+					</li>
+				</ul>
+			</template>
 		</section>
 
-		<section v-if="budget.cashflowBreakdown.length">
-			<h2 class="type-title-small text-on-surface">Cashflow</h2>
-			<p class="mt-1 mb-3 text-sm text-on-surface-variant">
-				Money moved between your own accounts. Investments live here — a contribution is a movement, not spending, so it is budgeted apart
-				from the figures above.
-			</p>
+		<StatCarousel :stats="stats" :currency="currency" tone="tertiary" />
 
-			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-				<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
-			</div>
-		</section>
+		<EmptyState v-if="!hasAnyCategories" title="No categories yet" description="Budgets are set per category, so create a few first." />
+
+		<template v-if="budget.expenseBreakdown.length">
+			<h2 class="type-title-small">Expense</h2>
+			<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+		</template>
+
+		<!-- Budgeted separately from expenses: a movement into savings or investments is planned, not spent. -->
+		<template v-if="budget.cashflowBreakdown.length">
+			<h2 class="type-title-small">Cashflow</h2>
+			<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+		</template>
 	</div>
 </template>

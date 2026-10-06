@@ -52,14 +52,15 @@ afterEach(() => {
 });
 
 describe('SelectField', () => {
-	it('shows the chosen option, and the placeholder when nothing is chosen', () => {
+	it('shows the chosen option, and nothing at all when nothing is chosen', () => {
 		const chosen = mount('b');
 		expect(chosen.trigger().textContent).toContain('Savings');
 		app?.unmount();
 		host?.remove();
 
 		const empty = mount('');
-		expect(empty.trigger().textContent).toContain('Select an account');
+		// The field's label rests where the value would be, so a placeholder option is not drawn over it.
+		expect(empty.trigger().textContent?.trim()).toBe('');
 		expect(empty.trigger().getAttribute('aria-expanded')).toBe('false');
 	});
 

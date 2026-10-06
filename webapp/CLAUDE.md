@@ -363,13 +363,13 @@ nothing.
 **There is no charting library.** Both charts are drawn in the page, as they are on Android,
 so they read the theme's colour roles as classes and never repeat a hex value.
 "Where the money went" (`CategoryBars.vue`) is `CategoryBarList` from `BarCharts.kt` again: a
-name and its "amount · share%" over a rounded bar, each bar's length relative to the largest
-category and coloured by the category (its dark-mode step in the dark theme), with the tail
+name and its "amount · share%" over a bar drawn as Material's linear progress indicator (the category's
+colour as far as its share of the largest, a gap, then the rest of the track), with the tail
 folded into "Other" past eight (`rankAndFold`).
 
 **The spending-by-day chart is SVG** (`SpendChart.vue`), and is the Android
-chart's twin (`BarCharts.kt`, with the same geometry constants): wide pill bars with the day
-beneath each, a value axis down the right, and a line across at the month's average daily
+chart's twin (`BarCharts.kt`, with the same geometry constants): on a secondary container, wide pill bars
+with the day beneath each, a value axis down the right, and a line across at the month's average daily
 spend (`dailyAverage`, over the days that had any). A day at or above the average is a
 `tertiary` bar carrying a scalloped badge (`scallopPath`, standing in for Material's expressive
 cookie shapes) with the display currency's symbol (`currencySymbol`) in it. A canvas could not do
@@ -377,81 +377,148 @@ this: the plot scrolls sideways (a month is too many wide bars for a phone) whil
 and SVG reads the theme's colour roles as classes (`fill-primary`) instead of repeating hex
 values. Tapping a day, or pointing at it with a mouse, names it in a tooltip that floats above
 the plot rather than inside it, so the plot's edge cannot cut it off; scrolling clears it. The
-axis figures (`axisScale`, `compactAmount`) are amounts like any other and are masked with them.
+axis figures (`axisScale`, `compactAmount`) are amounts like any other and are masked with them. The
+same figures sit beside the chart as a visually hidden table, the non-visual route to them.
 
-**The theme is the Android app's Material 3 scheme.** `src/style.css` declares
-every role from `ui/theme/Color.kt` as a Tailwind colour (`bg-surface`,
-`text-on-surface-variant`, `border-outline-variant`, `bg-primary`, `text-error`,
-`text-secondary`, …), with the dark values replacing the same variables under
-`.dark`. Use the roles, never the palette scales (`slate-*`, `blue-*`…), and
-never a `dark:` variant for colour: the role already follows the theme. There is
-no extended role for inflows or a nearly-spent budget: negative is `error`, a
-transfer is `primary`, an inflow is `secondary`, and a nearly-spent budget is
-`tertiary`. Dynamic colour is an Android 12+ feature, so the web app uses the
-static scheme.
+## Looking like the Android app
 
-**Settings and Save the Change are screens, not a popup**, as on Android (`/settings` and
-`/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). They are titled cards of `SettingRow`s (label and
-explanation left, control right on a wide screen, stacked on a phone; a `ToggleSwitch` for on/off), the layout that
-suits a desktop, not a phone form stretched out. Each keeps drafts
-of what it edits and follows the ledger, so it always shows what is saved; and each saves through a Save FAB
-(`FabButton` with the save `icon`) that is disabled until something has changed and is valid, then confirms with a
-snackbar and stays on the screen. A screen that leads with a non-add action passes `icon` to `FabButton`; the
-rail draws whichever icon the registered FAB carries.
+**The web app is the Android app as a tablet draws it.** From the `sm` breakpoint up, every screen is laid
+out, coloured and worded as its Compose screen is in a window with a rail: the same rail, the same grouped
+rows, cards, dialogs and sheets, the same copy. The Compose source is the specification — when a screen
+changes there, change its view here to match, and when in doubt read the `.kt` file rather than guess. A
+view's name says which: `DashboardView.vue` is `DashboardScreen.kt`, and so on. What a browser has no
+equivalent of is left out rather than faked (dynamic colour from the wallpaper), and what only a pointer
+needs is added quietly (a hover wash, focus rings, Tab reaching a swiped row's actions).
 
-**Material Design 3, not just its colours.** The rest of the system lives in the
-same stylesheet, so a screen never spells out a radius, a weight or a hover tint
-by hand: shape is the M3 corner scale (`rounded-xs` 4px, `sm` 8, `md` 12, `lg` 16,
-`xl` 28, `full`), elevation is `shadow-elevation-1..3` on top of the tonal
-surfaces, and motion uses the M3 easings, with reduced motion honoured. Type is the
-M3 scale on Tailwind's size names (`text-sm` is body medium, `text-xl` title large,
-`text-4xl` display small) plus `type-title-*` and `type-label-*` where a weight is
-wanted; the app only uses weights 400 and 500. Components are classes, not
-one-offs: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`,
-`btn-text`, `btn-danger`, `btn-sm`, `btn-icon`, `card` (elevated), `menu` and
-`menu-item`, `banner-error`, and `state-layer` for the hover, focus and pressed
-wash. Fields are outlined text fields: a `.field` wrapper holds a `.label` and a
-`.input`, and the label sits raised in the border's notch, cut out in the colour
-of whatever the field sits on (`--surface-under`). Three components carry markup a
-class can't: `ConnectedButtonGroup` (Material's connected button group: choose one of a few), `SelectField` (the exposed dropdown menu that replaces every native `<select>`: give it `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field and never reach for a `<select>` again; it is the field in every form), `PreferenceSelect` (the same choice set the way Android's settings set one, for the Settings and Save the Change screens only: a row with the label and the current choice beneath it, opening a dialog of radio buttons; a form never uses it) and `FabButton` (the one
-action a screen leads with, registered in `src/lib/fab.ts`: a phone gets the floating
-button, and from `sm` up `NavRail` shows the same action under its menu button, as an
-icon FAB while slim and an extended one when open). Navigation is a rail from the `sm` breakpoint (`NavRail`, whose icons are Android's own Material Filled set (`src/lib/icons.ts`, from
-`ui/Destinations.kt`) and whose logo is a plain mark at the top (with the wordmark once open), never a
-control or the menu button, per Material's rail guidance; no dividers: the open drawer
-heads its second group "More" instead) and a bottom bar below it (`NavDestination`). The rail's menu button
+**The theme is the Android app's Material 3 scheme.** `src/style.css` declares every role as a Tailwind
+colour (`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`, `text-error`,
+`text-secondary`, …), with the dark values replacing the same variables under `.dark`. The values are what
+`ui/theme/Theme.kt` builds at runtime — MaterialKolor, tonal spot, the 2026 colour spec, from the seed in
+`ui/theme/Color.kt` — so they are generated, never picked: a new seed means regenerating both blocks from
+the same library and checking them against a screenshot. Use the roles, never the palette scales
+(`slate-*`, `blue-*`…), and never a `dark:` variant for colour: the role already follows the theme.
+Figures follow `MoneyText.kt` through `MoneyText.vue`'s `tone`: an inflow is `primary`, a transfer
+`secondary`, below zero is `error` only where that is worth noticing (`signed-alert`: a balance, a
+transaction's amount), and a routine outflow stays in the colour of the text around it. `tertiary` is kept
+for what is worth a glance without being either (a budget near its limit, a day above the average).
+Almost all text is `on-surface`, as on Android; `on-surface-variant` is for what Material itself draws
+that way (a resting label, a placeholder, supporting text in a list item, the rail's unselected items).
+The theme is a local preference set from Settings — System, Light or Dark (`lib/theme.ts`) — and
+`index.html` applies it before first paint. Dynamic colour is an Android 12+ feature, so the web app
+always uses the seed's scheme. The typeface is Google Sans Flex, the Material 3
+Expressive one, bundled with the build (`@fontsource-variable/google-sans-flex`) so it is in the service worker's precache with the rest of the shell.
+
+**A category's or tag's colour is drawn harmonised.** What is stored is the colour as it was picked; a
+mark of it beside the theme — a dot, a bar, a chip — goes through `useHarmonised()` (`lib/harmonise.ts`),
+Material's "harmonize" toward the theme's primary, the twin of `HarmonisedColor.kt`. A picker shows the
+value as chosen. The spec pins the eight palette colours to what Android draws for them.
+
+**Material Design 3, not just its colours.** The rest of the system lives in the same stylesheet, so a
+screen never spells out a radius, a weight or a hover tint by hand: shape is the M3 corner scale
+(`rounded-xs` 4px, `sm` 8, `md` 12, `lg` 16, `xl` 28, `full`), elevation is `shadow-elevation-1..3` on top
+of the tonal surfaces, and motion uses the M3 easings, with reduced motion honoured. Type is the M3 scale
+by role — `type-headline-medium`, `type-title-medium`, `type-body-small`, `type-label-large` and the
+rest — at the weights Android draws them in; reach for a role, not a size and a weight. Components are
+classes, not one-offs:
+
+- Buttons: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`, `btn-text`, `btn-icon`, and
+  `state-layer` for the hover, focus and pressed wash.
+- Surfaces: `card` (Material's filled card), `card-secondary` and `card-tertiary` (the same on a tinted
+  container), `menu` and `menu-item`, `chip` (a filter chip when it is a button), `badge`.
+- Grouped rows (`GroupedItems.kt`): a `.group-rows` of `.group-row`s lies a hair apart, round at the
+  group's ends and near-square between, under a `.group-header` — accounts under their type,
+  transactions under their day, tags, subscriptions. `settings-header`, `settings-group` and
+  `settings-row` are the one rounded block of rows the settings screens and Categories use, and
+  `selection-list` / `SelectionItem` the list to pick one of in a sheet.
+- Fields are outlined text fields: `.field` wraps a `.input` followed by its `.label`, which rests in the
+  field while it is empty and rises into the border's notch — cut out in the colour of whatever the field
+  sits on (`--surface-under`) — once it has focus or a value. `TextField` is that with its error and
+  hint; `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it
+  `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus
+  on its field), `PickerField` a date or time that opens the browser's own picker, `DenseField` the short
+  unlabelled one for a row beside a button, and `ColourField` the palette swatches with a wheel
+  (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in.
+
+A few more components carry markup a class can't: `ConnectedButtonGroup` (Material's connected button
+group: choose one of a few), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
+sideways when the window is too narrow for it), `MonthSwitcher` (with its month picker), `SwipeReveal`
+and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
+filled set Android uses, extracted from Material's own SVGs rather than redrawn.
+
+**Dialogs and sheets are three components.** `FormDialog` is Android's `FullScreenDialog`: Material's
+full-screen dialog on a phone (close, the title, Save in the bar) and an ordinary dialog of the same
+content beside a rail, with Cancel and Save at the foot. It is a real `<form>`; bind `saveEnabled` to the
+form's validation, and pass `dirty` so that closing a form that no longer holds what it opened with asks
+before discarding. Every form goes through it. `AlertDialog` is Material's basic dialog, for a question
+that wants an answer (there is no `confirm()` anywhere) and for the month picker. `BottomSheet` is the
+modal bottom sheet, for what is picked from a short list or applied live: the filters (`FilterSheet`),
+adjusting a balance, the default-account and Save the Change pickers. All three share `useModal`
+(`lib/modal.ts`): Escape closes the one on top, the page stops scrolling, focus moves in.
+
+**A row's actions are behind a swipe.** As on Android, a list row shows no buttons: dragging it left —
+with a finger, or a mouse held down on it — reveals its `ActionIcon`s (`SwipeReveal`), and pressing the
+row is its main action, usually editing it. The actions follow the row in the tab order and the row opens
+when one takes focus, so a keyboard reaches them without a drag. A row a parent category shares with its
+subcategories opens and closes them instead; its edit is behind the swipe.
+
+**The page is the window beside the rail, edge to edge.** There is no maximum width: a screen fills what
+the rail leaves, 16px in from each side, as it does on a tablet. What a screen pins while its list scrolls
+— the month switcher, on Transactions the search and the filter row — goes in a `TopBar`, which teleports
+it into the shell's sticky strip (`#top-bar` in `App.vue`) above the unsent-changes banner.
+
+**Settings and Save the Change are screens with no Save**, as on Android (`/settings` and
+`/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). Every choice
+on them is picked from a list, so it is written as it is made and neither screen registers a FAB. The
+display currency is the deliberate exception — it relabels every figure in the app, so its dialog only
+marks a row and writes on Save — and a rule switched on before a destination is chosen waits on the
+screen, with the error beside the group, until an account is picked. Which accounts round up is chosen
+there too, from a sheet that writes `roundUpSource` one account at a time; the account form says nothing
+about round-ups.
+
+**Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`, a Material 3
+wide navigation rail) and a bottom bar below it (`NavDestination`). Slim, the rail is 96px: the logo — a
+plain mark, never a control — the menu button, the screen's FAB, and Dashboard, Transactions and Accounts
+(`dailyLinks` in `App.vue`, the same three as the phone's bar) with their labels beneath. The menu button
 opens it into a drawer whose "More" group holds Budget, Categories, Tags, Subscriptions, Save the Change,
-Settings and Sign out plus the signed-in account, so from `sm` up they are reached only by opening it. The rail and
-the phone's bottom bar list the same three destinations (Dashboard, Transactions and Accounts, `dailyLinks` in
-`App.vue`); phones keep the rest in the avatar menu (`moreLinks`, which is also what leads the rail's "More"). The show/hide-amounts and light/dark toggles sit at the
-foot of the rail from `sm` up (an icon when slim, a labelled row when open), and stay in
-the top bar on a phone. The slim and open rail are one structure that morphs, not two layouts swapped: each entry is a
-`RailItem` whose pill, icon and label are positioned by `data-expanded` in `style.css` and
-transition on the rail's own curve, icons sit 28px from the left in both states (so they never
-travel sideways), and the parts that exist only when open (the "More" group, the account block)
-grow from zero height and are `inert` while shut. The FAB has a slot of its own that opens the same way, sliding the destinations down as the
-FAB pops in (and back on the way out), and is one persistent button: between two pages that both have a FAB the slot stays open while
-the same button folds back to its circle, takes the new label and unfolds again (it pops out and the
-slot closes only if no new FAB turns up). Keep it that way: don't add a `v-if` on
-`expanded` to the rail's layout, or that entry will pop instead of moving. Open, it sits beside the page from `lg` and floats over
-a scrim below that, and the choice is remembered (`src/lib/rail.ts`), though a narrow
-window never starts with it floating. A phone also gets a top app bar naming the screen; from
-`sm` up there is none, since the rail already marks the current destination. Either way
-the heading comes from the route's `meta.title`, so a view does not render its own `<h1>`. Transient
-feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once in
-`App.vue`), which shows one message at a time; errors that belong to a form or to
-the page stay inline in a `banner-error`.
+Settings and Sign out, with the signed-in account in a card at the foot; phones keep those in the avatar
+menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount. Open,
+the rail is as wide as its content needs, between Material's 220 and 360: `NavRail` measures it and writes
+`--rail-open`, which is also how far the page (`.shell`) moves aside. It sits beside the page from `lg` and
+floats over a scrim below that, and the choice is remembered (`src/lib/rail.ts`), though a narrow window
+never starts with it floating.
+
+The slim and open rail are one structure that morphs, not two layouts swapped: each entry is a `RailItem`
+whose pill, icon and label are positioned by `data-expanded` in `style.css` and transition on the rail's
+own curve. Icons sit 36px from the left in both states, so they never travel sideways; an open item's pill
+hugs its icon and label as Android's does, which works because every item carries an invisible copy of its
+label (the "ghost") that gives it its open width in either state. The parts that exist only when open (the
+"More" group, the account card) grow from zero height and are `inert` while shut. Keep it that way: don't
+add a `v-if` on `expanded` to the rail's layout, or that entry will pop instead of moving.
+
+`FabButton` is the one action a screen leads with (`ScreenFab` on Android), registered in `src/lib/fab.ts`:
+a phone gets the floating button, and from `sm` up the rail shows it under its menu button, a square while
+slim and an extended FAB when open. With `actions` it opens a menu of them instead, as Accounts' does. It
+has a slot of its own in the rail that opens from nothing, sliding the destinations down as the FAB pops
+in, and is one persistent button: between two pages that both have a FAB the slot stays open while the
+same button folds back to its square, takes the new label and unfolds again.
+
+A phone also gets a top app bar naming the screen; from `sm` up there is none, since the rail already marks
+the current destination. Either way the heading comes from the route's `meta.title`, so a view does not
+render its own `<h1>`. Transient feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once
+in `App.vue`), which shows one message at a time along the bottom of the page; a failure that belongs to a
+form is said in the form.
 
 **Colours are validated, not chosen by eye.** The eight category colours in
 `src/lib/palette.ts` are a fixed-order categorical palette checked against this
 app's own light and dark surfaces for lightness, chroma, colour-vision-deficiency
 separation and contrast, with a spec test guarding them. Adjacent slots stay
 distinguishable for protan, deutan and tritan vision, and every coloured mark
-carries a visible text label — colour never carries meaning alone.
+carries a visible text label — colour never carries meaning alone. (A mark is
+drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-598 tests: 392 against the API in `test/`, 206 over the browser helpers as
+603 tests: 395 against the API in `test/`, 208 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

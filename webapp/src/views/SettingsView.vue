@@ -1,157 +1,241 @@
 <script setup lang="ts">
-import PreferenceSelect from '@/components/PreferenceSelect.vue';
-import { namedOptions } from '@/lib/selectOptions';
+import AppIcon from '@/components/AppIcon.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import FabButton from '@/components/FabButton.vue';
-import SettingRow from '@/components/SettingRow.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
+import FormDialog from '@/components/FormDialog.vue';
+import SelectionItem from '@/components/SelectionItem.vue';
 import { ApiError } from '@/lib/api';
-import { currencyProblem, supportId, useFormValidation } from '@/lib/validation';
-import { SAVE } from '@/lib/icons';
-import { formatMoney } from '@/lib/money';
+import { ACCOUNT_CIRCLE, ATTACH_MONEY, CLOSE, DARK_MODE, INFO, NOTE_ALT, SEARCH, SUPERVISOR_ACCOUNT } from '@/lib/icons';
+import { currencyName, currencySymbol } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
+import { useTheme, type ThemeMode } from '@/lib/theme';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
+import type { BudgetMode, Settings } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
+const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
-/** Common choices; any 3-letter code is accepted, so the field stays free-text. */
-const SUGGESTIONS = ['PHP', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'SGD', 'HKD', 'KRW', 'CNY', 'INR'];
+const appVersion = __APP_VERSION__;
 
-const draft = ref(ledger.displayCurrency);
-const budgetModeDraft = ref(ledger.budgetMode);
-const defaultAccountDraft = ref(ledger.defaultAccountId ?? '');
-const defaultAccountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'First active account' }));
-/** A failure that belongs to no one field — the save itself went wrong. */
-const error = ref<string | null>(null);
-const saving = ref(false);
+const THEME_MODES: { value: ThemeMode; label: string }[] = [
+	{ value: 'system', label: 'System' },
+	{ value: 'light', label: 'Light' },
+	{ value: 'dark', label: 'Dark' },
+];
 
-const validation = useFormValidation({ 'display-currency': () => currencyProblem(draft.value) });
-const { error: fieldError, touch } = validation;
+const BUDGET_MODES: { value: BudgetMode; label: string }[] = [
+	{ value: 'fixed', label: 'Fixed' },
+	{ value: 'monthly', label: 'Monthly' },
+];
 
-const normalised = computed(() => draft.value.trim().toUpperCase());
-const isValid = computed(() => validation.isValid.value);
-const currencyChanged = computed(() => normalised.value !== ledger.displayCurrency);
-const budgetModeChanged = computed(() => budgetModeDraft.value !== ledger.budgetMode);
-const defaultAccountChanged = computed(() => (defaultAccountDraft.value || null) !== ledger.defaultAccountId);
-const changed = computed(() => currencyChanged.value || budgetModeChanged.value || defaultAccountChanged.value);
-
-const preview = computed(() => (isValid.value ? formatMoney(123_456, normalised.value) : '—'));
-
-// The screen shows what is actually saved, so it follows the ledger: on arrival, once it has loaded, and after a save.
-watch(
-	() => [ledger.displayCurrency, ledger.budgetMode, ledger.defaultAccountId] as const,
-	([currency, mode, account]) => {
-		draft.value = currency;
-		budgetModeDraft.value = mode;
-		defaultAccountDraft.value = account ?? '';
-	},
-);
-
-onMounted(() => ledger.load());
-
-async function save(): Promise<void> {
-	if (saving.value || !changed.value) return;
-	if (!validation.isValid.value) return;
-
-	saving.value = true;
-	error.value = null;
-
+/**
+ * Every choice here is made from a list, so there is nothing to get wrong and nothing to confirm: a pick is
+ * written as it is made, the way the theme has always behaved. The write is local first and cannot fail for
+ * want of a network, so only a rejection has anything to say.
+ */
+async function persist(change: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
 	try {
-		await ledger.updateSettings({
-			...(currencyChanged.value ? { displayCurrency: normalised.value } : {}),
-			...(budgetModeChanged.value ? { budgetMode: budgetModeDraft.value } : {}),
-			...(defaultAccountChanged.value ? { defaultAccountId: defaultAccountDraft.value || null } : {}),
-		});
+		await ledger.updateSettings(change);
 		// The summary carries formatted figures nowhere, but refreshing keeps the
 		// dashboard consistent with anything a setting touched.
 		await budget.refresh();
-		showSnackbar('Settings saved');
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the setting.';
-	} finally {
-		saving.value = false;
+		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save the setting.');
 	}
 }
+
+const defaultAccountName = computed(
+	() => ledger.accounts.find((account) => account.id === ledger.defaultAccountId)?.name ?? 'First active account',
+);
+const accountsByType = computed(() => [...ledger.activeAccounts].sort((a, b) => (a.typeName ?? '').localeCompare(b.typeName ?? '')));
+const accountSheetOpen = ref(false);
+
+function pickDefaultAccount(id: string): void {
+	accountSheetOpen.value = false;
+	if (id !== ledger.defaultAccountId) void persist({ defaultAccountId: id });
+}
+
+/** The default currency and nine of the most traded: what the display-currency list offers before a search. */
+const COMMON_CURRENCIES = ['PHP', 'USD', 'EUR', 'JPY', 'GBP', 'CNY', 'AUD', 'CAD', 'SGD', 'HKD'];
+
+/** Every currency the platform knows, for the search to reach. An old browser that cannot list them still has the common ten. */
+const allCurrencies: string[] = (() => {
+	try {
+		return Intl.supportedValuesOf('currency');
+	} catch {
+		return COMMON_CURRENCIES;
+	}
+})();
+
+const currencyDialogOpen = ref(false);
+const currencySearch = ref('');
+/** Pressing a row only marks it. Changing the currency relabels every figure in the app, so it waits for Save. */
+const pickedCurrency = ref(ledger.displayCurrency);
+
+watch(currencyDialogOpen, (open) => {
+	if (!open) return;
+	currencySearch.value = '';
+	pickedCurrency.value = ledger.displayCurrency;
+});
+
+/**
+ * Before anything is typed the list is the ten currencies most people would pick from, not the hundreds the
+ * platform knows; a search still reaches every one of them. The currency in use leads either list — and joins
+ * the short one if it is not among the ten — so it is the first thing seen.
+ */
+const shownCurrencies = computed(() => {
+	const current = ledger.displayCurrency;
+	const query = currencySearch.value.trim().toLowerCase();
+	const codes = query
+		? allCurrencies.filter((code) => code.toLowerCase().includes(query) || currencyName(code).toLowerCase().includes(query))
+		: [...new Set([current, ...COMMON_CURRENCIES])];
+
+	return [...codes]
+		.sort((a, b) => Number(b === current) - Number(a === current))
+		.map((code) => ({ code, name: currencyName(code), symbol: currencySymbol(code) }));
+});
+
+function saveCurrency(): void {
+	currencyDialogOpen.value = false;
+	if (pickedCurrency.value !== ledger.displayCurrency) void persist({ displayCurrency: pickedCurrency.value });
+}
+
+onMounted(() => ledger.load());
 </script>
 
 <template>
-	<form class="space-y-5" novalidate @submit.prevent="save" @input="validation.onInput">
-		<section class="card">
-			<h2 class="type-title-small px-5 pt-4 text-primary">Currency</h2>
-			<div class="divide-y divide-outline-variant px-5">
-				<SettingRow
-					title="Display currency"
-					description="Used for net worth, the monthly summary and budgets. Each account keeps its own currency for what it holds."
-					for="display-currency"
-				>
-					<input
-						id="display-currency"
-						v-model="draft"
-						class="input input-sm uppercase"
-						maxlength="3"
-						list="currency-suggestions"
-						autocomplete="off"
-						required
-						:aria-invalid="fieldError('display-currency') ? true : undefined"
-						:aria-describedby="fieldError('display-currency') ? supportId('display-currency') : undefined"
-						@blur="touch('display-currency')"
-					/>
-					<datalist id="currency-suggestions">
-						<option v-for="code in SUGGESTIONS" :key="code" :value="code" />
-					</datalist>
-					<FieldSupport id="display-currency" :error="fieldError('display-currency')" class="!px-3" />
-				</SettingRow>
-
-				<SettingRow title="Preview" description="How an amount will read in this currency.">
-					<p class="tabular text-lg text-on-surface sm:text-right">{{ preview }}</p>
-				</SettingRow>
+	<div class="flex flex-col gap-4 p-4">
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Currency</h2>
+			<div class="settings-group">
+				<button type="button" class="settings-row" aria-haspopup="dialog" @click="currencyDialogOpen = true">
+					<AppIcon :icon="ATTACH_MONEY" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Display currency</span>
+						<span class="type-body-medium block">{{ ledger.displayCurrency }}</span>
+					</span>
+					<span class="type-headline-small" aria-hidden="true">{{ currencySymbol(ledger.displayCurrency) }}</span>
+				</button>
 			</div>
 		</section>
 
-		<section class="card">
-			<h2 class="type-title-small px-5 pt-4 text-primary">Budgets</h2>
-			<div class="px-5">
-				<SettingRow
-					title="Budget mode"
-					:description="
-						budgetModeDraft === 'fixed'
-							? 'A category\'s planned amount applies to every month, until changed again.'
-							: 'Each month keeps its own planned amount, set separately.'
-					"
-				>
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Appearance</h2>
+			<div class="settings-group">
+				<div class="settings-row flex-col items-stretch">
+					<div class="flex items-center gap-4">
+						<AppIcon :icon="DARK_MODE" />
+						<span class="min-w-0 flex-1">
+							<span class="type-title-medium block">App theme</span>
+							<span class="type-body-medium block">Choose how your app looks</span>
+						</span>
+					</div>
+					<ConnectedButtonGroup :model-value="themeMode" label="App theme" :options="THEME_MODES" @update:model-value="setThemeMode" />
+				</div>
+			</div>
+		</section>
+
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Budgeting</h2>
+			<div class="settings-group">
+				<div class="settings-row flex-col items-stretch">
+					<div class="flex items-center gap-4">
+						<AppIcon :icon="NOTE_ALT" />
+						<span class="min-w-0 flex-1">
+							<span class="type-title-medium block">Mode</span>
+							<span class="type-body-medium block">Choose whether you budget monthly or not</span>
+						</span>
+					</div>
 					<ConnectedButtonGroup
-						v-model="budgetModeDraft"
+						:model-value="ledger.budgetMode"
 						label="Budget mode"
-						:options="[
-							{ value: 'fixed', label: 'Fixed' },
-							{ value: 'monthly', label: 'Monthly' },
-						]"
-					/>
-				</SettingRow>
-			</div>
-		</section>
-
-		<section class="card">
-			<h2 class="type-title-small px-5 pt-4 text-primary">Transactions</h2>
-			<div class="px-5">
-				<div class="py-1">
-					<PreferenceSelect
-						id="default-account"
-						v-model="defaultAccountDraft"
-						label="Default account"
-						:options="defaultAccountChoices"
+						:options="BUDGET_MODES"
+						@update:model-value="(mode) => mode !== ledger.budgetMode && persist({ budgetMode: mode })"
 					/>
 				</div>
 			</div>
 		</section>
 
-		<p v-if="error" class="banner-error" role="alert">
-			{{ error }}
-		</p>
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Transactions</h2>
+			<div class="settings-group">
+				<button type="button" class="settings-row" aria-haspopup="dialog" @click="accountSheetOpen = true">
+					<AppIcon :icon="SUPERVISOR_ACCOUNT" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Default account</span>
+						<span class="type-body-medium block">{{ defaultAccountName }}</span>
+					</span>
+				</button>
+			</div>
+		</section>
 
-		<FabButton :label="saving ? 'Saving…' : 'Save'" :icon="SAVE" :disabled="saving || !changed || !isValid" @click="save" />
-	</form>
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">About</h2>
+			<div class="settings-group">
+				<div class="settings-row">
+					<AppIcon :icon="INFO" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Version</span>
+						<span class="type-body-medium block">{{ appVersion }}</span>
+					</span>
+				</div>
+			</div>
+		</section>
+
+		<!-- Every currency there is, behind a search. Its first row is drawn like a search bar. -->
+		<FormDialog
+			:open="currencyDialogOpen"
+			title="Display currency"
+			:save-enabled="pickedCurrency !== ledger.displayCurrency"
+			:dirty="pickedCurrency !== ledger.displayCurrency"
+			@close="currencyDialogOpen = false"
+			@save="saveCurrency"
+		>
+			<label class="search-field flex-none">
+				<AppIcon :icon="SEARCH" />
+				<input
+					v-model="currencySearch"
+					type="search"
+					autofocus
+					aria-label="Search currencies"
+					placeholder="Search currency name or code..."
+				/>
+				<button v-if="currencySearch" type="button" class="btn-icon -mr-2" aria-label="Clear" @click="currencySearch = ''">
+					<AppIcon :icon="CLOSE" />
+				</button>
+			</label>
+
+			<div class="selection-list">
+				<SelectionItem
+					v-for="currency in shownCurrencies"
+					:key="currency.code"
+					:title="currency.code"
+					:subtitle="currency.name"
+					:badge="currency.symbol"
+					:selected="currency.code === pickedCurrency"
+					@click="pickedCurrency = currency.code"
+				/>
+			</div>
+		</FormDialog>
+
+		<BottomSheet :open="accountSheetOpen" label="Select default account" @close="accountSheetOpen = false">
+			<div class="px-4 pb-6">
+				<h2 class="type-headline-small pb-4">Select default account</h2>
+				<div class="selection-list">
+					<SelectionItem
+						v-for="account in accountsByType"
+						:key="account.id"
+						:icon="ACCOUNT_CIRCLE"
+						:title="account.name"
+						:subtitle="account.typeName"
+						:selected="account.id === ledger.defaultAccountId"
+						@click="pickDefaultAccount(account.id)"
+					/>
+				</div>
+			</div>
+		</BottomSheet>
+	</div>
 </template>

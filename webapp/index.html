@@ -4,16 +4,17 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="description" content="Personal budgeting and financial tracking." />
-		<meta name="theme-color" content="#e6edf7" media="(prefers-color-scheme: light)" />
-		<meta name="theme-color" content="#141927" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#faf8fe" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#0d0e12" media="(prefers-color-scheme: dark)" />
 		<link rel="icon" href="/favicon.png" type="image/png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<title>yuuka</title>
 		<script>
 			// Applied before first paint so a dark-mode reload does not flash white.
 			try {
+				// 'light' or 'dark' when one was chosen in Settings; nothing stored means follow the system.
 				const stored = localStorage.getItem('yuuka.theme');
-				const dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+				const dark = stored === 'dark' || (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
 				if (dark) document.documentElement.classList.add('dark');
 			} catch {}
 		</script>

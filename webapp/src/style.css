@@ -1,88 +1,88 @@
 @import 'tailwindcss';
 
-/* Dark mode follows an explicit `.dark` class on <html>, set by the theme
-   toggle, which falls back to the OS preference on first visit. */
+/* Dark mode follows an explicit `.dark` class on <html>, set from the theme preference
+   (`lib/theme.ts`), which follows the OS until the person picks light or dark in Settings. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 .dark {
-	--color-primary: #abb3ff;
-	--color-on-primary: #001491;
-	--color-primary-container: #8c98ff;
-	--color-on-primary-container: #000750;
-	--color-secondary: #b8b0ff;
-	--color-on-secondary: #271284;
-	--color-secondary-container: #7166d0;
-	--color-on-secondary-container: #ffffff;
-	--color-tertiary: #ff9fdf;
-	--color-on-tertiary: #5e024e;
-	--color-tertiary-container: #f88cd7;
-	--color-on-tertiary-container: #4c003e;
-	--color-error: #ff9da8;
-	--color-on-error: #5f001c;
-	--color-error-container: #d73357;
-	--color-on-error-container: #ffffff;
-	--color-background: #0d072e;
-	--color-surface: #0d072e;
-	--color-on-surface: #ffffff;
-	--color-surface-variant: #241d54;
-	--color-on-surface-variant: #b9b3e3;
-	--color-surface-dim: #0d072e;
-	--color-surface-bright: #2a235e;
+	--color-primary: #bac5ee;
+	--color-on-primary: #343f61;
+	--color-primary-container: #465174;
+	--color-on-primary-container: #dce2ff;
+	--color-secondary: #c1c6dd;
+	--color-on-secondary: #3a4052;
+	--color-secondary-container: #353b4d;
+	--color-on-secondary-container: #babed5;
+	--color-tertiary: #f3deff;
+	--color-on-tertiary: #604b72;
+	--color-tertiary-container: #e9cdfd;
+	--color-on-tertiary-container: #574269;
+	--color-error: #fa746f;
+	--color-on-error: #490006;
+	--color-error-container: #871f21;
+	--color-on-error-container: #ff9993;
+	--color-background: #0d0e12;
+	--color-surface: #0d0e12;
+	--color-on-surface: #e4e4f0;
+	--color-surface-variant: #23252e;
+	--color-on-surface-variant: #a9aab5;
+	--color-surface-dim: #0d0e12;
+	--color-surface-bright: #2a2c34;
 	--color-surface-container-lowest: #000000;
-	--color-surface-container-low: #120c37;
-	--color-surface-container: #181241;
-	--color-surface-container-high: #1e184a;
-	--color-surface-container-highest: #241d54;
-	--color-outline: #938ebc;
-	--color-outline-variant: #746eaa;
-	--color-inverse-surface: #fcf8ff;
-	--color-inverse-on-surface: #37335b;
-	--color-inverse-primary: #3545c6;
+	--color-surface-container-low: #121318;
+	--color-surface-container: #181920;
+	--color-surface-container-high: #1e1f26;
+	--color-surface-container-highest: #23252e;
+	--color-outline: #73757f;
+	--color-outline-variant: #464750;
+	--color-inverse-surface: #faf8fe;
+	--color-inverse-on-surface: #54555a;
+	--color-inverse-primary: #535e81;
 	color-scheme: dark;
 }
 
-/* The Android app's Material 3 scheme (`ui/theme/Color.kt`), role for role: the
-   medium-contrast set generated from the brand seed #4C5CDC. Regenerate the
-   whole set from a new seed rather than editing single roles, and keep the two
-   in step. The `.dark` block below replaces the same variables, so a utility
-   such as `bg-surface` follows the theme with no `dark:` variant. There is no
-   extended role for inflows or a nearly-spent budget: negative is `error`, a
-   transfer is `primary`, an inflow is `secondary` and a nearly-spent budget is
-   `tertiary`. */
+/* The Android app's Material 3 scheme, role for role: what `ui/theme/Theme.kt` builds at runtime with
+   MaterialKolor from the brand seed #415BA3 (`ui/theme/Color.kt`) — tonal spot, the 2026 colour spec,
+   default contrast. The values are that generator's output, not picked by eye: regenerate the whole
+   set from a new seed rather than editing single roles, and keep the two in step. The `.dark` block
+   above replaces the same variables, so a utility such as `bg-surface` follows the theme with no
+   `dark:` variant. Figures follow `MoneyText.kt`: an inflow is `primary`, a transfer `secondary`,
+   below zero is `error` where that is worth noticing, and `tertiary` is kept for what is worth a
+   glance without being either (a budget near its limit, a day above the average). */
 @theme static {
-	--color-primary: #182ab0;
-	--color-on-primary: #cdd1ff;
-	--color-primary-container: #5767e7;
-	--color-on-primary-container: #ffffff;
-	--color-secondary: #3b2d97;
-	--color-on-secondary: #d5cfff;
-	--color-secondary-container: #7166d0;
-	--color-on-secondary-container: #ffffff;
-	--color-tertiary: #71185e;
-	--color-on-tertiary: #ffc2e8;
-	--color-tertiary-container: #b25197;
-	--color-on-tertiary-container: #ffffff;
-	--color-error: #83002a;
-	--color-on-error: #ffc6ca;
-	--color-error-container: #d73357;
-	--color-on-error-container: #ffffff;
-	--color-background: #f9f5ff;
-	--color-surface: #f9f5ff;
-	--color-on-surface: #1e1a40;
-	--color-surface-variant: #ded8ff;
-	--color-on-surface-variant: #3e3a62;
-	--color-surface-dim: #d5cfff;
-	--color-surface-bright: #f9f5ff;
+	--color-primary: #4e5d8c;
+	--color-on-primary: #f9f8ff;
+	--color-primary-container: #bbcaff;
+	--color-on-primary-container: #33426e;
+	--color-secondary: #595e72;
+	--color-on-secondary: #f9f8ff;
+	--color-secondary-container: #dde1f9;
+	--color-on-secondary-container: #4c5164;
+	--color-tertiary: #6c567f;
+	--color-on-tertiary: #fff6fe;
+	--color-tertiary-container: #e9cdfd;
+	--color-on-tertiary-container: #574269;
+	--color-error: #a83836;
+	--color-on-error: #fff7f6;
+	--color-error-container: #fa746f;
+	--color-on-error-container: #6e0a12;
+	--color-background: #faf8fe;
+	--color-surface: #faf8fe;
+	--color-on-surface: #30323b;
+	--color-surface-variant: #e1e2ed;
+	--color-on-surface-variant: #5d5f68;
+	--color-surface-dim: #d9d9e4;
+	--color-surface-bright: #faf8fe;
 	--color-surface-container-lowest: #ffffff;
-	--color-surface-container-low: #f3eeff;
-	--color-surface-container: #eae5ff;
-	--color-surface-container-high: #e4dfff;
-	--color-surface-container-highest: #ded8ff;
-	--color-outline: #5b5780;
-	--color-outline-variant: #7670ab;
-	--color-inverse-surface: #0d072e;
-	--color-inverse-on-surface: #c5bfef;
-	--color-inverse-primary: #8794ff;
+	--color-surface-container-low: #f4f3fa;
+	--color-surface-container: #eeedf6;
+	--color-surface-container-high: #e8e7f1;
+	--color-surface-container-highest: #e1e2ed;
+	--color-outline: #797a84;
+	--color-outline-variant: #b0b1bc;
+	--color-inverse-surface: #0d0e12;
+	--color-inverse-on-surface: #9d9ca2;
+	--color-inverse-primary: #bbcaff;
 	--color-scrim: #000000;
 
 	/* Shape: the M3 corner scale. `rounded-full` is the scale's "full". */
@@ -108,9 +108,9 @@
 	--default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 
 	/* Type: Tailwind's size names sit on the M3 scale. xs is body small, sm body
-	   medium, base body large, xl title large, 2xl headline small, 4xl and 5xl
-	   display small and medium. Titles and labels take a weight from the
-	   `type-*` utilities below, and the app only ever uses 400 and 500. */
+	   medium, base body large, xl title large, 2xl headline small, 3xl headline
+	   medium, 4xl display small. The `type-*` utilities below are the roles by
+	   name, weight included, and are what a screen should reach for. */
 	--text-xs: 0.75rem;
 	--text-xs--line-height: 1rem;
 	--text-xs--letter-spacing: 0.4px;
@@ -133,7 +133,9 @@
 	--text-5xl: 2.8125rem;
 	--text-5xl--line-height: 3.25rem;
 
-	--font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	/* Google Sans Flex, the Material 3 Expressive typeface. Bundled (`@fontsource-variable/google-sans-flex`,
+	   imported in `main.ts`) rather than linked, so it is there offline with the rest of the shell. */
+	--font-sans: 'Google Sans Flex Variable', 'Google Sans Flex', Roboto, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
 }
 
@@ -142,6 +144,8 @@
 		scroll-behavior: smooth;
 		/* Where a field's label notch cuts the border: the colour of whatever the field sits on. */
 		--surface-under: var(--color-background);
+		/* The navigation rail's width once open. `NavRail` measures its own content and overwrites this. */
+		--rail-open: 264px;
 	}
 
 	body {
@@ -165,8 +169,51 @@
 	}
 }
 
-/* Type roles that carry a weight. Body and headline roles come from the size
-   scale in the theme; these are the ones the scale doesn't spell out. */
+/* The M3 type roles by name, at the weights Android draws them in: the scale's own, since the theme there
+   is built without the emphasised display and headline tiers `ui/theme/Type.kt` declares. */
+@utility type-display-small {
+	font-size: 2.25rem;
+	line-height: 2.75rem;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
+@utility type-headline-large {
+	font-size: 2rem;
+	line-height: 2.5rem;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
+@utility type-headline-medium {
+	font-size: 1.75rem;
+	line-height: 2.25rem;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
+@utility type-headline-small {
+	font-size: 1.5rem;
+	line-height: 2rem;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
+@utility type-title-large {
+	font-size: 1.375rem;
+	line-height: 1.75rem;
+	font-weight: 400;
+	letter-spacing: 0;
+}
+
+/* The emphasised figure of a compact stat card, one step below headline medium (`Typography.compactFigure`). */
+@utility type-compact-figure {
+	font-size: 1.375rem;
+	line-height: 1.75rem;
+	font-weight: 600;
+	letter-spacing: 0;
+}
+
 @utility type-title-medium {
 	font-size: 1rem;
 	line-height: 1.5rem;
@@ -179,6 +226,27 @@
 	line-height: 1.25rem;
 	font-weight: 500;
 	letter-spacing: 0.1px;
+}
+
+@utility type-body-large {
+	font-size: 1rem;
+	line-height: 1.5rem;
+	font-weight: 400;
+	letter-spacing: 0.5px;
+}
+
+@utility type-body-medium {
+	font-size: 0.875rem;
+	line-height: 1.25rem;
+	font-weight: 400;
+	letter-spacing: 0.25px;
+}
+
+@utility type-body-small {
+	font-size: 0.75rem;
+	line-height: 1rem;
+	font-weight: 400;
+	letter-spacing: 0.4px;
 }
 
 @utility type-label-large {
@@ -245,12 +313,12 @@
    below only resolves if `btn` is a real utility. */
 @utility btn {
 	@apply state-layer focus-ring type-label-large inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full px-6 py-2 whitespace-nowrap;
-	@apply transition-[box-shadow,background-color,color] disabled:cursor-not-allowed disabled:bg-on-surface/12 disabled:text-on-surface/38 disabled:shadow-none;
+	@apply transition-[box-shadow,background-color,color] disabled:cursor-not-allowed disabled:bg-on-surface/10 disabled:text-on-surface/38 disabled:shadow-none;
 }
 
-/* Icon buttons: a 40dp target (32dp when dense) holding a glyph. */
+/* Icon buttons: a 40dp target holding a 24dp glyph, in the colour of the content around it. */
 @utility btn-icon {
-	@apply state-layer focus-ring inline-grid size-10 shrink-0 cursor-pointer place-items-center rounded-full text-on-surface-variant;
+	@apply state-layer focus-ring inline-grid size-10 shrink-0 cursor-pointer place-items-center rounded-full;
 	@apply disabled:cursor-not-allowed disabled:text-on-surface/38;
 }
 
@@ -264,26 +332,139 @@
 	   matching the Android app's default `Card` container colour (M3's FilledCardTokens). */
 	.card {
 		--surface-under: var(--color-surface-container-highest);
-		@apply rounded-md bg-surface-container-highest;
+		@apply rounded-md bg-surface-container-highest text-on-surface;
+	}
+
+	/* The same card on a secondary or tertiary container, with its content in the container's own colour. */
+	.card-secondary {
+		--surface-under: var(--color-secondary-container);
+		@apply rounded-md bg-secondary-container text-on-secondary-container;
+	}
+
+	.card-tertiary {
+		--surface-under: var(--color-tertiary-container);
+		@apply rounded-md bg-tertiary-container text-on-tertiary-container;
 	}
 
 	/*
-	 * Outlined text fields. The label always sits raised in the notch of the
-	 * border, so there is no floating state to script, and a value never has
-	 * to fight a resting label. Anything else labelled `.label` — a group of
-	 * buttons, say — stays a plain caption above it.
+	 * A grouped row (`GroupedItems.kt`): rows of one group lie a hair apart, round on the group's outer
+	 * edges and all but square where they meet, so the block reads as one block of separate pieces rather
+	 * than a card with dividers. Put each row in a child of a `.group-rows`; the first and last take the
+	 * outer corners by themselves. A step up from the page, a step below the dialogs that open over it.
 	 */
-	.label {
-		@apply mb-1.5 block text-xs text-on-surface-variant;
+	.group-rows {
+		@apply flex flex-col gap-1;
 	}
 
+	.group-row {
+		--surface-under: var(--color-surface-container);
+		@apply block w-full rounded-xs bg-surface-container text-left text-on-surface;
+	}
+
+	.group-rows > :first-child,
+	.group-rows > :first-child .group-row {
+		border-top-left-radius: var(--radius-xl);
+		border-top-right-radius: var(--radius-xl);
+	}
+
+	.group-rows > :last-child,
+	.group-rows > :last-child .group-row {
+		border-bottom-left-radius: var(--radius-xl);
+		border-bottom-right-radius: var(--radius-xl);
+	}
+
+	/* A group's heading: its name and, at the end, what the group comes to; inset past the rows it names. */
+	.group-header {
+		@apply type-title-medium flex items-center justify-between gap-4 px-2 pt-3 pb-2 text-on-surface;
+	}
+
+	/* A settings group (`SettingsGroupContainer`): one rounded block of rows with a primary heading above it. */
+	.settings-header {
+		@apply type-title-medium pb-2 pl-2 text-primary;
+	}
+
+	.settings-group {
+		--surface-under: var(--color-surface-container);
+		@apply rounded-xl bg-surface-container text-on-surface;
+	}
+
+	.settings-row {
+		@apply flex w-full items-center gap-4 rounded-xl p-5 text-left;
+	}
+
+	button.settings-row {
+		@apply state-layer focus-ring cursor-pointer;
+	}
+
+	/*
+	 * A list to pick one of (`ExpressiveModalSelectionItem`): rows a hair apart, round at the list's two ends
+	 * and near-square where they meet. The chosen row fills with the primary container and rounds off.
+	 */
+	.selection-list {
+		@apply flex flex-col gap-1;
+	}
+
+	.selection-item {
+		@apply flex w-full cursor-pointer items-center gap-4 rounded-xs bg-surface-container-highest px-4 py-3.5 text-left text-on-surface;
+		transition:
+			border-radius 250ms var(--ease-standard),
+			background-color 200ms var(--ease-standard);
+	}
+
+	.selection-item:first-child {
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
+	}
+
+	.selection-item:last-child {
+		border-bottom-left-radius: 20px;
+		border-bottom-right-radius: 20px;
+	}
+
+	.selection-item[aria-pressed='true'] {
+		@apply bg-primary-container text-on-primary-container;
+		border-radius: 24px;
+	}
+
+	.selection-item[aria-pressed='true']:first-child:not(:last-child) {
+		border-bottom-left-radius: var(--radius-xs);
+		border-bottom-right-radius: var(--radius-xs);
+	}
+
+	.selection-item[aria-pressed='true']:last-child:not(:first-child) {
+		border-top-left-radius: var(--radius-xs);
+		border-top-right-radius: var(--radius-xs);
+	}
+
+	/*
+	 * Outlined text fields, as Material 3 draws them: the label rests in the field while it is empty and
+	 * rises into the border's notch once it has focus or a value. `.field` wraps a `.input` followed by its
+	 * `.label`; the input needs a placeholder (a single space will do) for the empty state to be seen. A
+	 * `.label` on its own — over a group of chips, say — is a plain caption.
+	 */
+	.label {
+		@apply type-title-small mb-2 block text-on-surface;
+	}
+
+	/* The 8px above is the room Material's outlined field keeps for its raised label. */
 	.field {
 		position: relative;
+		margin-top: 8px;
 	}
 
 	.field > .label {
-		@apply absolute top-0 left-3 z-10 mb-0 -translate-y-1/2 bg-(--surface-under) px-1 transition-colors;
+		@apply type-body-large absolute top-4 left-3 z-10 mb-0 max-w-[calc(100%-1.5rem)] origin-left truncate bg-(--surface-under) px-1 text-on-surface-variant;
 		pointer-events: none;
+		transition:
+			transform 150ms var(--ease-standard),
+			color 150ms var(--ease-standard);
+	}
+
+	/* Raised: scaled to body small and centred on the top border. */
+	.field:focus-within > .label,
+	.field > .input:not(:placeholder-shown) ~ .label,
+	.field[data-filled='true'] > .label {
+		transform: translateY(-1.75rem) scale(0.75);
 	}
 
 	.field:focus-within > .label {
@@ -296,7 +477,7 @@
 	}
 
 	.field-support {
-		@apply mt-1 flex items-start gap-1 px-4 text-xs text-on-surface-variant;
+		@apply type-body-small flex items-start gap-1 px-4 pt-1 text-on-surface-variant;
 	}
 
 	.field-support-error {
@@ -304,19 +485,51 @@
 	}
 
 	.input {
-		@apply block min-h-14 w-full rounded-xs border border-outline bg-transparent px-4 py-2 text-base text-on-surface;
-		@apply placeholder:text-on-surface-variant/70 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none;
+		@apply type-body-large block min-h-14 w-full rounded-xs border border-outline bg-transparent px-4 py-2 text-on-surface;
+		@apply placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none;
 		@apply disabled:border-on-surface/12 disabled:text-on-surface/38;
 		@apply transition-colors;
+	}
+
+	/* A resting label stands where the placeholder would, so the placeholder waits for the label to rise. */
+	.field > .input:not(:focus)::placeholder {
+		color: transparent;
 	}
 
 	.input[aria-invalid='true'] {
 		@apply border-error focus:border-error focus:ring-error;
 	}
 
-	/* For fields set inline beside other controls, where 56dp is too tall. */
+	/* For fields set inline beside a button, where 56dp is too tall (`DenseOutlinedTextField`). */
 	.input-sm {
-		@apply min-h-10 px-3 py-1 text-sm;
+		@apply min-h-10 py-1;
+	}
+
+	/* The same outline around a field that brings more than its input: a prefix, a clear button. */
+	.input-box {
+		@apply flex min-h-10 w-full items-center gap-1 rounded-xs border border-outline px-4 py-1 text-on-surface transition-colors;
+		@apply focus-within:border-primary focus-within:ring-1 focus-within:ring-primary;
+	}
+
+	.input-box[aria-invalid='true'] {
+		@apply border-error focus-within:border-error focus-within:ring-error;
+	}
+
+	.input-box[data-disabled] {
+		@apply border-on-surface/12 text-on-surface/38;
+	}
+
+	/* A filled field drawn as a pill — a search bar. No indicator line: a round shape does not clip one. */
+	.search-field {
+		@apply flex min-h-14 w-full items-center gap-4 rounded-full bg-surface-container-highest px-4 text-on-surface-variant;
+	}
+
+	.search-field > input {
+		@apply type-body-large min-w-0 flex-1 bg-transparent text-on-surface placeholder:text-on-surface-variant focus:outline-none;
+	}
+
+	.search-field > input::-webkit-search-cancel-button {
+		display: none;
 	}
 
 	.btn-primary {
@@ -328,7 +541,7 @@
 	}
 
 	.btn-outlined {
-		@apply btn border border-outline text-primary disabled:border-on-surface/12 disabled:bg-transparent;
+		@apply btn border border-outline-variant text-on-surface-variant disabled:border-on-surface/12 disabled:bg-transparent;
 	}
 
 	.btn-text {
@@ -352,15 +565,15 @@
 
 	/* An extended FAB: the one primary action a screen leads with. */
 	.fab {
-		@apply state-layer focus-ring type-label-large inline-flex h-14 cursor-pointer items-center gap-3 rounded-lg bg-primary-container px-4 text-on-primary-container shadow-elevation-3;
+		@apply state-layer focus-ring type-label-large inline-flex h-14 cursor-pointer items-center gap-3 rounded-lg bg-primary-container pr-5 pl-4 text-on-primary-container shadow-elevation-3;
 		@apply transition-[box-shadow,opacity] disabled:cursor-not-allowed disabled:bg-on-surface/12 disabled:text-on-surface/38 disabled:shadow-none;
 	}
 
 	/*
-	 * A connected button group: toggle buttons two dp apart, pill-ended at the outside with small inner
-	 * corners. The selected one fills with the primary colour and rounds off completely, so the choice
-	 * reads by shape as well as colour. Its "full" radius is half the height rather than a huge value,
-	 * so the corners can animate between the two.
+	 * A connected button group (`ConnectedButtonGroup.kt`): toggle buttons two dp apart, pill-ended at the
+	 * outside with small inner corners. The selected one fills with the primary colour and rounds off
+	 * completely, so the choice reads by shape as well as colour. Its "full" radius is half the height
+	 * rather than a huge value, so the corners can animate between the two.
 	 */
 	.connected-group {
 		--button-full: 1.25rem;
@@ -369,7 +582,7 @@
 	}
 
 	.connected-group > button {
-		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center bg-surface-container-high px-4 text-on-surface-variant;
+		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center bg-surface-container px-4 text-on-surface-variant;
 		border-radius: var(--button-inner);
 		transition:
 			border-radius 250ms var(--ease-standard),
@@ -387,45 +600,38 @@
 		border-end-end-radius: var(--button-full);
 	}
 
-	.connected-group > button[aria-pressed='true'] {
+	.connected-group > button[aria-checked='true'] {
 		@apply bg-primary text-on-primary;
 		border-radius: var(--button-full);
 	}
 
-	.connected-group-dense {
-		--button-full: 1rem;
-	}
-
-	.connected-group-dense > button {
-		@apply min-h-8 px-3;
-		font-size: 0.75rem;
-		line-height: 1rem;
+	.connected-group > button:disabled {
+		@apply cursor-not-allowed bg-on-surface/10 text-on-surface/38;
 	}
 
 	/* Menus: an extra-small surface at elevation 2, with 48dp items. */
 	.menu {
-		@apply overflow-hidden rounded-xs bg-surface-container py-2 shadow-elevation-2;
+		@apply overflow-hidden rounded-xs bg-surface-container py-2 text-on-surface shadow-elevation-2;
 	}
 
 	.menu-item {
-		@apply state-layer type-label-large block min-h-12 w-full cursor-pointer px-3 py-3 text-left text-on-surface;
+		@apply state-layer type-label-large flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 text-left text-on-surface;
+	}
+
+	.menu-item > svg {
+		@apply text-on-surface-variant;
 	}
 
 	/*
 	 * An option in an exposed dropdown menu: a menu item that can be the highlighted one (keyboard or pointer,
-	 * the focus wash) and the chosen one, which fills with the secondary container as M3 selected items do.
-	 * The chosen one also carries a check mark, so the state never rests on colour alone.
+	 * the focus wash). Android's menu marks nothing as chosen — the field above it already shows the choice.
 	 */
 	.menu-option {
-		@apply state-layer type-label-large flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-3 text-left text-on-surface;
+		@apply state-layer type-label-large flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left text-on-surface;
 	}
 
 	.menu-option[data-active='true']::after {
 		opacity: 0.1;
-	}
-
-	.menu-option[aria-selected='true'] {
-		@apply bg-secondary-container text-on-secondary-container;
 	}
 
 	.menu-option[aria-disabled='true'] {
@@ -437,78 +643,67 @@
 	}
 
 	/*
-	 * A chip: a compact label at 8dp corners. Read-only on a card; a toggle
-	 * (`aria-pressed`) in a form, where the selected one fills with the
-	 * secondary container the way an M3 filter chip does.
+	 * A chip at 8dp corners. A plain one is a read-only label on a row; as a button it is an M3 filter chip
+	 * (`aria-pressed`), which fills with the secondary container when it is on.
 	 */
 	.chip {
 		@apply type-label-small inline-flex min-h-6 max-w-full items-center gap-1.5 rounded-sm border border-outline-variant px-2 py-0.5 text-on-surface-variant;
 	}
 
 	button.chip {
-		@apply state-layer focus-ring min-h-8 cursor-pointer px-3 text-xs;
+		@apply state-layer focus-ring type-label-large min-h-8 cursor-pointer gap-2 px-4;
 	}
 
 	button.chip[aria-pressed='true'] {
-		@apply border-transparent bg-secondary-container text-on-secondary-container;
+		@apply border-transparent bg-secondary-container pl-2 text-on-secondary-container;
 	}
 
-	/* The count on an icon button: how many choices a filter has on. */
+	/* The count on an icon button: how many choices a filter has on. Not an alert, so not the badge's default error colour. */
 	.badge {
-		@apply type-label-small absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-error px-1 text-on-error;
+		@apply type-label-small absolute top-0.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-tertiary px-1 text-on-tertiary;
 	}
 
 	.banner-error {
 		@apply banner bg-error-container text-on-error-container;
 	}
+}
 
-	/*
-	 * Row actions stay out of the way until the row is hovered, or something
-	 * inside it takes focus so keyboard users can still reach them.
-	 *
-	 * Guarded by `(hover: hover)`: a touch device has no hover state, so hiding
-	 * them there would leave them invisible and untappable. On touch they simply
-	 * stay visible.
-	 */
-	.row-actions {
-		@apply flex shrink-0 items-center gap-0.5 transition-opacity;
-	}
-
-	@media (hover: hover) {
-		.row-actions {
-			opacity: 0;
-		}
-
-		.group:hover .row-actions,
-		.row-actions:focus-within,
-		/* For a row that has something else to line up beside its actions, which would look adrift if they came and went. */
-		.row-actions.row-actions-visible {
-			opacity: 1;
-		}
+/*
+ * Where a snackbar sits: along the bottom of the page, which is the window less the rail beside it — so it
+ * is centred on what is being read, not on the window.
+ */
+@media (min-width: 40rem) {
+	.shell .snackbar-host {
+		left: calc(96px + 1rem);
 	}
 }
 
-/* Dialogs and sheets enter on the emphasized-decelerate curve. */
+@media (min-width: 64rem) {
+	.shell[data-rail-open='true'] .snackbar-host {
+		left: calc(var(--rail-open) + 1rem);
+	}
+}
+
+/* Dialogs scale up from just under their size; sheets rise from the bottom edge. */
 @keyframes dialog-in {
-	from {
-		opacity: 0;
-		transform: translateY(2rem);
-	}
-}
-
-@keyframes dialog-in-centered {
 	from {
 		opacity: 0;
 		transform: scale(0.92);
 	}
 }
 
+@keyframes sheet-in {
+	from {
+		transform: translateY(100%);
+	}
+}
+
 @utility dialog-enter {
 	animation: dialog-in 300ms var(--ease-emphasized-decelerate);
+}
 
-	@media (min-width: 40rem) {
-		animation-name: dialog-in-centered;
-	}
+@utility sheet-enter {
+	animation: sheet-in 400ms var(--ease-emphasized-decelerate);
 }
 
 /* Top-level destinations swap with a fade-through: the old page leaves fast, the new one settles in. */
@@ -530,20 +725,53 @@
 }
 
 /*
- * The navigation rail, as one structure that morphs between slim and open. `data-expanded` is the only
- * thing that changes; every property below transitions on the same curve as the rail's own width, so the
- * two states are the same elements in different places. Icons sit 28px from the left in both, which
- * is why they never travel sideways: only the pill widens and the label moves out from under the icon.
+ * The navigation rail (`ui/NavRail.kt`, a Material 3 wide navigation rail), as one structure that morphs
+ * between slim and open. `data-expanded` is the only thing that changes; every property below transitions
+ * on the same curve as the rail's own width, so the two states are the same elements in different places.
+ * Icons sit 36px from the left in both, which is why they never travel sideways: the pill grows from a
+ * capsule around the icon into one that hugs the icon and its label, and the label moves out from under
+ * the icon to beside it.
+ *
+ * Slim, the rail is 96px wide. Open, it is as wide as its content needs (`--rail-open`, measured by
+ * `NavRail`), between Material's 220 and 360.
  */
-.rail-item {
+.rail {
 	--rail-time: 300ms;
 	--rail-ease: var(--ease-emphasized-decelerate);
+	width: 96px;
+	transition:
+		width var(--rail-time) var(--rail-ease),
+		background-color 200ms var(--ease-standard),
+		box-shadow 200ms var(--ease-standard);
+}
+
+.rail[data-expanded='true'] {
+	width: var(--rail-open);
+}
+
+/* Laid out at the open rail's size whatever the state, and clipped by the rail while it is slim. */
+.rail-inner {
+	display: flex;
+	flex-direction: column;
+	width: max-content;
+	min-width: 200px;
+	max-width: 340px;
+	height: 100%;
+}
+
+/*
+ * One entry. It is as wide as its open form — the ghost, an invisible copy of the label set where the
+ * open label goes, is what gives it that width — so the pill can grow to "everything but the margins"
+ * and end up hugging the label, as Android's item does.
+ */
+.rail-item {
 	position: relative;
 	display: block;
 	flex: none;
-	width: 100%;
+	width: fit-content;
+	min-width: 96px;
 	height: 52px;
-	margin-bottom: 12px;
+	margin-bottom: 4px;
 	cursor: pointer;
 	text-align: left;
 	color: var(--color-on-surface-variant);
@@ -554,45 +782,53 @@
 		color 200ms var(--ease-standard);
 }
 
+/* An action too wordy to label under its icon goes bare while slim, at the height of a full item. */
 .rail-item[data-variant='action'] {
-	height: 48px;
+	height: 56px;
 }
 
 .rail-item[data-expanded='true'] {
 	height: 56px;
-	margin-bottom: 4px;
+	margin-bottom: 0;
 }
 
 .rail-item[data-active='true'] {
 	color: var(--color-on-secondary-container);
 }
 
+.rail-item-ghost {
+	display: block;
+	height: 0;
+	padding: 0 36px 0 68px;
+	overflow: hidden;
+	visibility: hidden;
+	font-size: 0.875rem;
+	font-weight: 500;
+	letter-spacing: 0.1px;
+	white-space: nowrap;
+}
+
 .rail-item-pill {
 	position: absolute;
 	top: 0;
-	left: 12px;
+	left: 20px;
 	width: 56px;
 	height: 32px;
 	border-radius: 9999px;
 	transition:
 		top var(--rail-time) var(--rail-ease),
-		left var(--rail-time) var(--rail-ease),
 		width var(--rail-time) var(--rail-ease),
 		height var(--rail-time) var(--rail-ease),
 		background-color 200ms var(--ease-standard);
 }
 
 .rail-item[data-variant='action'] .rail-item-pill {
-	top: 4px;
-	left: 20px;
-	width: 40px;
-	height: 40px;
+	top: 12px;
 }
 
 .rail-item[data-expanded='true'] .rail-item-pill {
 	top: 0;
-	left: 12px;
-	width: calc(100% - 24px);
+	width: calc(100% - 40px);
 	height: 56px;
 }
 
@@ -612,27 +848,24 @@
 .rail-item-icon {
 	position: absolute;
 	top: 4px;
-	left: 28px;
+	left: 36px;
 	width: 24px;
 	height: 24px;
 	transition: top var(--rail-time) var(--rail-ease);
 }
 
-.rail-item[data-variant='action'] .rail-item-icon {
-	top: 12px;
-}
-
+.rail-item[data-variant='action'] .rail-item-icon,
 .rail-item[data-expanded='true'] .rail-item-icon {
 	top: 16px;
 }
 
-/* Slim, a destination's label sits centred under its icon (icon centre is 40px in); open, beside it. */
+/* Slim, a destination's label sits centred under its icon (icon centre is 48px in); open, beside it. */
 .rail-item-label {
 	position: absolute;
 	top: 36px;
-	left: 40px;
+	left: 48px;
 	transform: translateX(-50%);
-	font-size: 0.6875rem;
+	font-size: 0.75rem;
 	font-weight: 500;
 	line-height: 1rem;
 	letter-spacing: 0.5px;
@@ -649,7 +882,7 @@
 }
 
 .rail-item[data-active='true'] .rail-item-label {
-	color: var(--color-on-surface);
+	color: var(--color-secondary);
 }
 
 /* An action has no label to show while slim, so its label waits, invisible, where it will end up. */
@@ -660,7 +893,7 @@
 .rail-item[data-variant='action'] .rail-item-label,
 .rail-item[data-expanded='true'] .rail-item-label {
 	top: 18px;
-	left: 64px;
+	left: 68px;
 	transform: translateX(0);
 	font-size: 0.875rem;
 	line-height: 1.25rem;
@@ -677,15 +910,15 @@
  * The FAB's slot. It opens from zero height, so everything below slides down to make room, and the FAB
  * inside pops in from a small, transparent circle with a little overshoot; going away is the reverse, faster.
  * The button and the slot are separate switches: between two pages that both have a FAB the slot stays
- * put and the button just folds to its circle (`data-expanded` off) and unfolds with the new label.
- * The negative margin cancels the padding that keeps the FAB's shadow and focus ring from being clipped, so a
+ * put and the button just folds to its square (`data-expanded` off) and unfolds with the new label.
+ * The negative margins cancel the padding that keeps the FAB's shadow and focus ring from being clipped, so a
  * closed slot takes no room.
  */
 .rail-slot {
 	display: grid;
 	grid-template-rows: 0fr;
 	flex: none;
-	margin-top: -6px;
+	margin: -6px 0 -10px;
 	transition: grid-template-rows 300ms var(--ease-emphasized-decelerate);
 }
 
@@ -696,18 +929,38 @@
 .rail-slot > div {
 	min-height: 0;
 	overflow: hidden;
-	padding-top: 6px;
+	padding: 6px 0 10px;
 }
 
-/* The FAB: a 56px circle whose icon is already where the open rail's icons are; opening the rail widens it. */
+/* As wide as the open button, by the same ghost the items use, so the button can grow to fill it. */
+.rail-fab-box {
+	position: relative;
+	width: fit-content;
+	min-width: 96px;
+	height: 56px;
+	margin-top: 12px;
+}
+
+.rail-fab-ghost {
+	display: block;
+	height: 0;
+	padding: 0 40px 0 72px;
+	overflow: hidden;
+	visibility: hidden;
+	font-size: 0.875rem;
+	font-weight: 500;
+	letter-spacing: 0.1px;
+	white-space: nowrap;
+}
+
+/* The FAB: a 56px square whose icon is already where the open rail's icons are; opening the rail widens it. */
 .rail-fab {
-	--fab-morph:
-		width 300ms var(--ease-emphasized-decelerate), margin-bottom 300ms var(--ease-emphasized-decelerate),
-		box-shadow 200ms var(--ease-standard);
+	--fab-morph: width 300ms var(--ease-emphasized-decelerate), box-shadow 200ms var(--ease-standard);
+	position: absolute;
+	top: 0;
+	left: 20px;
 	width: 56px;
-	flex: none;
-	margin: 0 0 12px 12px;
-	justify-content: flex-start;
+	padding-right: 0;
 	overflow: hidden;
 	transform: scale(0.4);
 	transform-origin: 28px 50%;
@@ -728,13 +981,7 @@
 }
 
 .rail-fab[data-expanded='true'] {
-	width: calc(100% - 24px);
-}
-
-/* The margin follows the rail, not the fold: folding the FAB must not change how much room it takes, or
-   everything beneath it would shift while it does. */
-.rail-fab[data-rail-open='true'] {
-	margin-bottom: 8px;
+	width: calc(100% - 40px);
 }
 
 /* Something that is only there some of the time: it fades, holding back a beat on the way in. */
@@ -770,4 +1017,21 @@
 .rail-collapse > div {
 	min-height: 0;
 	overflow: hidden;
+}
+
+/*
+ * The page beside the rail. A slim rail always takes its 96px; an open one pushes the page aside only
+ * where there is room for both (from 1024px), and floats over it behind a scrim below that.
+ */
+@media (min-width: 40rem) {
+	.shell {
+		padding-left: 96px;
+		transition: padding-left 300ms var(--ease-emphasized-decelerate);
+	}
+}
+
+@media (min-width: 64rem) {
+	.shell[data-rail-open='true'] {
+		padding-left: var(--rail-open);
+	}
 }

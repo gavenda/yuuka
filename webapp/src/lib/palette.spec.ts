@@ -1,17 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { budgetStatus, forMode, nextColor, PALETTE } from './palette';
+import { budgetStatus, nextColor, PALETTE } from './palette';
 
 describe('palette', () => {
 	it('ships eight distinct slots in both modes', () => {
 		expect(PALETTE).toHaveLength(8);
 		expect(new Set(PALETTE.map((slot) => slot.light)).size).toBe(8);
 		expect(new Set(PALETTE.map((slot) => slot.dark)).size).toBe(8);
-	});
-
-	it('maps a light slot onto its dark step, and leaves custom colours alone', () => {
-		expect(forMode('#2a78d6', true)).toBe('#3987e5');
-		expect(forMode('#2a78d6', false)).toBe('#2a78d6');
-		expect(forMode('#ff00ff', true)).toBe('#ff00ff');
 	});
 
 	it('assigns slots in order and wraps rather than inventing a hue', () => {

@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import FilterSheet from '@/components/FilterSheet.vue';
+import ActionIcon from '@/components/ActionIcon.vue';
+import AlertDialog from '@/components/AlertDialog.vue';
+import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import ModalDialog from '@/components/ModalDialog.vue';
+import FilterSheet from '@/components/FilterSheet.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
+import SwipeReveal from '@/components/SwipeReveal.vue';
+import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
-import { EDIT_NOTE } from '@/lib/icons';
+import { useHarmonised } from '@/lib/harmonise';
+import {
+	ACCOUNT_BALANCE_WALLET,
+	ARROW_DROP_DOWN,
+	ARROW_RIGHT_ALT,
+	CLOSE,
+	EDIT_NOTE,
+	FILTER_LIST_OUTLINED,
+	SEARCH,
+	SELL_OUTLINED,
+} from '@/lib/icons';
 import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -32,6 +46,9 @@ const categoryFilter = ref<string[]>([]);
 const tagFilter = ref<string[]>([]);
 const openFilter = ref<'accounts' | 'categories' | 'tags' | null>(null);
 const month = ref(budget.month);
+/** The row a delete has been asked for, while the question is still open. */
+const pendingDelete = ref<Transaction | null>(null);
+const harmonised = useHarmonised();
 
 const currency = computed(() => ledger.displayCurrency);
 
@@ -52,9 +69,10 @@ const days = computed(() =>
 );
 
 const accountOptions = computed(() => ledger.accounts.map((account) => ({ id: account.id, label: account.name })));
+// Top-level categories only: a parent's filter already takes in what is filed under its children.
 const categoryOptions = computed(() => [
 	{ id: 'none', label: 'Uncategorized' },
-	...ledger.categories.map((category) => ({ id: category.id, label: category.name })),
+	...ledger.categories.filter((category) => category.parentId === null).map((category) => ({ id: category.id, label: category.name })),
 ]);
 const tagOptions = computed(() => ledger.tags.map((tag) => ({ id: tag.id, label: tag.name })));
 
@@ -130,112 +148,58 @@ async function save(payload: Record<string, unknown> & { mode: string }): Promis
 }
 
 async function remove(): Promise<void> {
-	if (!editing.value) return;
+	const target = pendingDelete.value;
+	if (!target) return;
 
-	const label = editing.value.transferId ? 'Delete this transfer? Both sides will be removed.' : 'Delete this transaction?';
-	if (!confirm(label)) return;
-
-	await api.deleteTransaction(editing.value.id);
-	dialogOpen.value = false;
-	showSnackbar(editing.value.transferId ? 'Transfer deleted' : 'Transaction deleted');
+	pendingDelete.value = null;
+	await api.deleteTransaction(target.id);
+	showSnackbar(target.transferId ? 'Transfer deleted' : 'Transaction deleted');
 	await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
 }
 </script>
 
 <template>
-	<div class="space-y-5">
-		<header>
+	<div class="pb-24">
+		<!-- What stays put while the list scrolls: the month, the search, and one row of filters, each opening
+		     a sheet of chips. The account button is only as wide as its label; the tag and category icons
+		     (each with a count of what is on) sit at the end. -->
+		<TopBar>
 			<MonthSwitcher v-model="month" />
-		</header>
 
-		<!-- One row of filters, each opening a sheet of chips, then the search. The account button is only as wide as its label, a spacer pushes the tag and category icons (with a badge) to the end. -->
-		<div class="flex items-center">
-			<button
-				type="button"
-				class="state-layer focus-ring type-label-large flex min-h-10 min-w-0 cursor-pointer items-center gap-2 rounded-full px-3"
-				:class="accountFilter.length ? 'text-primary' : 'text-on-surface'"
-				aria-haspopup="dialog"
-				@click="openFilter = 'accounts'"
-			>
-				<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="currentColor" aria-hidden="true">
-					<path
-						d="M21 7.28V5c0-1.1-.9-2-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-2.28A2 2 0 0 0 22 15V9a2 2 0 0 0-1-1.72zM20 9v6h-7V9h7zM5 19V5h14v2h-6a2 2 0 0 0-2 2v6c0 1.1.9 2 2 2h6v2H5z"
-					/>
-					<circle cx="16" cy="12" r="1.5" />
-				</svg>
-				<span class="truncate">{{ accountLabel }}</span>
-				<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z" /></svg>
-			</button>
+			<label class="search-field mt-8">
+				<AppIcon :icon="SEARCH" />
+				<input v-model="search" type="search" aria-label="Search" placeholder="Search payee, notes or tag" />
+				<button v-if="search" type="button" class="btn-icon -mr-2" aria-label="Clear" @click="search = ''">
+					<AppIcon :icon="CLOSE" />
+				</button>
+			</label>
 
-			<div class="flex-1" aria-hidden="true" />
+			<div class="mt-4 -mb-2 flex h-12 items-center">
+				<div class="flex min-w-0 flex-1">
+					<button type="button" class="btn-text min-w-0 gap-0" aria-haspopup="dialog" @click="openFilter = 'accounts'">
+						<AppIcon :icon="ACCOUNT_BALANCE_WALLET" :size="18" class="mr-2" />
+						<span class="truncate">{{ accountLabel }}</span>
+						<AppIcon :icon="ARROW_DROP_DOWN" :size="18" />
+					</button>
+				</div>
 
-			<button
-				type="button"
-				class="btn-icon relative"
-				:class="{ '!text-primary': tagFilter.length }"
-				aria-label="Filter by tag"
-				aria-haspopup="dialog"
-				@click="openFilter = 'tags'"
-			>
-				<svg
-					viewBox="0 0 24 24"
-					class="size-6"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linejoin="round"
-					aria-hidden="true"
+				<button type="button" class="btn-icon relative m-1" aria-label="Filter by tag" aria-haspopup="dialog" @click="openFilter = 'tags'">
+					<AppIcon :icon="SELL_OUTLINED" />
+					<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
+				</button>
+
+				<button
+					type="button"
+					class="btn-icon relative m-1"
+					aria-label="Filter by category"
+					aria-haspopup="dialog"
+					@click="openFilter = 'categories'"
 				>
-					<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
-					<circle cx="7.5" cy="7.5" r="1" fill="currentColor" />
-				</svg>
-				<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
-			</button>
-
-			<button
-				type="button"
-				class="btn-icon relative"
-				:class="{ '!text-primary': categoryFilter.length }"
-				aria-label="Filter by category"
-				aria-haspopup="dialog"
-				@click="openFilter = 'categories'"
-			>
-				<svg
-					viewBox="0 0 24 24"
-					class="size-6"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					aria-hidden="true"
-				>
-					<path d="M4 6h16M7 12h10M10 18h4" />
-				</svg>
-				<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
-			</button>
-		</div>
-
-		<div class="relative">
-			<svg
-				viewBox="0 0 24 24"
-				class="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-on-surface-variant"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				aria-hidden="true"
-			>
-				<circle cx="11" cy="11" r="7" />
-				<path d="M20 20l-3.5-3.5" />
-			</svg>
-			<input
-				v-model="search"
-				class="input rounded-full border-transparent bg-surface-container-low pl-12"
-				type="search"
-				aria-label="Search"
-				placeholder="Search payee, notes or tag"
-			/>
-		</div>
+					<AppIcon :icon="FILTER_LIST_OUTLINED" />
+					<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
+				</button>
+			</div>
+		</TopBar>
 
 		<FilterSheet
 			v-model="accountFilter"
@@ -262,134 +226,142 @@ async function remove(): Promise<void> {
 			@close="openFilter = null"
 		/>
 
-		<p v-if="store.error" class="banner-error" role="alert">
-			{{ store.error }}
-		</p>
+		<p v-if="store.error" class="type-body-large p-4 text-error" role="alert">{{ store.error }}</p>
 
-		<div v-else-if="store.loading && !store.transactions.length" class="space-y-4" aria-hidden="true">
-			<div v-for="group in 3" :key="group" class="animate-pulse space-y-2">
-				<div class="h-3 w-28 rounded bg-surface-container-highest" />
-				<div v-for="row in 3" :key="row" class="card flex items-start gap-3 p-3">
-					<div class="min-w-0 flex-1 space-y-2">
-						<div class="h-3.5 w-1/3 rounded bg-surface-container-high" />
-						<div class="h-3 w-1/4 rounded bg-surface-container" />
-					</div>
-					<div class="w-16 shrink-0 space-y-2">
-						<div class="ml-auto h-3.5 w-14 rounded bg-surface-container-high" />
-						<div class="ml-auto h-3 w-10 rounded bg-surface-container" />
-					</div>
+		<div v-else-if="store.loading && !store.transactions.length" class="px-4" aria-hidden="true">
+			<div v-for="group in 3" :key="group" class="animate-pulse">
+				<div class="px-2 pt-5 pb-3"><div class="h-4 w-28 rounded-xs bg-surface-container-highest" /></div>
+				<div class="group-rows">
+					<div v-for="row in 3" :key="row" class="group-row h-[88px]" />
 				</div>
 			</div>
 		</div>
 
 		<EmptyState
 			v-else-if="!store.transactions.length"
+			class="m-4"
 			title="No transactions here"
 			description="Nothing matches these filters yet. Add one, or widen the search."
-		>
-			<button type="button" class="btn-primary" @click="openCreate">Add a transaction</button>
-		</EmptyState>
+		/>
 
-		<!-- One card per transaction under a header for its day, as on Android. -->
-		<div v-else class="space-y-4">
-			<section v-for="day in days" :key="day.date">
-				<div class="flex items-center justify-between gap-3 px-1 pb-2">
-					<h2 class="type-label-medium text-on-surface-variant">{{ formatLongDate(day.date) }}</h2>
-					<MoneyText :amount="day.total" :currency="currency" signed explicit class="type-label-medium" />
+		<!-- A day's rows under a heading for the day, drawn like the account groups: one block of separate rows. -->
+		<template v-else>
+			<section v-for="day in days" :key="day.date" class="px-4">
+				<div class="group-header">
+					<h2>{{ formatLongDate(day.date) }}</h2>
+					<MoneyText :amount="day.total" :currency="currency" tone="signed" />
 				</div>
 
-				<ul class="space-y-2">
-					<li v-for="{ row, card } in day.items" :key="card.key" class="card overflow-hidden">
-						<!-- The whole card opens the edit form. Spans, not blocks, because it is a button. -->
-						<button
-							type="button"
-							class="state-layer focus-ring block w-full cursor-pointer text-left"
-							@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
-						>
-							<span class="flex items-start gap-3 p-3">
-								<span class="block min-w-0 flex-1 space-y-1">
-									<span class="block truncate text-sm text-on-surface">{{ card.title }}</span>
-									<span class="block truncate text-xs text-on-surface-variant">{{ card.subtitle }}</span>
-									<span
-										v-if="card.automated"
-										class="type-label-small block text-on-surface-variant"
-										title="Posted automatically by a subscription"
-										>Subscription</span
-									>
-									<span v-if="formatTime(card.occurredOn)" class="block text-xs text-on-surface-variant">
-										{{ formatTime(card.occurredOn) }}
-									</span>
-								</span>
+				<ul class="group-rows">
+					<li v-for="{ row, card } in day.items" :key="card.key">
+						<SwipeReveal>
+							<template #actions>
+								<ActionIcon
+									icon="delete"
+									label="Delete"
+									danger
+									@click="pendingDelete = row.kind === 'transfer' ? row.leg : row.transaction"
+								/>
+							</template>
 
-								<span class="flex shrink-0 flex-col items-end space-y-1">
-									<MoneyText
-										:amount="card.amount"
-										:currency="currency"
-										:signed="card.tone === 'signed'"
-										:transfer="card.tone === 'transfer'"
-										:explicit="card.tone === 'signed'"
-										class="text-sm"
-									/>
-									<span class="tabular text-xs text-on-surface-variant">
-										{{ displayMoney(card.balance, accountCurrency(card.balanceAccountId)) }}
+							<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
+							<button
+								type="button"
+								class="group-row state-layer focus-ring cursor-pointer"
+								@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
+							>
+								<!-- The headline and what is under it at the start, its figures at the end, top-aligned with each other. -->
+								<span class="flex gap-4 px-4 py-3">
+									<span class="flex min-w-0 flex-1 flex-col gap-1">
+										<span class="type-title-medium truncate">{{ card.title }}</span>
+
+										<!-- A transfer's "From → To", the arrow an icon rather than a character. -->
+										<span v-if="row.kind === 'transfer'" class="type-body-small flex items-center gap-1">
+											<span class="truncate">{{ row.fromAccountName }}</span>
+											<AppIcon :icon="ARROW_RIGHT_ALT" :size="16" class="text-secondary" />
+											<span class="truncate">{{ row.toAccountName }}</span>
+										</span>
+										<span v-else class="type-body-small truncate">{{ card.subtitle }}</span>
+
+										<span v-if="card.automated" class="type-label-small text-tertiary" title="Posted automatically by a subscription"
+											>Subscription</span
+										>
+										<span v-if="formatTime(card.occurredOn)" class="type-body-small">{{ formatTime(card.occurredOn) }}</span>
 									</span>
-									<span v-if="card.category" class="flex items-center gap-1.5 text-xs text-on-surface-variant">
-										{{ card.category?.name }}
-										<span
-											v-if="card.category?.color"
-											class="size-2 rounded-full"
-											:style="{ backgroundColor: card.category?.color ?? undefined }"
-											aria-hidden="true"
+
+									<span class="flex shrink-0 flex-col items-end gap-1">
+										<MoneyText
+											:amount="card.amount"
+											:currency="currency"
+											:tone="card.tone === 'transfer' ? 'transfer' : 'signed-alert'"
+											class="type-title-medium"
 										/>
+										<!-- An overdrawn account reads in the error colour, as its balance does on the Accounts screen. -->
+										<span class="type-body-small tabular" :class="card.balance < 0 ? 'text-error' : ''">
+											{{ displayMoney(card.balance, accountCurrency(card.balanceAccountId)) }}
+										</span>
+										<span v-if="card.category" class="type-body-small flex items-center gap-1.5">
+											{{ card.category.name }}
+											<span
+												v-if="card.category.color"
+												class="size-2 rounded-full"
+												:style="{ backgroundColor: harmonised(card.category.color) }"
+												aria-hidden="true"
+											/>
+										</span>
 									</span>
 								</span>
-							</span>
 
-							<!-- Notes on the left, tags as chips at the right end of the same row, centred on each other. The icon stays with the note's first line. -->
-							<span v-if="card.notes || card.tags.length" class="flex items-center gap-2 border-t border-outline-variant p-3">
-								<span class="flex min-w-0 flex-1 items-start gap-2">
-									<template v-if="card.notes">
-										<svg viewBox="0 0 24 24" class="size-4 shrink-0 text-on-surface-variant" fill="currentColor" aria-hidden="true">
-											<path :d="EDIT_NOTE" />
-										</svg>
-										<span class="min-w-0 flex-1 text-xs text-on-surface-variant">{{ card.notes }}</span>
-									</template>
-								</span>
+								<!-- Notes on the left, tags as chips at the right end of the same row, centred on each other. The icon stays with the note's first line. -->
+								<span v-if="card.notes || card.tags.length" class="flex items-center gap-2 px-4 pb-3">
+									<span class="flex min-w-0 flex-1 items-start gap-2">
+										<template v-if="card.notes">
+											<AppIcon :icon="EDIT_NOTE" :size="16" class="text-on-surface-variant" />
+											<span class="type-body-small min-w-0 flex-1 text-on-surface-variant">{{ card.notes }}</span>
+										</template>
+									</span>
 
-								<span v-if="card.tags.length" class="flex max-w-[60%] shrink-0 flex-wrap justify-end gap-1.5">
-									<span v-for="tag in card.tags" :key="tag.id" class="chip">
-										<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
-										<span class="truncate">{{ tag.name }}</span>
+									<span v-if="card.tags.length" class="flex max-w-[60%] shrink-0 flex-wrap justify-end gap-1.5">
+										<span v-for="tag in card.tags" :key="tag.id" class="chip">
+											<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
+											<span class="truncate">{{ tag.name }}</span>
+										</span>
 									</span>
 								</span>
-							</span>
-						</button>
+							</button>
+						</SwipeReveal>
 					</li>
 				</ul>
 			</section>
 
-			<div v-if="store.hasMore" class="text-center">
-				<button type="button" class="btn-outlined" :disabled="store.loading" @click="store.loadMore()">
+			<div v-if="store.hasMore" class="p-4">
+				<button type="button" class="btn-text w-full" :disabled="store.loading" @click="store.loadMore()">
 					{{ store.loading ? 'Loading…' : `Load more (${store.transactions.length} of ${store.total})` }}
 				</button>
 			</div>
-		</div>
+		</template>
 
-		<ModalDialog
+		<TransactionForm
+			ref="formRef"
 			:open="dialogOpen"
-			:title="editing?.transferId ? 'Edit transfer' : editing ? 'Edit transaction' : 'New transaction'"
+			:transaction="editing"
+			:transfer-to-account-id="editingTransferToAccountId"
+			@submit="save"
 			@close="dialogOpen = false"
-		>
-			<TransactionForm
-				ref="formRef"
-				:transaction="editing"
-				:transfer-to-account-id="editingTransferToAccountId"
-				@submit="save"
-				@cancel="dialogOpen = false"
-				@delete="remove"
-			/>
-		</ModalDialog>
+		/>
 
-		<FabButton label="Add transaction" @click="openCreate" />
+		<AlertDialog
+			:open="pendingDelete !== null"
+			:title="pendingDelete?.transferId ? 'Delete this transfer?' : 'Delete this transaction?'"
+			@close="pendingDelete = null"
+		>
+			<template v-if="pendingDelete?.transferId">Both sides of the transfer will be removed.</template>
+			<template #actions>
+				<button type="button" class="btn-text" @click="pendingDelete = null">Cancel</button>
+				<button type="button" class="btn-text" @click="remove">Delete</button>
+			</template>
+		</AlertDialog>
+
+		<FabButton label="New transaction" @click="openCreate" />
 	</div>
 </template>

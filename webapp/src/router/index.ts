@@ -3,26 +3,40 @@ import { adoptCacheFor } from '@/lib/cache';
 import { discardQueue } from '@/lib/queue';
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
+/**
+ * `meta.title` names the screen. `meta.amountFree` marks one that shows no amount, where the hide-amounts
+ * switch has nothing to mask and is left out (Android's `AMOUNT_FREE_ROUTES`).
+ */
 const routes: RouteRecordRaw[] = [
 	{ path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true, title: 'Sign in' } },
 	{ path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: 'Dashboard' } },
 	{ path: '/transactions', name: 'transactions', component: () => import('@/views/TransactionsView.vue'), meta: { title: 'Transactions' } },
 	{ path: '/budget', name: 'budget', component: () => import('@/views/BudgetView.vue'), meta: { title: 'Budget' } },
 	{ path: '/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { title: 'Accounts' } },
-	{ path: '/categories', name: 'categories', component: () => import('@/views/CategoriesView.vue'), meta: { title: 'Categories' } },
-	{ path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue'), meta: { title: 'Tags' } },
+	{
+		path: '/categories',
+		name: 'categories',
+		component: () => import('@/views/CategoriesView.vue'),
+		meta: { title: 'Categories', amountFree: true },
+	},
+	{ path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue'), meta: { title: 'Tags', amountFree: true } },
 	{
 		path: '/subscriptions',
 		name: 'subscriptions',
 		component: () => import('@/views/SubscriptionsView.vue'),
 		meta: { title: 'Subscriptions' },
 	},
-	{ path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { title: 'Settings' } },
+	{
+		path: '/settings',
+		name: 'settings',
+		component: () => import('@/views/SettingsView.vue'),
+		meta: { title: 'Settings', amountFree: true },
+	},
 	{
 		path: '/save-the-change',
 		name: 'save-the-change',
 		component: () => import('@/views/SaveTheChangeView.vue'),
-		meta: { title: 'Save the Change' },
+		meta: { title: 'Save the Change', amountFree: true },
 	},
 	{ path: '/:pathMatch(.*)*', redirect: '/' },
 ];

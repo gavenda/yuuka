@@ -9,6 +9,7 @@ import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
 import NotConfiguredView from './views/NotConfiguredView.vue';
+import '@fontsource-variable/google-sans-flex';
 import './style.css';
 
 // A route chunk that fails to load after a deploy is a stale tab, not a broken app:

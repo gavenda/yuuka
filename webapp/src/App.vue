@@ -3,18 +3,8 @@ import NavDestination from '@/components/NavDestination.vue';
 import NavRail from '@/components/NavRail.vue';
 import SnackbarHost from '@/components/SnackbarHost.vue';
 import { clearCache } from '@/lib/cache';
-import {
-	ACCOUNT_BALANCE_WALLET,
-	ATTACH_MONEY,
-	CATEGORY,
-	DARK_MODE,
-	DASHBOARD,
-	LIGHT_MODE,
-	MONEY_OFF,
-	PIE_CHART,
-	RECEIPT,
-	SELL,
-} from '@/lib/icons';
+import AppIcon from '@/components/AppIcon.vue';
+import { ACCOUNT_BALANCE_WALLET, ATTACH_MONEY, CATEGORY, DASHBOARD, MONEY_OFF, PIE_CHART, RECEIPT, SELL } from '@/lib/icons';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
@@ -24,7 +14,6 @@ import { fullSync, installSliceRefresher } from '@/lib/sync';
 import { discardQueue, flush, hasUnsentChanges, isSyncing, startQueue, unsentChanges } from '@/lib/queue';
 import { startPush, stopPush } from '@/lib/push';
 import { setLedgerView } from '@/lib/provisional';
-import { useTheme } from '@/lib/theme';
 import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -40,7 +29,6 @@ const transactions = useTransactionStore();
 const subscriptions = useSubscriptionStore();
 const router = useRouter();
 const route = useRoute();
-const { theme, toggle } = useTheme();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
@@ -63,12 +51,9 @@ const moreLinks = links.filter((link) => link.more);
 
 const showShell = computed(() => isAuthenticated.value);
 
-/** The page makes room for the rail: a slim one always, an open one only where it fits beside the page. */
+/** The page makes room for the rail (`.shell` in style.css): a slim one always, an open one only where it fits beside the page. */
 const { expanded: railExpanded } = useRail();
-const contentInset = computed(() => {
-	if (!showShell.value || isLoading.value) return '';
-	return railExpanded.value ? 'sm:pl-20 lg:pl-72' : 'sm:pl-20';
-});
+const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'yuuka');
@@ -182,12 +167,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<div class="min-h-dvh transition-[padding] duration-300 ease-emphasized-decelerate" :class="contentInset">
+	<div class="min-h-dvh" :class="{ shell: shellShown }" :data-rail-open="railExpanded">
 		<!-- With room for it, navigation moves to a rail down the side, and the bottom bar below
 		     takes over on a phone. The rail opens into a drawer that also holds what is not a daily
 		     destination: budget, categories, tags, subscriptions, settings and signing out. -->
 		<NavRail
-			v-if="showShell && !isLoading"
+			v-if="shellShown"
 			:links="dailyLinks"
 			:more-links="moreLinks"
 			:version="appVersion"
@@ -197,22 +182,24 @@ onBeforeUnmount(() => {
 
 		<!-- Phones only. With a rail the current destination is already marked, so a bar naming the
 		     screen would just repeat it; the heading below keeps the page titled for assistive tech. -->
-		<h1 v-if="showShell && !isLoading" class="sr-only max-sm:hidden">{{ pageTitle }}</h1>
+		<h1 v-if="shellShown" class="sr-only max-sm:hidden">{{ pageTitle }}</h1>
 
 		<header
-			v-if="showShell && !isLoading"
+			v-if="shellShown"
 			class="sticky top-0 z-30 transition-colors sm:hidden"
 			:class="scrolled ? 'bg-surface-container' : 'bg-background'"
 		>
-			<div class="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4">
+			<div class="flex h-16 items-center gap-2 px-4">
 				<RouterLink to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 
-				<h1 class="min-w-0 flex-1 truncate text-xl text-on-surface">{{ pageTitle }}</h1>
+				<h1 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ pageTitle }}</h1>
 
 				<div class="flex shrink-0 items-center">
+					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
 					<button
+						v-if="route.meta.amountFree !== true"
 						type="button"
 						class="btn-icon"
 						:aria-label="amountsHidden ? 'Show amounts' : 'Hide amounts'"
@@ -220,15 +207,7 @@ onBeforeUnmount(() => {
 						:title="amountsHidden ? 'Show amounts' : 'Hide amounts'"
 						@click="toggleAmounts"
 					>
-						<svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true">
-							<path :d="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
-						</svg>
-					</button>
-
-					<button type="button" class="btn-icon" :aria-label="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`" @click="toggle">
-						<svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true">
-							<path :d="theme === 'dark' ? LIGHT_MODE : DARK_MODE" />
-						</svg>
+						<AppIcon :icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
 					</button>
 
 					<div ref="userMenuRoot" class="relative ml-1" @keydown="onKeydownUserMenu">
@@ -243,7 +222,7 @@ onBeforeUnmount(() => {
 							<img v-if="user?.picture" :src="user.picture" alt="" class="size-8 rounded-full" referrerpolicy="no-referrer" />
 							<span
 								v-else
-								class="grid size-8 place-items-center rounded-full bg-primary-container text-sm font-medium text-on-primary-container"
+								class="type-title-small grid size-8 place-items-center rounded-full bg-primary-container text-on-primary-container"
 								aria-hidden="true"
 							>
 								{{ avatarInitial }}
@@ -252,15 +231,14 @@ onBeforeUnmount(() => {
 
 						<div v-if="userMenuOpen" role="menu" class="menu absolute right-0 z-40 mt-2 w-60">
 							<div v-if="displayName" class="truncate border-b border-outline-variant px-3 pb-3">
-								<span class="block truncate text-sm font-medium text-on-surface">{{ displayName }}</span>
-								<span v-if="user?.email && user.email !== displayName" class="block truncate text-xs text-on-surface-variant">{{
+								<span class="type-title-small block truncate text-on-surface">{{ displayName }}</span>
+								<span v-if="user?.email && user.email !== displayName" class="type-body-small block truncate text-on-surface-variant">{{
 									user.email
 								}}</span>
 							</div>
 
-							<!-- Reached from here rather than the tab bar: it is set up once and
-							     then left alone, unlike the pages that are visited every day. -->
-							<!-- What the phone's bar has no room for. -->
+							<!-- What the phone's bar has no room for: the less-visited screens, then what is set up
+							     once and then left alone. -->
 							<RouterLink
 								v-for="(link, index) in moreLinks"
 								:key="link.to"
@@ -288,37 +266,47 @@ onBeforeUnmount(() => {
 			</div>
 		</header>
 
-		<!-- Changes are saved here first and sent after, so being offline is no longer a reason a
-		     save can fail — but it is still worth saying that what is on screen has not reached the
-		     server yet, and how much of it. The count is the queue's, not a guess. -->
-		<p
-			v-if="showShell && !isLoading && (!isOnline || hasUnsentChanges)"
-			role="status"
-			class="bg-tertiary/10 px-4 py-2 text-center text-xs text-tertiary"
-		>
-			<template v-if="hasUnsentChanges">
-				{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved here,
-				{{ isSyncing ? 'syncing now…' : isOnline ? 'not sent yet.' : 'waiting for a connection.' }}
-				<button v-if="isOnline && !isSyncing" type="button" class="underline underline-offset-2" @click="flush()">Try now</button>
-			</template>
-			<template v-else>You're offline. Showing what was last saved; changes are kept here until there is a connection.</template>
-		</p>
-
 		<!-- On a cold load the SDK is still restoring the session, or exchanging
 		     the code Auth0 just redirected back with; the router is waiting on it,
 		     so say something rather than showing a blank page. -->
 		<div v-if="isLoading" class="flex min-h-dvh items-center justify-center px-4">
-			<p class="text-sm text-on-surface-variant">Loading…</p>
+			<p class="type-body-medium text-on-surface-variant">Loading…</p>
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
 			<div class="card max-w-sm p-6 text-center">
-				<p class="text-sm text-error" role="alert">{{ error.message }}</p>
+				<p class="type-body-medium text-error" role="alert">{{ error.message }}</p>
 				<RouterLink to="/login" class="btn-secondary mt-4">Back to sign in</RouterLink>
 			</div>
 		</div>
 
-		<main v-else :class="showShell ? 'mx-auto max-w-7xl px-4 pt-2 pb-28 sm:pt-6 sm:pb-10' : ''">
+		<main v-else :class="showShell ? 'max-sm:pb-20' : ''">
+			<!-- What stays put while the page scrolls beneath it, as a screen's top bar does on Android: a
+			     screen teleports its own bar here (`TopBar`), and what has not reached the server yet is said
+			     beneath it, whichever screen is showing. -->
+			<div v-if="showShell" class="sticky top-16 z-20 bg-background sm:top-0">
+				<div id="top-bar" />
+
+				<!-- Changes are saved here first and sent after, so being offline is no longer a reason a
+				     save can fail — but it is still worth saying that what is on screen has not reached the
+				     server yet, and how much of it. The count is the queue's, not a guess. Worth noticing,
+				     but neither a failure nor an action: tertiary, not error or primary. -->
+				<p
+					v-if="!isOnline || hasUnsentChanges"
+					role="status"
+					class="type-label-large bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
+				>
+					<template v-if="hasUnsentChanges">
+						<template v-if="isSyncing">Syncing {{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }}…</template>
+						<template v-else>
+							{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved on this device, waiting to sync
+							<button v-if="isOnline" type="button" class="ml-1 underline underline-offset-2" @click="flush()">Try now</button>
+						</template>
+					</template>
+					<template v-else>You're offline. Showing what was last saved; changes are kept here until there is a connection.</template>
+				</p>
+			</div>
+
 			<RouterView v-slot="{ Component }">
 				<Transition name="fade-through" mode="out-in">
 					<component :is="Component" />
@@ -328,7 +316,7 @@ onBeforeUnmount(() => {
 
 		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone. -->
 		<nav
-			v-if="showShell && !isLoading"
+			v-if="shellShown"
 			aria-label="Primary"
 			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
 		>

@@ -15,5 +15,8 @@ export default defineConfig({
 		// The router and the Auth0 plugin both reach for `window`, so the frontend
 		// suite runs against a DOM rather than bare Node.
 		environment: 'happy-dom',
+		// Material's colour utilities ship ES modules that import each other without file extensions, which
+		// Node will not resolve on its own; passing them through Vite, as the build does, is what loads them.
+		server: { deps: { inline: ['@material/material-color-utilities'] } },
 	},
 });

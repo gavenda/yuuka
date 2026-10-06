@@ -1,155 +1,285 @@
 <script setup lang="ts">
-import PreferenceSelect from '@/components/PreferenceSelect.vue';
-import { categoryOptions, namedOptions } from '@/lib/selectOptions';
+import AppIcon from '@/components/AppIcon.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import FabButton from '@/components/FabButton.vue';
-import SettingRow from '@/components/SettingRow.vue';
+import SelectionItem from '@/components/SelectionItem.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
-import { ApiError } from '@/lib/api';
-import { supportId, useFormValidation } from '@/lib/validation';
-import { SAVE } from '@/lib/icons';
+import { api, ApiError } from '@/lib/api';
+import { ACCOUNT_BALANCE_WALLET, ACCOUNT_CIRCLE, BLOCK, CALCULATE, CATEGORY, ERROR, SAVINGS, WALLET } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
+import type { Account, RoundUpRule } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
 
-const roundUpEnabledDraft = ref(ledger.roundUpRule?.enabled ?? false);
-const roundToDraft = ref<1000 | 10000>(ledger.roundUpRule?.roundTo ?? 1000);
-const roundUpDestinationDraft = ref(ledger.roundUpRule?.destinationAccountId ?? '');
-const roundUpCategoryDraft = ref(ledger.roundUpRule?.categoryId ?? '');
-/** A failure that belongs to no one field — the save itself went wrong. */
-const error = ref<string | null>(null);
-const saving = ref(false);
+const ROUND_TO: { value: 1000 | 10000; label: string }[] = [
+	{ value: 1000, label: '₱10' },
+	{ value: 10000, label: '₱100' },
+];
 
-/** A round-up posts as an ordinary transfer, so it takes the same Cashflow tree a plain transfer does. */
-const roundUpCategoryGroups = computed(() => ledger.groupForPicker(ledger.transferCategories));
-const destinationChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Choose an account', disabled: true }));
-const categoryChoices = computed(() => categoryOptions(roundUpCategoryGroups.value, { value: '', label: 'Uncategorized' }));
+/**
+ * What the screen shows. It is what is saved, with one exception: a rule switched on before a destination
+ * is chosen cannot be saved, so it waits here, on, until an account is picked.
+ */
+const enabled = ref(ledger.roundUpRule?.enabled ?? false);
+const roundTo = ref<1000 | 10000>(ledger.roundUpRule?.roundTo ?? 1000);
+const destinationId = ref(ledger.roundUpRule?.destinationAccountId ?? null);
+const categoryId = ref(ledger.roundUpRule?.categoryId ?? null);
 
-const enabledChanged = computed(() => roundUpEnabledDraft.value !== (ledger.roundUpRule?.enabled ?? false));
-const roundToChanged = computed(() => roundToDraft.value !== (ledger.roundUpRule?.roundTo ?? 1000));
-const destinationChanged = computed(() => (roundUpDestinationDraft.value || null) !== (ledger.roundUpRule?.destinationAccountId ?? null));
-const categoryChanged = computed(() => (roundUpCategoryDraft.value || null) !== (ledger.roundUpRule?.categoryId ?? null));
-const changed = computed(() => enabledChanged.value || roundToChanged.value || destinationChanged.value || categoryChanged.value);
-// A destination is required once the rule is on — nothing sensible to save without one.
-const validation = useFormValidation({
-	'round-up-destination': () =>
-		!roundUpEnabledDraft.value || ledger.activeAccounts.some((account) => account.id === roundUpDestinationDraft.value)
-			? null
-			: 'Choose a destination account to enable Save the Change.',
-});
-const { error: fieldError, touch } = validation;
-// Turning the rule on without a destination is the mistake, so it is said the moment the switch is thrown.
-watch(roundUpEnabledDraft, (enabled) => enabled && touch('round-up-destination'));
-
-// The screen shows what is actually saved, so it follows the rule: on arrival, once it has loaded, and after a save.
+// The screen follows the rule: on arrival, once it has loaded, and whenever a save or another device changes it.
 watch(
 	() => ledger.roundUpRule,
 	(rule) => {
-		roundUpEnabledDraft.value = rule?.enabled ?? false;
-		roundToDraft.value = rule?.roundTo ?? 1000;
-		roundUpDestinationDraft.value = rule?.destinationAccountId ?? '';
-		roundUpCategoryDraft.value = rule?.categoryId ?? '';
+		enabled.value = rule?.enabled ?? false;
+		roundTo.value = rule?.roundTo ?? 1000;
+		destinationId.value = rule?.destinationAccountId ?? null;
+		categoryId.value = rule?.categoryId ?? null;
 	},
 	{ deep: true },
 );
 
-onMounted(() => ledger.load());
+const hasDestination = computed(() => ledger.activeAccounts.some((account) => account.id === destinationId.value));
+/** The destination's problem is shown once the switch has been thrown or the picker opened, not on arrival. */
+const destinationTouched = ref(false);
+const destinationError = computed(() =>
+	destinationTouched.value && enabled.value && !hasDestination.value ? 'Choose a destination account to enable Save the Change.' : null,
+);
 
-async function save(): Promise<void> {
-	if (saving.value || !changed.value) return;
-	if (!validation.isValid.value) return;
+/**
+ * Every choice here is picked from a list, so it is written as it is made. The one thing that cannot be
+ * written is a rule that is on with nowhere for the change to go, so that waits for its destination.
+ */
+async function persist(): Promise<void> {
+	if (enabled.value && !hasDestination.value) return;
 
-	saving.value = true;
-	error.value = null;
+	const saved = ledger.roundUpRule;
+	const change: Partial<RoundUpRule> = {
+		...(enabled.value !== (saved?.enabled ?? false) ? { enabled: enabled.value } : {}),
+		...(roundTo.value !== (saved?.roundTo ?? 1000) ? { roundTo: roundTo.value } : {}),
+		...(destinationId.value !== (saved?.destinationAccountId ?? null) ? { destinationAccountId: destinationId.value } : {}),
+		...(categoryId.value !== (saved?.categoryId ?? null) ? { categoryId: categoryId.value } : {}),
+	};
+	if (!Object.keys(change).length) return;
 
 	try {
-		await ledger.updateRoundUpRule({
-			...(enabledChanged.value ? { enabled: roundUpEnabledDraft.value } : {}),
-			...(roundToChanged.value ? { roundTo: roundToDraft.value } : {}),
-			...(destinationChanged.value ? { destinationAccountId: roundUpDestinationDraft.value || null } : {}),
-			...(categoryChanged.value ? { categoryId: roundUpCategoryDraft.value || null } : {}),
-		});
+		await ledger.updateRoundUpRule(change);
 		await budget.refresh();
-		showSnackbar('Save the Change settings saved');
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the setting.';
-	} finally {
-		saving.value = false;
+		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save Save the Change.');
 	}
 }
+
+function setEnabled(next: boolean): void {
+	enabled.value = next;
+	// Turning the rule on without a destination is the mistake, so it is said the moment the switch is thrown.
+	if (next) destinationTouched.value = true;
+	void persist();
+}
+
+function setRoundTo(next: 1000 | 10000): void {
+	roundTo.value = next;
+	void persist();
+}
+
+const sourceSheetOpen = ref(false);
+const destinationSheetOpen = ref(false);
+const categorySheetOpen = ref(false);
+
+const sourceAccounts = computed(() => ledger.activeAccounts.filter((account) => account.roundUpSource));
+const sourceSummary = computed(() => {
+	const sources = sourceAccounts.value;
+	if (!sources.length) return 'None chosen';
+	return sources.length <= 2 ? sources.map((account) => account.name).join(', ') : `${sources.length} accounts`;
+});
+
+/**
+ * Which accounts round up is part of the rule to the person setting it, but it is kept on each account, and
+ * set one account at a time with the narrowest possible change, so an edit of an account's name can never
+ * quietly take it off.
+ */
+async function toggleSource(account: Account): Promise<void> {
+	try {
+		await api.updateAccount(account.id, { roundUpSource: !account.roundUpSource });
+		await ledger.refreshAccounts();
+	} catch (caught) {
+		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save the account.');
+	}
+}
+
+const destinationName = computed(
+	() => ledger.activeAccounts.find((account) => account.id === destinationId.value)?.name ?? 'Choose an account',
+);
+
+function openDestination(): void {
+	destinationTouched.value = true;
+	destinationSheetOpen.value = true;
+}
+
+function pickDestination(id: string): void {
+	destinationSheetOpen.value = false;
+	destinationId.value = id;
+	void persist();
+}
+
+/**
+ * A round-up posts as an ordinary transfer, so it takes the same Cashflow tree a plain transfer does. A
+ * child carries its parent's name beneath it, standing in for the indent a list would give it.
+ */
+const categoryRows = computed(() => [
+	{ id: null as string | null, name: 'Uncategorized', parentName: null as string | null },
+	...ledger
+		.groupForPicker(ledger.transferCategories)
+		.flatMap((group) => [
+			{ id: group.parent.id, name: group.parent.name, parentName: null },
+			...group.children.map((child) => ({ id: child.id, name: child.name, parentName: group.parent.name })),
+		]),
+]);
+const categoryName = computed(() => categoryRows.value.find((row) => row.id === categoryId.value)?.name ?? 'Uncategorized');
+
+function pickCategory(id: string | null): void {
+	categorySheetOpen.value = false;
+	categoryId.value = id;
+	void persist();
+}
+
+onMounted(() => ledger.load());
 </script>
 
 <template>
-	<form class="space-y-5" novalidate @submit.prevent="save" @input="validation.onInput">
-		<section class="card">
-			<h2 class="type-title-small px-5 pt-4 text-primary">Round-ups</h2>
-			<div class="divide-y divide-outline-variant px-5">
-				<SettingRow
-					title="Round up purchases"
-					description="Rounds up expenses on the accounts you've opted in, and deposits the spare change into the account you choose below."
-					inline
-				>
-					<ToggleSwitch v-model="roundUpEnabledDraft" label="Round up purchases" />
-				</SettingRow>
+	<div class="flex flex-col gap-4 p-4">
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Round-ups</h2>
+			<div class="settings-group">
+				<!-- The whole row throws the switch, as a settings row does. -->
+				<div class="settings-row state-layer cursor-pointer" @click="setEnabled(!enabled)">
+					<AppIcon :icon="SAVINGS" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Round up purchases</span>
+						<span class="type-body-medium block"
+							>Rounds up ordinary expenses on the accounts you've opted in, and moves the difference into your chosen account.</span
+						>
+					</span>
+					<ToggleSwitch :model-value="enabled" label="Round up purchases" :icon="false" @update:model-value="setEnabled" />
+				</div>
 
-				<SettingRow title="Round up to the nearest" description="The spare change is the gap to the next multiple of this.">
+				<div class="settings-row flex-col items-stretch">
+					<div class="flex items-center gap-4">
+						<AppIcon :icon="CALCULATE" />
+						<span class="min-w-0 flex-1">
+							<span class="type-title-medium block">Round up to the nearest</span>
+							<span class="type-body-medium block">How far each purchase is rounded up</span>
+						</span>
+					</div>
 					<ConnectedButtonGroup
-						v-model="roundToDraft"
+						:model-value="roundTo"
 						label="Round up to the nearest"
-						:options="[
-							{ value: 1000, label: '₱10' },
-							{ value: 10000, label: '₱100' },
-						]"
-					/>
-				</SettingRow>
-			</div>
-		</section>
-
-		<section class="card">
-			<h2 class="type-title-small px-5 pt-4 text-primary">Where it goes</h2>
-			<div class="divide-y divide-outline-variant px-5">
-				<div class="py-1">
-					<PreferenceSelect
-						id="round-up-destination"
-						v-model="roundUpDestinationDraft"
-						label="Destination account"
-						:options="destinationChoices"
-						:invalid="Boolean(fieldError('round-up-destination'))"
-						:describedby="fieldError('round-up-destination') ? supportId('round-up-destination') : undefined"
-						@blur="touch('round-up-destination')"
-					/>
-					<FieldSupport id="round-up-destination" :error="fieldError('round-up-destination')" class="!px-0" />
-				</div>
-
-				<div class="py-1">
-					<PreferenceSelect
-						id="round-up-category"
-						v-model="roundUpCategoryDraft"
-						label="Cashflow category"
-						:options="categoryChoices"
+						:options="ROUND_TO"
+						@update:model-value="setRoundTo"
 					/>
 				</div>
 			</div>
 		</section>
 
-		<p class="text-sm text-on-surface-variant">
-			Which accounts round up their own purchases is set per account, from that account's edit form under Accounts.
-		</p>
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Accounts</h2>
+			<div class="settings-group">
+				<button type="button" class="settings-row" aria-haspopup="dialog" @click="sourceSheetOpen = true">
+					<AppIcon :icon="WALLET" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Accounts that round up</span>
+						<span class="type-body-medium block">{{ sourceSummary }}</span>
+					</span>
+				</button>
 
-		<p v-if="error" class="banner-error" role="alert">
-			{{ error }}
-		</p>
+				<button
+					type="button"
+					class="settings-row"
+					aria-haspopup="dialog"
+					:aria-invalid="destinationError ? 'true' : undefined"
+					aria-describedby="destination-error"
+					@click="openDestination"
+				>
+					<AppIcon :icon="ACCOUNT_BALANCE_WALLET" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Destination account</span>
+						<span class="type-body-medium block">{{ destinationName }}</span>
+					</span>
+				</button>
+			</div>
 
-		<FabButton
-			:label="saving ? 'Saving…' : 'Save'"
-			:icon="SAVE"
-			:disabled="saving || !changed || !validation.isValid.value"
-			@click="save"
-		/>
-	</form>
+			<!-- Drawn where a text field would draw its supporting text: in the error colour, led by the error icon. -->
+			<p v-if="destinationError" id="destination-error" class="type-body-small -mt-3 flex items-center gap-2 px-2 text-error" role="alert">
+				<AppIcon :icon="ERROR" :size="16" />
+				{{ destinationError }}
+			</p>
+		</section>
+
+		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Category</h2>
+			<div class="settings-group">
+				<button type="button" class="settings-row" aria-haspopup="dialog" @click="categorySheetOpen = true">
+					<AppIcon :icon="CATEGORY" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Cashflow category</span>
+						<span class="type-body-medium block">{{ categoryName }}</span>
+					</span>
+				</button>
+			</div>
+		</section>
+
+		<!-- Any number of accounts: each press opts one in or out, and the sheet stays open. -->
+		<BottomSheet :open="sourceSheetOpen" label="Choose accounts" @close="sourceSheetOpen = false">
+			<div class="px-4 pb-6">
+				<h2 class="type-headline-small pb-4">Choose accounts</h2>
+				<div class="selection-list">
+					<SelectionItem
+						v-for="account in ledger.activeAccounts"
+						:key="account.id"
+						:icon="ACCOUNT_CIRCLE"
+						:title="account.name"
+						:subtitle="account.typeName"
+						:selected="account.roundUpSource"
+						@click="toggleSource(account)"
+					/>
+				</div>
+			</div>
+		</BottomSheet>
+
+		<BottomSheet :open="destinationSheetOpen" label="Destination account" @close="destinationSheetOpen = false">
+			<div class="px-4 pb-6">
+				<h2 class="type-headline-small pb-4">Destination account</h2>
+				<div class="selection-list">
+					<SelectionItem
+						v-for="account in ledger.activeAccounts"
+						:key="account.id"
+						:icon="ACCOUNT_CIRCLE"
+						:title="account.name"
+						:subtitle="account.typeName"
+						:selected="account.id === destinationId"
+						@click="pickDestination(account.id)"
+					/>
+				</div>
+			</div>
+		</BottomSheet>
+
+		<BottomSheet :open="categorySheetOpen" label="Cashflow category" @close="categorySheetOpen = false">
+			<div class="px-4 pb-6">
+				<h2 class="type-headline-small pb-4">Cashflow category</h2>
+				<div class="selection-list">
+					<SelectionItem
+						v-for="row in categoryRows"
+						:key="row.id ?? 'none'"
+						:icon="row.id === null ? BLOCK : CATEGORY"
+						:title="row.name"
+						:subtitle="row.parentName"
+						:selected="row.id === categoryId"
+						@click="pickCategory(row.id)"
+					/>
+				</div>
+			</div>
+		</BottomSheet>
+	</div>
 </template>

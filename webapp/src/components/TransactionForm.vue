@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import FormDialog from '@/components/FormDialog.vue';
+import PickerField from '@/components/PickerField.vue';
 import SelectField from '@/components/SelectField.vue';
+import TextField from '@/components/TextField.vue';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import PayeeInput from '@/components/PayeeInput.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import { currentTime, today } from '@/lib/dates';
 import FieldSupport from '@/components/FieldSupport.vue';
 import { parseMoney, toDecimalString } from '@/lib/money';
+import { useHarmonised } from '@/lib/harmonise';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Payee, Transaction } from '@/types';
@@ -19,8 +23,13 @@ const MODES: { value: Mode; label: string }[] = [
 	{ value: 'transfer', label: 'Transfer' },
 ];
 
-const props = defineProps<{ transaction?: Transaction | null; transferToAccountId?: string | null }>();
-const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; cancel: []; delete: [] }>();
+/**
+ * The transaction form, as a dialog of its own (`TransactionForm.kt`): one form in three shapes — an expense,
+ * income, or a transfer between two of the user's accounts — opened empty for a new entry or seeded from the
+ * row being edited. It takes the screen over on a phone and is an ordinary dialog beside a rail.
+ */
+const props = defineProps<{ open: boolean; transaction?: Transaction | null; transferToAccountId?: string | null }>();
+const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; close: [] }>();
 
 const ledger = useLedgerStore();
 const isEditing = computed(() => Boolean(props.transaction));
@@ -65,7 +74,12 @@ const validation = useFormValidation({
 	tags: () => (form.tagIds.length > MAX_TAGS ? `A transaction can wear at most ${MAX_TAGS} tags.` : null),
 });
 const { error: fieldError, touch } = validation;
-const describe = (id: string, hint = false): string | undefined => (fieldError(id) || hint ? supportId(id) : undefined);
+const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
+const harmonised = useHarmonised();
+
+/** What the form opened with, so that closing it can tell an entry from an untouched form. */
+const opened = ref('');
+const dirty = computed(() => JSON.stringify(form) !== opened.value);
 
 /**
  * Which categories this mode may use. Transfers take the Cashflow tree, which
@@ -77,42 +91,39 @@ const categoryGroups = computed(() => {
 	return ledger.groupForPicker(form.mode === 'income' ? ledger.incomeCategories : ledger.expenseCategories);
 });
 
-const accountChoices = computed(() => namedOptions(ledger.activeAccounts, { value: '', label: 'Select an account', disabled: true }));
+const accountChoices = computed(() => namedOptions(ledger.activeAccounts));
 const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
 
 /** Flattened, for checking whether the current selection is still valid. */
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
 
-/** Seeds the form from an existing transaction, or resets it for a new one. */
-watch(
-	() => props.transaction,
-	(transaction) => {
-		error.value = null;
-		validation.reset();
+/** Seeds the form from the transaction being edited, or resets it for a new one, each time it opens. */
+function seed(): void {
+	const transaction = props.transaction;
+	error.value = null;
+	validation.reset();
 
-		if (!transaction) {
-			// The user's chosen default, when it is still an active account;
-			// otherwise whichever active account happens to sort first.
-			const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
+	if (!transaction) {
+		// The user's chosen default, when it is still an active account;
+		// otherwise whichever active account happens to sort first.
+		const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
 
-			Object.assign(form, {
-				mode: 'expense',
-				accountId: preferred?.id ?? ledger.activeAccounts[0]?.id ?? '',
-				toAccountId: '',
-				categoryId: '',
-				amount: '',
-				occurredOn: today(),
-				occurredTime: currentTime(),
-				payee: '',
-				notes: '',
-				tagIds: [],
-			});
-			return;
-		}
-
+		Object.assign(form, {
+			mode: 'expense',
+			accountId: preferred?.id ?? ledger.activeAccounts[0]?.id ?? '',
+			toAccountId: '',
+			categoryId: '',
+			amount: '',
+			occurredOn: today(),
+			occurredTime: currentTime(),
+			payee: '',
+			notes: '',
+			tagIds: [],
+		});
+	} else {
 		const isTransfer = Boolean(transaction.transferId);
-		// A time of day is an optional `THH:MM` suffix; a bare date has none.
-		const hasTime = transaction.occurredOn.length > 10;
+		// A time of day is an optional `THH:MM` suffix; a bare date has none. An automated row never has one.
+		const hasTime = transaction.occurredOn.length > 10 && !transaction.automated;
 
 		Object.assign(form, {
 			mode: isTransfer ? 'transfer' : transaction.amount >= 0 ? 'income' : 'expense',
@@ -126,6 +137,15 @@ watch(
 			notes: transaction.notes,
 			tagIds: transaction.tags.map((tag) => tag.id),
 		});
+	}
+
+	opened.value = JSON.stringify(form);
+}
+
+watch(
+	() => props.open,
+	(open) => {
+		if (open) seed();
 	},
 	{ immediate: true },
 );
@@ -215,48 +235,43 @@ defineExpose({
 </script>
 
 <template>
-	<form class="space-y-4" novalidate @submit.prevent="submit" @input="validation.onInput">
-		<ConnectedButtonGroup v-if="!isEditing" v-model="form.mode" label="Kind of transaction" :options="MODES" />
+	<FormDialog
+		:open="open"
+		:title="isEditing ? 'Edit transaction' : 'New transaction'"
+		:save-enabled="validation.isValid.value"
+		:dirty="dirty"
+		@close="emit('close')"
+		@save="submit"
+	>
+		<div class="contents" @input="validation.onInput">
+			<ConnectedButtonGroup v-if="!isEditing" v-model="form.mode" label="Kind of transaction" :options="MODES" />
 
-		<!-- First field: naming it is what makes the rest fill itself in. -->
-		<div>
+			<!-- First field: naming it is what makes the rest fill itself in. -->
 			<PayeeInput
 				v-model="form.payee"
 				:label="form.mode === 'transfer' ? 'Name' : 'Payee'"
 				:placeholder="form.mode === 'transfer' ? 'Leave blank to name it From → To' : 'Who was paid'"
-				:invalid="Boolean(fieldError('payee'))"
-				:describedby="describe('payee')"
+				:error="fieldError('payee')"
 				@select="applyPayee"
 				@blur="touch('payee')"
 			/>
-			<FieldSupport id="payee" :error="fieldError('payee')" />
-		</div>
 
-		<div class="field">
-			<label class="label" for="amount">Amount</label>
-			<input
+			<TextField
 				id="amount"
 				v-model="form.amount"
-				class="input tabular"
-				inputmode="decimal"
+				label="Amount"
 				placeholder="0.00"
-				required
-				:aria-invalid="fieldError('amount') ? true : undefined"
-				:aria-describedby="describe('amount')"
+				inputmode="decimal"
+				:error="fieldError('amount')"
 				@blur="touch('amount')"
 			/>
-			<FieldSupport id="amount" :error="fieldError('amount')" />
-		</div>
 
-		<!-- Two columns only for a transfer, which has a second account; otherwise the account has the row to itself. -->
-		<div class="grid gap-4" :class="form.mode === 'transfer' ? 'sm:grid-cols-2' : ''">
-			<div class="field">
-				<label class="label" for="account">{{ form.mode === 'transfer' ? 'From account' : 'Account' }}</label>
+			<div>
 				<SelectField
 					id="account"
 					v-model="form.accountId"
+					:label="form.mode === 'transfer' ? 'From account' : 'Account'"
 					:options="accountChoices"
-					required
 					:invalid="Boolean(fieldError('account'))"
 					:describedby="describe('account')"
 					@blur="touch('account')"
@@ -264,112 +279,82 @@ defineExpose({
 				<FieldSupport id="account" :error="fieldError('account')" />
 			</div>
 
-			<div v-if="form.mode === 'transfer'" class="field">
-				<label class="label" for="to-account">To account</label>
+			<div v-if="form.mode === 'transfer'">
 				<SelectField
 					id="to-account"
 					v-model="form.toAccountId"
+					label="To account"
 					:options="accountChoices"
-					required
 					:invalid="Boolean(fieldError('to-account'))"
 					:describedby="describe('to-account')"
 					@blur="touch('to-account')"
 				/>
 				<FieldSupport id="to-account" :error="fieldError('to-account')" />
 			</div>
-		</div>
 
-		<div class="field">
-			<label class="label" for="category">{{ form.mode === 'transfer' ? 'Cashflow category' : 'Category' }}</label>
 			<!-- Parents and their children are both selectable, but only one at a
 			     time: a transaction carries a single category, never both. -->
 			<SelectField
 				id="category"
 				v-model="form.categoryId"
+				:label="form.mode === 'transfer' ? 'Cashflow category' : 'Category'"
 				:options="categoryChoices"
-				:describedby="describe('category', form.mode === 'transfer')"
 			/>
-			<FieldSupport
-				id="category"
-				:hint="
-					form.mode === 'transfer'
-						? 'Optional. Categorising a transfer lets you budget it — an investment contribution is a movement, not spending.'
-						: undefined
-				"
-			/>
-		</div>
 
-		<div class="grid gap-4 sm:grid-cols-2">
-			<div class="field">
-				<label class="label" for="date">Date</label>
-				<input
-					id="date"
-					v-model="form.occurredOn"
-					type="date"
-					class="input"
-					required
-					:aria-invalid="fieldError('date') ? true : undefined"
-					:aria-describedby="describe('date')"
-					@blur="touch('date')"
-				/>
-				<FieldSupport id="date" :error="fieldError('date')" />
-			</div>
+			<div class="flex gap-3">
+				<div class="min-w-0 flex-1">
+					<PickerField
+						id="date"
+						v-model="form.occurredOn"
+						label="Date"
+						type="date"
+						:invalid="Boolean(fieldError('date'))"
+						:describedby="describe('date')"
+						@blur="touch('date')"
+					/>
+					<FieldSupport id="date" :error="fieldError('date')" />
+				</div>
 
-			<div class="field">
-				<label class="label" for="time">Time</label>
 				<!-- A subscription posts at 00:00 UTC, so there is no time here for anyone to set. -->
-				<input id="time" v-model="form.occurredTime" type="time" class="input" :disabled="isAutomated" />
+				<PickerField
+					id="time"
+					v-model="form.occurredTime"
+					class="min-w-0 flex-1"
+					label="Time"
+					type="time"
+					placeholder="Optional"
+					:disabled="isAutomated"
+					:display="isAutomated ? '00:00 UTC' : undefined"
+				/>
 			</div>
+
+			<p v-if="isAutomated" class="type-body-small text-on-surface">
+				Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.
+			</p>
+
+			<TextField id="notes" v-model="form.notes" label="Notes" placeholder="Optional" :error="fieldError('notes')" @blur="touch('notes')" />
+
+			<!-- Tags, unlike the category, are any number of labels. They change no figure. -->
+			<fieldset v-if="ledger.tags.length" id="tags" tabindex="-1" class="min-w-0" :aria-describedby="describe('tags')">
+				<legend class="type-label-medium pb-3.5 text-on-surface">Tags</legend>
+				<div class="flex flex-wrap gap-x-2 gap-y-1">
+					<button
+						v-for="tag in ledger.tags"
+						:key="tag.id"
+						type="button"
+						class="chip pl-2"
+						:aria-pressed="form.tagIds.includes(tag.id)"
+						@click="toggleTag(tag.id)"
+					>
+						<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
+						<span class="truncate">{{ tag.name }}</span>
+					</button>
+				</div>
+				<FieldSupport id="tags" :error="fieldError('tags')" class="!px-0" />
+			</fieldset>
+
+			<!-- Only for a failure that is no one field's — the save itself. What is wrong with a field is said beneath the field. -->
+			<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
 		</div>
-
-		<p v-if="isAutomated" class="-mt-2 text-xs text-on-surface-variant">
-			Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.
-		</p>
-
-		<div class="field">
-			<label class="label" for="notes">Notes</label>
-			<input
-				id="notes"
-				v-model="form.notes"
-				class="input"
-				placeholder="Optional"
-				:aria-invalid="fieldError('notes') ? true : undefined"
-				:aria-describedby="describe('notes')"
-				@blur="touch('notes')"
-			/>
-			<FieldSupport id="notes" :error="fieldError('notes')" />
-		</div>
-
-		<!-- Tags, unlike the category, are any number of labels. They change no figure. -->
-		<fieldset v-if="ledger.tags.length" id="tags" tabindex="-1" class="min-w-0" :aria-describedby="describe('tags')">
-			<legend class="label">Tags</legend>
-			<div class="flex flex-wrap gap-2">
-				<button
-					v-for="tag in ledger.tags"
-					:key="tag.id"
-					type="button"
-					class="chip"
-					:aria-pressed="form.tagIds.includes(tag.id)"
-					@click="toggleTag(tag.id)"
-				>
-					<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: tag.color }" aria-hidden="true" />
-					<span class="truncate">{{ tag.name }}</span>
-				</button>
-			</div>
-			<FieldSupport id="tags" :error="fieldError('tags')" class="!px-0" />
-		</fieldset>
-
-		<!-- Only for a failure that is no one field's — the save itself. What is wrong with a field is said beneath the field. -->
-		<p v-if="error" class="banner-error" role="alert">
-			{{ error }}
-		</p>
-
-		<div class="flex justify-end gap-2 pt-2">
-			<button v-if="isEditing" type="button" class="btn-danger mr-auto" @click="emit('delete')">Delete</button>
-			<button type="button" class="btn-text" @click="emit('cancel')">Cancel</button>
-			<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
-				{{ isEditing ? 'Save changes' : 'Add transaction' }}
-			</button>
-		</div>
-	</form>
+	</FormDialog>
 </template>

@@ -12,7 +12,7 @@ const props = withDefaults(
 		/** How far a wide logo may stretch before it is scaled down, as a multiple of the height. */
 		maxAspect?: number;
 	}>(),
-	{ logoUrl: null, invertDark: false, size: 40, maxAspect: 2.5 },
+	{ logoUrl: null, invertDark: false, size: 40, maxAspect: 5 },
 );
 
 /**
@@ -58,7 +58,7 @@ const fallbackStyle = computed(() => ({ width: `${props.size}px`, height: `${pro
 		:src="logoUrl!"
 		:alt="`${name} logo`"
 		:style="imageStyle"
-		class="shrink-0 rounded object-contain"
+		class="shrink-0 object-contain object-right"
 		:class="{ 'dark:invert': invertDark }"
 		loading="lazy"
 		decoding="async"
@@ -69,7 +69,7 @@ const fallbackStyle = computed(() => ({ width: `${props.size}px`, height: `${pro
 	<span
 		v-else
 		:style="fallbackStyle"
-		class="grid shrink-0 place-items-center rounded-sm bg-primary-container text-sm font-medium text-on-primary-container"
+		class="type-title-small grid shrink-0 place-items-center rounded-sm bg-primary-container text-on-primary-container"
 		aria-hidden="true"
 	>
 		{{ initial }}

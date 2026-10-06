@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import SelectField from '@/components/SelectField.vue';
-import { namedOptions } from '@/lib/selectOptions';
-import AccountWatermark from '@/components/AccountWatermark.vue';
-import ActionIcon from '@/components/ActionIcon.vue';
+import AccountLogo from '@/components/AccountLogo.vue';
 import AccountTypeManager from '@/components/AccountTypeManager.vue';
+import ActionIcon from '@/components/ActionIcon.vue';
+import AlertDialog from '@/components/AlertDialog.vue';
+import BottomSheet from '@/components/BottomSheet.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import ModalDialog from '@/components/ModalDialog.vue';
-import ToggleSwitch from '@/components/ToggleSwitch.vue';
+import FieldSupport from '@/components/FieldSupport.vue';
+import FormDialog from '@/components/FormDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
-import StatCard from '@/components/StatCard.vue';
+import SelectField from '@/components/SelectField.vue';
+import SwipeReveal from '@/components/SwipeReveal.vue';
+import TextField from '@/components/TextField.vue';
+import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
-import { parseMoney, toDecimalString } from '@/lib/money';
+import { CONTRACT_EDIT, LIBRARY_ADD } from '@/lib/icons';
+import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
+import { displayMoney } from '@/lib/privacy';
+import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
-import FieldSupport from '@/components/FieldSupport.vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
@@ -36,9 +41,12 @@ const form = reactive({
 	startingBalance: '0.00',
 	logoUrl: '',
 	logoInvertDark: false,
-	roundUpSource: false,
 });
+/** What the form opened with, so that closing it can tell an entry from an untouched form. */
+const opened = ref('');
+const dirty = computed(() => JSON.stringify(form) !== opened.value);
 
+// Whether an account's purchases round up is not here: it is chosen on the Save the Change screen, beside the rule it feeds.
 const validation = useFormValidation({
 	'account-name': () => nameProblem(form.name),
 	'account-type': () => (ledger.accountTypes.some((type) => type.id === form.typeId) ? null : 'Choose a type.'),
@@ -80,7 +88,7 @@ const adjustDifference = computed(() => {
 	return target - adjusting.value.balance;
 });
 
-const typeChoices = computed(() => namedOptions(ledger.activeAccountTypes, { value: '', label: 'Select a type', disabled: true }));
+const typeChoices = computed(() => namedOptions(ledger.activeAccountTypes));
 const visible = computed(() => ledger.accounts.filter((account) => showArchived.value || !account.archived));
 const archivedCount = computed(() => ledger.accounts.filter((account) => account.archived).length);
 
@@ -145,8 +153,8 @@ function openCreate(): void {
 		startingBalance: '0.00',
 		logoUrl: '',
 		logoInvertDark: false,
-		roundUpSource: false,
 	});
+	opened.value = JSON.stringify(form);
 	dialogOpen.value = true;
 }
 
@@ -161,8 +169,8 @@ function openEdit(account: Account): void {
 		startingBalance: toDecimalString(account.startingBalance),
 		logoUrl: account.logoUrl ?? '',
 		logoInvertDark: account.logoInvertDark,
-		roundUpSource: account.roundUpSource,
 	});
+	opened.value = JSON.stringify(form);
 	dialogOpen.value = true;
 }
 
@@ -178,7 +186,6 @@ async function save(): Promise<void> {
 		startingBalance,
 		logoUrl: form.logoUrl.trim(),
 		logoInvertDark: form.logoInvertDark,
-		roundUpSource: form.roundUpSource,
 	};
 
 	try {
@@ -186,7 +193,7 @@ async function save(): Promise<void> {
 		else await api.createAccount(payload);
 
 		dialogOpen.value = false;
-		showSnackbar(editing.value ? 'Changes saved' : 'Account added');
+		showSnackbar(editing.value ? 'Account updated' : 'Account added');
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'Could not save the account.';
@@ -221,269 +228,206 @@ async function saveAdjustment(): Promise<void> {
 
 async function toggleArchived(account: Account): Promise<void> {
 	await api.updateAccount(account.id, { archived: !account.archived });
+	showSnackbar(account.archived ? 'Account restored' : 'Account archived');
 	await ledger.refreshAccounts();
 }
 
-async function remove(account: Account): Promise<void> {
-	if (!confirm(`Delete “${account.name}”?`)) return;
+/** The account a delete has been asked for, and what the API said the first time it was tried. */
+const pendingDelete = ref<Account | null>(null);
+const deleteWarning = ref<string | null>(null);
+
+function closeDelete(): void {
+	pendingDelete.value = null;
+	deleteWarning.value = null;
+}
+
+async function remove(): Promise<void> {
+	const account = pendingDelete.value;
+	if (!account) return;
 
 	try {
-		await api.deleteAccount(account.id);
+		// Having been told the account has history, the second press means it.
+		await api.deleteAccount(account.id, deleteWarning.value !== null);
 	} catch (caught) {
-		// The API refuses to silently destroy history; ask before forcing it.
-		if (caught instanceof ApiError && caught.status === 409) {
-			if (!confirm(`${caught.message}\n\nDelete the account and its transactions?`)) return;
-			await api.deleteAccount(account.id, true);
-		} else {
-			throw caught;
-		}
+		// The API refuses to silently destroy history; say so and ask again before forcing it.
+		if (caught instanceof ApiError && caught.status === 409) deleteWarning.value = caught.message;
+		else showSnackbar(caught instanceof ApiError ? caught.message : 'Could not delete the account.');
+		return;
 	}
 
+	closeDelete();
 	showSnackbar('Account deleted');
 	await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 }
+
+/** The FAB's two actions: the rail lists them in a menu from its button. */
+const fabActions = [
+	{ label: 'New account', icon: LIBRARY_ADD, run: openCreate },
+	{ label: 'Edit account types', icon: CONTRACT_EDIT, run: () => (typesOpen.value = true) },
+];
 
 onMounted(() => ledger.load());
 </script>
 
 <template>
-	<div class="space-y-6">
-		<header class="flex items-center gap-2">
-			<button type="button" class="btn-secondary" @click="typesOpen = true">Manage types</button>
-		</header>
+	<div class="px-4 pt-4 pb-24">
+		<EmptyState v-if="!groups.length" title="No accounts yet" description="Add the accounts you want to track." />
 
-		<StatCard label="Net worth" :amount="ledger.netWorth" :currency="ledger.displayCurrency" />
+		<!-- Accounts under their type. The rows of a type are a hair apart, the way a settings group is drawn;
+		     the space between one type and the next comes from the heading's own padding. -->
+		<section v-for="group in groups" :key="group.id">
+			<div class="group-header">
+				<h2>{{ group.name }} ({{ group.accounts.length }})</h2>
+				<MoneyText :amount="group.total" :currency="group.currency" tone="signed-alert" />
+			</div>
 
-		<EmptyState v-if="!ledger.loading && !visible.length" title="No accounts yet" description="Add the accounts you want to track.">
-			<button type="button" class="btn-primary" @click="openCreate">Add an account</button>
-		</EmptyState>
+			<ul class="group-rows">
+				<li v-for="account in group.accounts" :key="account.id">
+					<SwipeReveal>
+						<template #actions>
+							<ActionIcon icon="adjust" :label="`Adjust balance for ${account.name}`" @click="openAdjust(account)" />
+							<ActionIcon
+								:icon="account.archived ? 'restore' : 'archive'"
+								:label="`${account.archived ? 'Restore' : 'Archive'} ${account.name}`"
+								@click="toggleArchived(account)"
+							/>
+							<ActionIcon icon="delete" :label="`Delete ${account.name}`" danger @click="pendingDelete = account" />
+						</template>
 
-		<!-- Grouped by account type, each group carrying its own subtotal. -->
-		<div v-else class="space-y-6">
-			<section v-for="group in groups" :key="group.id" class="space-y-3">
-				<header class="flex items-baseline justify-between gap-3 border-b border-outline-variant pb-2">
-					<h2 class="text-sm font-medium text-on-surface">
-						{{ group.name }}
-						<span class="ml-1 text-xs font-normal text-on-surface-variant">
-							{{ group.accounts.length }} {{ group.accounts.length === 1 ? 'account' : 'accounts' }}
-						</span>
-					</h2>
-					<MoneyText :amount="group.total" :currency="group.currency" signed class="text-sm font-medium" />
-				</header>
-
-				<ul class="grid gap-4 sm:grid-cols-2">
-					<li
-						v-for="account in group.accounts"
-						:key="account.id"
-						class="card group relative flex items-center justify-between gap-3 overflow-hidden p-5"
-					>
-						<!-- Positioned, so the content paints above the watermark. -->
-						<div class="relative min-w-0 flex-1">
-							<p class="truncate font-medium text-on-surface">
-								{{ account.name }}
-								<span v-if="account.archived" class="ml-1 rounded bg-surface-container-high px-1.5 py-0.5 text-xs text-on-surface-variant">
-									Archived
+						<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
+						<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(account)">
+							<span class="flex items-center gap-4 px-4 py-3">
+								<span class="flex min-w-0 flex-1 flex-col gap-1">
+									<span class="type-title-medium truncate">{{ account.archived ? `${account.name} (Archived)` : account.name }}</span>
+									<span class="type-body-small">{{ currencyName(account.currency) }}</span>
+									<MoneyText :amount="account.balance" :currency="account.currency" tone="signed-alert" class="type-title-medium" />
 								</span>
-							</p>
-							<!-- The type is the group heading; only the currency is left to say. -->
-							<p class="mt-0.5 text-xs text-on-surface-variant">{{ account.currency }}</p>
-							<MoneyText :amount="account.balance" :currency="account.currency" signed class="mt-2 block text-lg font-medium" />
-						</div>
+								<AccountLogo :name="account.name" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" :size="28" />
+							</span>
+						</button>
+					</SwipeReveal>
+				</li>
+			</ul>
+		</section>
 
-						<div class="flex flex-col items-end gap-4">
-							<AccountWatermark class="flex-0 block" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" />
-							<div class="flex-1 row-actions">
-								<ActionIcon icon="edit" :label="`Edit ${account.name}`" @click="openEdit(account)" />
-								<ActionIcon icon="adjust" :label="`Adjust balance for ${account.name}`" @click="openAdjust(account)" />
-								<ActionIcon
-									:icon="account.archived ? 'restore' : 'archive'"
-									:label="`${account.archived ? 'Restore' : 'Archive'} ${account.name}`"
-									@click="toggleArchived(account)"
-								/>
-								<ActionIcon icon="delete" :label="`Delete ${account.name}`" danger @click="remove(account)" />
-							</div>
-						</div>
-					</li>
-				</ul>
-			</section>
+		<div v-if="archivedCount > 0" class="pt-1">
+			<button type="button" class="btn-text" @click="showArchived = !showArchived">
+				{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
+			</button>
 		</div>
 
-		<button v-if="archivedCount" type="button" class="btn-text" @click="showArchived = !showArchived">
-			{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
-		</button>
+		<AccountTypeManager :open="typesOpen" @changed="budget.refresh()" @close="typesOpen = false" />
 
-		<ModalDialog :open="typesOpen" title="Account types" @close="typesOpen = false">
-			<AccountTypeManager @changed="budget.refresh()" />
-		</ModalDialog>
-
-		<ModalDialog :open="dialogOpen" :title="editing ? 'Edit account' : 'New account'" @close="dialogOpen = false">
-			<form class="space-y-4" novalidate @submit.prevent="save" @input="validation.onInput">
-				<div class="field">
-					<label class="label" for="account-name">Name</label>
-					<input
-						id="account-name"
-						v-model="form.name"
-						class="input"
-						required
-						placeholder="Everyday checking"
-						:aria-invalid="fieldError('account-name') ? true : undefined"
-						:aria-describedby="describe('account-name')"
-						@blur="touch('account-name')"
-					/>
-					<FieldSupport id="account-name" :error="fieldError('account-name')" />
-				</div>
-
-				<div class="grid gap-4 sm:grid-cols-2">
-					<div class="field">
-						<label class="label" for="account-type">Type</label>
-						<SelectField
-							id="account-type"
-							v-model="form.typeId"
-							:options="typeChoices"
-							required
-							:invalid="Boolean(fieldError('account-type'))"
-							:describedby="describe('account-type')"
-							@blur="touch('account-type')"
-						/>
-						<FieldSupport id="account-type" :error="fieldError('account-type')" />
-					</div>
-
-					<div class="field">
-						<label class="label" for="account-balance">Starting balance</label>
-						<input
-							id="account-balance"
-							v-model="form.startingBalance"
-							class="input tabular"
-							inputmode="decimal"
-							placeholder="0.00"
-							:aria-invalid="fieldError('account-balance') ? true : undefined"
-							:aria-describedby="supportId('account-balance')"
-							@blur="touch('account-balance')"
-						/>
-						<FieldSupport
-							id="account-balance"
-							:error="fieldError('account-balance')"
-							hint="The balance before any transaction below was recorded."
-						/>
-					</div>
-				</div>
-
-				<div class="field">
-					<label class="label" for="account-currency">Currency</label>
-					<input
-						id="account-currency"
-						v-model="form.currency"
-						class="input uppercase"
-						maxlength="3"
-						required
-						:placeholder="ledger.displayCurrency"
-						:aria-invalid="fieldError('account-currency') ? true : undefined"
-						:aria-describedby="describe('account-currency')"
-						@blur="touch('account-currency')"
-					/>
-					<FieldSupport id="account-currency" :error="fieldError('account-currency')" />
-				</div>
-
-				<!-- A switch, not a checkbox: text and explanation on the left, the switch on the right, and the text toggles it. -->
-				<div class="flex items-center justify-between gap-4">
-					<div class="min-w-0">
-						<label for="account-round-up" class="block text-sm text-on-surface">Round up purchases (Save the Change)</label>
-						<p class="mt-0.5 text-xs text-on-surface-variant">Every expense on this account rounds up to the nearest ₱10 or ₱100.</p>
-					</div>
-					<ToggleSwitch id="account-round-up" v-model="form.roundUpSource" label="Round up purchases (Save the Change)" />
-				</div>
+		<FormDialog
+			:open="dialogOpen"
+			:title="editing ? 'Edit account' : 'New account'"
+			:save-enabled="validation.isValid.value"
+			:dirty="dirty"
+			@close="dialogOpen = false"
+			@save="save"
+		>
+			<div class="contents" @input="validation.onInput">
+				<TextField id="account-name" v-model="form.name" label="Name" :error="fieldError('account-name')" @blur="touch('account-name')" />
 
 				<div>
-					<div class="flex items-center gap-3">
-						<div class="field min-w-0 flex-1">
-							<label class="label" for="account-logo">Logo URL (optional)</label>
-							<input
-								id="account-logo"
-								v-model="form.logoUrl"
-								class="input"
-								type="url"
-								inputmode="url"
-								placeholder="https://example.com/logo.png"
-								:aria-invalid="fieldError('account-logo') ? true : undefined"
-								:aria-describedby="describe('account-logo')"
-								@blur="touch('account-logo')"
-							/>
-							<FieldSupport id="account-logo" :error="fieldError('account-logo')" />
-						</div>
-					</div>
-					<div class="mt-3 flex items-center justify-between gap-4">
-						<label for="account-logo-invert" class="text-sm text-on-surface">Invert colours in dark mode</label>
-						<ToggleSwitch id="account-logo-invert" v-model="form.logoInvertDark" label="Invert colours in dark mode" />
-					</div>
+					<SelectField
+						id="account-type"
+						v-model="form.typeId"
+						label="Type"
+						:options="typeChoices"
+						:invalid="Boolean(fieldError('account-type'))"
+						:describedby="describe('account-type')"
+						@blur="touch('account-type')"
+					/>
+					<FieldSupport id="account-type" :error="fieldError('account-type')" />
 				</div>
 
-				<p v-if="error" class="banner-error" role="alert">
-					{{ error }}
+				<TextField
+					id="account-balance"
+					v-model="form.startingBalance"
+					label="Starting balance"
+					placeholder="0.00"
+					inputmode="decimal"
+					:error="fieldError('account-balance')"
+					@blur="touch('account-balance')"
+				/>
+
+				<TextField
+					id="account-currency"
+					v-model="form.currency"
+					label="Currency"
+					class="uppercase"
+					maxlength="3"
+					:error="fieldError('account-currency')"
+					@blur="touch('account-currency')"
+				/>
+
+				<TextField
+					id="account-logo"
+					v-model="form.logoUrl"
+					label="Logo URL (optional)"
+					type="url"
+					:error="fieldError('account-logo')"
+					@blur="touch('account-logo')"
+				/>
+
+				<!-- Always shown, not only once a logo is entered; it has no effect until the account has one. -->
+				<div class="type-body-large flex items-center text-on-surface">
+					<span class="flex-1">Invert colours in dark mode</span>
+					<ToggleSwitch v-model="form.logoInvertDark" label="Invert colours in dark mode" />
+				</div>
+
+				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+			</div>
+		</FormDialog>
+
+		<BottomSheet :open="adjustDialogOpen" label="Adjust balance" @close="adjustDialogOpen = false">
+			<form v-if="adjusting" class="flex flex-col gap-3 p-5" novalidate @submit.prevent="saveAdjustment" @input="adjustValidation.onInput">
+				<h2 class="type-title-medium">Adjust balance</h2>
+				<p class="type-body-medium">
+					{{ adjusting.name }}'s current balance is {{ displayMoney(adjusting.balance, adjusting.currency) }}. Enter what it should be
+					instead — the difference is logged as its own transaction, dated today.
 				</p>
 
-				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-text" @click="dialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="!validation.isValid.value">
-						{{ editing ? 'Save changes' : 'Add account' }}
-					</button>
+				<TextField
+					id="adjust-balance"
+					v-model="adjustForm.balance"
+					label="New balance"
+					placeholder="0.00"
+					inputmode="decimal"
+					:error="adjustFieldError('adjust-balance')"
+					@blur="adjustTouch('adjust-balance')"
+				/>
+
+				<p v-if="adjustDifference" class="type-body-small">
+					Logs {{ displayMoney(adjustDifference, adjusting.currency) }} as {{ adjustDifference > 0 ? 'income' : 'an expense' }}.
+				</p>
+
+				<TextField
+					id="adjust-payee"
+					v-model="adjustForm.payee"
+					label="Payee (optional)"
+					:error="adjustFieldError('adjust-payee')"
+					@blur="adjustTouch('adjust-payee')"
+				/>
+
+				<p v-if="adjustError" class="type-body-small text-error" role="alert">{{ adjustError }}</p>
+
+				<div class="flex gap-2">
+					<button type="button" class="btn-text flex-1" @click="adjustDialogOpen = false">Cancel</button>
+					<button type="submit" class="btn-primary flex-1" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
 				</div>
 			</form>
-		</ModalDialog>
+		</BottomSheet>
 
-		<ModalDialog :open="adjustDialogOpen" title="Adjust balance" @close="adjustDialogOpen = false">
-			<form v-if="adjusting" class="space-y-4" novalidate @submit.prevent="saveAdjustment" @input="adjustValidation.onInput">
-				<p class="text-sm text-on-surface-variant">
-					{{ adjusting.name }}'s current balance is
-					<MoneyText :amount="adjusting.balance" :currency="adjusting.currency" class="font-medium text-on-surface" />. Enter what it should
-					be instead — the difference is logged as its own transaction, dated today.
-				</p>
+		<AlertDialog :open="pendingDelete !== null" :title="`Delete &quot;${pendingDelete?.name}&quot;?`" @close="closeDelete">
+			<p v-if="deleteWarning" class="whitespace-pre-line">{{ deleteWarning }}{{ '\n\n' }}Delete the account and its transactions?</p>
+			<template #actions>
+				<button type="button" class="btn-text" @click="closeDelete">Cancel</button>
+				<button type="button" class="btn-text" @click="remove">{{ deleteWarning ? 'Delete anyway' : 'Delete' }}</button>
+			</template>
+		</AlertDialog>
 
-				<div class="field">
-					<label class="label" for="adjust-balance">New balance</label>
-					<input
-						id="adjust-balance"
-						v-model="adjustForm.balance"
-						class="input tabular"
-						inputmode="decimal"
-						placeholder="0.00"
-						:aria-invalid="adjustFieldError('adjust-balance') ? true : undefined"
-						:aria-describedby="adjustFieldError('adjust-balance') ? supportId('adjust-balance') : undefined"
-						@blur="adjustTouch('adjust-balance')"
-					/>
-					<FieldSupport id="adjust-balance" :error="adjustFieldError('adjust-balance')" />
-				</div>
-
-				<p v-if="adjustDifference !== null && adjustDifference !== 0" class="text-sm text-on-surface-variant">
-					Logs
-					<MoneyText :amount="adjustDifference" :currency="adjusting.currency" signed class="font-medium" />
-					as {{ adjustDifference > 0 ? 'income' : 'an expense' }}.
-				</p>
-
-				<div class="field">
-					<label class="label" for="adjust-payee">Payee (optional)</label>
-					<input
-						id="adjust-payee"
-						v-model="adjustForm.payee"
-						class="input"
-						placeholder="Balance adjustment"
-						:aria-invalid="adjustFieldError('adjust-payee') ? true : undefined"
-						:aria-describedby="adjustFieldError('adjust-payee') ? supportId('adjust-payee') : undefined"
-						@blur="adjustTouch('adjust-payee')"
-					/>
-					<FieldSupport id="adjust-payee" :error="adjustFieldError('adjust-payee')" />
-				</div>
-
-				<p v-if="adjustError" class="banner-error" role="alert">
-					{{ adjustError }}
-				</p>
-
-				<div class="flex justify-end gap-2 pt-2">
-					<button type="button" class="btn-text" @click="adjustDialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
-				</div>
-			</form>
-		</ModalDialog>
-
-		<FabButton label="Add account" @click="openCreate" />
+		<FabButton label="Account actions" :actions="fabActions" />
 	</div>
 </template>

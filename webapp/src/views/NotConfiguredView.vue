@@ -8,7 +8,7 @@
 	<div class="flex min-h-dvh items-center justify-center px-4 py-12">
 		<div class="w-full max-w-md">
 			<div class="card p-6">
-				<h1 class="text-base font-medium text-on-surface">yuuka is not configured</h1>
+				<h1 class="type-title-medium text-on-surface">yuuka is not configured</h1>
 				<p class="mt-2 text-sm text-on-surface-variant">
 					Sign-in needs the Auth0 settings. Copy <code class="font-mono text-xs">.env.example</code> to
 					<code class="font-mono text-xs">.env</code> and fill in:

@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import type { IconPath } from '@/lib/icons';
+
 /** One destination in the phone's bottom bar: an icon in a pill that fills when it is current, with its label beneath. */
 defineProps<{
 	to: string;
 	label: string;
-	/** A Material icon path in a 24-unit box. */
-	icon: string;
+	icon: IconPath;
 }>();
 </script>
 
@@ -21,9 +23,7 @@ defineProps<{
 				class="grid h-8 w-16 place-items-center rounded-full transition-colors"
 				:class="isActive ? 'bg-secondary-container text-on-secondary-container' : 'group-hover:bg-on-surface/8'"
 			>
-				<svg viewBox="0 0 24 24" class="h-6 w-6" fill="currentColor" aria-hidden="true">
-					<path :d="icon" />
-				</svg>
+				<AppIcon :icon="icon" />
 			</span>
 			<span class="type-label-medium" :class="isActive ? 'text-on-surface' : ''">{{ label }}</span>
 		</a>

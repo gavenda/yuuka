@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import { CLOSE } from '@/lib/icons';
 import { dismissSnackbar, snackbarQueue } from '@/lib/snackbar';
 import { computed, onBeforeUnmount, watch } from 'vue';
 
@@ -29,7 +31,7 @@ function act(): void {
 
 <template>
 	<!-- Clears the FAB on a phone, where the bottom bar and the FAB both sit under it. -->
-	<div class="pointer-events-none fixed inset-x-4 bottom-40 z-40 flex justify-center sm:bottom-6">
+	<div class="snackbar-host pointer-events-none fixed inset-x-4 bottom-40 z-[70] flex justify-center sm:bottom-6">
 		<Transition
 			enter-active-class="transition duration-300 ease-emphasized-decelerate"
 			enter-from-class="translate-y-4 opacity-0"
@@ -41,16 +43,21 @@ function act(): void {
 				v-if="current"
 				:key="current.id"
 				role="status"
-				class="pointer-events-auto flex min-h-12 w-full max-w-md items-center gap-2 rounded-xs bg-inverse-surface py-2 pr-2 pl-4 text-sm text-inverse-on-surface shadow-elevation-3"
+				class="type-body-medium pointer-events-auto flex min-h-12 w-full max-w-[600px] items-center gap-2 rounded-xs bg-inverse-surface py-1 pr-2 pl-4 text-inverse-on-surface shadow-elevation-3"
 			>
-				<p class="min-w-0 flex-1 py-1">{{ current.message }}</p>
+				<p class="min-w-0 flex-1 py-2">{{ current.message }}</p>
 
 				<button v-if="current.action" type="button" class="btn-text text-inverse-primary" @click="act">{{ current.action.label }}</button>
 
-				<button type="button" class="btn-icon size-10 text-inverse-on-surface" aria-label="Dismiss" @click="dismissSnackbar(current.id)">
-					<svg viewBox="0 0 20 20" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-						<path d="M5 5l10 10M15 5L5 15" stroke-linecap="round" />
-					</svg>
+				<!-- A message that goes by itself needs no button to send it away; one that stays until dealt with does. -->
+				<button
+					v-if="current.duration === null"
+					type="button"
+					class="btn-icon text-inverse-on-surface"
+					aria-label="Dismiss"
+					@click="dismissSnackbar(current.id)"
+				>
+					<AppIcon :icon="CLOSE" />
 				</button>
 			</div>
 		</Transition>

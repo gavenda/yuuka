@@ -1,12 +1,21 @@
 import { shallowRef } from 'vue';
+import type { IconPath } from './icons';
+
+/** One entry of a FAB's menu, for a screen whose leading action is really a few. */
+export interface FabAction {
+	label: string;
+	icon: IconPath;
+	run: () => void;
+}
 
 /** What the current screen's floating action button does, for whichever surface is showing it. */
 export interface FabEntry {
 	label: string;
-	/** A Material icon path in a 24-unit box. */
-	icon: string;
+	icon: IconPath;
 	disabled: boolean;
 	run: () => void;
+	/** When there are any, pressing the button lists them in a menu instead of calling `run`. */
+	actions: FabAction[];
 }
 
 const current = shallowRef<FabEntry | null>(null);

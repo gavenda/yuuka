@@ -23,8 +23,8 @@ export default defineConfig({
 				scope: '/',
 				display: 'standalone',
 				// The same as the light <meta name="theme-color"> in index.html and the page's light background.
-				theme_color: '#e6edf7',
-				background_color: '#e6edf7',
+				theme_color: '#faf8fe',
+				background_color: '#faf8fe',
 				icons: [
 					{ src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
 					{ src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -32,8 +32,8 @@ export default defineConfig({
 				],
 			},
 			workbox: {
-				// The whole app shell, lazy route chunks included, so any screen opens offline.
-				globPatterns: ['**/*.{js,css,html,png,webmanifest}'],
+				// The whole app shell, lazy route chunks and the bundled font included, so any screen opens offline.
+				globPatterns: ['**/*.{js,css,html,png,webmanifest,woff2}'],
 				// A navigation is answered with the cached shell — the router takes it from there — but
 				// never for the API, which is not a page.
 				navigateFallback: '/index.html',

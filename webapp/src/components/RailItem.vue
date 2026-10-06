@@ -1,20 +1,21 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import type { IconPath } from '@/lib/icons';
 import { computed } from 'vue';
 import { useLink } from 'vue-router';
 
 /**
  * One entry in the navigation rail, drawn so it can morph. The slim and the open rail are the same
  * element with different geometry, and CSS (`.rail-item` in `style.css`) moves it between them: the pill
- * grows from a small capsule to a full row, the icon settles into its new height, and the label glides from
- * under the icon to beside it. Nothing is swapped in or out, so nothing can pop.
+ * grows from a small capsule to one that hugs the icon and its label, the icon settles into its new height,
+ * and the label glides from under the icon to beside it. Nothing is swapped in or out, so nothing can pop.
  *
  * A `destination` keeps its label under the icon while slim. An `action` is icon-only while slim and
  * shows its label once the rail opens.
  */
 const props = withDefaults(
 	defineProps<{
-		/** A Material icon path in a 24-unit box. */
-		icon: string;
+		icon: IconPath;
 		label: string;
 		expanded: boolean;
 		/** Makes it a link; without one it is a button and the parent handles `click`. */
@@ -27,7 +28,7 @@ const props = withDefaults(
 const emit = defineEmits<{ click: [] }>();
 
 const link = useLink({ to: computed(() => props.to ?? '/') });
-const isActive = computed(() => props.to !== undefined && link.isActive.value);
+const isActive = computed(() => props.to !== undefined && link.isExactActive.value);
 
 function onClick(event: MouseEvent): void {
 	if (props.to !== undefined) link.navigate(event);
@@ -47,10 +48,10 @@ function onClick(event: MouseEvent): void {
 		:aria-current="isActive ? 'page' : undefined"
 		@click="onClick"
 	>
+		<!-- What gives the item its open width; never seen, never read out. -->
+		<span class="rail-item-ghost" aria-hidden="true">{{ label }}</span>
 		<span class="rail-item-pill" />
-		<svg viewBox="0 0 24 24" class="rail-item-icon" fill="currentColor" aria-hidden="true">
-			<path :d="icon" />
-		</svg>
+		<AppIcon :icon="icon" class="rail-item-icon" />
 		<span class="rail-item-label">{{ label }}</span>
 	</component>
 </template>

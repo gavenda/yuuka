@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import { ARROW_DROP_DOWN } from '@/lib/icons';
 import type { SelectOption } from '@/lib/selectOptions';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
  * A Material 3 exposed dropdown menu, in place of a native `<select>`: an outlined field that shows the
  * chosen option, and a menu of options that opens beneath it (or above, when there is no room) at the
- * field's width. Drop it where the `<select>` was, with the same label beside it — `for` the `id` given here.
+ * field's width (`DropdownField` on Android). Give it its `label`, which rests in the field while nothing is
+ * chosen and rises into the border once something is.
  *
  * It follows the select-only combobox pattern: focus stays on the field while the menu is open and the
  * highlighted option is announced through `aria-activedescendant`, so arrow keys, Home/End, Enter/Space,
@@ -16,10 +19,10 @@ const props = defineProps<{
 	id: string;
 	modelValue: string;
 	options: SelectOption[];
-	/** For a field with no visible label beside it. */
+	/** The field's label, drawn in the field itself. */
+	label?: string;
+	/** For a field with no visible label. */
 	ariaLabel?: string;
-	/** Shorter, for placing inside a row of settings. */
-	dense?: boolean;
 	required?: boolean;
 	disabled?: boolean;
 	/** The choice is not acceptable: the field takes the error outline. What is wrong is said beneath it, in a `FieldSupport`. */
@@ -232,13 +235,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<div class="relative">
+	<div class="field" :data-filled="!isPlaceholder || open">
 		<button
 			:id="id"
 			ref="trigger"
 			type="button"
 			role="combobox"
-			:aria-label="ariaLabel"
+			:aria-label="ariaLabel ?? label"
 			aria-haspopup="listbox"
 			:aria-expanded="open"
 			:aria-controls="listboxId"
@@ -248,7 +251,7 @@ onBeforeUnmount(() => {
 			:aria-describedby="describedby"
 			:disabled="disabled"
 			class="input flex cursor-pointer items-center gap-2 text-left"
-			:class="[dense ? 'input-sm' : '', open && !invalid ? 'border-primary ring-1 ring-primary' : '']"
+			:class="open && !invalid ? 'border-primary ring-1 ring-primary' : ''"
 			@click="open ? close() : show()"
 			@keydown="onKeydown"
 			@blur="
@@ -256,21 +259,19 @@ onBeforeUnmount(() => {
 				emit('blur');
 			"
 		>
-			<span class="min-w-0 flex-1 truncate" :class="isPlaceholder ? 'text-on-surface-variant/70' : ''">
-				{{ selected?.label?.trim() || ' ' }}
-			</span>
+			<!-- Nothing chosen shows nothing: the label rests in the field, as it does in an empty text field. -->
+			<span class="min-w-0 flex-1 truncate">{{ isPlaceholder ? '\u00a0' : selected?.label?.trim() }}</span>
 
 			<!-- The dropdown arrow turns over while the menu is open. -->
-			<svg
-				viewBox="0 0 24 24"
-				class="size-6 shrink-0 text-on-surface-variant transition-transform duration-200 ease-standard"
+			<AppIcon
+				:icon="ARROW_DROP_DOWN"
+				class="text-on-surface-variant transition-transform duration-200 ease-standard"
 				:class="open ? 'rotate-180' : ''"
-				fill="currentColor"
-				aria-hidden="true"
-			>
-				<path d="M7 10l5 5 5-5z" />
-			</svg>
+			/>
 		</button>
+
+		<!-- The field's own label, rising into the border once something is chosen or the menu is open. -->
+		<span v-if="label" class="label" aria-hidden="true">{{ label }}</span>
 
 		<!-- A button cannot be `required`, so this stands in for it: it is what the form's own validation checks and points at. -->
 		<input
@@ -296,7 +297,7 @@ onBeforeUnmount(() => {
 					:id="listboxId"
 					ref="menu"
 					role="listbox"
-					:aria-label="ariaLabel"
+					:aria-label="ariaLabel ?? label"
 					class="menu fixed z-[60] overflow-y-auto overscroll-contain"
 					:class="position.above ? 'origin-bottom' : 'origin-top'"
 					:style="{
@@ -314,7 +315,7 @@ onBeforeUnmount(() => {
 						:key="option.value"
 						role="option"
 						class="menu-option"
-						:class="option.indent ? 'pl-8' : ''"
+						:class="option.indent ? 'pl-7' : ''"
 						:aria-selected="option.value === modelValue && !option.disabled"
 						:aria-disabled="option.disabled || undefined"
 						:data-active="index === active"
@@ -322,15 +323,6 @@ onBeforeUnmount(() => {
 						@click="choose(index)"
 					>
 						<span class="min-w-0 flex-1 truncate">{{ option.label.trim() }}</span>
-						<svg
-							v-if="option.value === modelValue && !option.disabled"
-							viewBox="0 0 24 24"
-							class="size-5 shrink-0"
-							fill="currentColor"
-							aria-hidden="true"
-						>
-							<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-						</svg>
 					</div>
 				</div>
 			</Transition>

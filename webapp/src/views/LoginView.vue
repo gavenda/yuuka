@@ -22,23 +22,15 @@ async function signIn(): Promise<void> {
 </script>
 
 <template>
-	<div class="flex min-h-dvh items-center justify-center px-4 py-12">
-		<div class="w-full max-w-sm text-center">
-			<span class="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-md bg-primary text-xl font-medium text-on-primary">¥</span>
-			<h1 class="text-2xl font-medium text-on-surface">yuuka</h1>
-			<p class="mt-1 text-sm text-on-surface-variant">Budgeting and financial tracking.</p>
+	<!-- The Android sign-in screen: the name, what it is, and one button, in the middle of the window. -->
+	<div class="flex min-h-dvh flex-col items-center justify-center p-6 text-center text-on-surface">
+		<h1 class="type-headline-large">yuuka</h1>
+		<p class="type-body-medium pt-1 pb-8">Personal budgeting and financial tracking.</p>
 
-			<div class="card mt-8 p-6">
-				<p class="mb-4 text-sm text-on-surface-variant">Sign in to continue.</p>
+		<button type="button" class="btn-primary w-full" :disabled="redirecting" @click="signIn">
+			{{ redirecting ? 'Redirecting…' : 'Log in' }}
+		</button>
 
-				<button type="button" class="btn-primary w-full" :disabled="redirecting" @click="signIn">
-					{{ redirecting ? 'Redirecting…' : 'Sign in' }}
-				</button>
-
-				<p v-if="error" class="mt-4 banner-error" role="alert">
-					{{ error.message }}
-				</p>
-			</div>
-		</div>
+		<p v-if="error" class="type-body-medium pt-4 text-error" role="alert">{{ error.message }}</p>
 	</div>
 </template>

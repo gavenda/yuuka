@@ -30,6 +30,18 @@ export function formatMoney(minor: number, currency = DEFAULT_CURRENCY): string 
 
 /** Formats without the currency symbol, for tables that label the currency once. */
 /**
+ * The currency's own name, such as "Philippine Peso", for somewhere a code alone would be terse. A code the
+ * platform does not know is returned as it is, as `formatMoney` falls back to the code rather than throwing.
+ */
+export function currencyName(currency = DEFAULT_CURRENCY): string {
+	try {
+		return new Intl.DisplayNames(undefined, { type: 'currency' }).of(currency.toUpperCase()) ?? currency;
+	} catch {
+		return currency;
+	}
+}
+
+/**
  * The symbol a currency is written with (₱, $, €), or the code itself when the platform does not know it — the
  * same fallback `formatMoney` takes, so an unfamiliar code degrades instead of throwing.
  */

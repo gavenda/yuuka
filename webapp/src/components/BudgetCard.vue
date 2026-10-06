@@ -5,8 +5,8 @@ import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
-import { supportId, useFormValidation } from '@/lib/validation';
+import DenseField from '@/components/DenseField.vue';
+import { useFormValidation } from '@/lib/validation';
 import { computed, ref } from 'vue';
 
 const props = withDefaults(defineProps<{ entry: CategoryBreakdown; currency?: string }>(), { currency: DEFAULT_CURRENCY });
@@ -87,85 +87,92 @@ async function commit(): Promise<void> {
 	}
 }
 
-const RING = { size: 40, radius: 16, stroke: 4, amplitude: 1.5, waves: 7 };
+/** What the plan reads as when it is not being edited: the share, the amount, or an invitation to set one. */
+const plannedLabel = computed(() => {
+	// Always with a decimal, as Android writes a share: 15 reads "15.0%".
+	if (props.entry.plannedPercent !== null) {
+		return `${Number.isInteger(props.entry.plannedPercent) ? props.entry.plannedPercent.toFixed(1) : props.entry.plannedPercent}%`;
+	}
+	return props.entry.planned > 0 ? displayMoney(props.entry.planned, props.currency) : 'Set a budget';
+});
 
-/** The share drawn as a wave running clockwise from the top, going flat once the plan is used up, like Material's wavy indicator. */
+/** Material's circular wavy progress indicator: a 48dp box, a 4dp stroke. */
+const RING = { size: 48, radius: 19, stroke: 4, amplitude: 1.6, waves: 9, gap: 0.035 };
+
+const centre = RING.size / 2;
+
+function point(turn: number, radius: number): string {
+	const angle = turn * Math.PI * 2;
+	return `${(centre + radius * Math.sin(angle)).toFixed(2)} ${(centre - radius * Math.cos(angle)).toFixed(2)}`;
+}
+
+/** The share drawn as a wave running clockwise from the top, going flat once the plan is used up. */
 const arc = computed(() => {
 	const progress = percent.value / 100;
 	if (progress <= 0) return '';
 
-	const centre = RING.size / 2;
 	const amplitude = progress >= 1 ? 0 : RING.amplitude;
-	const steps = Math.max(2, Math.ceil(progress * 180));
+	const steps = Math.max(2, Math.ceil(progress * 240));
 	const points: string[] = [];
 
 	for (let step = 0; step <= steps; step++) {
-		const angle = (step / steps) * progress * Math.PI * 2;
-		const radius = RING.radius + amplitude * Math.sin(angle * RING.waves);
-		const x = centre + radius * Math.sin(angle);
-		const y = centre - radius * Math.cos(angle);
-		points.push(`${step === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`);
+		const turn = (step / steps) * progress;
+		points.push(`${step === 0 ? 'M' : 'L'}${point(turn, RING.radius + amplitude * Math.sin(turn * Math.PI * 2 * RING.waves))}`);
 	}
 
 	return points.join(' ') + (progress >= 1 ? ' Z' : '');
 });
+
+/** What is left of the ring, as a plain track, standing a little clear of the wave at both ends. */
+const track = computed(() => {
+	const progress = percent.value / 100;
+	if (progress >= 1) return '';
+	if (progress <= 0)
+		return `M${point(0, RING.radius)} A${RING.radius} ${RING.radius} 0 1 1 ${point(0.5, RING.radius)} A${RING.radius} ${RING.radius} 0 1 1 ${point(0, RING.radius)}`;
+
+	const from = progress + RING.gap;
+	const to = 1 - RING.gap;
+	if (to <= from) return '';
+	return `M${point(from, RING.radius)} A${RING.radius} ${RING.radius} 0 ${to - from > 0.5 ? 1 : 0} 1 ${point(to, RING.radius)}`;
+});
 </script>
 
 <template>
-	<div class="card p-4">
-		<div class="flex items-baseline justify-between gap-3">
-			<span class="min-w-0 flex-1 truncate text-sm text-on-surface">{{ entry.name }}</span>
-
-			<span class="tabular shrink-0 text-xs text-on-surface-variant">
+	<article class="card p-4">
+		<header class="flex items-center justify-between gap-3">
+			<h3 class="type-body-medium min-w-0 flex-1 truncate">{{ entry.name }}</h3>
+			<span class="type-body-small tabular">
 				{{ displayMoney(entry.actual, currency)
 				}}<template v-if="entry.planned > 0"> / {{ displayMoney(entry.planned, currency) }}</template>
 			</span>
-		</div>
+		</header>
 
-		<form
-			v-if="editing"
-			class="mt-2 space-y-2"
-			novalidate
-			@submit.prevent="commit"
-			@input="validation.onInput"
-			@keydown.esc="editing = false"
-		>
+		<form v-if="editing" class="flex flex-col gap-2 pt-2" novalidate @submit.prevent="commit" @input="validation.onInput">
 			<ConnectedButtonGroup
 				:model-value="mode"
-				label="Enter as"
+				label="Budget as"
 				:options="[
 					{ value: 'amount', label: currency },
 					{ value: 'percent', label: '%' },
 				]"
+				:disabled="saving"
 				@update:model-value="selectMode"
 			/>
 
-			<div>
-				<div class="relative">
-					<span
-						v-if="mode === 'amount'"
-						class="pointer-events-none absolute inset-y-0 left-4 grid place-items-center text-base text-on-surface-variant"
-						aria-hidden="true"
-					>
-						{{ currencySymbol(currency) }}
-					</span>
-					<input
-						:id="fieldId"
-						v-model="draft"
-						class="input tabular"
-						:class="mode === 'amount' ? 'pl-10' : ''"
-						inputmode="decimal"
-						:aria-label="mode === 'percent' ? 'Planned percent of income' : 'Planned amount'"
-						:aria-invalid="fieldError(fieldId) ? true : undefined"
-						:aria-describedby="fieldError(fieldId) ? supportId(fieldId) : undefined"
-						:placeholder="mode === 'percent' ? '0' : '0.00'"
-						:disabled="saving"
-						autofocus
-						@blur="touch(fieldId)"
-					/>
-				</div>
-				<FieldSupport :id="fieldId" :error="fieldError(fieldId)" />
-			</div>
+			<!-- Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative. -->
+			<DenseField
+				:id="fieldId"
+				v-model="draft"
+				class="type-body-large"
+				label="Planned"
+				inputmode="decimal"
+				:placeholder="mode === 'percent' ? '0' : '0.00'"
+				:prefix="mode === 'amount' ? currencySymbol(currency) : undefined"
+				:disabled="saving"
+				:error="fieldError(fieldId)"
+				@blur="touch(fieldId)"
+				@keydown.esc="editing = false"
+			/>
 
 			<div class="flex gap-2">
 				<button type="button" class="btn-outlined flex-1" :disabled="saving" @click="editing = false">Cancel</button>
@@ -173,37 +180,26 @@ const arc = computed(() => {
 			</div>
 		</form>
 
-		<button v-else type="button" class="btn-text mt-1 -ml-3 text-3xl tabular" @click="start">
-			<template v-if="entry.plannedPercent !== null">{{ entry.plannedPercent }}%</template>
-			<template v-else-if="entry.planned > 0">{{ displayMoney(entry.planned, currency) }}</template>
-			<template v-else>Set a budget</template>
-		</button>
+		<button v-else type="button" class="btn-text type-headline-medium mt-1 min-h-11 px-0 py-1" @click="start">{{ plannedLabel }}</button>
 
-		<div class="mt-2.5 flex items-center gap-3">
-			<p class="flex-1 text-xs" :class="over ? 'text-error' : 'text-on-surface-variant'">{{ statusLabel }}</p>
+		<!-- The state in words, then the share spent as a ring: status never rests on colour alone. -->
+		<div class="flex items-center gap-3 pt-2.5">
+			<span class="type-body-small min-w-0 flex-1" :class="over ? 'text-error' : ''">{{ statusLabel }}</span>
 
-			<div class="relative grid shrink-0 place-items-center" :style="{ width: `${RING.size}px`, height: `${RING.size}px` }">
-				<svg :viewBox="`0 0 ${RING.size} ${RING.size}`" class="absolute inset-0" aria-hidden="true">
-					<circle
-						:cx="RING.size / 2"
-						:cy="RING.size / 2"
-						:r="RING.radius"
-						fill="none"
-						class="stroke-surface-variant"
-						:stroke-width="RING.stroke"
-					/>
+			<div class="relative grid size-12 shrink-0 place-items-center">
+				<svg :viewBox="`0 0 ${RING.size} ${RING.size}`" class="absolute inset-0 size-full" aria-hidden="true">
 					<path
-						v-if="arc"
-						:d="arc"
+						v-if="track"
+						:d="track"
 						fill="none"
+						stroke="var(--color-secondary-container)"
 						:stroke-width="RING.stroke"
 						stroke-linecap="round"
-						stroke-linejoin="round"
-						:style="{ stroke: fill }"
 					/>
+					<path v-if="arc" :d="arc" fill="none" :stroke="fill" :stroke-width="RING.stroke" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
-				<span class="type-label-small relative text-on-surface">{{ percent }}%</span>
+				<span class="type-label-small relative">{{ percent }}%</span>
 			</div>
 		</div>
-	</div>
+	</article>
 </template>
