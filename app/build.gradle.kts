@@ -81,15 +81,6 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-// AGP's built-in Kotlin compiler (2.2.0 here) can only read metadata up to version 2.3.0,
-// but a couple of transitive dependencies pull a newer kotlin-stdlib. Pin it down to what
-// the bundled compiler actually understands.
-configurations.all {
-    resolutionStrategy {
-        force("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
-    }
-}
-
 dependencies {
     implementation(libs.auth0.android)
     implementation(libs.androidx.core.ktx)

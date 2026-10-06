@@ -31,7 +31,9 @@ class ThemePreference(context: Context) {
     )
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR, true))
+    // Off by default so the app renders the brand seed's scheme, the same one the webapp mirrors,
+    // rather than a per-device wallpaper palette the webapp has no equivalent for.
+    private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR, false))
     val dynamicColor: StateFlow<Boolean> = _dynamicColor.asStateFlow()
 
     fun setThemeMode(mode: ThemeMode) {

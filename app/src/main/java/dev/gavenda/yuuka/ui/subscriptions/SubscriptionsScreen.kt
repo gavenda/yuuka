@@ -4,9 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -16,7 +14,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +27,7 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.tooling.preview.Preview
 
 /** What the form hands back. [startOn] is null when an edit left the date alone, so the schedule is not restarted. */
 private data class SubscriptionSubmission(
@@ -45,6 +43,27 @@ private data class SubscriptionSubmission(
 @Composable
 fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsViewModel = org.koin.compose.viewmodel.koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SubscriptionsScreenContent(
+        state = state,
+        modifier = modifier,
+        onCreate = viewModel::create,
+        onUpdate = viewModel::update,
+        onSetEnabled = viewModel::setEnabled,
+        onDelete = viewModel::delete,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SubscriptionsScreenContent(
+    state: SubscriptionsUiState,
+    modifier: Modifier = Modifier,
+    onCreate: suspend (accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String) -> Unit = { _, _, _, _, _, _ -> },
+    onUpdate: suspend (id: String, accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String?) -> Unit = { _, _, _, _, _, _, _ -> },
+    onSetEnabled: suspend (id: String, enabled: Boolean) -> Unit = { _, _ -> },
+    onDelete: suspend (id: String) -> Unit = {},
+) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -94,7 +113,7 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(stringResource(R.string.subscriptions_total_per_month), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(R.string.subscriptions_total_per_month), style = MaterialTheme.typography.titleMedium)
                             MoneyText(
                                 monthlyTotal(state.subscriptions),
                                 currency = state.displayCurrency,
@@ -106,7 +125,6 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                             Text(
                                 stringResource(R.string.subscriptions_total_paused, pausedCount),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -134,7 +152,7 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                     onEdit = { editing = subscription },
                     onToggle = {
                         busy.run(toggleKey, snackbarHostState, successMessage = if (subscription.enabled) pausedMessage else resumedMessage) {
-                            viewModel.setEnabled(subscription.id, !subscription.enabled)
+                            onSetEnabled(subscription.id, !subscription.enabled)
                         }
                     },
                     onDelete = { pendingDelete = subscription },
@@ -149,51 +167,44 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
         val target = editing
         val close = { creating = false; editing = null }
 
-        ModalBottomSheet(
-            onDismissRequest = { if (!submitting) close() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        ) {
-            WithSnackbarOverlay {
-                SubscriptionForm(
-                    editing = target,
-                    accounts = activeAccounts,
-                    categories = state.categories,
-                    payees = state.payees,
-                    defaultAccountId = state.defaultAccountId,
-                    submitting = submitting,
-                    onCancel = { if (!submitting) close() },
-                    onSubmit = { submission ->
-                        busy.run(
-                            formKey,
-                            snackbarHostState,
-                            successMessage = if (target != null) updatedMessage else addedMessage,
-                            onSuccess = close,
-                        ) {
-                            if (target != null) {
-                                viewModel.update(
-                                    target.id,
-                                    submission.accountId,
-                                    submission.categoryId,
-                                    submission.amount,
-                                    submission.payee,
-                                    submission.notes,
-                                    submission.startOn,
-                                )
-                            } else {
-                                viewModel.create(
-                                    submission.accountId,
-                                    submission.categoryId,
-                                    submission.amount,
-                                    submission.payee,
-                                    submission.notes,
-                                    submission.startOn!!,
-                                )
-                            }
-                        }
-                    },
-                )
-            }
-        }
+        SubscriptionForm(
+            editing = target,
+            accounts = activeAccounts,
+            categories = state.categories,
+            payees = state.payees,
+            defaultAccountId = state.defaultAccountId,
+            submitting = submitting,
+            onCancel = { if (!submitting) close() },
+            onSubmit = { submission ->
+                busy.run(
+                    formKey,
+                    snackbarHostState,
+                    successMessage = if (target != null) updatedMessage else addedMessage,
+                    onSuccess = close,
+                ) {
+                    if (target != null) {
+                        onUpdate(
+                            target.id,
+                            submission.accountId,
+                            submission.categoryId,
+                            submission.amount,
+                            submission.payee,
+                            submission.notes,
+                            submission.startOn,
+                        )
+                    } else {
+                        onCreate(
+                            submission.accountId,
+                            submission.categoryId,
+                            submission.amount,
+                            submission.payee,
+                            submission.notes,
+                            submission.startOn!!,
+                        )
+                    }
+                }
+            },
+        )
     }
 
     pendingDelete?.let { subscription ->
@@ -209,7 +220,7 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
                     enabled = !deleting,
                     onClick = {
                         busy.run(deleteKey, snackbarHostState, successMessage = deletedMessage, onSuccess = { pendingDelete = null }) {
-                            viewModel.delete(subscription.id)
+                            onDelete(subscription.id)
                         }
                     },
                 ) {
@@ -253,7 +264,6 @@ private fun SubscriptionRow(
             modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
             shape = groupedItemShape(position),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -268,14 +278,13 @@ private fun SubscriptionRow(
                             Text(
                                 stringResource(R.string.subscription_paused_badge),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                     if (subtitle.isNotEmpty()) {
-                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall)
                     }
-                    Text(schedule, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(schedule, style = MaterialTheme.typography.bodySmall)
                 }
                 MoneyText(subscription.amount, tone = MoneyTone.SIGNED_ALERT, currency = currency, style = MaterialTheme.typography.titleMedium)
             }
@@ -313,6 +322,8 @@ private fun SubscriptionForm(
     var categoryId by remember(editing) { mutableStateOf(editing?.categoryId ?: "") }
     var startOn by remember(editing) { mutableStateOf(initialStart) }
     var notes by remember(editing) { mutableStateOf(editing?.notes ?: "") }
+    // What the form opened with, so that closing it can tell an entry from an untouched form.
+    val opened = remember(editing) { listOf(direction, payee, amount, accountId, categoryId, startOn, notes) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
 
     val categoryGroups = remember(direction, categories) {
@@ -343,12 +354,28 @@ private fun SubscriptionForm(
     val accountField = form.field("account", if (accounts.none { it.id == accountId }) stringResource(R.string.error_choose_account) else null)
     val notesField = form.field("notes", if (notes.trim().length > NOTES_MAX) stringResource(R.string.error_too_long, NOTES_MAX) else null)
 
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(
-            stringResource(if (editing != null) R.string.edit_subscription else R.string.new_subscription),
-            style = MaterialTheme.typography.titleMedium,
-        )
+    FullScreenDialog(
+        title = stringResource(if (editing != null) R.string.edit_subscription else R.string.new_subscription),
+        onDismiss = onCancel,
+        onSave = submit@{
+            val minor = amountMinor ?: return@submit
 
+            onSubmit(
+                SubscriptionSubmission(
+                    accountId = accountId,
+                    categoryId = categoryId.ifBlank { null },
+                    amount = if (direction == Direction.EXPENSE) -minor else minor,
+                    payee = payee.trim(),
+                    notes = notes,
+                    // Editing the date restarts the schedule from it; leaving it alone keeps the schedule as it is.
+                    startOn = if (editing == null || startOn != initialStart) startOn.format(DateTimeFormatter.ISO_LOCAL_DATE) else null,
+                ),
+            )
+        },
+        saveEnabled = form.valid(payeeField, amountField, accountField, notesField),
+        submitting = submitting,
+        dirty = listOf(direction, payee, amount, accountId, categoryId, startOn, notes) != opened,
+    ) {
         ConnectedButtonGroup(
             options = Direction.entries,
             selected = direction,
@@ -439,33 +466,15 @@ private fun SubscriptionForm(
             field = notesField,
         )
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
-                enabled = !submitting && form.valid(payeeField, amountField, accountField, notesField),
-                onClick = {
-                    val minor = amountMinor ?: return@Button
+    }
+}
 
-                    onSubmit(
-                        SubscriptionSubmission(
-                            accountId = accountId,
-                            categoryId = categoryId.ifBlank { null },
-                            amount = if (direction == Direction.EXPENSE) -minor else minor,
-                            payee = payee.trim(),
-                            notes = notes,
-                            // Editing the date restarts the schedule from it; leaving it alone keeps the schedule as it is.
-                            startOn = if (editing == null || startOn != initialStart) startOn.format(DateTimeFormatter.ISO_LOCAL_DATE) else null,
-                        ),
-                    )
-                },
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(stringResource(if (editing != null) R.string.save_changes else R.string.add_subscription))
-                }
-            }
-        }
+@Preview(showBackground = true)
+@Composable
+private fun SubscriptionsScreenPreview() {
+    ScreenPreview {
+        SubscriptionsScreenContent(
+            SubscriptionsUiState(subscriptions = PreviewData.subscriptions, accounts = PreviewData.accounts, categories = PreviewData.categories),
+        )
     }
 }

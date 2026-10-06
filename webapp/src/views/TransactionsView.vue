@@ -271,12 +271,12 @@ async function remove(): Promise<void> {
 				<div class="h-3 w-28 rounded bg-surface-container-highest" />
 				<div v-for="row in 3" :key="row" class="card flex items-start gap-3 p-3">
 					<div class="min-w-0 flex-1 space-y-2">
-						<div class="h-3.5 w-1/3 rounded bg-surface-container-highest" />
-						<div class="h-3 w-1/4 rounded bg-surface-container-high" />
+						<div class="h-3.5 w-1/3 rounded bg-surface-container-high" />
+						<div class="h-3 w-1/4 rounded bg-surface-container" />
 					</div>
 					<div class="w-16 shrink-0 space-y-2">
-						<div class="ml-auto h-3.5 w-14 rounded bg-surface-container-highest" />
-						<div class="ml-auto h-3 w-10 rounded bg-surface-container-high" />
+						<div class="ml-auto h-3.5 w-14 rounded bg-surface-container-high" />
+						<div class="ml-auto h-3 w-10 rounded bg-surface-container" />
 					</div>
 				</div>
 			</div>

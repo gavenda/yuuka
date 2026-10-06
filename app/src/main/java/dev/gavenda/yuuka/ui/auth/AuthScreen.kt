@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
+import dev.gavenda.yuuka.ui.common.ScreenPreview
+import androidx.compose.ui.tooling.preview.Preview
 
 /** Mirrors `LoginView.vue`. */
 @Composable
@@ -23,9 +25,16 @@ fun AuthScreen(onLogin: () -> Unit, modifier: Modifier = Modifier) {
         Text(
             stringResource(R.string.auth_tagline),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
         )
         Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_log_in)) }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AuthScreenPreview() {
+    ScreenPreview {
+        AuthScreen(onLogin = {})
     }
 }

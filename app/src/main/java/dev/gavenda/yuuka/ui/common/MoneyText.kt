@@ -20,11 +20,13 @@ enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER, SIGNED_ALERT }
 /**
  * The colour a figure reads in, taken from the theme so it follows dynamic colour:
  * a routine outflow stays in the content colour (`error` is for errors, and a purchase is not one), inflows
- * are `tertiary` and transfers `onSurfaceVariant`.
+ * are `primary` and transfers `secondary`, a movement between your own accounts being neither. `tertiary`
+ * is kept for what is worth a glance without being either an error or an action (a budget near its limit,
+ * a day above the average), so it never marks a direction.
  */
 @Composable
 fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
-    MoneyTone.TRANSFER -> MaterialTheme.colorScheme.primary
+    MoneyTone.TRANSFER -> MaterialTheme.colorScheme.secondary
     MoneyTone.NEUTRAL -> LocalContentColor.current
     MoneyTone.SIGNED_ALERT -> when {
         amount > 0 -> MaterialTheme.colorScheme.primary
@@ -60,6 +62,5 @@ fun MoneyText(
         amount < 0 -> "−"
         else -> ""
     }
-    val color = moneyColor(amount, tone)
-    Text(text = "$prefix$text", modifier = modifier, style = style, fontSize = fontSize, color = color)
+    Text(text = "$prefix$text", modifier = modifier, style = style, fontSize = fontSize, color = moneyColor(amount, tone))
 }

@@ -260,11 +260,11 @@
 }
 
 @layer components {
-	/* Cards are filled cards, the theme's own surface-container-low step above the page,
-	   matching the Android app's default `Card` container colour. */
+	/* Cards are filled cards, the theme's own surface-container-highest step above the page,
+	   matching the Android app's default `Card` container colour (M3's FilledCardTokens). */
 	.card {
-		--surface-under: var(--color-surface-container-low);
-		@apply rounded-md bg-surface-container-low;
+		--surface-under: var(--color-surface-container-highest);
+		@apply rounded-md bg-surface-container-highest;
 	}
 
 	/*

@@ -7,10 +7,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -20,23 +18,50 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.ui.graphics.Color
+import dev.gavenda.yuuka.data.model.CategoryKind
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val savingKeys by viewModel.savingKeys.collectAsStateWithLifecycle()
-    val visibility = koinInject<AmountVisibility>()
     val snackbarHostState = LocalSnackbarHostState.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.mutationErrors.collect { message -> snackbarHostState.showSnackbar(message) }
+    }
+
+    BudgetScreenContent(
+        state = state,
+        savingKeys = savingKeys,
+        modifier = modifier,
+        onMonthChange = viewModel::setMonth,
+        onSetIncomePlan = viewModel::setIncomePlan,
+        onSetBudgetAmount = viewModel::setBudgetAmount,
+        onSetBudgetPercent = viewModel::setBudgetPercent,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun BudgetScreenContent(
+    state: BudgetUiState,
+    modifier: Modifier = Modifier,
+    savingKeys: Set<String> = emptySet(),
+    onMonthChange: (String) -> Unit = {},
+    onSetIncomePlan: (Long, IncomePlanMode, Long?) -> Unit = { _, _, _ -> },
+    onSetBudgetAmount: (String, Long) -> Unit = { _, _ -> },
+    onSetBudgetPercent: (String, Double) -> Unit = { _, _ -> },
+) {
+    val visibility = koinInject<AmountVisibility>()
     val isPhp = state.currency == "PHP"
     val compactAmounts = rememberIsWideLayout()
 
     var incomeEditing by remember { mutableStateOf(false) }
     var incomeMode by remember { mutableStateOf(IncomePlanMode.gross) }
     var incomeDraft by remember { mutableStateOf("") }
-
-    LaunchedEffect(viewModel) {
-        viewModel.mutationErrors.collect { message -> snackbarHostState.showSnackbar(message) }
-    }
 
     LaunchedEffect(state.summary) {
         incomeMode = state.plannedIncomeMode
@@ -58,7 +83,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
+        topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
             LazyColumn(
@@ -68,20 +93,13 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    val onPlanned = MaterialTheme.colorScheme.onSecondaryContainer
-                    val onPlannedSubtle = onPlanned.copy(alpha = 0.72f)
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = onPlanned,
-                        ),
                     ) {
                         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 stringResource(R.string.planned_income_label).uppercase(),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = onPlannedSubtle,
                                 modifier = Modifier.padding(top = 12.dp),
                             )
 
@@ -98,8 +116,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                 Surface(
                                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                                     shape = MaterialTheme.shapes.large,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
                                 ) {
                                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
                                     androidx.compose.runtime.CompositionLocalProvider(
@@ -132,7 +148,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                                 val amount = if (incomeDraft.isBlank()) 0L else parseMoney(incomeDraft)
                                                 if (amount == null || amount < 0) return@Button
                                                 val toSave = if (usingGross && amount > 0) computeNetPay(amount).netPay else amount
-                                                viewModel.setIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
+                                                onSetIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
                                             },
                                         ) {
                                             if (savingIncome) {
@@ -149,7 +165,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                 TextButton(
                                     onClick = { incomeEditing = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.textButtonColors(contentColor = onPlanned),
                                 ) {
                                     Text(
                                         if (usingGross) {
@@ -178,7 +193,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                             Text(
                                 if (usingGross) stringResource(R.string.gross_income_hint) else stringResource(R.string.net_income_hint),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = onPlannedSubtle,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 modifier = Modifier.padding(top = 4.dp),
                             )
@@ -191,7 +205,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                         ) {
-                                            Text(contribution.label, style = MaterialTheme.typography.bodyMedium, color = onPlannedSubtle)
+                                            Text(contribution.label, style = MaterialTheme.typography.bodyMedium)
                                             MoneyText(contribution.amount, currency = "PHP", style = MaterialTheme.typography.bodyMedium)
                                         }
                                     }
@@ -206,7 +220,7 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                         ) {
-                                            Text(entry.name, style = MaterialTheme.typography.bodyMedium, color = onPlannedSubtle)
+                                            Text(entry.name, style = MaterialTheme.typography.bodyMedium)
                                             MoneyText(entry.actual, currency = state.currency, style = MaterialTheme.typography.bodyMedium)
                                         }
                                     }
@@ -276,14 +290,14 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
                 if (state.expenseBreakdown.isNotEmpty()) {
                     item { Text(stringResource(R.string.category_kind_expense), style = MaterialTheme.typography.titleSmall) }
                     items(state.expenseBreakdown, key = { it.categoryId }) { entry ->
-                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, viewModel::setBudgetAmount, viewModel::setBudgetPercent)
+                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
                     }
                 }
 
                 if (state.cashflowBreakdown.isNotEmpty()) {
                     item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
                     items(state.cashflowBreakdown, key = { it.categoryId }) { entry ->
-                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, viewModel::setBudgetAmount, viewModel::setBudgetPercent)
+                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
                     }
                 }
             }
@@ -326,7 +340,6 @@ private fun BudgetRow(
                 Text(
                     visibility.displayMoney(entry.actual, currency) + if (entry.planned > 0) " / ${visibility.displayMoney(entry.planned, currency)}" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -424,7 +437,7 @@ private fun BudgetRow(
                         else -> stringResource(R.string.amount_left, visibility.displayMoney(entry.remaining, currency))
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (over) MaterialTheme.colorScheme.error else Color.Unspecified,
                     modifier = Modifier.weight(1f),
                 )
                 BudgetProgressRing(percent = percent, color = statusColor(health))
@@ -440,7 +453,6 @@ private fun BudgetProgressRing(percent: Int, color: Color, modifier: Modifier = 
         CircularWavyProgressIndicator(
             progress = { percent / 100f },
             color = color,
-            trackColor = MaterialTheme.colorScheme.secondaryContainer,
             amplitude =  { progress ->
                 // Sets the amplitude 0 when completed.
                 if (progress >= 1) {
@@ -451,5 +463,25 @@ private fun BudgetProgressRing(percent: Int, color: Color, modifier: Modifier = 
             }
         )
         Text("$percent%", style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BudgetScreenPreview() {
+    ScreenPreview {
+        val categories = PreviewData.summary.categories
+        BudgetScreenContent(
+            BudgetUiState(
+                month = PreviewData.MONTH,
+                summary = PreviewData.summary,
+                expenseBreakdown = categories.filter { it.kind == CategoryKind.expense },
+                incomeBreakdown = categories.filter { it.kind == CategoryKind.income },
+                cashflowBreakdown = categories.filter { it.kind == CategoryKind.transfer },
+                plannedIncome = PreviewData.summary.plannedIncome,
+                unspent = 415_000,
+                overspent = -154_900,
+            ),
+        )
     }
 }

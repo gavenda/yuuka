@@ -225,7 +225,9 @@ screen, and the account form says nothing about round-ups. The opt-in is still
 narrowest possible `PATCH`, so an edit of an account's name can never quietly
 take it off. Settings and Save the Change carry no Save on Android: every choice
 on them is picked from a list, so it is written as it is made, the way the theme
-switches always behaved. The one exception is a rule switched on before a
+switches always behaved. The display currency is the deliberate exception: it
+relabels every figure in the app, so its full-screen list only marks a row and
+writes on Save. The other exception is a rule switched on before a
 destination is chosen — it cannot be saved, so it waits on the screen with the
 error beside the field and is written the moment an account is picked. (The web
 app still saves both screens by hand and keeps the opt-in on the account form.)
@@ -258,6 +260,15 @@ foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material
 action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
 action to the rail, so a new screen never places its own. The web side is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
+
+**A form takes the screen over on Android.** The transaction, subscription, account, category and tag forms,
+the account type manager and the display-currency list open as Material 3 full-screen dialogs
+(`FullScreenDialog`, `ui/common/FullScreenDialog.kt`): close where the drawer button would be, the title, and
+Save as the bar's one action, bound to the same `form.valid(...)` a save button always was. Closing a form that
+no longer holds what it opened with asks before discarding. Material keeps that shape for a phone, so a window
+with a rail gets an ordinary dialog of the same content with its buttons at the foot. A new form goes through
+it rather than a sheet of its own; sheets remain for what is picked from a short list or applied live (filters,
+adjust balance, the Save the Change and default-account pickers).
 
 ## Sync
 

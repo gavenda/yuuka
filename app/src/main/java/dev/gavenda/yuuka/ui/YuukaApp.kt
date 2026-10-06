@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -23,8 +21,6 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +50,7 @@ import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
 import dev.gavenda.yuuka.ui.settings.SettingsScreen
 import dev.gavenda.yuuka.ui.subscriptions.SubscriptionsScreen
 import dev.gavenda.yuuka.ui.tags.TagsScreen
+import dev.gavenda.yuuka.ui.theme.ShapeXl
 import dev.gavenda.yuuka.ui.transactions.TransactionsScreen
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -341,8 +338,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
                             onClick = {},
-                            shape = RoundedCornerShape(32.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                            shape = ShapeXl,
                         ) {
                             AccountSummary(
                                 claims = claims,

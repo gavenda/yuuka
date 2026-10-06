@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import dev.gavenda.yuuka.ui.theme.ShapeXl
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExpandMore
@@ -42,11 +42,36 @@ import dev.gavenda.yuuka.ui.settings.SettingsGroupContainer
 import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.core.graphics.toColorInt
+import dev.gavenda.yuuka.domain.nextColor
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    CategoriesScreenContent(
+        state = state,
+        modifier = modifier,
+        onToggleShowArchived = viewModel::toggleShowArchived,
+        onCreateCategory = viewModel::createCategory,
+        onUpdateCategory = viewModel::updateCategory,
+        onSetArchived = viewModel::setArchived,
+        onDeleteCategory = viewModel::deleteCategory,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CategoriesScreenContent(
+    state: CategoriesUiState,
+    modifier: Modifier = Modifier,
+    onToggleShowArchived: () -> Unit = {},
+    onCreateCategory: suspend (name: String, kind: CategoryKind, color: String, parentId: String?) -> Unit = { _, _, _, _ -> },
+    onUpdateCategory: suspend (id: String, name: String, kind: CategoryKind, color: String) -> Unit = { _, _, _, _ -> },
+    onSetArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
+    onDeleteCategory: suspend (id: String) -> Unit = {},
+) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -101,13 +126,12 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                         // Drawn as the settings screen draws its groups: the heading in the accent colour, then one card
                         // holding every row of the section.
                         SettingsGroupHeader(title = "${section.title} (${section.families.size})")
-                        Box(modifier = Modifier.clip(RoundedCornerShape(28.dp))) {
+                        Box(modifier = Modifier.clip(ShapeXl)) {
                             SettingsGroupContainer {
                                 if (section.families.isEmpty()) {
                                     Text(
                                         stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(20.dp),
                                     )
                                 }
@@ -132,7 +156,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                                                 archiveKey,
                                                 snackbarHostState,
                                                 successMessage = if (family.parent.archived) categoryRestoredMessage else categoryArchivedMessage,
-                                            ) { viewModel.setArchived(family.parent.id, !family.parent.archived) }
+                                            ) { onSetArchived(family.parent.id, !family.parent.archived) }
                                         },
                                         onDelete = {
                                             busy.run(
@@ -140,7 +164,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                                                 snackbarHostState,
                                                 successMessage = categoryDeletedMessage
                                             ) {
-                                                viewModel.deleteCategory(family.parent.id)
+                                                onDeleteCategory(family.parent.id)
                                             }
                                         },
                                         onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
@@ -162,7 +186,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                                                             childArchiveKey,
                                                             snackbarHostState,
                                                             successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
-                                                        ) { viewModel.setArchived(child.id, !child.archived) }
+                                                        ) { onSetArchived(child.id, !child.archived) }
                                                     },
                                                     onDelete = {
                                                         busy.run(
@@ -170,7 +194,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
                                                             snackbarHostState,
                                                             successMessage = categoryDeletedMessage
                                                         ) {
-                                                            viewModel.deleteCategory(child.id)
+                                                            onDeleteCategory(child.id)
                                                         }
                                                     },
                                                 )
@@ -186,7 +210,7 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
 
             if (state.archivedCount > 0) {
                 item {
-                    TextButton(onClick = viewModel::toggleShowArchived) {
+                    TextButton(onClick = onToggleShowArchived) {
                         Text(
                             stringResource(
                                 if (state.showArchived) R.string.archived_toggle_hide else R.string.archived_toggle_show,
@@ -203,36 +227,28 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
     if (section != null || editing != null) {
         val formKey = "category-form"
         val submitting = busy.isBusy(formKey)
-        ModalBottomSheet(onDismissRequest = {
-            if (!submitting) {
-                creatingIn = null; editing = null
-            }
-        }) {
-            WithSnackbarOverlay {
-                CategoryFormContent(
-                    sections = state.sections,
-                    initialSection = section ?: state.sections.first(),
-                    parentId = creatingParentId,
-                    editing = editing,
-                    existing = state.categories,
-                    submitting = submitting,
-                    parentOptionsFor = { viewModel.parentOptionsFor(it.kind) },
-                    nextColorFor = { viewModel.nextColorFor(it.kind) },
-                    onSave = { name, kind, color ->
-                        busy.run(
-                            formKey,
-                            snackbarHostState,
-                            successMessage = if (editing != null) categoryUpdatedMessage else categoryAddedMessage,
-                            onSuccess = { creatingIn = null; editing = null },
-                        ) {
-                            if (editing != null) viewModel.updateCategory(editing!!.id, name, kind, color)
-                            else viewModel.createCategory(name, kind, color, creatingParentId)
-                        }
-                    },
-                    onCancel = { creatingIn = null; editing = null },
-                )
-            }
-        }
+        CategoryFormContent(
+            sections = state.sections,
+            initialSection = section ?: state.sections.first(),
+            parentId = creatingParentId,
+            editing = editing,
+            existing = state.categories,
+            submitting = submitting,
+            parentOptionsFor = { section -> state.categories.filter { it.parentId == null && !it.archived && it.kind == section.kind } },
+            nextColorFor = { section -> nextColor(state.categories.count { it.kind == section.kind }) },
+            onSave = { name, kind, color ->
+                busy.run(
+                    formKey,
+                    snackbarHostState,
+                    successMessage = if (editing != null) categoryUpdatedMessage else categoryAddedMessage,
+                    onSuccess = { creatingIn = null; editing = null },
+                ) {
+                    if (editing != null) onUpdateCategory(editing!!.id, name, kind, color)
+                    else onCreateCategory(name, kind, color, creatingParentId)
+                }
+            },
+            onCancel = { creatingIn = null; editing = null },
+        )
     }
 }
 
@@ -282,7 +298,6 @@ private fun CategoryRow(
         ListItem(
             modifier = Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp),
             onClick = onClick,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
             leadingContent = {
                 Box(
                     modifier = Modifier
@@ -354,6 +369,7 @@ private fun CategoryFormContent(
     var name by remember { mutableStateOf(editing?.name ?: "") }
     var selectedSection by remember { mutableStateOf(initialSection) }
     var color by remember { mutableStateOf(editing?.color ?: nextColorFor(initialSection)) }
+    val openedName = remember { name }
 
     val kind = editing?.kind ?: selectedSection.kind
 
@@ -369,11 +385,29 @@ private fun CategoryFormContent(
     )
     val colourField = form.field("colour", if (!isHexColour(color)) stringResource(R.string.hex_colour_hint) else null)
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            if (editing != null) stringResource(R.string.edit_category) else stringResource(R.string.new_category),
-            style = MaterialTheme.typography.titleMedium
-        )
+    FullScreenDialog(
+        title = stringResource(if (editing != null) R.string.edit_category else R.string.new_category),
+        onDismiss = onCancel,
+        onSave = { onSave(name.trim(), kind, color) },
+        saveEnabled = form.valid(nameField, colourField),
+        submitting = submitting,
+        // A new category's colour follows its kind until one is picked, so choosing a kind alone is not an entry to lose.
+        dirty = name != openedName || color != (editing?.color ?: nextColorFor(selectedSection)),
+    ) {
+        // What kind it is leads the form, as the shape of a transaction leads its own. A section is told by its key:
+        // the sections are rebuilt as the ledger changes, and the one held here would stop matching.
+        if (editing == null && parentId == null) {
+            ConnectedButtonGroup(
+                options = sections.map { it.key },
+                selected = selectedSection.key,
+                onSelect = { key ->
+                    val option = sections.first { it.key == key }
+                    selectedSection = option
+                    color = nextColorFor(option)
+                },
+                label = { key -> sections.first { it.key == key }.title },
+            )
+        }
 
         YuukaTextField(
             value = name,
@@ -383,28 +417,11 @@ private fun CategoryFormContent(
             field = nameField
         )
 
-        if (editing == null && parentId == null) {
-            Text(stringResource(R.string.label_kind), style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                sections.forEach { option ->
-                    FilterChip(
-                        selected = selectedSection.key == option.key,
-                        onClick = {
-                            selectedSection = option
-                            color = nextColorFor(option)
-                        },
-                        label = { Text(option.title) },
-                    )
-                }
-            }
-        }
-
         if (editing == null && parentId != null) {
             val parentName = parentOptionsFor(selectedSection).firstOrNull { it.id == parentId }?.name
             Text(
                 stringResource(R.string.nested_under, parentName ?: ""),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -456,7 +473,6 @@ private fun CategoryFormContent(
                         Icons.Filled.Add,
                         contentDescription = stringResource(R.string.custom_colour),
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -478,26 +494,13 @@ private fun CategoryFormContent(
                 field = colourField,
             )
         }
+    }
+}
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(
-                        R.string.action_cancel
-                    )
-                )
-            }
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = { onSave(name.trim(), kind, color) },
-                enabled = !submitting && form.valid(nameField, colourField),
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(if (editing != null) stringResource(R.string.save_changes) else stringResource(R.string.add_category))
-                }
-            }
-        }
+@Preview(showBackground = true)
+@Composable
+private fun CategoriesScreenPreview() {
+    ScreenPreview {
+        CategoriesScreenContent(CategoriesUiState(categories = PreviewData.categories))
     }
 }

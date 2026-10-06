@@ -24,11 +24,22 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    DashboardScreenContent(state = state, modifier = modifier, onMonthChange = viewModel::setMonth)
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DashboardScreenContent(
+    state: DashboardUiState,
+    modifier: Modifier = Modifier,
+    onMonthChange: (String) -> Unit = {},
+) {
     val visibility = koinInject<AmountVisibility>()
     // Scrolling down gives the page the bar's height back; the first scroll up returns it.
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -37,7 +48,7 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
+        topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
         
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
@@ -94,12 +105,17 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                 signed = true,
                             ),
                         ),
-                        tone = StatTone.Tertiary,
                     )
                 }
 
                 item {
-                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(stringResource(R.string.dashboard_spending_by_day), style = MaterialTheme.typography.titleLarge)
                             val series = monthSeries(state.month, state.summary?.dailySpend.orEmpty())
@@ -113,14 +129,12 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                         pluralStringResource(R.plurals.days_count, spentDays, spentDays),
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                                 DailySpendChart(series, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
                             } else {
                                 Text(
                                     stringResource(R.string.dashboard_no_spending),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                             }
                         }
@@ -128,7 +142,7 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                 }
 
                 item {
-                    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(stringResource(R.string.dashboard_where_money_went), style = MaterialTheme.typography.titleLarge)
                             val entries = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.expense }, 8)
@@ -137,7 +151,6 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                                     stringResource(R.string.dashboard_nothing_recorded_month),
                                     modifier = Modifier.padding(top = 12.dp),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                                 )
                             } else {
                                 CategoryBarList(entries, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
@@ -147,5 +160,13 @@ fun DashboardScreen(modifier: Modifier = Modifier, viewModel: DashboardViewModel
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun DashboardScreenPreview() {
+    ScreenPreview {
+        DashboardScreenContent(DashboardUiState(month = PreviewData.MONTH, summary = PreviewData.summary))
     }
 }

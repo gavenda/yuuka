@@ -38,11 +38,54 @@ import dev.gavenda.yuuka.domain.parseMoney
 import dev.gavenda.yuuka.domain.toDecimalString
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    AccountsScreenContent(
+        state = state,
+        modifier = modifier,
+        onToggleShowArchived = viewModel::toggleShowArchived,
+        onCreateAccount = viewModel::createAccount,
+        onUpdateAccount = viewModel::updateAccount,
+        onSetArchived = viewModel::setArchived,
+        onDeleteAccount = viewModel::deleteAccount,
+        onAdjustBalance = viewModel::adjustBalance,
+        typeActions = remember(viewModel) {
+            AccountTypeActions(
+                create = viewModel::createAccountType,
+                rename = viewModel::renameAccountType,
+                setArchived = viewModel::setAccountTypeArchived,
+                delete = viewModel::deleteAccountType,
+            )
+        },
+    )
+}
+
+/** What the account-type manager asks for; a preview leaves every one of them doing nothing. */
+internal class AccountTypeActions(
+    val create: suspend (name: String) -> Unit = {},
+    val rename: suspend (id: String, name: String) -> Unit = { _, _ -> },
+    val setArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
+    val delete: suspend (id: String) -> Unit = {},
+)
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun AccountsScreenContent(
+    state: AccountsUiState,
+    modifier: Modifier = Modifier,
+    onToggleShowArchived: () -> Unit = {},
+    onCreateAccount: suspend (name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onUpdateAccount: suspend (id: String, name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
+    onSetArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
+    onDeleteAccount: suspend (id: String, includeTransactions: Boolean) -> Unit = { _, _ -> },
+    onAdjustBalance: suspend (id: String, balance: Long, payee: String) -> Unit = { _, _, _ -> },
+    typeActions: AccountTypeActions = AccountTypeActions(),
+) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -140,7 +183,6 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                             Text(
                                 "${group.name} (${group.accounts.size})",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
                             )
                             MoneyText(group.total, tone = MoneyTone.SIGNED_ALERT, currency = group.currency, style = MaterialTheme.typography.titleMedium)
                         }
@@ -158,7 +200,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                                     archiveKey,
                                     snackbarHostState,
                                     successMessage = if (account.archived) accountRestoredMessage else accountArchivedMessage,
-                                ) { viewModel.setArchived(account.id, !account.archived) }
+                                ) { onSetArchived(account.id, !account.archived) }
                             },
                             onDelete = { pendingDelete = account },
                         )
@@ -168,7 +210,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
 
             if (state.archivedCount > 0) {
                 item {
-                    TextButton(onClick = viewModel::toggleShowArchived) {
+                    TextButton(onClick = onToggleShowArchived) {
                         Text(
                             stringResource(
                                 if (state.showArchived) R.string.archived_toggle_hide else R.string.archived_toggle_show,
@@ -182,41 +224,33 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
     }
 
     if (typesOpen) {
-        ModalBottomSheet(onDismissRequest = { typesOpen = false }) {
-            WithSnackbarOverlay {
-                AccountTypeManagerContent(state.accountTypes, viewModel)
-            }
-        }
+        AccountTypeManagerContent(state.accountTypes, typeActions, onClose = { typesOpen = false })
     }
 
     if (creating || editing != null) {
         val formKey = "account-form"
         val submitting = busy.isBusy(formKey)
-        ModalBottomSheet(onDismissRequest = { if (!submitting) { creating = false; editing = null } }) {
-            WithSnackbarOverlay {
-                AccountFormContent(
-                    account = editing,
-                    accountTypes = state.accountTypes.filter { !it.archived },
-                    displayCurrency = state.displayCurrency,
-                    submitting = submitting,
-                    onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark ->
-                        busy.run(
-                            formKey,
-                            snackbarHostState,
-                            successMessage = if (editing != null) accountUpdatedMessage else accountAddedMessage,
-                            onSuccess = { creating = false; editing = null },
-                        ) {
-                            if (editing != null) {
-                                viewModel.updateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark)
-                            } else {
-                                viewModel.createAccount(name, typeId, currency, startingBalance, logoUrl, invertDark)
-                            }
-                        }
-                    },
-                    onCancel = { creating = false; editing = null },
-                )
-            }
-        }
+        AccountFormContent(
+            account = editing,
+            accountTypes = state.accountTypes.filter { !it.archived },
+            displayCurrency = state.displayCurrency,
+            submitting = submitting,
+            onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark ->
+                busy.run(
+                    formKey,
+                    snackbarHostState,
+                    successMessage = if (editing != null) accountUpdatedMessage else accountAddedMessage,
+                    onSuccess = { creating = false; editing = null },
+                ) {
+                    if (editing != null) {
+                        onUpdateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark)
+                    } else {
+                        onCreateAccount(name, typeId, currency, startingBalance, logoUrl, invertDark)
+                    }
+                }
+            },
+            onCancel = { creating = false; editing = null },
+        )
     }
 
     val toAdjust = adjusting
@@ -230,7 +264,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                     submitting = submitting,
                     onSave = { balance, payee ->
                         busy.run(adjustKey, snackbarHostState, successMessage = balanceAdjustedMessage, onSuccess = { adjusting = null }) {
-                            viewModel.adjustBalance(toAdjust.id, balance, payee)
+                            onAdjustBalance(toAdjust.id, balance, payee)
                         }
                     },
                     onCancel = { adjusting = null },
@@ -257,7 +291,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
                     onClick = {
                         busy.launch(deleteKey) {
                             try {
-                                viewModel.deleteAccount(toDelete.id, includeTransactions = deleteError != null)
+                                onDeleteAccount(toDelete.id, deleteError != null)
                                 pendingDelete = null
                                 deleteError = null
                                 snackbarHostState.showSnackbar(accountDeletedMessage)
@@ -313,7 +347,6 @@ private fun AccountCard(
             modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
             shape = groupedItemShape(position),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -325,7 +358,7 @@ private fun AccountCard(
                         if (account.archived) stringResource(R.string.name_archived, account.name) else account.name,
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text(currencyName(account.currency), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                    Text(currencyName(account.currency), style = MaterialTheme.typography.bodySmall)
                     MoneyText(account.balance, tone = MoneyTone.SIGNED_ALERT, currency = account.currency, style = MaterialTheme.typography.titleMedium)
                 }
                 AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28)
@@ -350,6 +383,8 @@ private fun AccountFormContent(
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
+    // What the form opened with, so that closing it can tell an entry from an untouched form.
+    val opened = remember { listOf(name, typeId, currency, startingBalance, logoUrl, invertDark) }
     // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
     val form = rememberFormValidation()
     val startingBalanceMinor = parseMoney(startingBalance)
@@ -374,9 +409,17 @@ private fun AccountFormContent(
         },
     )
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (account != null) stringResource(R.string.edit_account) else stringResource(R.string.new_account), style = MaterialTheme.typography.titleMedium)
-
+    FullScreenDialog(
+        title = stringResource(if (account != null) R.string.edit_account else R.string.new_account),
+        onDismiss = onCancel,
+        onSave = submit@{
+            val balance = startingBalanceMinor ?: return@submit
+            onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark)
+        },
+        saveEnabled = form.valid(nameField, typeField, balanceField, currencyField, logoField),
+        submitting = submitting,
+        dirty = listOf(name, typeId, currency, startingBalance, logoUrl, invertDark) != opened,
+    ) {
         YuukaTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.label_name), singleLine = true, field = nameField)
 
         DropdownField(
@@ -411,24 +454,6 @@ private fun AccountFormContent(
             Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
             YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
         }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
-                enabled = !submitting && form.valid(nameField, typeField, balanceField, currencyField, logoField),
-                onClick = {
-                    val balance = startingBalanceMinor ?: return@Button
-                    onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark)
-                },
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(if (account != null) stringResource(R.string.save_changes) else stringResource(R.string.add_account))
-                }
-            }
-        }
     }
 }
 
@@ -455,7 +480,6 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
         Text(
             stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         YuukaTextField(
@@ -474,7 +498,6 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
                     formatMoney(difference, account.currency),
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -507,7 +530,7 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
 }
 
 @Composable
-private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: AccountsViewModel) {
+private fun AccountTypeManagerContent(types: List<AccountType>, actions: AccountTypeActions, onClose: () -> Unit) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
     var newName by remember { mutableStateOf("") }
@@ -533,12 +556,11 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
     val typeArchivedMessage = stringResource(R.string.type_archived)
     val typeDeletedMessage = stringResource(R.string.type_deleted)
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.account_types_title), style = MaterialTheme.typography.titleMedium)
+    // Nothing here waits for a Save: a type is added, renamed, archived or deleted as it is asked for.
+    FullScreenDialog(title = stringResource(R.string.account_types_title), onDismiss = onClose) {
         Text(
             stringResource(R.string.account_types_description),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         // Top-aligned: a field in error grows a line beneath itself, and the button stays beside the field, not the line.
@@ -555,7 +577,7 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                 onClick = {
                     val name = newName.trim()
                     busy.run(addKey, snackbarHostState, successMessage = typeAddedMessage, onSuccess = { newName = "" }) {
-                        viewModel.createAccountType(name)
+                        actions.create(name)
                     }
                 },
             ) {
@@ -579,7 +601,7 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                         onClick = {
                             val name = draftName.trim()
                             busy.run(renameKey, snackbarHostState, successMessage = typeRenamedMessage, onSuccess = { editingId = null }) {
-                                viewModel.renameAccountType(type.id, name)
+                                actions.rename(type.id, name)
                             }
                         },
                     ) {
@@ -602,7 +624,7 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                                     archiveKey,
                                     snackbarHostState,
                                     successMessage = if (type.archived) typeRestoredMessage else typeArchivedMessage,
-                                ) { viewModel.setAccountTypeArchived(type.id, !type.archived) }
+                                ) { actions.setArchived(type.id, !type.archived) }
                             },
                             loading = busy.isBusy(archiveKey),
                         )
@@ -611,7 +633,7 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                             stringResource(R.string.cd_delete_item, type.name),
                             {
                                 busy.run(deleteKey, snackbarHostState, successMessage = typeDeletedMessage) {
-                                    viewModel.deleteAccountType(type.id)
+                                    actions.delete(type.id)
                                 }
                             },
                             danger = true,
@@ -628,7 +650,7 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     ) {
                         Text(if (type.archived) stringResource(R.string.name_archived, type.name) else type.name, modifier = Modifier.weight(1f))
-                        Text("${type.accountCount}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${type.accountCount}", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -645,5 +667,15 @@ private fun AccountTypeManagerContent(types: List<AccountType>, viewModel: Accou
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AccountsScreenPreview() {
+    ScreenPreview {
+        AccountsScreenContent(
+            AccountsUiState(accounts = PreviewData.accounts, accountTypes = PreviewData.accountTypes, netWorth = PreviewData.summary.netWorth),
+        )
     }
 }

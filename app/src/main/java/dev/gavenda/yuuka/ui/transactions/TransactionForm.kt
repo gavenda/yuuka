@@ -2,9 +2,7 @@ package dev.gavenda.yuuka.ui.transactions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,8 +22,8 @@ import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.DropdownField
 import dev.gavenda.yuuka.ui.common.FieldError
+import dev.gavenda.yuuka.ui.common.FullScreenDialog
 import dev.gavenda.yuuka.ui.common.harmonisedColor
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.PayeeField
 import dev.gavenda.yuuka.ui.common.PickerField
 import dev.gavenda.yuuka.ui.common.SelectOption
@@ -106,7 +104,8 @@ fun TransactionForm(
     onSubmit: (TransactionSubmission) -> Unit,
     onCancel: () -> Unit,
 ) {
-    var fields by remember(editing) { mutableStateOf(seedFrom(editing, transferToAccountId, defaultAccountId, accounts)) }
+    val initial = remember(editing) { seedFrom(editing, transferToAccountId, defaultAccountId, accounts) }
+    var fields by remember(editing) { mutableStateOf(initial) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val isEditing = editing != null
@@ -158,7 +157,47 @@ fun TransactionForm(
         if (fields.tagIds.size > MAX_TAGS_PER_TRANSACTION) stringResource(R.string.error_too_many_tags, MAX_TAGS_PER_TRANSACTION) else null,
     )
 
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val submit = submit@{
+        val minor = amountMinor ?: return@submit
+
+        val datePart = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val occurredOn = fields.time?.takeUnless { isAutomated }?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart
+
+        // A tag deleted since the form opened would be refused by the API; drop it here instead.
+        val tagIds = fields.tagIds.filter { id -> tags.any { it.id == id } }
+
+        val submission = when (fields.mode) {
+            FormMode.TRANSFER -> TransactionSubmission.Transfer(
+                fromAccountId = fields.accountId,
+                toAccountId = fields.toAccountId,
+                categoryId = fields.categoryId.ifBlank { null },
+                amount = minor,
+                occurredOn = occurredOn,
+                payee = fields.payee,
+                notes = fields.notes,
+                tagIds = tagIds,
+            )
+            else -> TransactionSubmission.Plain(
+                accountId = fields.accountId,
+                categoryId = fields.categoryId.ifBlank { null },
+                amount = if (fields.mode == FormMode.EXPENSE) -minor else minor,
+                occurredOn = occurredOn,
+                payee = fields.payee,
+                notes = fields.notes,
+                tagIds = tagIds,
+            )
+        }
+        onSubmit(submission)
+    }
+
+    FullScreenDialog(
+        title = stringResource(if (isEditing) R.string.edit_transaction else R.string.new_transaction),
+        onDismiss = onCancel,
+        onSave = submit,
+        saveEnabled = form.valid(payeeField, amountField, accountField, toAccountField, notesField, tagsField),
+        submitting = submitting,
+        dirty = fields != initial,
+    ) {
         if (!isEditing) {
             ConnectedButtonGroup(
                 options = FormMode.entries,
@@ -261,7 +300,6 @@ fun TransactionForm(
             Text(
                 stringResource(R.string.automated_transaction_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -309,50 +347,5 @@ fun TransactionForm(
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
-                enabled = !submitting && form.valid(payeeField, amountField, accountField, toAccountField, notesField, tagsField),
-                onClick = {
-                    val minor = amountMinor ?: return@Button
-
-                    val datePart = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    val occurredOn = fields.time?.takeUnless { isAutomated }?.let { "$datePart" + "T" + it.format(DateTimeFormatter.ofPattern("HH:mm")) } ?: datePart
-
-                    // A tag deleted since the form opened would be refused by the API; drop it here instead.
-                    val tagIds = fields.tagIds.filter { id -> tags.any { it.id == id } }
-
-                    val submission = when (fields.mode) {
-                        FormMode.TRANSFER -> TransactionSubmission.Transfer(
-                            fromAccountId = fields.accountId,
-                            toAccountId = fields.toAccountId,
-                            categoryId = fields.categoryId.ifBlank { null },
-                            amount = minor,
-                            occurredOn = occurredOn,
-                            payee = fields.payee,
-                            notes = fields.notes,
-                            tagIds = tagIds,
-                        )
-                        else -> TransactionSubmission.Plain(
-                            accountId = fields.accountId,
-                            categoryId = fields.categoryId.ifBlank { null },
-                            amount = if (fields.mode == FormMode.EXPENSE) -minor else minor,
-                            occurredOn = occurredOn,
-                            payee = fields.payee,
-                            notes = fields.notes,
-                            tagIds = tagIds,
-                        )
-                    }
-                    onSubmit(submission)
-                },
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(if (isEditing) stringResource(R.string.save_changes) else stringResource(R.string.add_transaction))
-                }
-            }
-        }
     }
 }

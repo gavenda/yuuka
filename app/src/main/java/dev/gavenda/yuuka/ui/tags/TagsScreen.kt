@@ -34,16 +34,40 @@ import dev.gavenda.yuuka.domain.sameName
 import dev.gavenda.yuuka.domain.formatCount
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
+import dev.gavenda.yuuka.domain.nextColor
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val busy = rememberBusyState()
-    val snackbarHostState = LocalSnackbarHostState.current
 
     // The counts move whenever a transaction is saved, so ask again each time the screen is shown.
     LaunchedEffect(viewModel) { viewModel.refresh() }
+
+    TagsScreenContent(
+        state = state,
+        modifier = modifier,
+        onSearchChange = viewModel::setSearch,
+        onCreateTag = viewModel::createTag,
+        onUpdateTag = viewModel::updateTag,
+        onDeleteTag = viewModel::deleteTag,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun TagsScreenContent(
+    state: TagsUiState,
+    modifier: Modifier = Modifier,
+    onSearchChange: (String) -> Unit = {},
+    onCreateTag: suspend (name: String, color: String) -> Unit = { _, _ -> },
+    onUpdateTag: suspend (id: String, name: String, color: String) -> Unit = { _, _, _ -> },
+    onDeleteTag: suspend (id: String) -> Unit = {},
+) {
+    val busy = rememberBusyState()
+    val snackbarHostState = LocalSnackbarHostState.current
 
     // `creating` opens the sheet, `editing` fills it.
     var creating by remember { mutableStateOf(false) }
@@ -83,7 +107,7 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
                     item {
                         OutlinedTextField(
                             value = state.search,
-                            onValueChange = viewModel::setSearch,
+                            onValueChange = onSearchChange,
                             label = { Text(stringResource(R.string.search_tags)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -96,7 +120,6 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
                         Text(
                             stringResource(R.string.no_tag_matches, state.search.trim()),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
@@ -108,7 +131,7 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
                             position = positionInGroup(index, state.visible.lastIndex),
                             deleting = busy.isBusy(deleteKey),
                             onEdit = { editing = tag },
-                            onDelete = { busy.run(deleteKey, snackbarHostState, successMessage = tagDeletedMessage) { viewModel.deleteTag(tag.id) } },
+                            onDelete = { busy.run(deleteKey, snackbarHostState, successMessage = tagDeletedMessage) { onDeleteTag(tag.id) } },
                         )
                     }
                 }
@@ -119,28 +142,24 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
     if (creating || editing != null) {
         val formKey = "tag-form"
         val submitting = busy.isBusy(formKey)
-        ModalBottomSheet(onDismissRequest = { if (!submitting) { creating = false; editing = null } }) {
-            WithSnackbarOverlay {
-                TagForm(
-                    editing = editing,
-                    existing = state.tags,
-                    initialColor = viewModel.nextColor(),
-                    submitting = submitting,
-                    onSave = { name, color ->
-                        busy.run(
-                            formKey,
-                            snackbarHostState,
-                            successMessage = if (editing != null) tagUpdatedMessage else tagAddedMessage,
-                            onSuccess = { creating = false; editing = null },
-                        ) {
-                            val tag = editing
-                            if (tag != null) viewModel.updateTag(tag.id, name, color) else viewModel.createTag(name, color)
-                        }
-                    },
-                    onCancel = { creating = false; editing = null },
-                )
-            }
-        }
+        TagForm(
+            editing = editing,
+            existing = state.tags,
+            initialColor = nextColor(state.tags.size),
+            submitting = submitting,
+            onSave = { name, color ->
+                busy.run(
+                    formKey,
+                    snackbarHostState,
+                    successMessage = if (editing != null) tagUpdatedMessage else tagAddedMessage,
+                    onSuccess = { creating = false; editing = null },
+                ) {
+                    val tag = editing
+                    if (tag != null) onUpdateTag(tag.id, name, color) else onCreateTag(name, color)
+                }
+            },
+            onCancel = { creating = false; editing = null },
+        )
     }
 }
 
@@ -156,14 +175,12 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: 
         ListItem(
             modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
             onClick = onEdit,
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
             leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
             trailingContent = {
                 Text(
                     pluralStringResource(R.plurals.tag_transaction_count, tag.transactionCount, formatCount(tag.transactionCount.toLong())),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
         )
@@ -190,6 +207,8 @@ private fun TagForm(
 ) {
     var name by remember { mutableStateOf(editing?.name ?: "") }
     var color by remember { mutableStateOf(editing?.color ?: initialColor) }
+    // What the form opened with, so that closing it can tell an entry from an untouched form.
+    val opened = remember { name to color }
 
     // Tags are unique per person whatever the case, so a name is checked against the others (an edit may keep its own).
     val form = rememberFormValidation()
@@ -199,9 +218,14 @@ private fun TagForm(
     )
     val colourField = form.field("colour", if (!isHexColour(color)) stringResource(R.string.hex_colour_hint) else null)
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(if (editing != null) stringResource(R.string.edit_tag) else stringResource(R.string.new_tag), style = MaterialTheme.typography.titleMedium)
-
+    FullScreenDialog(
+        title = stringResource(if (editing != null) R.string.edit_tag else R.string.new_tag),
+        onDismiss = onCancel,
+        onSave = { onSave(name.trim(), color) },
+        saveEnabled = form.valid(nameField, colourField),
+        submitting = submitting,
+        dirty = (name to color) != opened,
+    ) {
         YuukaTextField(
             value = name,
             onValueChange = { name = it },
@@ -248,7 +272,6 @@ private fun TagForm(
                         Icons.Filled.Add,
                         contentDescription = stringResource(R.string.custom_colour),
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -270,20 +293,13 @@ private fun TagForm(
                 field = colourField,
             )
         }
+    }
+}
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
-                onClick = { onSave(name.trim(), color) },
-                enabled = !submitting && form.valid(nameField, colourField),
-            ) {
-                if (submitting) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(if (editing != null) stringResource(R.string.save_changes) else stringResource(R.string.add_tag))
-                }
-            }
-        }
+@Preview(showBackground = true)
+@Composable
+private fun TagsScreenPreview() {
+    ScreenPreview {
+        TagsScreenContent(TagsUiState(tags = PreviewData.tags))
     }
 }

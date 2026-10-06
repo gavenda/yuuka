@@ -37,9 +37,6 @@ class TagsViewModel(private val ledgerRepository: LedgerRepository) : ViewModel(
         search.value = text
     }
 
-    /** The slot a new tag should take, so defaults spread across the palette. */
-    fun nextColor(): String = nextColor(uiState.value.tags.size)
-
     suspend fun createTag(name: String, color: String) = ledgerRepository.createTag(name, color)
 
     suspend fun updateTag(id: String, name: String, color: String) = ledgerRepository.updateTag(id, name, color)

@@ -15,12 +15,16 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
+    <string name="action_close">Close</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_body">What you entered has not been saved.</string>
     <string name="action_delete">Delete</string>
     <string name="action_add">Add</string>
     <string name="action_today">Today</string>
     <string name="action_log_in">Log in</string>
     <string name="action_sign_out">Sign out</string>
-    <string name="save_changes">Save changes</string>
 
     <!-- Shared field labels -->
     <string name="label_name">Name</string>
@@ -147,13 +151,11 @@
     <string name="category_updated">Category updated</string>
     <string name="category_added">Category added</string>
     <string name="edit_category">Edit category</string>
-    <string name="label_kind">Kind</string>
     <string name="label_colour">Colour</string>
     <string name="custom_colour">Custom colour</string>
     <string name="custom_colour_hex">Custom colour (hex)</string>
     <string name="placeholder_hex_sample">#64748b</string>
     <string name="hex_colour_hint">Enter a 6-digit hex colour, e.g. #64748b</string>
-    <string name="add_category">Add category</string>
     <string name="add_sub">+ Sub</string>
 
     <!-- Tags -->
@@ -169,7 +171,6 @@
     <string name="no_tag_matches">No tag matches “%1$s”.</string>
     <string name="new_tag">New tag</string>
     <string name="edit_tag">Edit tag</string>
-    <string name="add_tag">Add tag</string>
     <string name="tag_added">Tag added</string>
     <string name="tag_updated">Tag updated</string>
     <string name="tag_deleted">Tag deleted</string>
@@ -197,7 +198,6 @@
     <string name="error_starting_balance_number">Enter a number, such as 1250.00.</string>
     <string name="error_choose_type">Choose a type.</string>
     <string name="error_logo_url">Use a full http or https link, such as https://example.com/logo.png.</string>
-    <string name="add_account">Add account</string>
     <string name="account_types_title">Account types</string>
     <string name="account_types_description">These are your own labels. Rename one and every account using it follows.</string>
     <string name="placeholder_add_a_type">Add a type</string>
@@ -288,10 +288,10 @@
     <string name="error_start_in_past">The start date cannot be in the past.</string>
     <string name="error_choose_different_accounts">Choose two different accounts.</string>
     <string name="error_choose_account">Choose an account.</string>
-    <string name="add_transaction">Add transaction</string>
 
     <!-- Transactions screen -->
     <string name="new_transaction">New transaction</string>
+    <string name="edit_transaction">Edit transaction</string>
     <string name="search_payee_notes">Search payee, notes or tag</string>
     <string name="all_accounts">All accounts</string>
     <string name="all_categories">All categories</string>
@@ -313,7 +313,6 @@
     <string name="subscriptions_description">Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.</string>
     <string name="new_subscription">New subscription</string>
     <string name="edit_subscription">Edit subscription</string>
-    <string name="add_subscription">Add subscription</string>
     <string name="no_subscriptions_yet">No subscriptions yet</string>
     <string name="subscriptions_empty_description">Set up rent, streaming or a loan payment once, and it will be posted for you every month.</string>
     <string name="subscription_added">Subscription added</string>

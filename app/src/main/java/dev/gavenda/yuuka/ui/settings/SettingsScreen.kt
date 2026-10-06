@@ -14,10 +14,8 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,16 +35,24 @@ import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.DetailTopBar
+import dev.gavenda.yuuka.ui.common.FullScreenDialog
 import dev.gavenda.yuuka.ui.common.ItemPosition
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.groupedItemShape
 import dev.gavenda.yuuka.ui.common.positionInGroup
+import dev.gavenda.yuuka.ui.theme.ShapeXl
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import java.util.*
 import kotlin.text.contains
+import dev.gavenda.yuuka.ui.common.PreviewData
+import dev.gavenda.yuuka.ui.common.ScreenPreview
+import androidx.compose.ui.tooling.preview.Preview
 
+
+/** The default currency and nine of the most traded: what the display-currency list offers before a search. */
+private val COMMON_CURRENCIES = listOf("PHP", "USD", "EUR", "JPY", "GBP", "CNY", "AUD", "CAD", "SGD", "HKD")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +62,18 @@ fun SettingsScreen(
     themePreference: ThemePreference = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SettingsScreenContent(state = state, modifier = modifier, themePreference = themePreference, onSave = viewModel::save)
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SettingsScreenContent(
+    state: SettingsUiState,
+    modifier: Modifier = Modifier,
+    themePreference: ThemePreference = koinInject(),
+    onSave: suspend (displayCurrency: String?, budgetMode: BudgetMode?, defaultAccountId: String?, clearDefaultAccount: Boolean) -> Unit = { _, _, _, _ -> },
+) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -88,11 +106,11 @@ fun SettingsScreen(
     val persist: (String, BudgetMode, String?) -> Unit = { currency, budgetMode, defaultAccountId ->
         scope.launch {
             try {
-                viewModel.save(
-                    displayCurrency = currency.takeIf { it != state.displayCurrency },
-                    budgetMode = budgetMode.takeIf { it != state.budgetMode },
-                    defaultAccountId = defaultAccountId,
-                    clearDefaultAccount = defaultAccountId == null && state.defaultAccountId != null,
+                onSave(
+                    currency.takeIf { it != state.displayCurrency },
+                    budgetMode.takeIf { it != state.budgetMode },
+                    defaultAccountId,
+                    defaultAccountId == null && state.defaultAccountId != null,
                 )
             } catch (e: ApiError) {
                 snackbarHostState.showSnackbar(e.message ?: couldNotSaveSettingMessage)
@@ -117,14 +135,13 @@ fun SettingsScreen(
                 SettingsGroupHeader(title = "Currency")
                 SettingsGroupContainer {
                     Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
+                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
                         .clickable { isCurrencySheetOpen = true }
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.AttachMoney,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -132,13 +149,11 @@ fun SettingsScreen(
                             Text(
                                 currencyDraft,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                         Text(
                             Currency.getInstance(currencyDraft).getSymbol(LocalLocale.current.platformLocale),
                             style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -146,7 +161,7 @@ fun SettingsScreen(
 //
 //            Card(modifier = Modifier.fillMaxWidth()) {
 //                Column(Modifier.padding(12.dp)) {
-//                    Text(stringResource(R.string.preview_label), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+//                    Text(stringResource(R.string.preview_label), style = MaterialTheme.typography.labelSmall)
 //                    Text(if (isValid) formatMoney(123_456, normalised) else "—", style = MaterialTheme.typography.titleMedium)
 //                }
 //            }
@@ -204,13 +219,12 @@ fun SettingsScreen(
                 SettingsGroupHeader(title = "Transactions")
                 SettingsGroupContainer {
                     Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
+                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
                         .clickable { isAccountSheetOpen = true }.padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.SupervisorAccount,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -219,7 +233,6 @@ fun SettingsScreen(
                                 state.accounts.firstOrNull { it.id == defaultAccountDraft }?.name
                                     ?: firstActiveAccountLabel,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -229,11 +242,11 @@ fun SettingsScreen(
                 SettingsGroupHeader(title = "About")
                 SettingsGroupContainer {
                     Row(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))
+                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
                             .padding(horizontal = 20.dp, vertical = 20.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.Default.Info, contentDescription = null
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -241,7 +254,6 @@ fun SettingsScreen(
                             Text(
                                 stringResource(R.string.version_value, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -251,8 +263,8 @@ fun SettingsScreen(
         }
     }
 
-    // A bottom sheet whose first row is drawn like a search bar; it is a plain text field, not Material's
-    // SearchBar, so nothing here expands or takes the screen over.
+    // Every currency there is, behind a search: a list that long, with the keyboard up, wants the whole screen.
+    // Its first row is drawn like a search bar; it is a plain text field, not Material's SearchBar.
     if (isCurrencySheetOpen) {
         val closeCurrencySheet = {
             currencyFieldState.clearText()
@@ -260,63 +272,63 @@ fun SettingsScreen(
         }
         val searchFocus = remember { FocusRequester() }
         LaunchedEffect(Unit) { searchFocus.requestFocus() }
+        // Tapping a row only marks it. Changing the currency relabels every figure in the app, so it waits for Save.
+        var pickedCurrency by remember { mutableStateOf(currencyDraft) }
 
-        ModalBottomSheet(
-            onDismissRequest = closeCurrencySheet,
-            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        FullScreenDialog(
+            title = stringResource(R.string.display_currency),
+            onDismiss = closeCurrencySheet,
+            onSave = {
+                currencyDraft = pickedCurrency
+                persist(pickedCurrency, budgetModeDraft, defaultAccountDraft)
+                closeCurrencySheet()
+            },
+            saveEnabled = pickedCurrency != currencyDraft,
+            dirty = pickedCurrency != currencyDraft,
+            scrollable = false,
         ) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-                TextField(
-                    state = currencyFieldState,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp).focusRequester(searchFocus),
-                    lineLimits = TextFieldLineLimits.SingleLine,
-                    shape = CircleShape,
-                    placeholder = { Text("Search currency name or code...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (currencyFieldState.text.isNotEmpty()) {
-                            IconButton(onClick = { currencyFieldState.clearText() }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear))
-                            }
+            TextField(
+                state = currencyFieldState,
+                modifier = Modifier.fillMaxWidth().focusRequester(searchFocus),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = CircleShape,
+                placeholder = { Text("Search currency name or code...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (currencyFieldState.text.isNotEmpty()) {
+                        IconButton(onClick = { currencyFieldState.clearText() }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear))
                         }
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        errorIndicatorColor = Color.Transparent,
-                    ),
-                )
-
-                val query = currencyFieldState.text.toString()
-                // The current selection leads the list, so it is the first thing seen on opening.
-                val filteredCurrencies = remember(query, currencyDraft) {
-                    currencies
-                        .filter {
-                            it.displayName.contains(query, ignoreCase = true) || it.currencyCode.contains(query, ignoreCase = true)
-                        }
-                        .sortedByDescending { it.currencyCode == currencyDraft }
-                }
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    itemsIndexed(filteredCurrencies, key = { _, currency -> currency.currencyCode }) { index, currency ->
-                        ExpressiveCurrencyItemRow(
-                            currency = currency,
-                            isSelected = currency.currencyCode == currencyDraft,
-                            position = positionInGroup(index, filteredCurrencies.lastIndex),
-                            onClick = {
-                                currencyDraft = currency.currencyCode
-                                persist(currency.currencyCode, budgetModeDraft, defaultAccountDraft)
-                                closeCurrencySheet()
-                            },
-                        )
                     }
+                },
+            )
+
+            val query = currencyFieldState.text.toString()
+            // Before anything is typed the list is the ten currencies most people would pick from, not the three
+            // hundred the platform knows; a search still reaches every one of them. The currency in use leads
+            // either list — and joins the short one if it is not among the ten — so it is the first thing seen.
+            val filteredCurrencies = remember(query, currencyDraft) {
+                val shown = if (query.isBlank()) {
+                    (listOf(currencyDraft) + COMMON_CURRENCIES).distinct().mapNotNull { code -> currencies.firstOrNull { it.currencyCode == code } }
+                } else {
+                    currencies.filter {
+                        it.displayName.contains(query, ignoreCase = true) || it.currencyCode.contains(query, ignoreCase = true)
+                    }
+                }
+                shown.sortedByDescending { it.currencyCode == currencyDraft }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                itemsIndexed(filteredCurrencies, key = { _, currency -> currency.currencyCode }) { index, currency ->
+                    ExpressiveCurrencyItemRow(
+                        currency = currency,
+                        isSelected = currency.currencyCode == pickedCurrency,
+                        position = positionInGroup(index, filteredCurrencies.lastIndex),
+                        onClick = { pickedCurrency = currency.currencyCode },
+                    )
                 }
             }
         }
@@ -326,7 +338,6 @@ fun SettingsScreen(
     if (isAccountSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isAccountSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() }) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
@@ -386,7 +397,7 @@ fun SettingsGroupHeader(title: String) {
 fun SettingsGroupContainer(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = RoundedCornerShape(28.dp)
+                color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = ShapeXl
             ), content = content
     )
 }
@@ -448,7 +459,6 @@ private fun RowScope.SettingIconAndText(icon: ImageVector, title: String, subtit
     Icon(
         imageVector = icon,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(24.dp)
     )
     Spacer(modifier = Modifier.width(16.dp))
@@ -457,7 +467,6 @@ private fun RowScope.SettingIconAndText(icon: ImageVector, title: String, subtit
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -518,8 +527,6 @@ fun ExpressiveModalSelectionItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            // Same pairing as the title: `primary` sits a shade from `primaryContainer` and washes out on it.
-            tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -527,19 +534,10 @@ fun ExpressiveModalSelectionItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null) Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                // A selected row is filled with primaryContainer, so its subtitle has to be read against
-                // that: onSurfaceVariant is a light tint meant for the page and all but vanishes here. It
-                // is the title's own colour, softened, so it still reads as secondary to it.
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = SubtitleAlpha)
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
             )
         }
         if (isSelected) {
@@ -550,7 +548,6 @@ fun ExpressiveModalSelectionItem(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -585,6 +582,10 @@ fun ExpressiveCurrencyItemRow(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
         label = "BgAnim"
     )
+    // The row's ink follows its fill, and the badge and the tick are that pair the other way round — left to
+    // inherit, all three kept the page's ink and the symbol and the tick vanished into their own circles.
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+    val badgeContentColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = Modifier.fillMaxWidth().clip(itemShape).background(containerColor).clickable(onClick = onClick)
@@ -594,7 +595,7 @@ fun ExpressiveCurrencyItemRow(
         Box(
             modifier = Modifier.size(40.dp).background(
                     // On a primaryContainer row the badge has to be the container's own ink, not `primary`
-                    // — the two sit a shade apart and the symbol disappears into the fill.
+                    // — the two sit a shade apart and the badge disappears into the row.
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.surfaceContainer,
                     shape = CircleShape
                 ), contentAlignment = Alignment.Center
@@ -602,7 +603,7 @@ fun ExpressiveCurrencyItemRow(
             Text(
                 text = currency.symbol,
                 style = MaterialTheme.typography.titleMedium,
-                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                color = badgeContentColor,
             )
         }
 
@@ -612,16 +613,12 @@ fun ExpressiveCurrencyItemRow(
             Text(
                 text = currency.currencyCode,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                color = contentColor,
             )
             Text(
                 text = currency.displayName,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = SubtitleAlpha)
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = contentColor,
             )
         }
         if (isSelected) {
@@ -632,13 +629,18 @@ fun ExpressiveCurrencyItemRow(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(14.dp),
+                    tint = badgeContentColor,
                 )
             }
         }
     }
 }
 
-/** A selected row's subtitle: the title's own ink, softened enough to read as secondary without losing contrast. */
-private const val SubtitleAlpha = 0.75f
+@Preview(showBackground = true)
+@Composable
+private fun SettingsScreenPreview() {
+    ScreenPreview {
+        SettingsScreenContent(SettingsUiState(defaultAccountId = "acc_checking", accounts = PreviewData.accounts))
+    }
+}

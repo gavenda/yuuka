@@ -1,6 +1,5 @@
 package dev.gavenda.yuuka.ui.transactions
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,13 +13,11 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Sell
@@ -31,18 +28,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Transaction
-import dev.gavenda.yuuka.data.model.TransactionTag
 import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
@@ -53,6 +47,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.ui.graphics.Color
+import dev.gavenda.yuuka.data.model.Payee
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,11 +59,50 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     val payees by viewModel.payeeRepository.payees.collectAsStateWithLifecycle(initialValue = emptyList())
     val snackbarHostState = LocalSnackbarHostState.current
 
-    var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
-
     LaunchedEffect(viewModel) {
         viewModel.events.collect { message -> snackbarHostState.showSnackbar(message) }
     }
+
+    TransactionsScreenContent(
+        state = state,
+        modifier = modifier,
+        formState = formState,
+        payees = payees,
+        onMonthChange = viewModel::setMonth,
+        onSearchTextChange = viewModel::setSearchText,
+        onAccountFilterChange = viewModel::setAccountFilter,
+        onCategoryFilterChange = viewModel::setCategoryFilter,
+        onTagFilterChange = viewModel::setTagFilter,
+        onLoadMore = viewModel::loadMore,
+        onOpenCreate = viewModel::openCreate,
+        onOpenEdit = viewModel::openEdit,
+        onCloseForm = viewModel::closeForm,
+        onSubmit = viewModel::submit,
+        onDelete = viewModel::delete,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun TransactionsScreenContent(
+    state: TransactionsUiState,
+    modifier: Modifier = Modifier,
+    formState: TransactionFormState = TransactionFormState(),
+    payees: List<Payee> = emptyList(),
+    onMonthChange: (String) -> Unit = {},
+    onSearchTextChange: (String) -> Unit = {},
+    onAccountFilterChange: (Set<String>) -> Unit = {},
+    onCategoryFilterChange: (Set<String>) -> Unit = {},
+    onTagFilterChange: (Set<String>) -> Unit = {},
+    onLoadMore: () -> Unit = {},
+    onOpenCreate: () -> Unit = {},
+    onOpenEdit: (transaction: Transaction, transferToAccountId: String?) -> Unit = { _, _ -> },
+    onCloseForm: () -> Unit = {},
+    onSubmit: (TransactionSubmission) -> Unit = {},
+    onDelete: (Transaction) -> Unit = {},
+) {
+    var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
 
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
     val accountOptions = remember(state.accounts) { state.accounts.map { FilterOption(it.id, it.name) } }
@@ -80,7 +116,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     // The field owns the text; what is typed is handed to the view model, which does the filtering.
     val searchFieldState = rememberTextFieldState(state.searchText)
     LaunchedEffect(searchFieldState) {
-        snapshotFlow { searchFieldState.text.toString() }.collectLatest(viewModel::setSearchText)
+        snapshotFlow { searchFieldState.text.toString() }.collectLatest { onSearchTextChange(it) }
     }
 
     // Scrolling down gives the list the bar's height back; the first scroll up returns it.
@@ -90,13 +126,13 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { MonthTopBar(month = state.month, onMonthChange = viewModel::setMonth, scrollBehavior = scrollBehavior) },
+        topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
         
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_transaction),
                 icon = Icons.Filled.Add,
-                onClick = viewModel::openCreate,
+                onClick = onOpenCreate,
             )
         },
     ) { padding ->
@@ -165,7 +201,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                                 Text(
                                     formatLongDate(date),
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
                                 )
                                 MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.titleMedium)
                             }
@@ -182,8 +217,8 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                                 currency = state.currency,
                                 onClick = {
                                     when (row) {
-                                        is TransactionRow.Transfer -> viewModel.openEdit(row.leg, row.toAccountId)
-                                        is TransactionRow.Single -> viewModel.openEdit(row.transaction)
+                                        is TransactionRow.Transfer -> onOpenEdit(row.leg, row.toAccountId)
+                                        is TransactionRow.Single -> onOpenEdit(row.transaction, null)
                                     }
                                 },
                                 onDelete = {
@@ -199,7 +234,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                     if (state.hasMore) {
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                TextButton(onClick = viewModel::loadMore, modifier = Modifier.fillMaxWidth()) {
+                                TextButton(onClick = onLoadMore, modifier = Modifier.fillMaxWidth()) {
                                     Text(
                                         if (state.status == ScreenStatus.Loading) {
                                             stringResource(R.string.loading_ellipsis)
@@ -217,24 +252,19 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     }
 
     if (formState.open) {
-        val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
-        ModalBottomSheet(onDismissRequest = viewModel::closeForm, sheetState = sheetState) {
-            WithSnackbarOverlay {
-                TransactionForm(
-                    editing = formState.editing,
-                    transferToAccountId = formState.transferToAccountId,
-                    accounts = state.accounts.filter { !it.archived },
-                    categories = state.categories,
-                    tags = state.tags,
-                    payees = payees,
-                    defaultAccountId = state.defaultAccountId,
-                    submitting = formState.submitting,
-                    error = formState.error,
-                    onSubmit = viewModel::submit,
-                    onCancel = viewModel::closeForm,
-                )
-            }
-        }
+        TransactionForm(
+            editing = formState.editing,
+            transferToAccountId = formState.transferToAccountId,
+            accounts = state.accounts.filter { !it.archived },
+            categories = state.categories,
+            tags = state.tags,
+            payees = payees,
+            defaultAccountId = state.defaultAccountId,
+            submitting = formState.submitting,
+            error = formState.error,
+            onSubmit = onSubmit,
+            onCancel = onCloseForm,
+        )
     }
 
     val dismissFilter = { openFilter = null }
@@ -244,7 +274,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             options = accountOptions,
             selected = state.accountFilter,
             emptyText = stringResource(R.string.no_accounts_yet),
-            onChange = viewModel::setAccountFilter,
+            onChange = onAccountFilterChange,
             onDismiss = dismissFilter,
         )
 
@@ -253,7 +283,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             options = categoryOptions,
             selected = state.categoryFilter,
             emptyText = stringResource(R.string.no_categories_yet),
-            onChange = viewModel::setCategoryFilter,
+            onChange = onCategoryFilterChange,
             onDismiss = dismissFilter,
         )
 
@@ -262,7 +292,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
             options = tagOptions,
             selected = state.tagFilter,
             emptyText = stringResource(R.string.no_tags_yet),
-            onChange = viewModel::setTagFilter,
+            onChange = onTagFilterChange,
             onDismiss = dismissFilter,
         )
 
@@ -288,7 +318,7 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.delete(toDelete) }, enabled = !deleting) {
+                TextButton(onClick = { onDelete(toDelete) }, enabled = !deleting) {
                     if (deleting) {
                         MutationLoadingIndicator()
                     } else {
@@ -345,7 +375,6 @@ private fun TransactionRowItem(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
             shape = groupedItemShape(position),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
         ) {
           Column {
             // The headline, what is under it and the figures at the end sit in a plain row of two columns;
@@ -360,7 +389,7 @@ private fun TransactionRowItem(
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
                                 formatTime(row.leg.occurredOn)?.let { time ->
-                                    Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(time, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         },
@@ -371,7 +400,7 @@ private fun TransactionRowItem(
                                     visibility.displayMoney(row.leg.runningBalance, currency),
                                     style = MaterialTheme.typography.bodySmall,
                                     // An overdrawn account reads in the error colour, as its balance does on the Accounts screen.
-                                    color = if (row.leg.runningBalance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (row.leg.runningBalance < 0) MaterialTheme.colorScheme.error else Color.Unspecified,
                                 )
                                 row.categoryName?.let { name -> CategoryLabel(name, row.categoryColor) }
                             }
@@ -393,17 +422,16 @@ private fun TransactionRowItem(
                                 Text(
                                     transaction.accountName.orEmpty(),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary,
                                 )
                                 if (transaction.automated) {
                                     Text(
                                         stringResource(R.string.automated_badge),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = MaterialTheme.colorScheme.tertiary,
                                     )
                                 }
                                 formatTime(transaction.occurredOn)?.let { time ->
-                                    Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(time, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                         },
@@ -414,7 +442,7 @@ private fun TransactionRowItem(
                                     visibility.displayMoney(transaction.runningBalance, currency),
                                     style = MaterialTheme.typography.bodySmall,
                                     // An overdrawn account reads in the error colour, as its balance does on the Accounts screen.
-                                    color = if (transaction.runningBalance < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (transaction.runningBalance < 0) MaterialTheme.colorScheme.error else Color.Unspecified,
                                 )
                                 transaction.categoryName?.let { name -> CategoryLabel(name, transaction.categoryColor) }
                             }
@@ -430,8 +458,6 @@ private fun TransactionRowItem(
 /** Filters the list as it is typed. A plain text field drawn as a search bar — nothing here expands or takes the screen over. */
 @Composable
 private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
-    val onContainer = MaterialTheme.colorScheme.onSurface
-    val subtle = MaterialTheme.colorScheme.onSurfaceVariant
     TextField(
         state = state,
         modifier = modifier,
@@ -447,23 +473,6 @@ private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
                 }
             }
         },
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            focusedTextColor = onContainer,
-            unfocusedTextColor = onContainer,
-            cursorColor = onContainer,
-            focusedPlaceholderColor = subtle,
-            unfocusedPlaceholderColor = subtle,
-            focusedLeadingIconColor = subtle,
-            unfocusedLeadingIconColor = subtle,
-            focusedTrailingIconColor = subtle,
-            unfocusedTrailingIconColor = subtle,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent,
-        ),
     )
 }
 
@@ -490,7 +499,7 @@ private fun TransactionSummary(
 private fun CategoryLabel(name: String, colorHex: String?) {
     val color = harmonisedColorOrNull(colorHex)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(name, style = MaterialTheme.typography.bodySmall)
         if (color != null) Box(Modifier.size(8.dp).clip(CircleShape).background(color))
     }
 }
@@ -512,9 +521,6 @@ private fun AccountFilterButton(
     }
     TextButton(
         onClick = onClick,
-        colors = ButtonDefaults.textButtonColors(
-            contentColor = if (labels.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
-        ),
         modifier = modifier,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -529,11 +535,11 @@ private fun AccountFilterButton(
 @Composable
 private fun FilterIconButton(icon: ImageVector, description: String, count: Int, onClick: () -> Unit) {
     IconButton(onClick = onClick) {
-        BadgedBox(badge = { if (count > 0) Badge { Text(count.toString()) } }) {
+        // A count of active filters is not an alert, so it leaves the badge's default error colour.
+        BadgedBox(badge = { if (count > 0) Badge(containerColor = MaterialTheme.colorScheme.tertiary) { Text(count.toString()) } }) {
             Icon(
                 icon,
                 contentDescription = description,
-                tint = if (count > 0) MaterialTheme.colorScheme.primary else LocalContentColor.current,
             )
         }
     }
@@ -564,7 +570,7 @@ private fun FilterSheet(
             }
 
             if (options.isEmpty()) {
-                Text(emptyText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(emptyText, style = MaterialTheme.typography.bodyMedium)
             } else {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     options.forEach { option ->
@@ -589,3 +595,21 @@ private fun FilterSheet(
 private enum class FilterKind { ACCOUNTS, CATEGORIES, TAGS }
 
 private data class FilterOption(val id: String, val label: String)
+
+@Preview(showBackground = true)
+@Composable
+private fun TransactionsScreenPreview() {
+    ScreenPreview {
+        TransactionsScreenContent(
+            TransactionsUiState(
+                month = PreviewData.MONTH,
+                accounts = PreviewData.accounts,
+                categories = PreviewData.categories,
+                tags = PreviewData.tags,
+                rows = PreviewData.rows,
+                total = PreviewData.rows.size,
+                loadedCount = PreviewData.rows.size,
+            ),
+        )
+    }
+}

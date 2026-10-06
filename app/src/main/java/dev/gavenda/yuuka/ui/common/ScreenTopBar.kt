@@ -209,10 +209,10 @@ fun AmountVisibilityAction() {
 @Composable
 private fun UnsentChangesBanner(count: Int, sending: Boolean) {
     AnimatedVisibility(visible = count > 0) {
+        // Worth noticing, but neither a failure nor an action: tertiary, not error or primary.
         Surface(
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.tertiaryContainer,
         ) {
             Text(
                 text = pluralStringResource(

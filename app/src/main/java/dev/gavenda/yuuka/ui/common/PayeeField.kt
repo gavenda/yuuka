@@ -53,7 +53,7 @@ fun PayeeField(
                                 entry.categoryName,
                             ).joinToString(" · ")
                             if (hint.isNotBlank()) {
-                                Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(hint, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     },

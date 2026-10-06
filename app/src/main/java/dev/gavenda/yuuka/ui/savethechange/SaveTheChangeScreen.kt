@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -35,6 +34,11 @@ import dev.gavenda.yuuka.ui.settings.SettingsGroupContainer
 import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import dev.gavenda.yuuka.domain.groupForPicker
+import dev.gavenda.yuuka.data.model.CategoryKind
+import dev.gavenda.yuuka.ui.common.PreviewData
+import dev.gavenda.yuuka.ui.common.ScreenPreview
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +47,23 @@ fun SaveTheChangeScreen(
     viewModel: SaveTheChangeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    SaveTheChangeScreenContent(
+        state = state,
+        modifier = modifier,
+        onSave = viewModel::save,
+        onSetRoundUpSource = viewModel::setRoundUpSource,
+    )
+}
+
+/** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SaveTheChangeScreenContent(
+    state: SaveTheChangeUiState,
+    modifier: Modifier = Modifier,
+    onSave: suspend (enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onSetRoundUpSource: suspend (accountId: String, roundUpSource: Boolean) -> Unit = { _, _ -> },
+) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -80,13 +101,13 @@ fun SaveTheChangeScreen(
         if (!enabled || state.accounts.any { it.id == destination }) {
             scope.launch {
                 try {
-                    viewModel.save(
-                        enabled = enabled,
-                        roundTo = roundTo,
-                        destinationAccountId = destination,
-                        clearDestination = destination == null && state.destinationAccountId != null,
-                        categoryId = category,
-                        clearCategory = category == null && state.categoryId != null,
+                    onSave(
+                        enabled,
+                        roundTo,
+                        destination,
+                        destination == null && state.destinationAccountId != null,
+                        category,
+                        category == null && state.categoryId != null,
                     )
                 } catch (e: ApiError) {
                     snackbarHostState.showSnackbar(e.message ?: couldNotSaveMessage)
@@ -188,7 +209,6 @@ fun SaveTheChangeScreen(
     if (isAccountSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isAccountSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
@@ -228,7 +248,6 @@ fun SaveTheChangeScreen(
     if (isSourceSheetOpen) {
         ModalBottomSheet(
             onDismissRequest = { isSourceSheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
@@ -254,7 +273,7 @@ fun SaveTheChangeScreen(
                             onClick = {
                                 scope.launch {
                                     try {
-                                        viewModel.setRoundUpSource(account.id, !account.roundUpSource)
+                                        onSetRoundUpSource(account.id, !account.roundUpSource)
                                     } catch (e: ApiError) {
                                         snackbarHostState.showSnackbar(e.message ?: couldNotSaveAccountMessage)
                                     }
@@ -279,7 +298,6 @@ fun SaveTheChangeScreen(
 
         ModalBottomSheet(
             onDismissRequest = { isCategorySheetOpen = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             Column(
@@ -330,11 +348,11 @@ private fun SelectionSettingRow(
         modifier = Modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, contentDescription = null)
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+            Text(value, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -342,3 +360,18 @@ private fun SelectionSettingRow(
 /** One pickable category in the sheet — a child carries its parent's name as its subtitle, standing in for the indent a list gave it. */
 private data class CategoryRow(val id: String?, val name: String, val parentName: String?)
 
+@Preview(showBackground = true)
+@Composable
+private fun SaveTheChangeScreenPreview() {
+    ScreenPreview {
+        SaveTheChangeScreenContent(
+            SaveTheChangeUiState(
+                enabled = true,
+                destinationAccountId = "acc_savings",
+                categoryId = "cat_investments",
+                accounts = PreviewData.accounts,
+                categoryGroups = groupForPicker(PreviewData.categories.filter { it.kind == CategoryKind.transfer }),
+            ),
+        )
+    }
+}

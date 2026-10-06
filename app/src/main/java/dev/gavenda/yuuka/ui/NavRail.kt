@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -45,7 +43,6 @@ import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.WideNavigationRailValue
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +66,7 @@ import dev.gavenda.yuuka.ui.common.FabEntry
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.RailFabHost
 import dev.gavenda.yuuka.ui.common.UserAvatar
+import dev.gavenda.yuuka.ui.theme.ShapeXl
 
 /** The gap Material's wide rail leaves between its header and its items (`HeaderSpaceMinimum`, which is not public). */
 private val RAIL_HEADER_GAP = 40.dp
@@ -137,7 +135,6 @@ fun YuukaNavRail(
                         Text(
                             "v${BuildConfig.VERSION_NAME}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             modifier = Modifier.alignByBaseline(),
                         )
@@ -190,7 +187,6 @@ fun YuukaNavRail(
                         Text(
                             stringResource(R.string.nav_more),
                             style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp),
                         )
                         RAIL_MORE_DESTINATIONS.forEach { destination ->
@@ -264,10 +260,8 @@ fun YuukaNavRail(
                     Card(
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 24.dp),
                         onClick = {},
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )) {
+                        shape = ShapeXl,
+                    ) {
                         AccountSummary(
                             claims = claims,
                             fallbackName = stringResource(R.string.brand_name),
@@ -330,21 +324,10 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
                 text = { Text(shown.label) },
                 // A collapsed button shows only its icon, so the label has to be said some other way.
                 modifier = Modifier.semantics { contentDescription = shown.label },
-                containerColor = if (shown.enabled) {
-                    FloatingActionButtonDefaults.containerColor
-                } else {
-                    // Opaque and tinted like the rest of the surfaces: a translucent container lets the button's own shadow show through it.
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                },
                 elevation = if (shown.enabled) {
                     FloatingActionButtonDefaults.elevation()
                 } else {
                     FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
-                },
-                contentColor = if (shown.enabled) {
-                    contentColorFor(FloatingActionButtonDefaults.containerColor)
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 },
             )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

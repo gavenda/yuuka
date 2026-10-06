@@ -11,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -23,12 +22,11 @@ fun AccountFlow(
     to: String,
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodySmall,
-    color: Color = MaterialTheme.colorScheme.tertiary,
 ) {
     val iconSize = with(LocalDensity.current) { style.fontSize.toDp() } + 4.dp
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(from, style = style, color = color)
-        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = null, tint = color, modifier = Modifier.size(iconSize))
-        Text(to, style = style, color = color)
+        Text(from, style = style)
+        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(iconSize))
+        Text(to, style = style)
     }
 }

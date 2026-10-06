@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
@@ -227,8 +226,6 @@ fun DailySpendChart(
                             ) {
                                 Surface(
                                     shape = MaterialTheme.shapes.small,
-                                    color = colors.inverseSurface,
-                                    contentColor = colors.inverseOnSurface,
                                     shadowElevation = 3.dp,
                                 ) {
                                     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -236,7 +233,6 @@ fun DailySpendChart(
                                         Text(
                                             visibility.displayMoney(selectedEntry.amount, currency),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = colors.inverseOnSurface.copy(alpha = 0.72f),
                                         )
                                     }
                                 }
@@ -282,7 +278,7 @@ fun DailySpendChart(
 private fun LegendItem(swatch: @Composable () -> Unit, label: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         swatch()
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f))
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -358,19 +354,16 @@ fun CategoryBarList(entries: List<RankableEntry>, modifier: Modifier = Modifier,
                     Text(
                         entry.name,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
                         "${visibility.displayMoney(entry.actual, currency)} · $share%",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f),
                     )
                 }
                 LinearProgressIndicator(
                     progress = { fraction },
                     modifier = Modifier.padding(top = 4.dp).fillMaxWidth().height(8.dp),
                     color = color,
-                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.16f),
                     drawStopIndicator = {},
                 )
             }

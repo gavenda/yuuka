@@ -34,14 +34,9 @@ fun StatCard(
     tone: StatTone = StatTone.Surface,
     icon: @Composable (() -> Unit)? = null,
 ) {
-    // On a tertiary container the inflow colour (tertiary) would all but vanish, so the figure keeps the content colour and the sign carries the direction.
+    // The inflow colour (primary) is not made for a tinted container, so the figure keeps the content colour and the sign carries the direction.
     val tinted = tone != StatTone.Surface
     val scheme = MaterialTheme.colorScheme
-    val subtle = when (tone) {
-        StatTone.Surface -> scheme.onSurfaceVariant
-        StatTone.Secondary -> scheme.onSecondaryContainer.copy(alpha = 0.72f)
-        StatTone.Tertiary -> scheme.onTertiaryContainer.copy(alpha = 0.72f)
-    }
     val cardColors = when (tone) {
         StatTone.Surface -> CardDefaults.cardColors()
         StatTone.Secondary -> CardDefaults.cardColors(containerColor = scheme.secondaryContainer, contentColor = scheme.onSecondaryContainer)
@@ -52,7 +47,6 @@ fun StatCard(
         Text(
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
-            color = subtle,
         )
         MoneyText(
             amount = amount,
@@ -71,7 +65,6 @@ fun StatCard(
                 text = caption,
                 modifier = Modifier.padding(top = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = subtle,
             )
         }
     }

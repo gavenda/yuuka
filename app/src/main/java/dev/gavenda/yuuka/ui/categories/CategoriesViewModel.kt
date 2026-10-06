@@ -76,14 +76,6 @@ class CategoriesViewModel(private val ledgerRepository: LedgerRepository) : View
         showArchived.value = !showArchived.value
     }
 
-    /** Parents the new category could be nested under, matching the chosen section. */
-    fun parentOptionsFor(kind: CategoryKind): List<Category> =
-        uiState.value.categories.filter { it.parentId == null && !it.archived && it.kind == kind }
-
-    /** The slot a new category in this section should take, so defaults spread across the palette. */
-    fun nextColorFor(kind: CategoryKind): String =
-        nextColor(uiState.value.categories.count { it.kind == kind })
-
     suspend fun createCategory(name: String, kind: CategoryKind, color: String, parentId: String?) =
         ledgerRepository.createCategory(name, kind, color, parentId)
 

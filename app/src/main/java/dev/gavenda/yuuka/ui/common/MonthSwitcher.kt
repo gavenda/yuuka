@@ -58,7 +58,6 @@ fun MonthTitle(month: String, onMonthChange: (String) -> Unit, modifier: Modifie
         modifier = modifier.fillMaxWidth(),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             IconButton(onClick = { onMonthChange(addMonths(month, -1)) }, modifier = Modifier.size(40.dp)) {
