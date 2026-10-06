@@ -19,11 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Matches gradle/gradle-daemon-jvm.properties (JetBrains 25), so Gradle
+      # runs its daemon on this JDK instead of downloading one through Foojay
+      # on every build — a download that fails the release when Foojay is down.
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
-          java-version: "21"
+          distribution: jetbrains
+          java-version: "25"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
