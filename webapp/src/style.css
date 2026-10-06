@@ -206,14 +206,6 @@
 	letter-spacing: 0;
 }
 
-/* The emphasised figure of a compact stat card, one step below headline medium (`Typography.compactFigure`). */
-@utility type-compact-figure {
-	font-size: 1.375rem;
-	line-height: 1.75rem;
-	font-weight: 600;
-	letter-spacing: 0;
-}
-
 @utility type-title-medium {
 	font-size: 1rem;
 	line-height: 1.5rem;
@@ -409,6 +401,11 @@
 		transition:
 			border-radius 250ms var(--ease-standard),
 			background-color 200ms var(--ease-standard);
+	}
+
+	/* Drawn inside the row: a list in a dialog scrolls, and a ring outside the row would be cut off at its edge. */
+	.selection-item:focus-visible {
+		outline-offset: -3px;
 	}
 
 	.selection-item:first-child {
@@ -684,7 +681,7 @@
 	}
 }
 
-/* Dialogs scale up from just under their size; sheets rise from the bottom edge. */
+/* Dialogs scale up from just under their size; a full-screen one rises from the bottom edge. */
 @keyframes dialog-in {
 	from {
 		opacity: 0;
@@ -996,8 +993,12 @@
 	transition-delay: 100ms;
 }
 
-/* A group that is only in the open rail grows from zero height instead of appearing. */
-.rail-collapse {
+/*
+ * A group that is only in the open rail grows from zero height instead of appearing. `.slide-down` is the
+ * same for a row that opens under what was pressed (the transaction filters' chips).
+ */
+.rail-collapse,
+.slide-down {
 	display: grid;
 	grid-template-rows: 0fr;
 	flex: none;
@@ -1007,14 +1008,16 @@
 		opacity 150ms var(--ease-standard);
 }
 
-.rail-collapse[data-open='true'] {
+.rail-collapse[data-open='true'],
+.slide-down[data-open='true'] {
 	grid-template-rows: 1fr;
 	opacity: 1;
 	transition-duration: 300ms, 200ms;
 	transition-delay: 0s, 100ms;
 }
 
-.rail-collapse > div {
+.rail-collapse > div,
+.slide-down > div {
 	min-height: 0;
 	overflow: hidden;
 }

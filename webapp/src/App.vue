@@ -4,7 +4,7 @@ import NavRail from '@/components/NavRail.vue';
 import SnackbarHost from '@/components/SnackbarHost.vue';
 import { clearCache } from '@/lib/cache';
 import AppIcon from '@/components/AppIcon.vue';
-import { ACCOUNT_BALANCE_WALLET, ATTACH_MONEY, CATEGORY, DASHBOARD, MONEY_OFF, PIE_CHART, RECEIPT, SELL } from '@/lib/icons';
+import { ACCOUNT_BALANCE_WALLET, ARROW_BACK, ATTACH_MONEY, CATEGORY, DASHBOARD, MONEY_OFF, PIE_CHART, RECEIPT, SELL } from '@/lib/icons';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
@@ -57,6 +57,7 @@ const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'yuuka');
+const parentPath = computed(() => route.meta.parent as string | undefined);
 
 /** The phone's bar sits on the page's background until content scrolls beneath it, then lifts a tonal step. */
 const scrolled = ref(false);
@@ -190,7 +191,11 @@ onBeforeUnmount(() => {
 			:class="scrolled ? 'bg-surface-container' : 'bg-background'"
 		>
 			<div class="flex h-16 items-center gap-2 px-4">
-				<RouterLink to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
+				<!-- A screen opened from another leads back to it, where the others lead home. -->
+				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 text-on-surface" aria-label="Back">
+					<AppIcon :icon="ARROW_BACK" />
+				</RouterLink>
+				<RouterLink v-else to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 

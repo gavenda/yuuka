@@ -20,7 +20,6 @@ data class StatItem(
     val currency: String = DEFAULT_CURRENCY,
     val caption: String? = null,
     val signed: Boolean = false,
-    val compact: Boolean = false,
 )
 
 /**
@@ -61,7 +60,6 @@ fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed
                 currency = stat.currency,
                 caption = stat.caption,
                 signed = stat.signed,
-                compact = stat.compact,
                 tone = tone,
                 onClick = {},
             )

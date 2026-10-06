@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
-import BottomSheet from '@/components/BottomSheet.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FormDialog from '@/components/FormDialog.vue';
+import SelectionDialog from '@/components/SelectionDialog.vue';
 import SelectionItem from '@/components/SelectionItem.vue';
 import { ApiError } from '@/lib/api';
-import { ACCOUNT_CIRCLE, ATTACH_MONEY, CLOSE, DARK_MODE, INFO, NOTE_ALT, SEARCH, SUPERVISOR_ACCOUNT } from '@/lib/icons';
+import { ACCOUNT_CIRCLE, ATTACH_MONEY, CLOSE, CONTRACT_EDIT, DARK_MODE, INFO, NOTE_ALT, SEARCH, SUPERVISOR_ACCOUNT } from '@/lib/icons';
 import { currencyName, currencySymbol } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
 import { useTheme, type ThemeMode } from '@/lib/theme';
@@ -160,6 +160,20 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
+			<h2 class="settings-header">Accounts</h2>
+			<div class="settings-group">
+				<!-- A list to manage rather than a value to pick, so it is a screen of its own. -->
+				<RouterLink to="/settings/account-types" class="settings-row state-layer focus-ring">
+					<AppIcon :icon="CONTRACT_EDIT" />
+					<span class="min-w-0 flex-1">
+						<span class="type-title-medium block">Account types</span>
+						<span class="type-body-medium block">Add, rename or retire the labels your accounts are grouped under</span>
+					</span>
+				</RouterLink>
+			</div>
+		</section>
+
+		<section class="flex flex-col gap-4">
 			<h2 class="settings-header">Transactions</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="accountSheetOpen = true">
@@ -221,21 +235,16 @@ onMounted(() => ledger.load());
 			</div>
 		</FormDialog>
 
-		<BottomSheet :open="accountSheetOpen" label="Select default account" @close="accountSheetOpen = false">
-			<div class="px-4 pb-6">
-				<h2 class="type-headline-small pb-4">Select default account</h2>
-				<div class="selection-list">
-					<SelectionItem
-						v-for="account in accountsByType"
-						:key="account.id"
-						:icon="ACCOUNT_CIRCLE"
-						:title="account.name"
-						:subtitle="account.typeName"
-						:selected="account.id === ledger.defaultAccountId"
-						@click="pickDefaultAccount(account.id)"
-					/>
-				</div>
-			</div>
-		</BottomSheet>
+		<SelectionDialog :open="accountSheetOpen" title="Select default account" @close="accountSheetOpen = false">
+			<SelectionItem
+				v-for="account in accountsByType"
+				:key="account.id"
+				:icon="ACCOUNT_CIRCLE"
+				:title="account.name"
+				:subtitle="account.typeName"
+				:selected="account.id === ledger.defaultAccountId"
+				@click="pickDefaultAccount(account.id)"
+			/>
+		</SelectionDialog>
 	</div>
 </template>

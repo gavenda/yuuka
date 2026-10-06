@@ -31,6 +31,12 @@ val RAIL_MORE_DESTINATIONS = YuukaDestination.entries - RAIL_DESTINATIONS.toSet(
 /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
 const val SETTINGS_ROUTE = "settings"
 
+/** Opened from a row on the Settings screen, which stays the marked destination while it is on show. */
+const val ACCOUNT_TYPES_ROUTE = "settings/account-types"
+
+/** Settings itself, or a screen opened from it. */
+fun isSettingsRoute(route: String?): Boolean = route == SETTINGS_ROUTE || route == ACCOUNT_TYPES_ROUTE
+
 /** Reached from the navigation drawer, grouped with the ledger destinations rather than [SETTINGS_ROUTE] — not a bottom-nav tab. */
 const val SAVE_THE_CHANGE_ROUTE = "save-the-change"
 
@@ -39,5 +45,6 @@ val AMOUNT_FREE_ROUTES = setOf(
     YuukaDestination.CATEGORIES.route,
     YuukaDestination.TAGS.route,
     SETTINGS_ROUTE,
+    ACCOUNT_TYPES_ROUTE,
     SAVE_THE_CHANGE_ROUTE,
 )

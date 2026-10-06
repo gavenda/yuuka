@@ -13,6 +13,7 @@
 
     <!-- Common actions -->
     <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_close">Close</string>
@@ -179,8 +180,6 @@
     <!-- Accounts screen -->
     <string name="new_account">New account</string>
     <string name="edit_account">Edit account</string>
-    <string name="edit_account_types">Edit account types</string>
-    <string name="account_actions">Account actions</string>
     <string name="no_accounts_yet">No accounts yet</string>
     <string name="accounts_empty_description">Add the accounts you want to track.</string>
     <string name="account_restored">Account restored</string>
@@ -200,7 +199,15 @@
     <string name="error_logo_url">Use a full http or https link, such as https://example.com/logo.png.</string>
     <string name="account_types_title">Account types</string>
     <string name="account_types_description">These are your own labels. Rename one and every account using it follows.</string>
-    <string name="placeholder_add_a_type">Add a type</string>
+    <string name="account_types_summary">Customize your accounts types</string>
+    <string name="new_account_type">New type</string>
+    <string name="new_account_type_title">New account type</string>
+    <string name="rename_account_type">Rename account type</string>
+    <string name="account_type_not_in_use">Not in use</string>
+    <plurals name="account_type_account_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
     <string name="type_added">Type added</string>
     <string name="type_renamed">Type renamed</string>
     <string name="type_restored">Type restored</string>
@@ -297,7 +304,6 @@
     <string name="all_categories">All categories</string>
     <string name="all_tags">All tags</string>
     <string name="filter_and_more">%1$s &amp; more</string>
-    <string name="filter_by_account">Filter by account</string>
     <string name="filter_by_category">Filter by category</string>
     <string name="filter_by_tag">Filter by tag</string>
     <string name="action_clear">Clear</string>

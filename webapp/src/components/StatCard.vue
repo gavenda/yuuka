@@ -19,15 +19,13 @@ const props = withDefaults(
 		signed?: boolean;
 		/** Renders at hero size. Use for the one figure a view leads with. */
 		hero?: boolean;
-		/** A smaller, heavier figure, for a card among several on one row. */
-		compact?: boolean;
 		tone?: 'surface' | 'secondary' | 'tertiary';
 	}>(),
-	{ currency: DEFAULT_CURRENCY, signed: false, hero: false, compact: false, tone: 'surface' },
+	{ currency: DEFAULT_CURRENCY, signed: false, hero: false, tone: 'surface' },
 );
 
 const card = computed(() => (props.tone === 'secondary' ? 'card-secondary' : props.tone === 'tertiary' ? 'card-tertiary' : 'card'));
-const figure = computed(() => (props.hero ? 'type-display-small' : props.compact ? 'type-compact-figure' : 'type-headline-medium'));
+const figure = computed(() => (props.hero ? 'type-display-small' : 'type-headline-medium'));
 </script>
 
 <template>

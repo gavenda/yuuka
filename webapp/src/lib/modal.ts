@@ -1,10 +1,10 @@
 import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
 
-/** Dialogs and sheets that are open, so the page is let go of only when the last one closes. */
+/** Dialogs that are open, so the page is let go of only when the last one closes. */
 let openCount = 0;
 
 /**
- * What every dialog and sheet shares: Escape closes it, the page underneath stops scrolling while it is up,
+ * What every dialog shares: Escape closes it, the page underneath stops scrolling while it is up,
  * and focus moves into it on opening so a keyboard user is not left behind at whatever opened it.
  * `panel` is the element focus goes into; pass `focusFirst` false for a surface that places focus itself.
  */

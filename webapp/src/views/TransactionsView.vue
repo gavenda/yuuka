@@ -4,7 +4,7 @@ import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import FilterSheet from '@/components/FilterSheet.vue';
+import FilterChipRow from '@/components/FilterChipRow.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
@@ -44,7 +44,11 @@ const search = ref('');
 const accountFilter = ref<string[]>([]);
 const categoryFilter = ref<string[]>([]);
 const tagFilter = ref<string[]>([]);
-const openFilter = ref<'accounts' | 'categories' | 'tags' | null>(null);
+type FilterKind = 'accounts' | 'categories' | 'tags';
+/** Each filter button opens its options as a row of chips under the bar; pressing it again puts the row away. */
+const openFilter = ref<FilterKind | null>(null);
+/** What was last open, which stays drawn while the row slides shut. */
+const shownFilter = ref<FilterKind>('accounts');
 const month = ref(budget.month);
 /** The row a delete has been asked for, while the question is still open. */
 const pendingDelete = ref<Transaction | null>(null);
@@ -82,6 +86,22 @@ const accountLabel = computed(() => {
 	if (!labels.length) return 'All accounts';
 	return labels.length === 1 ? labels[0] : `${labels[0]} & more`;
 });
+
+const filterRows = {
+	accounts: { label: 'Filter by account', emptyText: 'No accounts yet', options: accountOptions, selected: accountFilter },
+	categories: { label: 'Filter by category', emptyText: 'No categories yet', options: categoryOptions, selected: categoryFilter },
+	tags: { label: 'Filter by tag', emptyText: 'No tags yet', options: tagOptions, selected: tagFilter },
+};
+const shownRow = computed(() => filterRows[shownFilter.value]);
+const shownSelection = computed({
+	get: () => shownRow.value.selected.value,
+	set: (next) => (shownRow.value.selected.value = next),
+});
+
+function toggleFilter(kind: FilterKind): void {
+	openFilter.value = openFilter.value === kind ? null : kind;
+	if (openFilter.value) shownFilter.value = openFilter.value;
+}
 
 const filters = computed(() => ({
 	month: month.value,
@@ -161,7 +181,7 @@ async function remove(): Promise<void> {
 <template>
 	<div class="pb-24">
 		<!-- What stays put while the list scrolls: the month, the search, and one row of filters, each opening
-		     a sheet of chips. The account button is only as wide as its label; the tag and category icons
+		     a row of chips under it. The account button is only as wide as its label; the tag and category icons
 		     (each with a count of what is on) sit at the end. -->
 		<TopBar>
 			<MonthSwitcher v-model="month" />
@@ -176,14 +196,27 @@ async function remove(): Promise<void> {
 
 			<div class="mt-4 -mb-2 flex h-12 items-center">
 				<div class="flex min-w-0 flex-1">
-					<button type="button" class="btn-text min-w-0 gap-0" aria-haspopup="dialog" @click="openFilter = 'accounts'">
+					<button
+						type="button"
+						class="btn-text min-w-0 gap-0"
+						:aria-expanded="openFilter === 'accounts'"
+						aria-controls="filter-chips"
+						@click="toggleFilter('accounts')"
+					>
 						<AppIcon :icon="ACCOUNT_BALANCE_WALLET" :size="18" class="mr-2" />
 						<span class="truncate">{{ accountLabel }}</span>
 						<AppIcon :icon="ARROW_DROP_DOWN" :size="18" />
 					</button>
 				</div>
 
-				<button type="button" class="btn-icon relative m-1" aria-label="Filter by tag" aria-haspopup="dialog" @click="openFilter = 'tags'">
+				<button
+					type="button"
+					class="btn-icon relative m-1"
+					aria-label="Filter by tag"
+					:aria-expanded="openFilter === 'tags'"
+					aria-controls="filter-chips"
+					@click="toggleFilter('tags')"
+				>
 					<AppIcon :icon="SELL_OUTLINED" />
 					<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
 				</button>
@@ -192,39 +225,24 @@ async function remove(): Promise<void> {
 					type="button"
 					class="btn-icon relative m-1"
 					aria-label="Filter by category"
-					aria-haspopup="dialog"
-					@click="openFilter = 'categories'"
+					:aria-expanded="openFilter === 'categories'"
+					aria-controls="filter-chips"
+					@click="toggleFilter('categories')"
 				>
 					<AppIcon :icon="FILTER_LIST_OUTLINED" />
 					<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
 				</button>
 			</div>
-		</TopBar>
 
-		<FilterSheet
-			v-model="accountFilter"
-			:open="openFilter === 'accounts'"
-			title="Filter by account"
-			:options="accountOptions"
-			empty-text="No accounts yet"
-			@close="openFilter = null"
-		/>
-		<FilterSheet
-			v-model="categoryFilter"
-			:open="openFilter === 'categories'"
-			title="Filter by category"
-			:options="categoryOptions"
-			empty-text="No categories yet"
-			@close="openFilter = null"
-		/>
-		<FilterSheet
-			v-model="tagFilter"
-			:open="openFilter === 'tags'"
-			title="Filter by tag"
-			:options="tagOptions"
-			empty-text="No tags yet"
-			@close="openFilter = null"
-		/>
+			<FilterChipRow
+				id="filter-chips"
+				v-model="shownSelection"
+				:open="openFilter !== null"
+				:label="shownRow.label"
+				:options="shownRow.options.value"
+				:empty-text="shownRow.emptyText"
+			/>
+		</TopBar>
 
 		<p v-if="store.error" class="type-body-large p-4 text-error" role="alert">{{ store.error }}</p>
 

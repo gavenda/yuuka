@@ -50,6 +50,7 @@ import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.LocalSnackbarOverlays
 import dev.gavenda.yuuka.ui.common.RailFabHost
 import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
+import dev.gavenda.yuuka.ui.accounttypes.AccountTypesScreen
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
 import dev.gavenda.yuuka.ui.settings.SettingsScreen
 import dev.gavenda.yuuka.ui.subscriptions.SubscriptionsScreen
@@ -179,7 +180,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     // Settings and Save the Change are pushed on top of whatever tab was showing, so they
     // just need the same guard against re-navigating to the screen already shown.
     val navigateToDetail: (String) -> Unit = { route ->
-        if (route != currentRoute) navController.navigate(route)
+        when {
+            route == currentRoute -> Unit
+            // Settings from a screen it opened is the way back to it, not a second copy on top.
+            route == SETTINGS_ROUTE && currentRoute == ACCOUNT_TYPES_ROUTE -> navController.popBackStack()
+            else -> navController.navigate(route)
+        }
     }
 
     // The screens themselves, hosted either beside the rail or inside the phone's drawer.
@@ -279,7 +285,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     composable(YuukaDestination.CATEGORIES.route) { CategoriesScreen() }
                     composable(YuukaDestination.TAGS.route) { TagsScreen() }
                     composable(YuukaDestination.SUBSCRIPTIONS.route) { SubscriptionsScreen() }
-                    composable(SETTINGS_ROUTE) { SettingsScreen() }
+                    composable(SETTINGS_ROUTE) { SettingsScreen(onOpenAccountTypes = { navController.navigate(ACCOUNT_TYPES_ROUTE) }) }
+                    composable(ACCOUNT_TYPES_ROUTE) { AccountTypesScreen() }
                     composable(SAVE_THE_CHANGE_ROUTE) { SaveTheChangeScreen() }
                 }
             }
@@ -386,7 +393,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         NavigationDrawerItem(
                             label = { Text(settingsLabel) },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                            selected = currentRoute == SETTINGS_ROUTE,
+                            selected = isSettingsRoute(currentRoute),
                             onClick = {
                                 navigateToDetail(SETTINGS_ROUTE)
                                 scope.launch { drawerState.close() }

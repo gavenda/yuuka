@@ -1,7 +1,6 @@
 package dev.gavenda.yuuka.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 
 private val Base = Typography()
@@ -17,10 +16,3 @@ val Typography = Base.copy(
     headlineLarge = Base.headlineLarge.copy(fontWeight = FontWeight.Bold),
     headlineMedium = Base.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
 )
-
-/**
- * The emphasised figure for a compact stat card, one step below [Typography.headlineMedium].
- * `titleLarge` itself stays regular because top app bars use it.
- */
-val Typography.compactFigure: TextStyle
-    get() = titleLarge.copy(fontWeight = FontWeight.SemiBold)

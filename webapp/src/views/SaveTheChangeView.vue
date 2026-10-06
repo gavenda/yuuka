@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
-import BottomSheet from '@/components/BottomSheet.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
+import SelectionDialog from '@/components/SelectionDialog.vue';
 import SelectionItem from '@/components/SelectionItem.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
@@ -230,56 +230,41 @@ onMounted(() => ledger.load());
 			</div>
 		</section>
 
-		<!-- Any number of accounts: each press opts one in or out, and the sheet stays open. -->
-		<BottomSheet :open="sourceSheetOpen" label="Choose accounts" @close="sourceSheetOpen = false">
-			<div class="px-4 pb-6">
-				<h2 class="type-headline-small pb-4">Choose accounts</h2>
-				<div class="selection-list">
-					<SelectionItem
-						v-for="account in ledger.activeAccounts"
-						:key="account.id"
-						:icon="ACCOUNT_CIRCLE"
-						:title="account.name"
-						:subtitle="account.typeName"
-						:selected="account.roundUpSource"
-						@click="toggleSource(account)"
-					/>
-				</div>
-			</div>
-		</BottomSheet>
+		<!-- Any number of accounts: each press opts one in or out, and the dialog stays open. -->
+		<SelectionDialog :open="sourceSheetOpen" title="Choose accounts" @close="sourceSheetOpen = false" dismiss-label="Done">
+			<SelectionItem
+				v-for="account in ledger.activeAccounts"
+				:key="account.id"
+				:icon="ACCOUNT_CIRCLE"
+				:title="account.name"
+				:subtitle="account.typeName"
+				:selected="account.roundUpSource"
+				@click="toggleSource(account)"
+			/>
+		</SelectionDialog>
 
-		<BottomSheet :open="destinationSheetOpen" label="Destination account" @close="destinationSheetOpen = false">
-			<div class="px-4 pb-6">
-				<h2 class="type-headline-small pb-4">Destination account</h2>
-				<div class="selection-list">
-					<SelectionItem
-						v-for="account in ledger.activeAccounts"
-						:key="account.id"
-						:icon="ACCOUNT_CIRCLE"
-						:title="account.name"
-						:subtitle="account.typeName"
-						:selected="account.id === destinationId"
-						@click="pickDestination(account.id)"
-					/>
-				</div>
-			</div>
-		</BottomSheet>
+		<SelectionDialog :open="destinationSheetOpen" title="Destination account" @close="destinationSheetOpen = false">
+			<SelectionItem
+				v-for="account in ledger.activeAccounts"
+				:key="account.id"
+				:icon="ACCOUNT_CIRCLE"
+				:title="account.name"
+				:subtitle="account.typeName"
+				:selected="account.id === destinationId"
+				@click="pickDestination(account.id)"
+			/>
+		</SelectionDialog>
 
-		<BottomSheet :open="categorySheetOpen" label="Cashflow category" @close="categorySheetOpen = false">
-			<div class="px-4 pb-6">
-				<h2 class="type-headline-small pb-4">Cashflow category</h2>
-				<div class="selection-list">
-					<SelectionItem
-						v-for="row in categoryRows"
-						:key="row.id ?? 'none'"
-						:icon="row.id === null ? BLOCK : CATEGORY"
-						:title="row.name"
-						:subtitle="row.parentName"
-						:selected="row.id === categoryId"
-						@click="pickCategory(row.id)"
-					/>
-				</div>
-			</div>
-		</BottomSheet>
+		<SelectionDialog :open="categorySheetOpen" title="Cashflow category" @close="categorySheetOpen = false">
+			<SelectionItem
+				v-for="row in categoryRows"
+				:key="row.id ?? 'none'"
+				:icon="row.id === null ? BLOCK : CATEGORY"
+				:title="row.name"
+				:subtitle="row.parentName"
+				:selected="row.id === categoryId"
+				@click="pickCategory(row.id)"
+			/>
+		</SelectionDialog>
 	</div>
 </template>

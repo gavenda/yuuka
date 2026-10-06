@@ -6,8 +6,9 @@ import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import DenseField from '@/components/DenseField.vue';
+import { reducedMotion, useFrameClock } from '@/lib/frameClock';
 import { useFormValidation } from '@/lib/validation';
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 
 const props = withDefaults(defineProps<{ entry: CategoryBreakdown; currency?: string }>(), { currency: DEFAULT_CURRENCY });
 
@@ -106,18 +107,40 @@ function point(turn: number, radius: number): string {
 	return `${(centre + radius * Math.sin(angle)).toFixed(2)} ${(centre - radius * Math.cos(angle)).toFixed(2)}`;
 }
 
+/** How long the ring takes to reach a new share, and how long the wave takes to travel one of its own lengths. */
+const PROGRESS_MS = 500;
+const WAVE_MS = 1000;
+
+const clock = useFrameClock();
+const target = computed(() => percent.value / 100);
+/** Where the ring last set off from, and when; it starts out already arrived. */
+const tween = shallowRef({ from: target.value, at: -Infinity });
+
+function shownTowards(to: number): number {
+	const elapsed = reducedMotion() ? 1 : Math.min(1, (clock.value - tween.value.at) / PROGRESS_MS);
+	return tween.value.from + (to - tween.value.from) * (1 - (1 - elapsed) ** 3);
+}
+
+// A share that changes is travelled to from wherever the ring had got to, as Material's indicator does.
+watch(target, (_, previous) => (tween.value = { from: shownTowards(previous), at: clock.value }));
+
+/** The share the ring is drawing this frame, on its way to the real one. */
+const shown = computed(() => shownTowards(target.value));
+
 /** The share drawn as a wave running clockwise from the top, going flat once the plan is used up. */
 const arc = computed(() => {
-	const progress = percent.value / 100;
+	const progress = shown.value;
 	if (progress <= 0) return '';
 
 	const amplitude = progress >= 1 ? 0 : RING.amplitude;
-	const steps = Math.max(2, Math.ceil(progress * 240));
+	// The wave travels round the ring; a flat one has nothing to move, so it does not redraw every frame.
+	const phase = amplitude ? ((clock.value % WAVE_MS) / WAVE_MS) * Math.PI * 2 : 0;
+	const steps = Math.max(2, Math.ceil(progress * 160));
 	const points: string[] = [];
 
 	for (let step = 0; step <= steps; step++) {
 		const turn = (step / steps) * progress;
-		points.push(`${step === 0 ? 'M' : 'L'}${point(turn, RING.radius + amplitude * Math.sin(turn * Math.PI * 2 * RING.waves))}`);
+		points.push(`${step === 0 ? 'M' : 'L'}${point(turn, RING.radius + amplitude * Math.sin(turn * Math.PI * 2 * RING.waves - phase))}`);
 	}
 
 	return points.join(' ') + (progress >= 1 ? ' Z' : '');
@@ -125,7 +148,7 @@ const arc = computed(() => {
 
 /** What is left of the ring, as a plain track, standing a little clear of the wave at both ends. */
 const track = computed(() => {
-	const progress = percent.value / 100;
+	const progress = shown.value;
 	if (progress >= 1) return '';
 	if (progress <= 0)
 		return `M${point(0, RING.radius)} A${RING.radius} ${RING.radius} 0 1 1 ${point(0.5, RING.radius)} A${RING.radius} ${RING.radius} 0 1 1 ${point(0, RING.radius)}`;

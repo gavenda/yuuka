@@ -1,27 +1,17 @@
 package dev.gavenda.yuuka.ui.accounts
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LibraryAdd
 import androidx.compose.material3.*
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
@@ -53,27 +43,11 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         onSetArchived = viewModel::setArchived,
         onDeleteAccount = viewModel::deleteAccount,
         onAdjustBalance = viewModel::adjustBalance,
-        typeActions = remember(viewModel) {
-            AccountTypeActions(
-                create = viewModel::createAccountType,
-                rename = viewModel::renameAccountType,
-                setArchived = viewModel::setAccountTypeArchived,
-                delete = viewModel::deleteAccountType,
-            )
-        },
     )
 }
 
-/** What the account-type manager asks for; a preview leaves every one of them doing nothing. */
-internal class AccountTypeActions(
-    val create: suspend (name: String) -> Unit = {},
-    val rename: suspend (id: String, name: String) -> Unit = { _, _ -> },
-    val setArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
-    val delete: suspend (id: String) -> Unit = {},
-)
-
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AccountsScreenContent(
     state: AccountsUiState,
@@ -84,13 +58,10 @@ internal fun AccountsScreenContent(
     onSetArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
     onDeleteAccount: suspend (id: String, includeTransactions: Boolean) -> Unit = { _, _ -> },
     onAdjustBalance: suspend (id: String, balance: Long, payee: String) -> Unit = { _, _, _ -> },
-    typeActions: AccountTypeActions = AccountTypeActions(),
 ) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
 
-    var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    var typesOpen by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Account?>(null) }
     var creating by remember { mutableStateOf(false) }
     var adjusting by remember { mutableStateOf<Account?>(null) }
@@ -116,51 +87,10 @@ internal fun AccountsScreenContent(
         topBar = { LargeScreenTopBar(stringResource(R.string.destination_accounts), scrollBehavior) },
         
         floatingActionButton = {
-            val newAccountLabel = stringResource(R.string.new_account)
-            val editTypesLabel = stringResource(R.string.edit_account_types)
             ScreenFab(
-                label = stringResource(R.string.account_actions),
+                label = stringResource(R.string.new_account),
                 icon = Icons.Filled.Add,
-                onClick = { fabMenuExpanded = true },
-                // The navigation rail lists the same two actions in a dropdown from its button.
-                actions = listOf(
-                    FabAction(newAccountLabel, { Icon(Icons.Filled.LibraryAdd, contentDescription = null) }) { creating = true },
-                    FabAction(editTypesLabel, { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) }) {
-                        typesOpen = true
-                    },
-                ),
-                phoneFab = {
-                    BackHandler(fabMenuExpanded) { fabMenuExpanded = false }
-                    FloatingActionButtonMenu(
-                        // The menu pads its own button 16dp in from the end and 16dp up from the bottom, on top
-                        // of the Scaffold's usual FAB inset — this cancels it so the FAB lines up with the
-                        // ExtendedFloatingActionButton on the other screens.
-                        modifier = Modifier.offset(x = 16.dp, y = 16.dp),
-                        expanded = fabMenuExpanded,
-                        button = {
-                            val actionsLabel = stringResource(R.string.account_actions)
-                            ToggleFloatingActionButton(
-                                modifier = Modifier.semantics { contentDescription = actionsLabel },
-                                checked = fabMenuExpanded,
-                                onCheckedChange = { fabMenuExpanded = it },
-                            ) {
-                                val icon by remember { derivedStateOf { if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add } }
-                                Icon(rememberVectorPainter(icon), contentDescription = null, modifier = Modifier.animateIcon({ checkedProgress }))
-                            }
-                        },
-                    ) {
-                        FloatingActionButtonMenuItem(
-                            onClick = { fabMenuExpanded = false; creating = true },
-                            icon = { Icon(Icons.Filled.LibraryAdd, contentDescription = null) },
-                            text = { Text(newAccountLabel) },
-                        )
-                        FloatingActionButtonMenuItem(
-                            onClick = { fabMenuExpanded = false; typesOpen = true },
-                            icon = { Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null) },
-                            text = { Text(editTypesLabel) },
-                        )
-                    }
-                },
+                onClick = { creating = true },
             )
         },
     ) { padding ->
@@ -223,10 +153,6 @@ internal fun AccountsScreenContent(
         }
     }
 
-    if (typesOpen) {
-        AccountTypeManagerContent(state.accountTypes, typeActions, onClose = { typesOpen = false })
-    }
-
     if (creating || editing != null) {
         val formKey = "account-form"
         val submitting = busy.isBusy(formKey)
@@ -257,20 +183,16 @@ internal fun AccountsScreenContent(
     if (toAdjust != null) {
         val adjustKey = "account-adjust:${toAdjust.id}"
         val submitting = busy.isBusy(adjustKey)
-        ModalBottomSheet(onDismissRequest = { if (!submitting) adjusting = null }) {
-            WithSnackbarOverlay {
-                AccountAdjustContent(
-                    account = toAdjust,
-                    submitting = submitting,
-                    onSave = { balance, payee ->
-                        busy.run(adjustKey, snackbarHostState, successMessage = balanceAdjustedMessage, onSuccess = { adjusting = null }) {
-                            onAdjustBalance(toAdjust.id, balance, payee)
-                        }
-                    },
-                    onCancel = { adjusting = null },
-                )
-            }
-        }
+        AccountAdjustDialog(
+            account = toAdjust,
+            submitting = submitting,
+            onSave = { balance, payee ->
+                busy.run(adjustKey, snackbarHostState, successMessage = balanceAdjustedMessage, onSuccess = { adjusting = null }) {
+                    onAdjustBalance(toAdjust.id, balance, payee)
+                }
+            },
+            onCancel = { adjusting = null },
+        )
     }
 
     val toDelete = pendingDelete
@@ -459,7 +381,7 @@ private fun AccountFormContent(
 }
 
 @Composable
-private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: (Long, String) -> Unit, onCancel: () -> Unit) {
+private fun AccountAdjustDialog(account: Account, submitting: Boolean, onSave: (Long, String) -> Unit, onCancel: () -> Unit) {
     var balance by remember { mutableStateOf(toDecimalString(account.balance)) }
     var payee by remember { mutableStateOf("") }
     val form = rememberFormValidation()
@@ -475,48 +397,51 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
     )
     val payeeField = form.field("payee", if (payee.trim().length > PAYEE_MAX) stringResource(R.string.error_too_long, PAYEE_MAX) else null)
 
-    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.adjust_balance), style = MaterialTheme.typography.titleMedium)
+    AlertDialog(
+        onDismissRequest = { if (!submitting) onCancel() },
+        title = { Text(stringResource(R.string.adjust_balance)) },
+        text = {
+            WithSnackbarOverlay {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
 
-        Text(
-            stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+                    YuukaTextField(
+                        value = balance,
+                        onValueChange = { balance = it },
+                        label = stringResource(R.string.label_new_balance),
+                        placeholder = stringResource(R.string.placeholder_amount_decimal),
+                        singleLine = true,
+                        field = balanceField,
+                    )
 
-        YuukaTextField(
-            value = balance,
-            onValueChange = { balance = it },
-            label = stringResource(R.string.label_new_balance),
-            placeholder = stringResource(R.string.placeholder_amount_decimal),
-            singleLine = true,
-            field = balanceField,
-        )
+                    if (difference != null && difference != 0L) {
+                        Text(
+                            stringResource(
+                                if (difference > 0) R.string.adjust_balance_logs_income else R.string.adjust_balance_logs_expense,
+                                formatMoney(difference, account.currency),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
 
-        if (difference != null && difference != 0L) {
-            Text(
-                stringResource(
-                    if (difference > 0) R.string.adjust_balance_logs_income else R.string.adjust_balance_logs_expense,
-                    formatMoney(difference, account.currency),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-
-        YuukaTextField(
-            value = payee,
-            onValueChange = { payee = it },
-            label = stringResource(R.string.label_payee_optional),
-            singleLine = true,
-            field = payeeField,
-        )
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onCancel, enabled = !submitting, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
-            Button(
-                modifier = Modifier.weight(1f),
+                    YuukaTextField(
+                        value = payee,
+                        onValueChange = { payee = it },
+                        label = stringResource(R.string.label_payee_optional),
+                        singleLine = true,
+                        field = payeeField,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
                 enabled = !submitting && form.valid(balanceField, payeeField),
                 onClick = {
-                    val target = targetMinor ?: return@Button
+                    val target = targetMinor ?: return@TextButton
                     onSave(target, payee.trim())
                 },
             ) {
@@ -526,149 +451,9 @@ private fun AccountAdjustContent(account: Account, submitting: Boolean, onSave: 
                     Text(stringResource(R.string.save_adjustment))
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AccountTypeManagerContent(types: List<AccountType>, actions: AccountTypeActions, onClose: () -> Unit) {
-    val busy = rememberBusyState()
-    val snackbarHostState = LocalSnackbarHostState.current
-    var newName by remember { mutableStateOf("") }
-    var editingId by remember { mutableStateOf<String?>(null) }
-    var draftName by remember { mutableStateOf("") }
-    var showArchived by remember { mutableStateOf(false) }
-
-    val addKey = "type-add"
-    val adding = busy.isBusy(addKey)
-
-    // Types are unique by name, so a name is checked against the others (a rename may keep its own).
-    val addForm = rememberFormValidation()
-    val addField = addForm.field("name", nameProblem(newName, R.string.error_name_taken_account_type) { name -> types.any { it.name == name } })
-    val renameForm = remember(editingId) { FormValidation() }
-    val renameField = renameForm.field(
-        "name",
-        nameProblem(draftName, R.string.error_name_taken_account_type) { name -> types.any { it.id != editingId && it.name == name } },
+        },
+        dismissButton = { TextButton(onClick = onCancel, enabled = !submitting) { Text(stringResource(R.string.action_cancel)) } },
     )
-
-    val typeAddedMessage = stringResource(R.string.type_added)
-    val typeRenamedMessage = stringResource(R.string.type_renamed)
-    val typeRestoredMessage = stringResource(R.string.type_restored)
-    val typeArchivedMessage = stringResource(R.string.type_archived)
-    val typeDeletedMessage = stringResource(R.string.type_deleted)
-
-    // Nothing here waits for a Save: a type is added, renamed, archived or deleted as it is asked for.
-    FullScreenDialog(title = stringResource(R.string.account_types_title), onDismiss = onClose) {
-        Text(
-            stringResource(R.string.account_types_description),
-            style = MaterialTheme.typography.bodySmall,
-        )
-
-        // Top-aligned: a field in error grows a line beneath itself, and the button stays beside the field, not the line.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.Top) {
-            DenseOutlinedTextField(
-                value = newName,
-                onValueChange = { newName = it },
-                placeholder = stringResource(R.string.placeholder_add_a_type),
-                field = addField,
-                modifier = Modifier.weight(1f),
-            )
-            Button(
-                enabled = !adding && addForm.valid(addField),
-                onClick = {
-                    val name = newName.trim()
-                    busy.run(addKey, snackbarHostState, successMessage = typeAddedMessage, onSuccess = { newName = "" }) {
-                        actions.create(name)
-                    }
-                },
-            ) {
-                if (adding) {
-                    MutationLoadingIndicator()
-                } else {
-                    Text(stringResource(R.string.action_add))
-                }
-            }
-        }
-
-        val visible = types.filter { showArchived || !it.archived }
-        visible.forEach { type ->
-            if (editingId == type.id) {
-                val renameKey = "type-rename:${type.id}"
-                val renaming = busy.isBusy(renameKey)
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.Top) {
-                    DenseOutlinedTextField(value = draftName, onValueChange = { draftName = it }, field = renameField, modifier = Modifier.weight(1f), enabled = !renaming)
-                    TextButton(
-                        enabled = !renaming && renameForm.valid(renameField),
-                        onClick = {
-                            val name = draftName.trim()
-                            busy.run(renameKey, snackbarHostState, successMessage = typeRenamedMessage, onSuccess = { editingId = null }) {
-                                actions.rename(type.id, name)
-                            }
-                        },
-                    ) {
-                        if (renaming) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
-                    }
-                    TextButton(onClick = { editingId = null }, enabled = !renaming) { Text(stringResource(R.string.action_cancel)) }
-                }
-            } else {
-                val archiveKey = "type-archive:${type.id}"
-                val deleteKey = "type-delete:${type.id}"
-                SwipeToRevealActions(
-                    modifier = Modifier.fillMaxWidth(),
-                    actions = {
-                        ActionIconButton(ActionIcon.EDIT, stringResource(R.string.cd_rename_item, type.name), { editingId = type.id; draftName = type.name })
-                        ActionIconButton(
-                            if (type.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
-                            stringResource(R.string.cd_archive_item, type.name),
-                            {
-                                busy.run(
-                                    archiveKey,
-                                    snackbarHostState,
-                                    successMessage = if (type.archived) typeRestoredMessage else typeArchivedMessage,
-                                ) { actions.setArchived(type.id, !type.archived) }
-                            },
-                            loading = busy.isBusy(archiveKey),
-                        )
-                        ActionIconButton(
-                            ActionIcon.DELETE,
-                            stringResource(R.string.cd_delete_item, type.name),
-                            {
-                                busy.run(deleteKey, snackbarHostState, successMessage = typeDeletedMessage) {
-                                    actions.delete(type.id)
-                                }
-                            },
-                            danger = true,
-                            enabled = type.accountCount == 0,
-                            loading = busy.isBusy(deleteKey),
-                        )
-                    },
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    ) {
-                        Text(if (type.archived) stringResource(R.string.name_archived, type.name) else type.name, modifier = Modifier.weight(1f))
-                        Text("${type.accountCount}", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-        }
-
-        val archivedCount = types.count { it.archived }
-        if (archivedCount > 0) {
-            TextButton(onClick = { showArchived = !showArchived }) {
-                Text(
-                    stringResource(
-                        if (showArchived) R.string.archived_toggle_hide else R.string.archived_toggle_show,
-                        archivedCount,
-                    ),
-                )
-            }
-        }
-    }
 }
 
 @Preview(showBackground = true)

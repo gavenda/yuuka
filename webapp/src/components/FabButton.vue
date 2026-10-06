@@ -8,7 +8,7 @@ import { onBeforeUnmount, reactive, ref, watch } from 'vue';
  * The one action a screen leads with (`ScreenFab` on Android). From `sm` up the navigation rail shows it
  * (see `NavRail`), so this only draws the floating button that sits above the bottom bar on a phone; either
  * way it is the same action, registered here and run through `click`. With `actions` the button opens a
- * menu of them instead, as the Accounts screen's does.
+ * menu of them instead, for a screen whose leading action is really a few.
  */
 const props = withDefaults(defineProps<{ label: string; icon?: IconPath; disabled?: boolean; actions?: FabAction[] }>(), {
 	icon: ADD,

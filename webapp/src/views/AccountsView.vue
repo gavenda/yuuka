@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import AccountLogo from '@/components/AccountLogo.vue';
-import AccountTypeManager from '@/components/AccountTypeManager.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
-import BottomSheet from '@/components/BottomSheet.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FieldSupport from '@/components/FieldSupport.vue';
@@ -14,7 +12,6 @@ import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
-import { CONTRACT_EDIT, LIBRARY_ADD } from '@/lib/icons';
 import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
@@ -33,7 +30,6 @@ const editing = ref<Account | null>(null);
 const error = ref<string | null>(null);
 const showArchived = ref(false);
 
-const typesOpen = ref(false);
 const form = reactive({
 	name: '',
 	typeId: '',
@@ -260,12 +256,6 @@ async function remove(): Promise<void> {
 	await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 }
 
-/** The FAB's two actions: the rail lists them in a menu from its button. */
-const fabActions = [
-	{ label: 'New account', icon: LIBRARY_ADD, run: openCreate },
-	{ label: 'Edit account types', icon: CONTRACT_EDIT, run: () => (typesOpen.value = true) },
-];
-
 onMounted(() => ledger.load());
 </script>
 
@@ -315,8 +305,6 @@ onMounted(() => ledger.load());
 				{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
 			</button>
 		</div>
-
-		<AccountTypeManager :open="typesOpen" @changed="budget.refresh()" @close="typesOpen = false" />
 
 		<FormDialog
 			:open="dialogOpen"
@@ -381,10 +369,16 @@ onMounted(() => ledger.load());
 			</div>
 		</FormDialog>
 
-		<BottomSheet :open="adjustDialogOpen" label="Adjust balance" @close="adjustDialogOpen = false">
-			<form v-if="adjusting" class="flex flex-col gap-3 p-5" novalidate @submit.prevent="saveAdjustment" @input="adjustValidation.onInput">
-				<h2 class="type-title-medium">Adjust balance</h2>
-				<p class="type-body-medium">
+		<AlertDialog :open="adjustDialogOpen" title="Adjust balance" role="dialog" @close="adjustDialogOpen = false">
+			<form
+				v-if="adjusting"
+				id="adjust-form"
+				class="flex flex-col gap-3 sm:w-96"
+				novalidate
+				@submit.prevent="saveAdjustment"
+				@input="adjustValidation.onInput"
+			>
+				<p>
 					{{ adjusting.name }}'s current balance is {{ displayMoney(adjusting.balance, adjusting.currency) }}. Enter what it should be
 					instead — the difference is logged as its own transaction, dated today.
 				</p>
@@ -412,13 +406,14 @@ onMounted(() => ledger.load());
 				/>
 
 				<p v-if="adjustError" class="type-body-small text-error" role="alert">{{ adjustError }}</p>
-
-				<div class="flex gap-2">
-					<button type="button" class="btn-text flex-1" @click="adjustDialogOpen = false">Cancel</button>
-					<button type="submit" class="btn-primary flex-1" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
-				</div>
 			</form>
-		</BottomSheet>
+
+			<!-- Outside the form, as a dialog's buttons are, so Save names the form it submits. -->
+			<template #actions>
+				<button type="button" class="btn-text" @click="adjustDialogOpen = false">Cancel</button>
+				<button type="submit" form="adjust-form" class="btn-text" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
+			</template>
+		</AlertDialog>
 
 		<AlertDialog :open="pendingDelete !== null" :title="`Delete &quot;${pendingDelete?.name}&quot;?`" @close="closeDelete">
 			<p v-if="deleteWarning" class="whitespace-pre-line">{{ deleteWarning }}{{ '\n\n' }}Delete the account and its transactions?</p>
@@ -428,6 +423,6 @@ onMounted(() => ledger.load());
 			</template>
 		</AlertDialog>
 
-		<FabButton label="Account actions" :actions="fabActions" />
+		<FabButton label="New account" @click="openCreate" />
 	</div>
 </template>

@@ -57,7 +57,6 @@ internal fun BudgetScreenContent(
 ) {
     val visibility = koinInject<AmountVisibility>()
     val isPhp = state.currency == "PHP"
-    val compactAmounts = rememberIsWideLayout()
 
     var incomeEditing by remember { mutableStateOf(false) }
     var incomeMode by remember { mutableStateOf(IncomePlanMode.gross) }
@@ -112,12 +111,8 @@ internal fun BudgetScreenContent(
                                     if (savingIncome) incomeSaveStarted = true else if (incomeSaveStarted) incomeEditing = false
                                 }
 
-                                // The field and its buttons are drawn for an ordinary surface, so they sit on an inset panel of one.
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                                    shape = MaterialTheme.shapes.large,
-                                ) {
-                                Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                // Drawn straight on the card, as a category's budget is edited on its own.
+                                Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
                                     androidx.compose.runtime.CompositionLocalProvider(
                                         androidx.compose.material3.LocalTextStyle provides MaterialTheme.typography.headlineSmall,
                                     ) {
@@ -158,8 +153,6 @@ internal fun BudgetScreenContent(
                                             }
                                         }
                                     }
-
-                                }
                                 }
                             } else {
                                 TextButton(
@@ -249,7 +242,6 @@ internal fun BudgetScreenContent(
                                         netPayBreakdown.netPay,
                                         "PHP",
                                         caption = stringResource(R.string.used_as_planned_income),
-                                        compact = compactAmounts,
                                     ),
                                 )
                             }
@@ -260,7 +252,6 @@ internal fun BudgetScreenContent(
                                         state.totalAllocated,
                                         state.currency,
                                         caption = stringResource(R.string.planned_across_categories),
-                                        compact = compactAmounts,
                                     ),
                                 )
                                 add(
@@ -274,7 +265,6 @@ internal fun BudgetScreenContent(
                                             Math.round(state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).toInt(),
                                         ),
                                         signed = true,
-                                        compact = compactAmounts,
                                     ),
                                 )
                             }

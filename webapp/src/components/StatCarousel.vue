@@ -8,7 +8,6 @@ export interface StatItem {
 	amount: number;
 	caption?: string;
 	signed?: boolean;
-	compact?: boolean;
 }
 
 /**
@@ -34,7 +33,6 @@ withDefaults(defineProps<{ stats: StatItem[]; currency?: string; tone?: 'surface
 			:currency="currency"
 			:caption="stat.caption"
 			:signed="stat.signed"
-			:compact="stat.compact"
 			:tone="tone"
 		/>
 	</div>

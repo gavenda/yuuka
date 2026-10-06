@@ -384,7 +384,7 @@ same figures sit beside the chart as a visually hidden table, the non-visual rou
 
 **The web app is the Android app as a tablet draws it.** From the `sm` breakpoint up, every screen is laid
 out, coloured and worded as its Compose screen is in a window with a rail: the same rail, the same grouped
-rows, cards, dialogs and sheets, the same copy. The Compose source is the specification — when a screen
+rows, cards and dialogs, the same copy. The Compose source is the specification — when a screen
 changes there, change its view here to match, and when in doubt read the `.kt` file rather than guess. A
 view's name says which: `DashboardView.vue` is `DashboardScreen.kt`, and so on. What a browser has no
 equivalent of is left out rather than faked (dynamic colour from the wallpaper), and what only a pointer
@@ -429,7 +429,7 @@ classes, not one-offs:
   group's ends and near-square between, under a `.group-header` — accounts under their type,
   transactions under their day, tags, subscriptions. `settings-header`, `settings-group` and
   `settings-row` are the one rounded block of rows the settings screens and Categories use, and
-  `selection-list` / `SelectionItem` the list to pick one of in a sheet.
+  `selection-list` / `SelectionItem` the list to pick one of in a dialog.
 - Fields are outlined text fields: `.field` wraps a `.input` followed by its `.label`, which rests in the
   field while it is empty and rises into the border's notch — cut out in the colour of whatever the field
   sits on (`--surface-under`) — once it has focus or a value. `TextField` is that with its error and
@@ -445,15 +445,18 @@ sideways when the window is too narrow for it), `MonthSwitcher` (with its month 
 and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
 filled set Android uses, extracted from Material's own SVGs rather than redrawn.
 
-**Dialogs and sheets are three components.** `FormDialog` is Android's `FullScreenDialog`: Material's
+**Dialogs are two components, and there are no sheets.** `FormDialog` is Android's `FullScreenDialog`: Material's
 full-screen dialog on a phone (close, the title, Save in the bar) and an ordinary dialog of the same
 content beside a rail, with Cancel and Save at the foot. It is a real `<form>`; bind `saveEnabled` to the
 form's validation, and pass `dirty` so that closing a form that no longer holds what it opened with asks
 before discarding. Every form goes through it. `AlertDialog` is Material's basic dialog, for a question
-that wants an answer (there is no `confirm()` anywhere) and for the month picker. `BottomSheet` is the
-modal bottom sheet, for what is picked from a short list or applied live: the filters (`FilterSheet`),
-adjusting a balance, the default-account and Save the Change pickers. All three share `useModal`
-(`lib/modal.ts`): Escape closes the one on top, the page stops scrolling, focus moves in.
+that wants an answer (there is no `confirm()` anywhere), the month picker and adjusting a balance. It is an
+`alertdialog` unless given `role="dialog"`, which anything that is not a question passes. `SelectionDialog`
+is that with a `.selection-list` in it and one button at the foot, for what is picked from a short list: the
+default-account and Save the Change pickers. Both share `useModal` (`lib/modal.ts`) with `FormDialog`: Escape
+closes the one on top, the page stops scrolling, focus moves in. The transaction filters are not a dialog:
+`FilterChipRow` is a row of chips that slides down under the filter bar in the `TopBar` (`.slide-down`, inert
+while shut), scrolls sideways and applies each change at once.
 
 **A row's actions are behind a swipe.** As on Android, a list row shows no buttons: dragging it left —
 with a finger, or a mouse held down on it — reveals its `ActionIcon`s (`SwipeReveal`), and pressing the
@@ -472,7 +475,7 @@ on them is picked from a list, so it is written as it is made and neither screen
 display currency is the deliberate exception — it relabels every figure in the app, so its dialog only
 marks a row and writes on Save — and a rule switched on before a destination is chosen waits on the
 screen, with the error beside the group, until an account is picked. Which accounts round up is chosen
-there too, from a sheet that writes `roundUpSource` one account at a time; the account form says nothing
+there too, from a dialog that writes `roundUpSource` one account at a time; the account form says nothing
 about round-ups.
 
 **Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`, a Material 3
@@ -497,7 +500,7 @@ add a `v-if` on `expanded` to the rail's layout, or that entry will pop instead 
 
 `FabButton` is the one action a screen leads with (`ScreenFab` on Android), registered in `src/lib/fab.ts`:
 a phone gets the floating button, and from `sm` up the rail shows it under its menu button, a square while
-slim and an extended FAB when open. With `actions` it opens a menu of them instead, as Accounts' does. It
+slim and an extended FAB when open. With `actions` it opens a menu of them instead, for a screen whose leading action is really a few. It
 has a slot of its own in the rail that opens from nothing, sliding the destinations down as the FAB pops
 in, and is one persistent button: between two pages that both have a FAB the slot stays open while the
 same button folds back to its square, takes the new label and unfolds again.

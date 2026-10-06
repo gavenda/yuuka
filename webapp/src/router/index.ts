@@ -5,7 +5,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 /**
  * `meta.title` names the screen. `meta.amountFree` marks one that shows no amount, where the hide-amounts
- * switch has nothing to mask and is left out (Android's `AMOUNT_FREE_ROUTES`).
+ * switch has nothing to mask and is left out (Android's `AMOUNT_FREE_ROUTES`). `meta.parent` is the screen a
+ * screen is opened from: the rail keeps marking that one, and a phone's bar leads back to it.
  */
 const routes: RouteRecordRaw[] = [
 	{ path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true, title: 'Sign in' } },
@@ -31,6 +32,12 @@ const routes: RouteRecordRaw[] = [
 		name: 'settings',
 		component: () => import('@/views/SettingsView.vue'),
 		meta: { title: 'Settings', amountFree: true },
+	},
+	{
+		path: '/settings/account-types',
+		name: 'account-types',
+		component: () => import('@/views/AccountTypesView.vue'),
+		meta: { title: 'Account types', amountFree: true, parent: '/settings' },
 	},
 	{
 		path: '/save-the-change',

@@ -2,7 +2,6 @@ package dev.gavenda.yuuka.ui.savethechange
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +22,7 @@ import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.ui.common.ScreenTopBar
 import dev.gavenda.yuuka.ui.common.FieldError
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.SelectionDialog
 import dev.gavenda.yuuka.ui.common.rememberFormValidation
 import dev.gavenda.yuuka.ui.settings.ExpressiveButtonGroupSettingItem
 import dev.gavenda.yuuka.ui.settings.ExpressiveModalSelectionItem
@@ -207,81 +207,49 @@ internal fun SaveTheChangeScreenContent(
     }
 
     if (isAccountSheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { isAccountSheetOpen = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.destination_account),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp),
+        SelectionDialog(title = stringResource(R.string.destination_account), onDismiss = { isAccountSheetOpen = false }) {
+            itemsIndexed(state.accounts) { index, account ->
+                ExpressiveModalSelectionItem(
+                    icon = Icons.Default.AccountCircle,
+                    title = account.name,
+                    subtitle = account.typeName,
+                    isSelected = account.id == destinationDraft,
+                    position = positionInGroup(index, state.accounts.lastIndex),
+                    onClick = {
+                        destinationDraft = account.id
+                        isAccountSheetOpen = false
+                        persist(enabledDraft, roundToDraft, account.id, categoryDraft)
+                    },
                 )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    itemsIndexed(state.accounts) { index, account ->
-                        ExpressiveModalSelectionItem(
-                            icon = Icons.Default.AccountCircle,
-                            title = account.name,
-                            subtitle = account.typeName,
-                            isSelected = account.id == destinationDraft,
-                            position = positionInGroup(index, state.accounts.lastIndex),
-                            onClick = {
-                                destinationDraft = account.id
-                                isAccountSheetOpen = false
-                                persist(enabledDraft, roundToDraft, account.id, categoryDraft)
-                            },
-                        )
-                    }
-                }
             }
         }
     }
 
-    // Several accounts can round up at once, so this sheet toggles rather than picks: each tap writes that
-    // one account's opt-in and the sheet stays open for the next.
+    // Several accounts can round up at once, so this dialog toggles rather than picks: each tap writes that
+    // one account's opt-in and the dialog stays open for the next, until Done.
     if (isSourceSheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { isSourceSheetOpen = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() },
+        SelectionDialog(
+            title = stringResource(R.string.save_the_change_choose_accounts),
+            onDismiss = { isSourceSheetOpen = false },
+            dismissLabel = stringResource(R.string.action_done),
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.save_the_change_choose_accounts),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp),
+            itemsIndexed(state.accounts) { index, account ->
+                ExpressiveModalSelectionItem(
+                    icon = Icons.Default.AccountCircle,
+                    title = account.name,
+                    subtitle = account.typeName,
+                    isSelected = account.roundUpSource,
+                    position = positionInGroup(index, state.accounts.lastIndex),
+                    onClick = {
+                        scope.launch {
+                            try {
+                                onSetRoundUpSource(account.id, !account.roundUpSource)
+                            } catch (e: ApiError) {
+                                snackbarHostState.showSnackbar(e.message ?: couldNotSaveAccountMessage)
+                            }
+                        }
+                    },
                 )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    itemsIndexed(state.accounts) { index, account ->
-                        ExpressiveModalSelectionItem(
-                            icon = Icons.Default.AccountCircle,
-                            title = account.name,
-                            subtitle = account.typeName,
-                            isSelected = account.roundUpSource,
-                            position = positionInGroup(index, state.accounts.lastIndex),
-                            onClick = {
-                                scope.launch {
-                                    try {
-                                        onSetRoundUpSource(account.id, !account.roundUpSource)
-                                    } catch (e: ApiError) {
-                                        snackbarHostState.showSnackbar(e.message ?: couldNotSaveAccountMessage)
-                                    }
-                                }
-                            },
-                        )
-                    }
-                }
             }
         }
     }
@@ -296,44 +264,26 @@ internal fun SaveTheChangeScreenContent(
                 }
         }
 
-        ModalBottomSheet(
-            onDismissRequest = { isCategorySheetOpen = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.label_cashflow_category),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp),
+        SelectionDialog(title = stringResource(R.string.label_cashflow_category), onDismiss = { isCategorySheetOpen = false }) {
+            itemsIndexed(categoryRows) { index, row ->
+                ExpressiveModalSelectionItem(
+                    icon = if (row.id == null) Icons.Default.Block else Icons.Default.Category,
+                    title = row.name,
+                    subtitle = row.parentName,
+                    isSelected = row.id == categoryDraft,
+                    position = positionInGroup(index, categoryRows.lastIndex),
+                    onClick = {
+                        categoryDraft = row.id
+                        isCategorySheetOpen = false
+                        persist(enabledDraft, roundToDraft, destinationDraft, row.id)
+                    },
                 )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    itemsIndexed(categoryRows) { index, row ->
-                        ExpressiveModalSelectionItem(
-                            icon = if (row.id == null) Icons.Default.Block else Icons.Default.Category,
-                            title = row.name,
-                            subtitle = row.parentName,
-                            isSelected = row.id == categoryDraft,
-                            position = positionInGroup(index, categoryRows.lastIndex),
-                            onClick = {
-                                categoryDraft = row.id
-                                isCategorySheetOpen = false
-                                persist(enabledDraft, roundToDraft, destinationDraft, row.id)
-                            },
-                        )
-                    }
-                }
             }
         }
     }
 }
 
-/** A settings row that says what is chosen and opens a sheet to change it — the shape Settings uses for its currency and default account. */
+/** A settings row that says what is chosen and opens a dialog to change it — the shape Settings uses for its currency and default account. */
 @Composable
 private fun SelectionSettingRow(
     icon: ImageVector,
@@ -357,7 +307,7 @@ private fun SelectionSettingRow(
     }
 }
 
-/** One pickable category in the sheet — a child carries its parent's name as its subtitle, standing in for the indent a list gave it. */
+/** One pickable category in the dialog — a child carries its parent's name as its subtitle, standing in for the indent a list gave it. */
 private data class CategoryRow(val id: String?, val name: String, val parentName: String?)
 
 @Preview(showBackground = true)

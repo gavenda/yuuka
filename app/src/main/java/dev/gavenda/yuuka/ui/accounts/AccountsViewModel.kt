@@ -45,7 +45,7 @@ data class AccountsUiState(
     }
 }
 
-/** Mirrors `AccountsView.vue` and the account-type CRUD in `AccountTypeManager.vue`. */
+/** Mirrors `AccountsView.vue`. */
 class AccountsViewModel(
     private val ledgerRepository: LedgerRepository,
     private val transactionRepository: TransactionRepository,
@@ -117,15 +117,4 @@ class AccountsViewModel(
     suspend fun adjustBalance(id: String, balance: Long, payee: String) {
         transactionRepository.adjustAccountBalance(id, balance, today(), payee, notes = "")
     }
-
-    suspend fun createAccountType(name: String) {
-        val sortOrder = uiState.value.accountTypes.maxOfOrNull { it.sortOrder }?.plus(1) ?: 0
-        ledgerRepository.createAccountType(name, sortOrder)
-    }
-
-    suspend fun renameAccountType(id: String, name: String) = ledgerRepository.renameAccountType(id, name)
-
-    suspend fun setAccountTypeArchived(id: String, archived: Boolean) = ledgerRepository.setAccountTypeArchived(id, archived)
-
-    suspend fun deleteAccountType(id: String) = ledgerRepository.deleteAccountType(id)
 }

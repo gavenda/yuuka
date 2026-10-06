@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +39,7 @@ import dev.gavenda.yuuka.ui.common.DetailTopBar
 import dev.gavenda.yuuka.ui.common.FullScreenDialog
 import dev.gavenda.yuuka.ui.common.ItemPosition
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.SelectionDialog
 import dev.gavenda.yuuka.ui.common.groupedItemColor
 import dev.gavenda.yuuka.ui.common.groupedItemShape
 import dev.gavenda.yuuka.ui.common.pillTextFieldColors
@@ -62,9 +64,16 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = koinViewModel(),
     themePreference: ThemePreference = koinInject(),
+    onOpenAccountTypes: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    SettingsScreenContent(state = state, modifier = modifier, themePreference = themePreference, onSave = viewModel::save)
+    SettingsScreenContent(
+        state = state,
+        modifier = modifier,
+        themePreference = themePreference,
+        onSave = viewModel::save,
+        onOpenAccountTypes = onOpenAccountTypes,
+    )
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
@@ -75,6 +84,7 @@ internal fun SettingsScreenContent(
     modifier: Modifier = Modifier,
     themePreference: ThemePreference = koinInject(),
     onSave: suspend (displayCurrency: String?, budgetMode: BudgetMode?, defaultAccountId: String?, clearDefaultAccount: Boolean) -> Unit = { _, _, _, _ -> },
+    onOpenAccountTypes: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
@@ -217,7 +227,24 @@ internal fun SettingsScreenContent(
                     )
                 }
 
-                // Section 4: Transactions
+                // Section 4: Accounts. A list to manage rather than a value to pick, so it is a screen of its own.
+                SettingsGroupHeader(title = "Accounts")
+                SettingsGroupContainer {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
+                            .clickable(onClick = onOpenAccountTypes).padding(horizontal = 20.dp, vertical = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.account_types_title), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.account_types_summary), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+                // Section 5: Transactions
                 SettingsGroupHeader(title = "Transactions")
                 SettingsGroupContainer {
                     Row(
@@ -240,7 +267,7 @@ internal fun SettingsScreenContent(
                     }
                 }
 
-                // Section 5: About
+                // Section 6: About
                 SettingsGroupHeader(title = "About")
                 SettingsGroupContainer {
                     Row(
@@ -338,49 +365,22 @@ internal fun SettingsScreenContent(
         }
     }
 
-    // 2. High-Capacity Sheet Layer
     if (isAccountSheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { isAccountSheetOpen = false },
-            dragHandle = { BottomSheetDefaults.DragHandle() }) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)
-            ) {
-                Text(
-                    text = "Select default account",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
+        val accounts = state.accounts.sortedBy { it.typeName }
+        SelectionDialog(title = "Select default account", onDismiss = { isAccountSheetOpen = false }) {
+            itemsIndexed(accounts) { index, account ->
+                ExpressiveModalSelectionItem(
+                    icon = Icons.Default.AccountCircle,
+                    title = account.name,
+                    subtitle = account.typeName,
+                    isSelected = account.id == defaultAccountDraft,
+                    position = positionInGroup(index, accounts.lastIndex),
+                    onClick = {
+                        defaultAccountDraft = account.id
+                        isAccountSheetOpen = false
+                        persist(currencyDraft, budgetModeDraft, account.id)
+                    },
                 )
-
-                // LazyColumn isolates rendering to only items visible on screen for performance
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth()
-                        .weight(1f, fill = false), // Allows sheet to snap size naturally up to a max threshold
-                    verticalArrangement = Arrangement.spacedBy(4.dp) // Segmented Gap representation
-                ) {
-                    itemsIndexed(state.accounts.sortedBy { it.typeName }) { index, account ->
-                        val isSelected = account.id == defaultAccountDraft
-
-                        // Dynamic calculations formatting specific container positions
-                        val position = when (index) {
-                            0 -> ItemPosition.Top
-                            state.accounts.lastIndex -> ItemPosition.Bottom
-                            else -> ItemPosition.Middle
-                        }
-
-                        ExpressiveModalSelectionItem(
-                            icon = Icons.Default.AccountCircle,
-                            title = account.name,
-                            subtitle = account.typeName,
-                            isSelected = isSelected,
-                            position = position,
-                            onClick = {
-                                defaultAccountDraft = account.id
-                                isAccountSheetOpen = false // Clean automatic dismiss logic on pick
-                                persist(currencyDraft, budgetModeDraft, account.id)
-                            })
-                    }
-                }
             }
         }
     }
@@ -523,6 +523,9 @@ fun ExpressiveModalSelectionItem(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
         label = "BgAnim"
     )
+    // The row's ink follows its fill, as the currency row's does. Left to inherit, a row in a dialog took the
+    // dialog's own ink, which is wrong on the primary container and hid the tick in its circle.
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = Modifier.fillMaxWidth().clip(itemShape).background(containerColor).clickable(onClick = onClick)
@@ -531,17 +534,20 @@ fun ExpressiveModalSelectionItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(24.dp),
+            tint = contentColor,
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
+                color = contentColor,
             )
             if (subtitle != null) Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
+                color = contentColor,
             )
         }
         if (isSelected) {
@@ -552,7 +558,8 @@ fun ExpressiveModalSelectionItem(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primaryContainer,
                 )
             }
         }

@@ -1,10 +1,14 @@
 package dev.gavenda.yuuka.ui.transactions
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -22,8 +26,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material3.*
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,7 +113,15 @@ internal fun TransactionsScreenContent(
             state.categories.filter { it.parentId == null }.map { FilterOption(it.id, it.name) }
     }
     val tagOptions = remember(state.tags) { state.tags.map { FilterOption(it.id, it.name) } }
+    // Each filter button opens its options as a row of chips under the bar; pressing it again puts the row away.
     var openFilter by remember { mutableStateOf<FilterKind?>(null) }
+    val toggleFilter = { kind: FilterKind -> openFilter = if (openFilter == kind) null else kind }
+    val openChips = when (openFilter) {
+        FilterKind.ACCOUNTS -> FilterChips(FilterKind.ACCOUNTS, accountOptions, state.accountFilter, stringResource(R.string.no_accounts_yet), onAccountFilterChange)
+        FilterKind.CATEGORIES -> FilterChips(FilterKind.CATEGORIES, categoryOptions, state.categoryFilter, stringResource(R.string.no_categories_yet), onCategoryFilterChange)
+        FilterKind.TAGS -> FilterChips(FilterKind.TAGS, tagOptions, state.tagFilter, stringResource(R.string.no_tags_yet), onTagFilterChange)
+        null -> null
+    }
 
     // The field owns the text; what is typed is handed to the view model, which does the filtering.
     val searchFieldState = rememberTextFieldState(state.searchText)
@@ -148,31 +158,36 @@ internal fun TransactionsScreenContent(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // The button is only as wide as its label; the box takes the rest of the row, which pushes the icons to the end.
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    AccountFilterButton(
-                        options = accountOptions,
-                        selected = state.accountFilter,
-                        allLabel = stringResource(R.string.all_accounts),
-                        onClick = { openFilter = FilterKind.ACCOUNTS },
+            // One child of the spaced column, so the chips' row takes no gap of its own while it is shut.
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // The button is only as wide as its label; the box takes the rest of the row, which pushes the icons to the end.
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        AccountFilterButton(
+                            options = accountOptions,
+                            selected = state.accountFilter,
+                            allLabel = stringResource(R.string.all_accounts),
+                            onClick = { toggleFilter(FilterKind.ACCOUNTS) },
+                        )
+                    }
+                    FilterIconButton(
+                        icon = Icons.Outlined.Sell,
+                        description = stringResource(R.string.filter_by_tag),
+                        count = state.tagFilter.size,
+                        onClick = { toggleFilter(FilterKind.TAGS) },
+                    )
+                    FilterIconButton(
+                        icon = Icons.Outlined.FilterList,
+                        description = stringResource(R.string.filter_by_category),
+                        count = state.categoryFilter.size,
+                        onClick = { toggleFilter(FilterKind.CATEGORIES) },
                     )
                 }
-                FilterIconButton(
-                    icon = Icons.Outlined.Sell,
-                    description = stringResource(R.string.filter_by_tag),
-                    count = state.tagFilter.size,
-                    onClick = { openFilter = FilterKind.TAGS },
-                )
-                FilterIconButton(
-                    icon = Icons.Outlined.FilterList,
-                    description = stringResource(R.string.filter_by_category),
-                    count = state.categoryFilter.size,
-                    onClick = { openFilter = FilterKind.CATEGORIES },
-                )
+
+                FilterChipRow(openChips)
             }
 
             LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 96.dp)) {
@@ -265,38 +280,6 @@ internal fun TransactionsScreenContent(
             onSubmit = onSubmit,
             onCancel = onCloseForm,
         )
-    }
-
-    val dismissFilter = { openFilter = null }
-    when (openFilter) {
-        FilterKind.ACCOUNTS -> FilterSheet(
-            title = stringResource(R.string.filter_by_account),
-            options = accountOptions,
-            selected = state.accountFilter,
-            emptyText = stringResource(R.string.no_accounts_yet),
-            onChange = onAccountFilterChange,
-            onDismiss = dismissFilter,
-        )
-
-        FilterKind.CATEGORIES -> FilterSheet(
-            title = stringResource(R.string.filter_by_category),
-            options = categoryOptions,
-            selected = state.categoryFilter,
-            emptyText = stringResource(R.string.no_categories_yet),
-            onChange = onCategoryFilterChange,
-            onDismiss = dismissFilter,
-        )
-
-        FilterKind.TAGS -> FilterSheet(
-            title = stringResource(R.string.filter_by_tag),
-            options = tagOptions,
-            selected = state.tagFilter,
-            emptyText = stringResource(R.string.no_tags_yet),
-            onChange = onTagFilterChange,
-            onDismiss = dismissFilter,
-        )
-
-        null -> Unit
     }
 
     val toDelete = pendingDelete
@@ -547,46 +530,53 @@ private fun FilterIconButton(icon: ImageVector, description: String, count: Int,
     }
 }
 
-/** Every option as a chip to switch on or off; a change applies at once, so the list behind updates as chips are picked. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The open filter's options as one row of chips that slides down under the filter bar and scrolls sideways;
+ * a change applies at once, so the list below updates as chips are picked. Clear stays at the end of the row
+ * rather than in it, so it appearing never moves a chip from under a finger.
+ */
 @Composable
-private fun FilterSheet(
-    title: String,
-    options: List<FilterOption>,
-    selected: Set<String>,
-    emptyText: String,
-    onChange: (Set<String>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                if (selected.isNotEmpty()) {
-                    TextButton(onClick = { onChange(emptySet()) }) { Text(stringResource(R.string.action_clear)) }
-                }
-            }
+private fun FilterChipRow(chips: FilterChips?) {
+    // What was last open stays drawn while the row slides shut.
+    var last by remember { mutableStateOf(chips) }
+    if (chips != null) SideEffect { last = chips }
 
-            if (options.isEmpty()) {
-                Text(emptyText, style = MaterialTheme.typography.bodyMedium)
+    AnimatedVisibility(
+        visible = chips != null,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        val shown = chips ?: last ?: return@AnimatedVisibility
+        Row(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (shown.options.isEmpty()) {
+                Text(shown.emptyText, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 24.dp))
             } else {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    options.forEach { option ->
-                        val active = option.id in selected
-                        FilterChip(
-                            selected = active,
-                            onClick = { onChange(if (active) selected - option.id else selected + option.id) },
-                            label = { Text(option.label) },
-                            leadingIcon = if (active) {
-                                { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                            } else {
-                                null
-                            },
-                        )
+                // Keyed by the filter, so switching from one to another starts its row from the beginning.
+                key(shown.kind) {
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        items(shown.options, key = { it.id }) { option ->
+                            val active = option.id in shown.selected
+                            FilterChip(
+                                selected = active,
+                                onClick = { shown.onChange(if (active) shown.selected - option.id else shown.selected + option.id) },
+                                label = { Text(option.label) },
+                                leadingIcon = if (active) {
+                                    { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                }
+                if (shown.selected.isNotEmpty()) {
+                    TextButton(onClick = { shown.onChange(emptySet()) }, modifier = Modifier.padding(end = 8.dp)) {
+                        Text(stringResource(R.string.action_clear))
                     }
                 }
             }
@@ -597,6 +587,15 @@ private fun FilterSheet(
 private enum class FilterKind { ACCOUNTS, CATEGORIES, TAGS }
 
 private data class FilterOption(val id: String, val label: String)
+
+/** One filter as [FilterChipRow] draws it: what can be chosen, what is, and where a change goes. */
+private class FilterChips(
+    val kind: FilterKind,
+    val options: List<FilterOption>,
+    val selected: Set<String>,
+    val emptyText: String,
+    val onChange: (Set<String>) -> Unit,
+)
 
 @Preview(showBackground = true)
 @Composable

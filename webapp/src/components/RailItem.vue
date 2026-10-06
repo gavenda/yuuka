@@ -2,7 +2,7 @@
 import AppIcon from '@/components/AppIcon.vue';
 import type { IconPath } from '@/lib/icons';
 import { computed } from 'vue';
-import { useLink } from 'vue-router';
+import { useLink, useRoute } from 'vue-router';
 
 /**
  * One entry in the navigation rail, drawn so it can morph. The slim and the open rail are the same
@@ -28,7 +28,9 @@ const props = withDefaults(
 const emit = defineEmits<{ click: [] }>();
 
 const link = useLink({ to: computed(() => props.to ?? '/') });
-const isActive = computed(() => props.to !== undefined && link.isExactActive.value);
+const route = useRoute();
+// A screen opened from another (the account types, from Settings) leaves the one it came from marked.
+const isActive = computed(() => props.to !== undefined && (link.isExactActive.value || route.meta.parent === props.to));
 
 function onClick(event: MouseEvent): void {
 	if (props.to !== undefined) link.navigate(event);

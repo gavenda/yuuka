@@ -5,9 +5,11 @@ import { ref } from 'vue';
 /**
  * Material 3's basic dialog (`AlertDialog` on Android): an optional headline, supporting text and a row of
  * text buttons at the foot — a question that wants an answer before anything else happens, or a short
- * list to pick from. Put the buttons in the `actions` slot, the dismissing one first.
+ * list to pick from. Put the buttons in the `actions` slot, the dismissing one first. It is an `alertdialog`
+ * unless told otherwise: pass `role="dialog"` for one that is a list or a couple of fields rather than a
+ * question.
  */
-const props = defineProps<{ open: boolean; title?: string }>();
+const props = withDefaults(defineProps<{ open: boolean; title?: string; role?: 'alertdialog' | 'dialog' }>(), { role: 'alertdialog' });
 const emit = defineEmits<{ close: [] }>();
 
 const panel = ref<HTMLElement | null>(null);
@@ -32,7 +34,7 @@ useModal(
 
 				<div
 					ref="panel"
-					role="alertdialog"
+					:role="role"
 					aria-modal="true"
 					:aria-label="title"
 					tabindex="-1"

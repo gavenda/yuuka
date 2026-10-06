@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
-import dev.gavenda.yuuka.ui.theme.compactFigure
 
 /** The container a [StatCard] is drawn on. */
 enum class StatTone { Surface, Secondary, Tertiary }
@@ -25,7 +24,6 @@ fun StatCard(
     caption: String? = null,
     signed: Boolean = false,
     hero: Boolean = false,
-    compact: Boolean = false,
     /** False renders the value like an ordinary figure instead of the usual hero-ish emphasis — for a stat among many, not the one the card is about. */
     emphasized: Boolean = true,
     /** Non-null gives the card Material's press ripple, purely for touch feedback — pass `{}` where no action is needed. */
@@ -56,7 +54,6 @@ fun StatCard(
             style = when {
                 !emphasized -> MaterialTheme.typography.bodyLarge
                 hero -> MaterialTheme.typography.displaySmall
-                compact -> MaterialTheme.typography.compactFigure
                 else -> MaterialTheme.typography.headlineMedium
             },
         )

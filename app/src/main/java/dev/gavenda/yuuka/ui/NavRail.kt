@@ -214,7 +214,7 @@ fun YuukaNavRail(
                         RailItem(
                             label = stringResource(R.string.destination_settings),
                             icon = Icons.Filled.Settings,
-                            selected = currentRoute == SETTINGS_ROUTE,
+                            selected = isSettingsRoute(currentRoute),
                             expanded = true,
                             onClick = {
                                 onNavigateDetail(SETTINGS_ROUTE)

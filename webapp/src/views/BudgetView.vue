@@ -135,18 +135,17 @@ const stats = computed<StatItem[]>(() => {
 	];
 
 	if (netPayBreakdown.value) {
-		list.push({ label: 'Net pay', amount: netPayBreakdown.value.netPay, caption: 'Used as planned income', compact: true });
+		list.push({ label: 'Net pay', amount: netPayBreakdown.value.netPay, caption: 'Used as planned income' });
 	}
 
 	if (budget.plannedIncome > 0) {
 		list.push(
-			{ label: 'Allocated', amount: totalAllocated.value, caption: 'Planned across categories', compact: true },
+			{ label: 'Allocated', amount: totalAllocated.value, caption: 'Planned across categories' },
 			{
 				label: 'Unallocated',
 				amount: unallocatedIncome.value,
 				caption: `${unallocatedPercent.value}% of planned income`,
 				signed: true,
-				compact: true,
 			},
 		);
 	}
@@ -170,13 +169,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 		<section class="card flex flex-col items-center p-5">
 			<h2 class="type-label-medium pt-3 uppercase">Planned income</h2>
 
-			<!-- The field and its buttons are drawn for an ordinary surface, so they sit on an inset panel of one. -->
-			<form
-				v-if="editingIncome"
-				class="mt-3 w-full rounded-lg bg-surface p-3 [--surface-under:var(--color-surface)]"
-				novalidate
-				@submit.prevent="commitIncome"
-			>
+			<!-- Drawn straight on the card, as a category's budget is edited on its own. -->
+			<form v-if="editingIncome" class="mt-3 w-full" novalidate @submit.prevent="commitIncome">
 				<DenseField
 					id="planned-income"
 					v-model="incomeDraft"

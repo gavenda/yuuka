@@ -68,7 +68,7 @@ val LocalRailFabHost = staticCompositionLocalOf<RailFabHost?> { null }
 /**
  * A screen's leading action. With a navigation rail it is handed to the rail and nothing is drawn here;
  * on a phone it is the floating button it always was — [phoneFab], an extended FAB unless the screen
- * brings its own (Accounts, whose button opens a menu).
+ * brings its own (one whose button opens a menu of [actions]).
  */
 @Composable
 fun ScreenFab(

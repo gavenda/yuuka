@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.di
 
 import dev.gavenda.yuuka.ui.accounts.AccountsViewModel
+import dev.gavenda.yuuka.ui.accounttypes.AccountTypesViewModel
 import dev.gavenda.yuuka.ui.budget.BudgetViewModel
 import dev.gavenda.yuuka.ui.categories.CategoriesViewModel
 import dev.gavenda.yuuka.ui.dashboard.DashboardViewModel
@@ -17,6 +18,7 @@ val viewModelModule = module {
     viewModel { TransactionsViewModel(get(), get(), get(), get()) }
     viewModel { BudgetViewModel(get(), get(), get()) }
     viewModel { AccountsViewModel(get(), get()) }
+    viewModel { AccountTypesViewModel(get()) }
     viewModel { CategoriesViewModel(get()) }
     viewModel { TagsViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }

@@ -200,10 +200,14 @@ onMounted(() => ledger.load());
 							<ActionIcon icon="delete" :label="`Delete ${family.parent.name}`" danger @click="remove(family.parent)" />
 						</template>
 
-						<div class="flex items-center bg-surface-container pr-4" :class="family.children.length ? 'min-h-[72px]' : 'min-h-[60px]'">
+						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
+						<div
+							class="state-layer flex items-center bg-surface-container pr-4"
+							:class="family.children.length ? 'min-h-[72px]' : 'min-h-[60px]'"
+						>
 							<button
 								type="button"
-								class="state-layer focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left"
+								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
 								:aria-expanded="family.children.length ? expanded.has(family.parent.id) : undefined"
 								@click="press(family.parent, family.children.length)"
 							>

@@ -141,7 +141,11 @@ extend or retire it. Accounts reference a type by id, so a rename propagates wit
 no backfill. Nothing calculates differently per type; it is a label for grouping
 and reading, which is exactly why it can be user-defined without touching any
 arithmetic. A type still in use cannot be deleted — the API reports how many
-accounts hold it and points at archiving.
+accounts hold it and points at archiving. The types are managed on a screen of
+their own, opened from a row in Settings (`/settings/account-types` on the web,
+`ACCOUNT_TYPES_ROUTE` on Android) rather than from the Accounts screen: Settings
+stays the marked destination while it is on show, and its leading action is
+"New type".
 
 **The payee is the first field, and it fills in the rest.** Saving a named
 transaction records what it was filed under — account, category, notes, and which
@@ -267,15 +271,22 @@ words. Compose is the specification, so a change to how a screen looks on Androi
 view as well — the two are not allowed to drift. What that means for the web code is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
-**A form takes the screen over.** The transaction, subscription, account, category and tag forms,
-the account type manager and the display-currency list open as Material 3 full-screen dialogs
+**A form takes the screen over.** The transaction, subscription, account, category and tag forms
+and the display-currency list open as Material 3 full-screen dialogs
 (`FullScreenDialog`, `ui/common/FullScreenDialog.kt`, on Android; `FormDialog.vue` on the web): close where the
 drawer button would be, the title, and Save as the bar's one action, bound to the same `form.valid(...)` a save
 button always was. Closing a form that no longer holds what it opened with asks before discarding. Material
 keeps that shape for a phone, so a window with a rail gets an ordinary dialog of the same content with its
-buttons at the foot. A new form goes through it rather than a sheet of its own; sheets remain for what is
-picked from a short list or applied live (filters, adjust balance, the Save the Change and default-account
-pickers).
+buttons at the foot. A new form goes through it rather than a surface of its own.
+
+**There are no bottom sheets.** What is picked from a short list — the default account, and Save the Change's
+destination, category and the accounts that round up — is Material's basic dialog (`SelectionDialog`,
+`ui/common/SelectionDialog.kt` on Android; `SelectionDialog.vue` on the web): the title, the rows, and Cancel,
+or Done where each press is written as it is made and the dialog stays open for the next. Adjusting a balance
+is a basic dialog of its two fields, and an account type — which is only its name — is added or renamed in one of
+its single field, opened from the Account types screen by its leading action or by pressing a type. The transaction filters open nothing at all: pressing the account, tag or
+category button slides a row of that filter's chips down under the filter bar (`FilterChipRow` in both apps),
+which scrolls sideways and applies a change at once; pressing the button again puts the row away.
 
 **A row's actions are behind a swipe.** A list row shows no buttons of its own: pressing it is its main
 action, and what else can be done to it — delete, archive, adjust, pause — is revealed by dragging the row
