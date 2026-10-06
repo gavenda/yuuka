@@ -41,9 +41,13 @@ import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
 import dev.gavenda.yuuka.ui.categories.CategoriesScreen
 import dev.gavenda.yuuka.ui.common.AppBarShell
+import dev.gavenda.yuuka.ui.common.FullScreenDialogHost
+import dev.gavenda.yuuka.ui.common.FullScreenDialogHostState
 import dev.gavenda.yuuka.ui.common.LocalAppBarShell
+import dev.gavenda.yuuka.ui.common.LocalFullScreenDialogHost
 import dev.gavenda.yuuka.ui.common.LocalRailFabHost
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.LocalSnackbarOverlays
 import dev.gavenda.yuuka.ui.common.RailFabHost
 import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
@@ -105,6 +109,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val dialogHost = remember { FullScreenDialogHostState() }
 
     // How much of what is on screen the server has not been told about yet.
     // Writes are local-first, so a save never fails for want of a connection —
@@ -209,7 +214,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
             },
         ) {
             Scaffold(
-                snackbarHost = { SnackbarHost(snackbarHostState) },
+                // A dialog or sheet with a host of its own draws the message instead, or it would show twice.
+                snackbarHost = { if (LocalSnackbarOverlays.current.none) SnackbarHost(snackbarHostState) },
                 // Each screen brings its own app bar, which pads itself for the status bar; the shell
                 // must not pad for it a second time. A rail window has no bar at all, so there the
                 // shell is still what keeps the page out from under the status bar.
@@ -297,6 +303,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     CompositionLocalProvider(
         LocalSnackbarHostState provides snackbarHostState,
         LocalAppBarShell provides appBarShell,
+        LocalFullScreenDialogHost provides dialogHost,
         // Only a rail has a place to put a screen's FAB; without one each screen draws its own.
         LocalRailFabHost provides if (useRail) fabHost else null,
     ) {
@@ -402,6 +409,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 screens()
             }
         }
+        FullScreenDialogHost(dialogHost)
     }
 }
 

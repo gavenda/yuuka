@@ -1,6 +1,6 @@
 package dev.gavenda.yuuka.data.local.dao
 
-import androidx.room.*
+import androidx.room3.*
 import dev.gavenda.yuuka.data.local.entity.PayeeEntity
 import kotlinx.coroutines.flow.Flow
 

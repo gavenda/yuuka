@@ -1,7 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,9 +13,8 @@ import androidx.compose.ui.Modifier
  */
 @Composable
 fun WithSnackbarOverlay(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val snackbarHostState = LocalSnackbarHostState.current
     Box(modifier) {
         content()
-        SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        OverlaySnackbarHost(modifier = Modifier.align(Alignment.BottomCenter))
     }
 }

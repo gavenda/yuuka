@@ -298,6 +298,7 @@ private fun CategoryRow(
         ListItem(
             modifier = Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp),
             onClick = onClick,
+            colors = ListItemDefaults.colors(containerColor = groupedItemColor),
             leadingContent = {
                 Box(
                     modifier = Modifier

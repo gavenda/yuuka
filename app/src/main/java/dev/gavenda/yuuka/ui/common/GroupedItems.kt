@@ -1,6 +1,9 @@
 package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.gavenda.yuuka.ui.theme.Radius
 
@@ -26,3 +29,11 @@ fun groupedItemShape(position: ItemPosition, corner: Dp = Radius.xl, joint: Dp =
     ItemPosition.Bottom -> RoundedCornerShape(topStart = joint, topEnd = joint, bottomStart = corner, bottomEnd = corner)
     ItemPosition.Single -> RoundedCornerShape(corner)
 }
+
+/**
+ * What a grouped row is painted: a step up from the page it lies on, so the block reads as a block,
+ * and a step below the dialogs that open over it. Neutral on purpose — a row's own colour is its
+ * category dot, its tags and its amount.
+ */
+val groupedItemColor: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceContainer

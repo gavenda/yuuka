@@ -1,7 +1,7 @@
 package dev.gavenda.yuuka.data.local
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
+import androidx.room3.Database
+import androidx.room3.RoomDatabase
 import dev.gavenda.yuuka.data.local.dao.*
 import dev.gavenda.yuuka.data.local.entity.*
 

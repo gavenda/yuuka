@@ -1,13 +1,13 @@
 package dev.gavenda.yuuka.data.local.entity
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room3.Entity
+import androidx.room3.Index
+import androidx.room3.PrimaryKey
 
 /**
  * Room mirrors of the API's resources. Enum-shaped fields are stored as their
  * raw string value (matching the wire format exactly) rather than through a
- * Room [androidx.room.TypeConverter], so the entity <-> domain mapping is the
+ * Room [androidx.room3.TypeConverter], so the entity <-> domain mapping is the
  * only place that needs to know about the enum type.
  */
 

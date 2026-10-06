@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches LightSurface in ui/theme/Color.kt. -->
-    <color name="window_background">#FFFAF9FD</color>
+    <!-- The light scheme's surface, as built from SeedColor in ui/theme/Color.kt. -->
+    <color name="window_background">#FFFAF8FE</color>
     <color name="ic_launcher_background">#FF2A78D6</color>
 </resources>

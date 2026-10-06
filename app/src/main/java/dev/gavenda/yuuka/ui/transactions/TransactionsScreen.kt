@@ -375,6 +375,7 @@ private fun TransactionRowItem(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
             shape = groupedItemShape(position),
+            color = groupedItemColor,
         ) {
           Column {
             // The headline, what is under it and the figures at the end sit in a plain row of two columns;
@@ -463,6 +464,7 @@ private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
         modifier = modifier,
         lineLimits = TextFieldLineLimits.SingleLine,
         shape = CircleShape,
+        colors = pillTextFieldColors(),
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = { Text(stringResource(R.string.search_payee_notes)) },
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },

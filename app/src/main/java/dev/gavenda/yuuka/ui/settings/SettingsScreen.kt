@@ -38,7 +38,9 @@ import dev.gavenda.yuuka.ui.common.DetailTopBar
 import dev.gavenda.yuuka.ui.common.FullScreenDialog
 import dev.gavenda.yuuka.ui.common.ItemPosition
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
+import dev.gavenda.yuuka.ui.common.groupedItemColor
 import dev.gavenda.yuuka.ui.common.groupedItemShape
+import dev.gavenda.yuuka.ui.common.pillTextFieldColors
 import dev.gavenda.yuuka.ui.common.positionInGroup
 import dev.gavenda.yuuka.ui.theme.ShapeXl
 import kotlinx.coroutines.launch
@@ -271,7 +273,6 @@ internal fun SettingsScreenContent(
             isCurrencySheetOpen = false
         }
         val searchFocus = remember { FocusRequester() }
-        LaunchedEffect(Unit) { searchFocus.requestFocus() }
         // Tapping a row only marks it. Changing the currency relabels every figure in the app, so it waits for Save.
         var pickedCurrency by remember { mutableStateOf(currencyDraft) }
 
@@ -287,11 +288,14 @@ internal fun SettingsScreenContent(
             dirty = pickedCurrency != currencyDraft,
             scrollable = false,
         ) {
+            // Asked for from inside the dialog: the field is only there to take the focus once the host has drawn it.
+            LaunchedEffect(Unit) { searchFocus.requestFocus() }
             TextField(
                 state = currencyFieldState,
                 modifier = Modifier.fillMaxWidth().focusRequester(searchFocus),
                 lineLimits = TextFieldLineLimits.SingleLine,
                 shape = CircleShape,
+                colors = pillTextFieldColors(),
                 placeholder = { Text("Search currency name or code...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
@@ -397,7 +401,7 @@ fun SettingsGroupHeader(title: String) {
 fun SettingsGroupContainer(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = ShapeXl
+                color = groupedItemColor, shape = ShapeXl
             ), content = content
     )
 }

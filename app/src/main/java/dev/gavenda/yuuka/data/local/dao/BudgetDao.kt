@@ -1,6 +1,6 @@
 package dev.gavenda.yuuka.data.local.dao
 
-import androidx.room.*
+import androidx.room3.*
 import dev.gavenda.yuuka.data.local.entity.BudgetEntity
 import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
 import dev.gavenda.yuuka.data.local.entity.SummaryEntity

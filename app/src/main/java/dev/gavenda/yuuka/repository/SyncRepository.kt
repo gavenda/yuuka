@@ -1,6 +1,6 @@
 package dev.gavenda.yuuka.repository
 
-import androidx.room.withTransaction
+import androidx.room3.withWriteTransaction
 import dev.gavenda.yuuka.data.local.YuukaDatabase
 import dev.gavenda.yuuka.data.local.dao.BudgetDao
 import dev.gavenda.yuuka.data.local.dao.IncomePlanDao
@@ -86,7 +86,7 @@ class SyncRepository(
         // mechanism a full sync uses, without touching the whole-list data.
         if (wanted.any { it in setOf(Slices.TRANSACTIONS, Slices.BUDGETS, Slices.INCOME_PLAN, Slices.SUMMARY) }) {
             if (Slices.TRANSACTIONS in wanted) transactionsStale.set(true)
-            database.withTransaction {
+            database.withWriteTransaction {
                 if (Slices.BUDGETS in wanted) budgetDao.clear()
                 if (Slices.INCOME_PLAN in wanted) incomePlanDao.clear()
                 if (Slices.SUMMARY in wanted) summaryDao.clear()
@@ -107,7 +107,7 @@ class SyncRepository(
         subscriptionRepository.refresh()
 
         transactionsStale.set(true)
-        database.withTransaction {
+        database.withWriteTransaction {
             budgetDao.clear()
             incomePlanDao.clear()
             summaryDao.clear()

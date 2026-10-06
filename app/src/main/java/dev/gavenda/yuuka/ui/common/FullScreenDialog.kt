@@ -1,5 +1,9 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,23 +25,35 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -59,8 +75,12 @@ import dev.gavenda.yuuka.R
  *
  * The content is laid out as a form's column, scrolling under the bar; pass [scrollable] false for content
  * that scrolls itself, such as a lazy list.
+ *
+ * On a phone it slides up over the screen and back down off it. A screen shows a form by composing this and
+ * closes it by no longer doing so, which leaves nothing here to play the way out — so the dialog is drawn by
+ * [FullScreenDialogHost] at the root of the app, which keeps it for as long as the slide down takes. This
+ * call only says what it should hold.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FullScreenDialog(
     title: String,
@@ -72,17 +92,91 @@ fun FullScreenDialog(
     scrollable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val spec = FullScreenDialogSpec(title, onDismiss, onSave, saveEnabled, submitting, dirty, scrollable, content)
+    val host = LocalFullScreenDialogHost.current
+    if (host == null) {
+        // No host above (a preview): drawn here, and gone the moment it is no longer composed.
+        FullScreenDialogWindow(spec, leaving = false, onGone = {})
+        return
+    }
+    val locals = currentCompositionLocalContext
+    val entry = remember { FullScreenDialogEntry(spec, locals) }
+    entry.spec = spec
+    entry.locals = locals
+    DisposableEffect(host, entry) {
+        host.entries += entry
+        onDispose { entry.leaving = true }
+    }
+}
+
+/** Everything a full-screen dialog is given, as one value the host can hold on to. */
+private class FullScreenDialogSpec(
+    val title: String,
+    val onDismiss: () -> Unit,
+    val onSave: (() -> Unit)?,
+    val saveEnabled: Boolean,
+    val submitting: Boolean,
+    val dirty: Boolean,
+    val scrollable: Boolean,
+    val content: @Composable ColumnScope.() -> Unit,
+)
+
+/** One dialog the host is drawing: what it last held, and whether the screen that opened it has let go of it. */
+class FullScreenDialogEntry internal constructor(spec: Any, locals: CompositionLocalContext) {
+    internal var spec by mutableStateOf(spec)
+    internal var locals by mutableStateOf(locals)
+    internal var leaving by mutableStateOf(false)
+}
+
+/** The dialogs that are open, or still on their way out. */
+class FullScreenDialogHostState {
+    internal val entries = mutableStateListOf<FullScreenDialogEntry>()
+}
+
+val LocalFullScreenDialogHost = staticCompositionLocalOf<FullScreenDialogHostState?> { null }
+
+/** Draws every [FullScreenDialog] the screens below have asked for; one sits at the root of the app. */
+@Composable
+fun FullScreenDialogHost(state: FullScreenDialogHostState) {
+    state.entries.forEach { entry ->
+        key(entry) {
+            // The dialog is composed here, not where it was asked for, so it is handed that place's locals.
+            CompositionLocalProvider(entry.locals) {
+                FullScreenDialogWindow(
+                    spec = entry.spec as FullScreenDialogSpec,
+                    leaving = entry.leaving,
+                    onGone = { state.entries -= entry },
+                )
+            }
+        }
+    }
+}
+
+/** The dialog itself. [leaving] plays its way out, and [onGone] is called once that has finished. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean, onGone: () -> Unit) {
+    val title = spec.title
+    val onDismiss = spec.onDismiss
+    val onSave = spec.onSave
+    val submitting = spec.submitting
+    val dirty = spec.dirty
+    val content = spec.content
     var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
     val close = {
-        if (!submitting) {
+        if (!submitting && !leaving) {
             if (dirty) confirmingDiscard = true else onDismiss()
         }
     }
-    val canSave = saveEnabled && !submitting
-    val snackbarHostState = LocalSnackbarHostState.current
-    val scroll = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
+    val canSave = spec.saveEnabled && !submitting
+    val scroll = if (spec.scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
 
     if (LocalAppBarShell.current.useRail) {
+        // An ordinary dialog comes and goes as the platform's dialogs do.
+        if (leaving) {
+            LaunchedEffect(Unit) { onGone() }
+            return
+        }
         Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Box(modifier = Modifier.padding(24.dp).widthIn(max = 560.dp)) {
                 Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
@@ -112,7 +206,7 @@ fun FullScreenDialog(
                         }
                     }
                 }
-                SnackbarHost(snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+                OverlaySnackbarHost(modifier = Modifier.align(Alignment.BottomCenter))
             }
         }
     } else {
@@ -121,11 +215,14 @@ fun FullScreenDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
         ) {
             // The dialog is a window of its own, edge to edge, and starts with the platform's light icons whatever
-            // the theme: on a light scheme the clock and battery would be white on white.
+            // the theme: on a light scheme the clock and battery would be white on white. The slide is the whole
+            // of its entrance, so the window brings neither the platform's own dialog animation nor a scrim.
             val view = LocalView.current
             val lightBars = MaterialTheme.colorScheme.surface.luminance() > 0.5f
             SideEffect {
                 (view.parent as? DialogWindowProvider)?.window?.let { window ->
+                    window.setWindowAnimations(0)
+                    window.setDimAmount(0f)
                     WindowCompat.getInsetsController(window, view).apply {
                         isAppearanceLightStatusBars = lightBars
                         isAppearanceLightNavigationBars = lightBars
@@ -133,43 +230,69 @@ fun FullScreenDialog(
                 }
             }
 
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = {
-                    TopAppBar(
-                        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        navigationIcon = {
-                            IconButton(onClick = close, enabled = !submitting) {
-                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_close))
-                            }
-                        },
-                        actions = {
-                            if (onSave != null) {
-                                TextButton(onClick = onSave, enabled = canSave) {
-                                    if (submitting) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
+            val visible = remember { MutableTransitionState(false) }
+            visible.targetState = !leaving
+            if (leaving) {
+                // The keyboard goes down with the form rather than hanging over the screen behind it.
+                val focusManager = LocalFocusManager.current
+                LaunchedEffect(Unit) { focusManager.clearFocus() }
+                if (visible.isIdle && !visible.currentState) LaunchedEffect(Unit) { onGone() }
+            }
+
+            // Effects specs rather than spatial ones: the expressive spatial springs overshoot, and a full-screen
+            // slide that overshoots shows the screen behind it along its bottom edge.
+            AnimatedVisibility(
+                visibleState = visible,
+                enter = slideInVertically(MaterialTheme.motionScheme.slowEffectsSpec<IntOffset>()) { it },
+                exit = slideOutVertically(MaterialTheme.motionScheme.defaultEffectsSpec<IntOffset>()) { it },
+                // On its way out the form holds what it was last given, so nothing on it may be pressed again.
+                modifier = if (leaving) Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                    }
+                } else Modifier,
+            ) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            navigationIcon = {
+                                IconButton(onClick = close, enabled = !submitting) {
+                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_close))
                                 }
-                            }
-                        },
+                            },
+                            actions = {
+                                if (onSave != null) {
+                                    TextButton(onClick = onSave, enabled = canSave) {
+                                        if (submitting) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
+                                    }
+                                }
+                            },
+                        )
+                    },
+                    // A save closes the form and confirms itself in the same breath. The confirmation belongs to the
+                    // screen the form is uncovering, so a form on its way out hands the snackbar back rather than
+                    // carrying it off the bottom of the screen.
+                    snackbarHost = { if (!leaving) OverlaySnackbarHost() },
+                ) { padding ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .consumeWindowInsets(padding)
+                            .imePadding()
+                            .then(scroll)
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        content = content,
                     )
-                },
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-            ) { padding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .consumeWindowInsets(padding)
-                        .imePadding()
-                        .then(scroll)
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    content = content,
-                )
+                }
             }
         }
     }
 
-    if (confirmingDiscard) {
+    if (confirmingDiscard && !leaving) {
         AlertDialog(
             onDismissRequest = { confirmingDiscard = false },
             title = { Text(stringResource(R.string.discard_changes_title)) },

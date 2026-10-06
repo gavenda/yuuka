@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.auth
 import android.app.Activity
 import android.content.Context
 import com.auth0.android.Auth0
+import com.auth0.android.authentication.AuthenticationAPIClient
 import com.auth0.android.authentication.AuthenticationException
 import com.auth0.android.authentication.storage.CredentialsManagerException
 import com.auth0.android.authentication.storage.SecureCredentialsManager
@@ -40,7 +41,7 @@ class AuthManager(private val context: Context) {
     }
 
     private val credentialsManager: SecureCredentialsManager by lazy {
-        SecureCredentialsManager(context, account, SharedPreferencesStorage(context))
+        SecureCredentialsManager(AuthenticationAPIClient(account), context, SharedPreferencesStorage(context))
     }
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)

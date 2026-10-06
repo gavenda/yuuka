@@ -2,5 +2,6 @@ package dev.gavenda.yuuka.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Kept in step with the webapp's frozen palette (webapp/src/style.css), generated from the same brand seed.
-val SeedColor = Color(0xFF4C5CDC)
+// The brand seed, from MaterialKolor Builder (https://next.materialkolor.com/t/AUFboyMEABALQnVybnQgRW1iZXIY).
+// The whole scheme is built from it at runtime.
+val SeedColor = Color(0xFF415BA3)

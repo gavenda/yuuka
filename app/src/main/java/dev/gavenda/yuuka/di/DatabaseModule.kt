@@ -1,6 +1,6 @@
 package dev.gavenda.yuuka.di
 
-import androidx.room.Room
+import androidx.room3.Room
 import dev.gavenda.yuuka.data.local.OutboxDatabase
 import dev.gavenda.yuuka.data.local.YuukaDatabase
 import org.koin.android.ext.koin.androidContext

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches DarkSurface in ui/theme/Color.kt. -->
-    <color name="window_background">#FF121316</color>
+    <!-- The dark scheme's surface, as built from SeedColor in ui/theme/Color.kt. -->
+    <color name="window_background">#FF0D0E12</color>
 </resources>
