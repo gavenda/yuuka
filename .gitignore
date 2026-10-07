@@ -197,3 +197,4 @@ keystore.properties
 # per-project identifiers, so it is kept out and reaches CI through the
 # GOOGLE_SERVICES_JSON secret instead. See webapp/README.md.
 app/google-services.json
+.idea/deploymentTargetSelector.xml
