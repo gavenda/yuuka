@@ -55,14 +55,14 @@
     <string name="category_uncategorized">Uncategorized</string>
 
     <!-- Shared stats -->
-    <string name="net_worth">Net worth</string>
+    <string name="net_worth">Total hoard</string>
     <string name="label_spent">Spent</string>
     <string name="label_planned">Planned</string>
     <string name="name_archived">%1$s (Archived)</string>
     <string name="transfer_account_flow">%1$s → %2$s</string>
     <string name="archived_toggle_hide">Hide %1$d archived</string>
     <string name="archived_toggle_show">Show %1$d archived</string>
-    <string name="no_categories_yet">No categories yet</string>
+    <string name="no_categories_yet">No boxes yet</string>
 
     <!-- Content descriptions -->
     <string name="cd_menu">Menu</string>
@@ -98,24 +98,24 @@
     <string name="destination_subscriptions">Subscriptions</string>
 
     <!-- Auth screen -->
-    <string name="auth_tagline">Personal budgeting and financial tracking.</string>
+    <string name="auth_tagline">Keep an eye on every coin, one paw at a time.</string>
 
     <!-- Dashboard -->
     <string name="dashboard_net_this_month">Net this month</string>
-    <string name="dashboard_saved">Saved</string>
-    <string name="dashboard_overspent">Overspent</string>
+    <string name="dashboard_saved">Stashed away</string>
+    <string name="dashboard_overspent">Pounced too far</string>
     <string name="dashboard_budget_remaining">Budget remaining</string>
     <string name="dashboard_across_budgeted_categories">Across budgeted categories</string>
     <string name="dashboard_over_budget">Over budget</string>
-    <string name="dashboard_needs_attention">Needs attention</string>
-    <string name="dashboard_nothing_overspent">Nothing overspent</string>
+    <string name="dashboard_needs_attention">Hissing for attention</string>
+    <string name="dashboard_nothing_overspent">No knocked-over budgets</string>
     <string name="chart_average_per_day">Daily average</string>
     <string name="chart_at_or_above_average">At or above average</string>
     <string name="dashboard_spending_by_day">Spending by day</string>
     <string name="dashboard_spend_summary">%1$s across %2$s</string>
-    <string name="dashboard_no_spending">No spending recorded this month.</string>
-    <string name="dashboard_where_money_went">Where the money went</string>
-    <string name="dashboard_nothing_recorded_month">Nothing recorded this month.</string>
+    <string name="dashboard_no_spending">A purr-fectly quiet month.</string>
+    <string name="dashboard_where_money_went">Where the coins rolled off to</string>
+    <string name="dashboard_nothing_recorded_month">Nothing to sniff out this month.</string>
     <plurals name="subcategories_count">
         <item quantity="one">%d subcategory</item>
         <item quantity="other">%d subcategories</item>
@@ -131,24 +131,24 @@
     <string name="set_gross_income">Set gross income</string>
     <string name="set_income">Set income</string>
     <string name="income_mode_gross">Gross</string>
-    <string name="gross_income_hint">Enter your gross monthly pay.\nThe take-home net is what you budget from.</string>
-    <string name="net_income_hint">Set what you expect to bring in.\nBudget a category as a percentage of it.</string>
+    <string name="gross_income_hint">Tell the cat your gross monthly pay.\nThe take-home net is what you budget from.</string>
+    <string name="net_income_hint">Tell the cat what you expect to bring in.\nBudget a category as a percentage of it.</string>
     <string name="monthly_contributions">Monthly contributions</string>
     <string name="net_pay">Net pay</string>
     <string name="used_as_planned_income">Used as planned income</string>
     <string name="allocated">Allocated</string>
     <string name="planned_across_categories">Planned across categories</string>
-    <string name="unallocated">Unallocated</string>
+    <string name="unallocated">Still up for grabs</string>
     <string name="percent_of_income_unallocated">%1$d%% of planned income</string>
     <string name="across_expense_categories">Across expense categories</string>
     <string name="percent_of_plan">%1$d%% of plan</string>
-    <string name="no_plan_set">No plan set</string>
+    <string name="no_plan_set">Nothing planned yet</string>
     <string name="budget_empty_title">Nothing to budget yet</string>
-    <string name="budget_empty_description">A budget needs categories to sit in, so make a few first.</string>
+    <string name="budget_empty_description">A budget needs boxes to curl up in, so make a few categories first.</string>
     <string name="percent_range_hint">Enter a percentage between 0 and 100.</string>
     <string name="set_a_budget">Set a budget</string>
-    <string name="unbudgeted">Unbudgeted</string>
-    <string name="no_budget_set">No budget set</string>
+    <string name="unbudgeted">Roaming free</string>
+    <string name="no_budget_set">Nothing planned yet</string>
     <string name="amount_over">%1$s over</string>
     <string name="amount_left">%1$s left</string>
     <string name="placeholder_percent_zero">0</string>
@@ -160,7 +160,7 @@
     <string name="category_restored">Category restored</string>
     <string name="category_archived">Category archived</string>
     <string name="category_deleted">Category deleted</string>
-    <string name="no_section_categories_yet">No %1$s categories yet.</string>
+    <string name="no_section_categories_yet">No %1$s boxes yet.</string>
     <string name="category_updated">Category updated</string>
     <string name="category_added">Category added</string>
     <string name="edit_category">Edit category</string>
@@ -174,7 +174,7 @@
     <!-- Tags -->
     <string name="label_tags">Tags</string>
     <string name="tags_description">Labels to put on a transaction, shown beside its notes.</string>
-    <string name="no_tags_yet">No tags yet</string>
+    <string name="no_tags_yet">No tags to bat around yet</string>
     <string name="tags_empty_title">No tags to bat around yet</string>
     <string name="tags_empty_description">Add one, then stick it on a transaction to find it again later.</string>
     <string name="search_tags">Search tags</string>
@@ -193,7 +193,7 @@
     <!-- Accounts screen -->
     <string name="new_account">New account</string>
     <string name="edit_account">Edit account</string>
-    <string name="no_accounts_yet">No accounts yet</string>
+    <string name="no_accounts_yet">Nothing to count yet</string>
     <string name="accounts_empty_title">It\'s quiet in here</string>
     <string name="accounts_empty_description">Add an account and give the cat something to count.</string>
     <string name="account_restored">Account restored</string>
@@ -202,7 +202,7 @@
     <string name="account_added">Account added</string>
     <string name="delete_confirm_title">Delete \"%1$s\"?</string>
     <string name="account_deleted">Account deleted</string>
-    <string name="could_not_delete_account">Could not delete the account.</string>
+    <string name="could_not_delete_account">Couldn\'t delete the account. The cat sat on the keyboard, try again?</string>
     <string name="delete_account_body">The account and any subscriptions that post to it will be removed. This cannot be undone.</string>
     <string name="delete_account_transactions_confirm">%1$s still has transactions, and deleting it deletes them too. To keep your history, go back and archive the account instead. This cannot be undone.</string>
     <string name="delete_anyway">Yes, delete everything</string>
@@ -213,12 +213,12 @@
     <string name="error_choose_type">Choose a type.</string>
     <string name="error_logo_url">Use a full http or https link, such as https://example.com/logo.png.</string>
     <string name="account_types_title">Account types</string>
-    <string name="account_types_description">These are your own labels. Rename one and every account using it follows.</string>
+    <string name="account_types_description">Your own labels. Rename one and every account using it follows along.</string>
     <string name="account_types_summary">Customize your accounts types</string>
     <string name="new_account_type">New type</string>
     <string name="new_account_type_title">New account type</string>
     <string name="rename_account_type">Rename account type</string>
-    <string name="account_type_not_in_use">Not in use</string>
+    <string name="account_type_not_in_use">Nobody\'s using this one</string>
     <plurals name="account_type_account_count">
         <item quantity="one">%1$d account</item>
         <item quantity="other">%1$d accounts</item>
@@ -228,7 +228,7 @@
     <string name="type_restored">Type restored</string>
     <string name="type_archived">Type archived</string>
     <string name="type_deleted">Type deleted</string>
-    <string name="adjust_balance">Adjust balance</string>
+    <string name="adjust_balance">Nudge balance</string>
     <string name="cd_adjust_balance_item">Adjust balance for %1$s</string>
     <string name="adjust_balance_description">%1$s\'s current balance is %2$s. Enter what it should be instead — the difference is logged as its own transaction, dated today.</string>
     <string name="label_new_balance">New balance</string>
@@ -238,12 +238,12 @@
     <string name="error_balance_number">Enter a number, such as 1250.00.</string>
     <string name="error_balance_unchanged">That is already the current balance.</string>
     <string name="save_adjustment">Save adjustment</string>
-    <string name="balance_adjusted">Balance adjusted</string>
-    <string name="could_not_adjust_balance">Could not adjust the balance.</string>
+    <string name="balance_adjusted">Balance nudged into place</string>
+    <string name="could_not_adjust_balance">Couldn\'t adjust the balance. The cat sat on the keyboard, try again?</string>
 
     <!-- Settings screen -->
     <string name="display_currency">Display currency</string>
-    <string name="display_currency_hint">Used for net worth, the monthly summary and budgets.</string>
+    <string name="display_currency_hint">The coins your whole hoard is counted in.</string>
     <string name="preview_label">Preview</string>
     <string name="currency_hint_3letter">Use a 3-letter currency code, such as PHP.</string>
     <string name="appearance">Appearance</string>
@@ -257,7 +257,7 @@
     <string name="budget_mode_monthly_hint">Each month keeps its own planned amount, set separately.</string>
     <string name="default_account">Default account</string>
     <string name="first_active_account">First active account</string>
-    <string name="could_not_save_setting">Could not save the setting.</string>
+    <string name="could_not_save_setting">Couldn\'t save that. The cat sat on the keyboard, try again?</string>
     <string name="about">About</string>
     <string name="version">Version</string>
     <string name="version_value">%1$s (%2$d)</string>
@@ -265,10 +265,10 @@
     <!-- Save the Change -->
     <string name="destination_save_the_change">Save the Change</string>
     <string name="save_the_change_enabled">Round up purchases</string>
-    <string name="save_the_change_description">Rounds up ordinary expenses on the accounts you\'ve opted in, and moves the difference into your chosen account.</string>
+    <string name="save_the_change_description">Rounds up your purchases and tucks the spare change into your chosen account, like coins behind the sofa.</string>
     <string name="save_the_change_accounts_hint">A purchase on the destination account itself never rounds up.</string>
     <string name="round_up_purchases_account_label">Accounts that round up</string>
-    <string name="save_the_change_no_accounts">None chosen</string>
+    <string name="save_the_change_no_accounts">No takers yet</string>
     <string name="save_the_change_choose_accounts">Choose accounts</string>
     <plurals name="round_up_accounts_count">
         <item quantity="one">%1$d account</item>
@@ -279,8 +279,8 @@
     <string name="round_to_hundred">₱100</string>
     <string name="destination_account">Destination account</string>
     <string name="choose_an_account">Choose an account</string>
-    <string name="could_not_save_round_up_rule">Could not save Save the Change.</string>
-    <string name="could_not_save_account">Could not save the account.</string>
+    <string name="could_not_save_round_up_rule">Couldn\'t save that. The cat sat on the keyboard, try again?</string>
+    <string name="could_not_save_account">Couldn\'t save that. The cat sat on the keyboard, try again?</string>
 
     <!-- Transaction form -->
     <string name="label_payee">Payee</string>
@@ -323,16 +323,16 @@
     <string name="filter_by_tag">Filter by tag</string>
     <string name="action_clear">Clear</string>
     <string name="transactions_empty_title">Not a whisker in sight</string>
-    <string name="transactions_empty_description">Nothing matches these filters. Add a transaction, or widen the search.</string>
-    <string name="loading_ellipsis">Loading…</string>
-    <string name="load_more">Load more (%1$d of %2$d)</string>
+    <string name="transactions_empty_description">Nothing matches these filters. Add a transaction, or let the search roam wider.</string>
+    <string name="loading_ellipsis">Fetching…</string>
+    <string name="load_more">Dig up more (%1$d of %2$d)</string>
     <string name="delete_transfer_confirm_title">Delete this transfer?</string>
     <string name="delete_transaction_confirm_title">Delete this transaction?</string>
     <string name="delete_transfer_body">Both sides of the transfer will be removed, and both accounts\' balances will change to match. This cannot be undone.</string>
     <string name="delete_transaction_body">It will be removed from your history, and its account\'s balance will change to match. This cannot be undone.</string>
 
     <!-- Subscriptions -->
-    <string name="subscriptions_description">Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.</string>
+    <string name="subscriptions_description">Charges that pounce on their own each month at 00:00 UTC, as ordinary transactions you can still edit or delete.</string>
     <string name="new_subscription">New subscription</string>
     <string name="edit_subscription">Edit subscription</string>
     <string name="subscriptions_empty_title">Nothing on repeat yet</string>
@@ -341,10 +341,10 @@
     <string name="subscription_updated">Subscription updated</string>
     <string name="subscription_deleted">Subscription deleted</string>
     <string name="subscriptions_total_per_month">Total per month</string>
-    <string name="subscriptions_total_paused">%1$d paused, not counted</string>
-    <string name="subscription_paused">Subscription paused</string>
-    <string name="subscription_resumed">Subscription resumed</string>
-    <string name="subscription_paused_badge">Paused</string>
+    <string name="subscriptions_total_paused">%1$d napping, not counted</string>
+    <string name="subscription_paused">Subscription is napping</string>
+    <string name="subscription_resumed">Subscription is awake</string>
+    <string name="subscription_paused_badge">Napping</string>
     <string name="subscription_schedule">Monthly on the %1$s</string>
     <string name="subscription_next">next %1$s</string>
     <string name="label_starts_on">Starts on</string>
@@ -362,7 +362,7 @@
     <string name="automated_transaction_hint">Posted automatically by a subscription at 00:00 UTC, so its time can\'t be changed. You can still edit or delete it.</string>
 
     <!-- Generic -->
-    <string name="error_generic">Something went wrong.</string>
+    <string name="error_generic">Oops, something got knocked off the shelf.</string>
     <!--
       Offline-first: a change is saved on this device first and sent when there
       is a connection, so this counts what the server has not been told about

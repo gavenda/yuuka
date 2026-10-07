@@ -9,6 +9,7 @@ import DenseField from '@/components/DenseField.vue';
 import { reducedMotion, useFrameClock } from '@/lib/frameClock';
 import { useFormValidation } from '@/lib/validation';
 import { computed, ref, shallowRef, watch } from 'vue';
+import { t } from '@/i18n';
 
 const props = withDefaults(defineProps<{ entry: CategoryBreakdown; currency?: string }>(), { currency: DEFAULT_CURRENCY });
 
@@ -20,9 +21,9 @@ const fill = computed(() => STATUS[budgetStatus(props.entry.actual, props.entry.
 
 /** Status is never carried by colour alone — each state ships a word. */
 const statusLabel = computed(() => {
-	if (props.entry.planned <= 0) return props.entry.actual > 0 ? 'Unbudgeted' : 'No budget set';
-	if (over.value) return `${displayMoney(-props.entry.remaining, props.currency)} over`;
-	return `${displayMoney(props.entry.remaining, props.currency)} left`;
+	if (props.entry.planned <= 0) return props.entry.actual > 0 ? t('budget.unbudgeted') : t('budget.noBudget');
+	if (over.value) return t('budget.over', { amount: displayMoney(-props.entry.remaining, props.currency) });
+	return t('budget.left', { amount: displayMoney(props.entry.remaining, props.currency) });
 });
 
 const editing = ref(false);
@@ -37,11 +38,11 @@ const validation = useFormValidation({
 	[fieldId]: () => {
 		// Empty clears the plan, which is a change like any other.
 		if (draft.value.trim() === '') return null;
-		if (mode.value === 'percent') return parsePercent(draft.value) === null ? 'Enter a percentage between 0 and 100.' : null;
+		if (mode.value === 'percent') return parsePercent(draft.value) === null ? t('budget.percentRange') : null;
 
 		const value = parseMoney(draft.value);
-		if (value === null) return 'Enter an amount as a number, such as 250.00.';
-		return value < 0 ? 'A budget cannot be negative.' : null;
+		if (value === null) return t('budget.amountNumber');
+		return value < 0 ? t('budget.negative') : null;
 	},
 });
 
@@ -94,7 +95,7 @@ const plannedLabel = computed(() => {
 	if (props.entry.plannedPercent !== null) {
 		return `${Number.isInteger(props.entry.plannedPercent) ? props.entry.plannedPercent.toFixed(1) : props.entry.plannedPercent}%`;
 	}
-	return props.entry.planned > 0 ? displayMoney(props.entry.planned, props.currency) : 'Set a budget';
+	return props.entry.planned > 0 ? displayMoney(props.entry.planned, props.currency) : t('budget.setABudget');
 });
 
 /** Material's circular wavy progress indicator: a 48dp box, a 4dp stroke. */
@@ -173,7 +174,7 @@ const track = computed(() => {
 		<form v-if="editing" class="flex flex-col gap-2 pt-2" novalidate @submit.prevent="commit" @input="validation.onInput">
 			<ConnectedButtonGroup
 				:model-value="mode"
-				label="Budget as"
+				:label="t('budget.budgetAs')"
 				:options="[
 					{ value: 'amount', label: currency },
 					{ value: 'percent', label: '%' },
@@ -187,7 +188,7 @@ const track = computed(() => {
 				:id="fieldId"
 				v-model="draft"
 				class="type-body-large"
-				label="Planned"
+				:label="t('common.planned')"
 				inputmode="decimal"
 				:placeholder="mode === 'percent' ? '0' : '0.00'"
 				:prefix="mode === 'amount' ? currencySymbol(currency) : undefined"
@@ -198,8 +199,8 @@ const track = computed(() => {
 			/>
 
 			<div class="flex gap-2">
-				<button type="button" class="btn-outlined flex-1" :disabled="saving" @click="editing = false">Cancel</button>
-				<button type="submit" class="btn-primary flex-1" :disabled="saving || !validation.isValid.value">Save</button>
+				<button type="button" class="btn-outlined flex-1" :disabled="saving" @click="editing = false">{{ t('common.cancel') }}</button>
+				<button type="submit" class="btn-primary flex-1" :disabled="saving || !validation.isValid.value">{{ t('common.save') }}</button>
 			</div>
 		</form>
 

@@ -3,6 +3,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import FieldSupport from '@/components/FieldSupport.vue';
 import { CANCEL, ERROR } from '@/lib/icons';
 import { supportId } from '@/lib/validation';
+import { t } from '@/i18n';
 
 /**
  * A single-line outlined field with cut-down vertical padding and no label of its own, for a row beside a
@@ -46,7 +47,7 @@ const model = defineModel<string>({ required: true });
 				v-else-if="clearable && model"
 				type="button"
 				class="btn-icon -mr-2 text-on-surface-variant"
-				aria-label="Clear"
+				:aria-label="t('common.clear')"
 				:disabled="disabled"
 				@click="model = ''"
 			>

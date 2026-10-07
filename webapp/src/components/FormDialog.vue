@@ -4,6 +4,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import { CLOSE, DELETE } from '@/lib/icons';
 import { useModal } from '@/lib/modal';
 import { ref } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * A task that takes the screen over — a form, or a list to search — as Android's `FullScreenDialog`: on a
@@ -77,11 +78,11 @@ useModal(() => props.open, close, panel);
 				>
 					<!-- A phone's bar: close, the title, and Save as its one action. -->
 					<header class="flex h-16 flex-none items-center gap-1 px-1 sm:hidden">
-						<button type="button" class="btn-icon m-1" aria-label="Close" :disabled="submitting" @click="close">
+						<button type="button" class="btn-icon m-1" :aria-label="t('common.close')" :disabled="submitting" @click="close">
 							<AppIcon :icon="CLOSE" />
 						</button>
 						<h2 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ title }}</h2>
-						<button v-if="save" type="submit" class="btn-text mr-2" :disabled="!saveEnabled || submitting">Save</button>
+						<button v-if="save" type="submit" class="btn-text mr-2" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
 					</header>
 
 					<h2 class="type-headline-small flex-none px-6 pt-6 pb-4 text-on-surface max-sm:hidden">{{ title }}</h2>
@@ -89,19 +90,21 @@ useModal(() => props.open, close, panel);
 					<div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-3 sm:flex-initial sm:px-6 sm:py-0"><slot /></div>
 
 					<footer class="flex flex-none justify-end gap-2 p-6 max-sm:hidden">
-						<button type="button" class="btn-text" :disabled="submitting" @click="close">{{ save ? 'Cancel' : 'Close' }}</button>
-						<button v-if="save" type="submit" class="btn-text" :disabled="!saveEnabled || submitting">Save</button>
+						<button type="button" class="btn-text" :disabled="submitting" @click="close">
+							{{ save ? t('common.cancel') : t('common.close') }}
+						</button>
+						<button v-if="save" type="submit" class="btn-text" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
 					</footer>
 				</form>
 			</div>
 		</Transition>
 	</Teleport>
 
-	<AlertDialog :open="open && confirmingDiscard" title="Discard changes?" :icon="DELETE" @close="confirmingDiscard = false">
-		What you entered has not been saved and will be lost.
+	<AlertDialog :open="open && confirmingDiscard" :title="t('form.discardTitle')" :icon="DELETE" @close="confirmingDiscard = false">
+		{{ t('form.discardBody') }}
 		<template #actions>
-			<button type="button" class="btn-text" @click="confirmingDiscard = false">No, keep editing</button>
-			<button type="button" class="btn-text text-error" @click="discard">Yes, discard them</button>
+			<button type="button" class="btn-text" @click="confirmingDiscard = false">{{ t('common.noKeepEditing') }}</button>
+			<button type="button" class="btn-text text-error" @click="discard">{{ t('common.yesDiscard') }}</button>
 		</template>
 	</AlertDialog>
 </template>

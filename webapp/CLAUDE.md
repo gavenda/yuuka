@@ -46,6 +46,17 @@ Frontend state is three Pinia stores in `src/stores`: `ledger` (accounts, types,
 categories, settings — loaded once and shared), `budget` and `transactions`.
 There is deliberately no auth store; see below.
 
+## Strings
+
+Every word the app shows lives in `src/i18n/en/`, one file per screen with what several screens
+say (button verbs, confirmation answers, validation messages) in `common.ts`, composed by
+`src/i18n/en/index.ts` and served by vue-i18n (`src/i18n/index.ts`). Components and plain code both
+import `t` from `@/i18n` rather than hard-coding copy, so a spec needs no plugin installed. Counts are
+plural messages (`'{count} account | {count} accounts'`, called as `t(key, n)`). Router titles are keys
+(`meta.titleKey`), not text. Wording changes belong here and in the Android `strings.xml` together.
+Data that only looks like copy — a payee the server stores (`Save the Change`), the contribution
+names in `philippinesTax.ts` — stays where it is.
+
 ## Installable and offline
 
 The app is a PWA, and it behaves like the Android app: the screens paint from a

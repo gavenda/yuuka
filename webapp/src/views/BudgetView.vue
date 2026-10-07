@@ -13,6 +13,7 @@ import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { computed, onMounted, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 const budget = useBudgetStore();
 const ledger = useLedgerStore();
@@ -96,11 +97,7 @@ function cancelEditingIncome(): void {
 	syncIncomeDraft();
 }
 
-const incomeHint = computed(() =>
-	usingGross.value
-		? 'Enter your gross monthly pay.\nThe take-home net is what you budget from.'
-		: 'Set what you expect to bring in.\nBudget a category as a percentage of it.',
-);
+const incomeHint = computed(() => (usingGross.value ? t('budget.grossHint') : t('budget.netHint')));
 
 async function commitIncome(): Promise<void> {
 	const amount = incomeDraft.value.trim() === '' ? 0 : parseMoney(incomeDraft.value);
@@ -119,32 +116,35 @@ async function commitIncome(): Promise<void> {
 
 /** The income figure as the closed card reads: what was typed or saved, or an invitation to set it. */
 const incomeLabel = computed(() => {
-	if (usingGross.value) return grossDraft.value > 0 ? displayMoney(grossDraft.value, 'PHP') : 'Set gross income';
-	return budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency.value) : 'Set income';
+	if (usingGross.value) return grossDraft.value > 0 ? displayMoney(grossDraft.value, 'PHP') : t('budget.setGross');
+	return budget.plannedIncome > 0 ? displayMoney(budget.plannedIncome, currency.value) : t('budget.setIncome');
 });
 
 /** The month's plan in figures: what is planned and spent, then — once there is an income to share out — where it has gone. */
 const stats = computed<StatItem[]>(() => {
 	const list: StatItem[] = [
-		{ label: 'Planned', amount: totalPlanned.value, caption: 'Across expense categories', watermark: true },
+		{ label: t('common.planned'), amount: totalPlanned.value, caption: t('budget.acrossExpense'), watermark: true },
 		{
-			label: 'Spent',
+			label: t('common.spent'),
 			amount: totalActual.value,
-			caption: totalPlanned.value > 0 ? `${percentOf(totalActual.value, totalPlanned.value)}% of plan` : 'No plan set',
+			caption:
+				totalPlanned.value > 0
+					? t('budget.percentOfPlan', { percent: percentOf(totalActual.value, totalPlanned.value) })
+					: t('budget.noBudget'),
 		},
 	];
 
 	if (netPayBreakdown.value) {
-		list.push({ label: 'Net pay', amount: netPayBreakdown.value.netPay, caption: 'Used as planned income' });
+		list.push({ label: t('budget.netPay'), amount: netPayBreakdown.value.netPay, caption: t('budget.usedAsIncome') });
 	}
 
 	if (budget.plannedIncome > 0) {
 		list.push(
-			{ label: 'Allocated', amount: totalAllocated.value, caption: 'Planned across categories' },
+			{ label: t('budget.allocated'), amount: totalAllocated.value, caption: t('budget.plannedAcross') },
 			{
-				label: 'Unallocated',
+				label: t('budget.unallocated'),
 				amount: unallocatedIncome.value,
-				caption: `${unallocatedPercent.value}% of planned income`,
+				caption: t('budget.percentOfIncome', { percent: unallocatedPercent.value }),
 				signed: true,
 			},
 		);
@@ -167,7 +167,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<!-- Planned income: what a percentage-based budget is a share of. Pressing the figure edits it in place. -->
 		<section class="card flex flex-col items-center p-5">
-			<h2 class="type-label-medium pt-3 uppercase">Planned income</h2>
+			<h2 class="type-label-medium pt-3 uppercase">{{ t('budget.plannedIncome') }}</h2>
 
 			<!-- Drawn straight on the card, as a category's budget is edited on its own. -->
 			<form v-if="editingIncome" class="mt-3 w-full" novalidate @submit.prevent="commitIncome">
@@ -175,18 +175,20 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 					id="planned-income"
 					v-model="incomeDraft"
 					class="type-headline-small"
-					label="Planned income"
+					:label="t('budget.plannedIncome')"
 					inputmode="decimal"
 					autofocus
 					clearable
-					:placeholder="usingGross ? 'Gross 0.00' : '0.00'"
+					:placeholder="usingGross ? t('budget.grossPlaceholder') : '0.00'"
 					:prefix="currencySymbol(usingGross ? 'PHP' : currency)"
 					:disabled="savingIncome"
 					@keydown.esc="cancelEditingIncome"
 				/>
 				<div class="flex gap-2 pt-2">
-					<button type="button" class="btn-text flex-1" :disabled="savingIncome" @click="cancelEditingIncome">Cancel</button>
-					<button type="submit" class="btn-primary flex-1" :disabled="savingIncome">Save</button>
+					<button type="button" class="btn-text flex-1" :disabled="savingIncome" @click="cancelEditingIncome">
+						{{ t('common.cancel') }}
+					</button>
+					<button type="submit" class="btn-primary flex-1" :disabled="savingIncome">{{ t('common.save') }}</button>
 				</div>
 			</form>
 
@@ -199,17 +201,17 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 				v-if="isPhp"
 				v-model="incomeMode"
 				class="mt-2 w-full"
-				label="How planned income is set"
+				:label="t('budget.howIncomeIsSet')"
 				:options="[
-					{ value: 'gross', label: 'Gross' },
-					{ value: 'fixed', label: 'Fixed' },
+					{ value: 'gross', label: t('budget.gross') },
+					{ value: 'fixed', label: t('budget.fixed') },
 				]"
 			/>
 
 			<p class="type-body-small pt-1 text-center whitespace-pre-line">{{ incomeHint }}</p>
 
 			<template v-if="netPayBreakdown">
-				<h3 class="type-label-medium w-full pt-4">Monthly contributions</h3>
+				<h3 class="type-label-medium w-full pt-4">{{ t('budget.contributions') }}</h3>
 				<ul class="type-body-medium w-full pt-1">
 					<li v-for="line in netPayBreakdown.contributions" :key="line.label" class="flex justify-between gap-3 py-1">
 						<span>{{ line.label }}</span>
@@ -219,7 +221,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			</template>
 
 			<template v-if="budget.incomeBreakdown.length">
-				<h3 class="type-label-medium w-full pt-4">Income</h3>
+				<h3 class="type-label-medium w-full pt-4">{{ t('common.income') }}</h3>
 				<ul class="type-body-medium w-full pt-1">
 					<li v-for="entry in budget.incomeBreakdown" :key="entry.categoryId" class="flex justify-between gap-3 py-1">
 						<span>{{ entry.name }}</span>
@@ -231,20 +233,16 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<StatCarousel :stats="stats" :currency="currency" tone="tertiary" />
 
-		<EmptyState
-			v-if="!hasAnyCategories"
-			title="Nothing to budget yet"
-			description="A budget needs categories to sit in, so make a few first."
-		/>
+		<EmptyState v-if="!hasAnyCategories" :title="t('budget.emptyTitle')" :description="t('budget.emptyDescription')" />
 
 		<template v-if="budget.expenseBreakdown.length">
-			<h2 class="type-title-small">Expense</h2>
+			<h2 class="type-title-small">{{ t('common.expense') }}</h2>
 			<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
 		</template>
 
 		<!-- Budgeted separately from expenses: a movement into savings or investments is planned, not spent. -->
 		<template v-if="budget.cashflowBreakdown.length">
-			<h2 class="type-title-small">Cashflow</h2>
+			<h2 class="type-title-small">{{ t('common.cashflow') }}</h2>
 			<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
 		</template>
 	</div>

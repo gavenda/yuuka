@@ -1,0 +1,25 @@
+/** The screens' names: the router's titles, the rail and the phone's bar. */
+export default {
+	signIn: 'Sign in',
+	dashboard: 'Dashboard',
+	transactions: 'Transactions',
+	budget: 'Budget',
+	accounts: 'Accounts',
+	categories: 'Categories',
+	tags: 'Tags',
+	subscriptions: 'Subscriptions',
+	settings: 'Settings',
+	accountTypes: 'Account types',
+	saveTheChange: 'Save the Change',
+	more: 'More',
+	primary: 'Primary',
+	accountMenu: 'Account menu',
+	expand: 'Expand navigation',
+	collapse: 'Collapse navigation',
+	backToSignIn: 'Back to sign in',
+	signOutTitle: 'Sign out?',
+	signOutBody: 'You will need to sign in again to see your ledger on this device.',
+	signOutUnsent:
+		'{count} change saved on this device has not been synced yet. Signing out now will lose it. | {count} changes saved on this device have not been synced yet. Signing out now will lose them.',
+	updateReady: 'A new version is ready.',
+};

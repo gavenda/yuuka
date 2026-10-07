@@ -5,6 +5,7 @@ import TextField from '@/components/TextField.vue';
 import { ADD } from '@/lib/icons';
 import { PALETTE } from '@/lib/palette';
 import { computed } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * A category's or a tag's colour: one of the palette's, or a hand-picked one. The palette is a row of
@@ -28,9 +29,9 @@ function pick(colour: string): void {
 
 <template>
 	<fieldset class="flex min-w-0 flex-col gap-3.5">
-		<legend class="type-label-medium pb-3.5 text-on-surface">Colour</legend>
+		<legend class="type-label-medium pb-3.5 text-on-surface">{{ t('common.colour') }}</legend>
 
-		<div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Colour">
+		<div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('common.colour')">
 			<button
 				v-for="slot in PALETTE"
 				:key="slot.light"
@@ -39,9 +40,9 @@ function pick(colour: string): void {
 				class="focus-ring size-8 cursor-pointer rounded-full"
 				:class="model.toLowerCase() === slot.light ? 'border-2 border-on-surface' : ''"
 				:style="{ backgroundColor: slot.light }"
-				:aria-label="slot.name"
+				:aria-label="t(`form.colours.${slot.name.toLowerCase()}`)"
 				:aria-checked="model.toLowerCase() === slot.light"
-				:title="slot.name"
+				:title="t(`form.colours.${slot.name.toLowerCase()}`)"
 				@click="pick(slot.light)"
 			/>
 
@@ -52,9 +53,9 @@ function pick(colour: string): void {
 				class="focus-ring grid size-8 cursor-pointer place-items-center rounded-full text-on-surface"
 				:class="isCustom ? 'border-2 border-on-surface' : 'border border-outline-variant bg-surface-container-highest'"
 				:style="isCustom && isValid ? { backgroundColor: model } : undefined"
-				aria-label="Custom colour"
+				:aria-label="t('form.customColour')"
 				:aria-checked="isCustom"
-				title="Custom colour"
+				:title="t('form.customColour')"
 				@click="!isCustom && pick('#64748b')"
 			>
 				<AppIcon v-if="!isCustom" :icon="ADD" :size="16" />
@@ -63,7 +64,7 @@ function pick(colour: string): void {
 
 		<template v-if="isCustom">
 			<ColourWheel v-model="model" />
-			<TextField :id="id" v-model="model" label="Custom colour (hex)" placeholder="#64748b" :error="error" @blur="emit('touch')" />
+			<TextField :id="id" v-model="model" :label="t('form.customColourHex')" placeholder="#64748b" :error="error" @blur="emit('touch')" />
 		</template>
 	</fieldset>
 </template>

@@ -3,6 +3,7 @@ import { useAuth0 } from '@auth0/auth0-vue';
 import CatPattern from '@/components/CatPattern.vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { t } from '@/i18n';
 
 const { loginWithRedirect, error } = useAuth0();
 const route = useRoute();
@@ -102,11 +103,11 @@ onBeforeUnmount(() => observer?.disconnect());
 		<div class="flex w-full max-w-78 flex-col items-center">
 			<!-- A mark, as in the rail: the name beneath it is what is read out. -->
 			<img src="/yuuka.png" alt="" class="size-28 rounded-full object-cover" />
-			<h1 class="type-headline-large pt-6">yuuka</h1>
-			<p class="type-body-large pt-1 pb-10 text-on-surface-variant">Personal budgeting and financial tracking.</p>
+			<h1 class="type-headline-large pt-6">{{ t('common.appName') }}</h1>
+			<p class="type-body-large pt-1 pb-10 text-on-surface-variant">{{ t('login.tagline') }}</p>
 
 			<button type="button" class="btn-primary type-title-medium min-h-14 w-full" :disabled="redirecting" @click="signIn">
-				{{ redirecting ? 'Redirecting…' : 'Log in' }}
+				{{ redirecting ? t('login.redirecting') : t('login.logIn') }}
 			</button>
 
 			<p v-if="error" class="type-body-medium pt-4 text-error" role="alert">{{ error.message }}</p>

@@ -18,6 +18,7 @@ import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Category, CategoryKind } from '@/types';
 import { computed, onMounted, reactive, ref } from 'vue';
+import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
@@ -60,16 +61,16 @@ const sections = computed<Section[]>(() => {
 			.map((parent) => ({ parent, children: visible.filter((category) => category.parentId === parent.id) }));
 
 	return [
-		{ key: 'expense', title: 'Expense', kind: 'expense', families: familiesFor('expense') },
-		{ key: 'income', title: 'Income', kind: 'income', families: familiesFor('income') },
-		{ key: 'cashflow', title: 'Cashflow', kind: 'transfer', families: familiesFor('transfer') },
+		{ key: 'expense', title: t('common.expense'), kind: 'expense', families: familiesFor('expense') },
+		{ key: 'income', title: t('common.income'), kind: 'income', families: familiesFor('income') },
+		{ key: 'cashflow', title: t('common.cashflow'), kind: 'transfer', families: familiesFor('transfer') },
 	];
 });
 
 const KIND_CHOICES: { value: CategoryKind; label: string }[] = [
-	{ value: 'expense', label: 'Expense' },
-	{ value: 'income', label: 'Income' },
-	{ value: 'transfer', label: 'Cashflow' },
+	{ value: 'expense', label: t('common.expense') },
+	{ value: 'income', label: t('common.income') },
+	{ value: 'transfer', label: t('common.cashflow') },
 ];
 
 const archivedCount = computed(() => ledger.categories.filter((category) => category.archived).length);
@@ -90,7 +91,7 @@ const validation = useFormValidation({
 						category.kind === effectiveKind.value &&
 						(category.parentId ?? '') === form.parentId,
 				),
-			'A category with that name already exists here.',
+			t('categories.taken'),
 		),
 	'category-color': () => colorProblem(form.color),
 });
@@ -149,23 +150,23 @@ async function save(): Promise<void> {
 		else await api.createCategory(payload);
 
 		dialogOpen.value = false;
-		showSnackbar(editing.value ? 'Category updated' : 'Category added');
+		showSnackbar(editing.value ? t('categories.updated') : t('categories.added'));
 		await Promise.all([ledger.refreshCategories(), budget.refresh()]);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the category.';
+		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
 }
 
 async function toggleArchived(category: Category): Promise<void> {
 	await api.updateCategory(category.id, { archived: !category.archived });
-	showSnackbar(category.archived ? 'Category restored' : 'Category archived');
+	showSnackbar(category.archived ? t('categories.restored') : t('categories.archived'));
 	await ledger.refreshCategories();
 }
 
 /** Transactions keep their history and become uncategorised, so there is nothing here to ask about first. */
 async function remove(category: Category): Promise<void> {
 	await api.deleteCategory(category.id);
-	showSnackbar('Category deleted');
+	showSnackbar(t('categories.deleted'));
 	await Promise.all([ledger.refreshCategories(), budget.refresh()]);
 }
 
@@ -174,11 +175,7 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="flex flex-col gap-4 px-4 pt-4 pb-24">
-		<EmptyState
-			v-if="!ledger.categories.length"
-			title="No boxes to sort into yet"
-			description="Categories are the boxes your spending goes in. Cats love boxes."
-		/>
+		<EmptyState v-if="!ledger.categories.length" :title="t('categories.emptyTitle')" :description="t('categories.emptyDescription')" />
 
 		<!-- A section is one block of rows under its heading, as the settings groups are drawn. -->
 		<section v-for="section in sections" :key="section.key" class="flex flex-col gap-4">
@@ -191,13 +188,13 @@ onMounted(() => ledger.load());
 					<!-- A parent's row. The row paints the group's own colour, which is what keeps the swipe's actions hidden behind it. -->
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon icon="edit" :label="`Rename ${family.parent.name}`" @click="openEdit(family.parent)" />
+							<ActionIcon icon="edit" :label="t('common.rename', { name: family.parent.name })" @click="openEdit(family.parent)" />
 							<ActionIcon
 								:icon="family.parent.archived ? 'restore' : 'archive'"
-								:label="`${family.parent.archived ? 'Restore' : 'Archive'} ${family.parent.name}`"
+								:label="t(family.parent.archived ? 'common.restore' : 'common.archive', { name: family.parent.name })"
 								@click="toggleArchived(family.parent)"
 							/>
-							<ActionIcon icon="delete" :label="`Delete ${family.parent.name}`" danger @click="remove(family.parent)" />
+							<ActionIcon icon="delete" :label="t('common.delete', { name: family.parent.name })" danger @click="remove(family.parent)" />
 						</template>
 
 						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
@@ -218,10 +215,10 @@ onMounted(() => ledger.load());
 								/>
 								<span class="min-w-0 flex-1">
 									<span class="type-body-large block truncate">{{
-										family.parent.archived ? `${family.parent.name} (Archived)` : family.parent.name
+										family.parent.archived ? t('common.archivedName', { name: family.parent.name }) : family.parent.name
 									}}</span>
 									<span v-if="family.children.length" class="type-body-medium block text-on-surface-variant">
-										{{ family.children.length }} {{ family.children.length === 1 ? 'subcategory' : 'subcategories' }}
+										{{ t('categories.subcategories', family.children.length) }}
 									</span>
 								</span>
 							</button>
@@ -229,8 +226,8 @@ onMounted(() => ledger.load());
 							<button
 								type="button"
 								class="btn-icon text-on-surface-variant"
-								:aria-label="`Add a subcategory to ${family.parent.name}`"
-								title="Add a subcategory"
+								:aria-label="t('categories.addSubTo', { name: family.parent.name })"
+								:title="t('categories.addSub')"
 								@click="openCreate(section.kind, family.parent.id)"
 							>
 								<AppIcon :icon="ADD" />
@@ -248,13 +245,13 @@ onMounted(() => ledger.load());
 					<template v-if="expanded.has(family.parent.id)">
 						<SwipeReveal v-for="child in family.children" :key="child.id">
 							<template #actions>
-								<ActionIcon icon="edit" :label="`Rename ${child.name}`" @click="openEdit(child)" />
+								<ActionIcon icon="edit" :label="t('common.rename', { name: child.name })" @click="openEdit(child)" />
 								<ActionIcon
 									:icon="child.archived ? 'restore' : 'archive'"
-									:label="`${child.archived ? 'Restore' : 'Archive'} ${child.name}`"
+									:label="t(child.archived ? 'common.restore' : 'common.archive', { name: child.name })"
 									@click="toggleArchived(child)"
 								/>
-								<ActionIcon icon="delete" :label="`Delete ${child.name}`" danger @click="remove(child)" />
+								<ActionIcon icon="delete" :label="t('common.delete', { name: child.name })" danger @click="remove(child)" />
 							</template>
 
 							<button
@@ -263,7 +260,9 @@ onMounted(() => ledger.load());
 								@click="openEdit(child)"
 							>
 								<span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(child.color) }" aria-hidden="true" />
-								<span class="type-body-medium min-w-0 flex-1 truncate">{{ child.archived ? `${child.name} (Archived)` : child.name }}</span>
+								<span class="type-body-medium min-w-0 flex-1 truncate">{{
+									child.archived ? t('common.archivedName', { name: child.name }) : child.name
+								}}</span>
 							</button>
 						</SwipeReveal>
 					</template>
@@ -273,13 +272,13 @@ onMounted(() => ledger.load());
 
 		<div v-if="archivedCount > 0">
 			<button type="button" class="btn-text" @click="showArchived = !showArchived">
-				{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
+				{{ t(showArchived ? 'common.hideArchived' : 'common.showArchived', { count: archivedCount }) }}
 			</button>
 		</div>
 
 		<FormDialog
 			:open="dialogOpen"
-			:title="editing ? 'Edit category' : 'New category'"
+			:title="editing ? t('categories.editCategory') : t('categories.newCategory')"
 			:save-enabled="validation.isValid.value"
 			:dirty="dirty"
 			@close="dialogOpen = false"
@@ -290,7 +289,7 @@ onMounted(() => ledger.load());
 				<ConnectedButtonGroup
 					v-if="!editing && !form.parentId"
 					:model-value="form.kind"
-					label="Kind of category"
+					:label="t('categories.kindOf')"
 					:options="KIND_CHOICES"
 					@update:model-value="selectKind"
 				/>
@@ -298,12 +297,14 @@ onMounted(() => ledger.load());
 				<TextField
 					id="category-name"
 					v-model="form.name"
-					label="Name"
+					:label="t('common.name')"
 					:error="fieldError('category-name')"
 					@blur="touch('category-name')"
 				/>
 
-				<p v-if="!editing && form.parentId" class="type-body-small text-on-surface">Nested under: {{ parentName }}</p>
+				<p v-if="!editing && form.parentId" class="type-body-small text-on-surface">
+					{{ t('categories.nestedUnder', { name: parentName }) }}
+				</p>
 
 				<ColourField id="category-color" v-model="form.color" :error="fieldError('category-color')" @touch="touch('category-color')" />
 
@@ -311,6 +312,6 @@ onMounted(() => ledger.load());
 			</div>
 		</FormDialog>
 
-		<FabButton label="New category" @click="openCreate()" />
+		<FabButton :label="t('categories.newCategory')" @click="openCreate()" />
 	</div>
 </template>

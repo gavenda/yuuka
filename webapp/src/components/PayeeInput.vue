@@ -122,7 +122,7 @@ function hint(entry: Payee): string {
 			<label class="label" for="payee">{{ label }}</label>
 			<AppIcon v-if="error" :icon="ERROR" class="pointer-events-none absolute top-4 right-3 text-error" />
 
-			<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute z-20 max-h-64 min-w-60 overflow-y-auto">
+			<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute inset-x-0 z-20 max-h-64 overflow-y-auto">
 				<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
 					<!-- mousedown, not click: the input's blur would otherwise close the
 					     list before the click landed. -->

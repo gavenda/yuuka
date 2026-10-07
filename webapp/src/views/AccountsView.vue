@@ -22,6 +22,7 @@ import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
 import { computed, onMounted, reactive, ref } from 'vue';
+import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
@@ -46,8 +47,8 @@ const dirty = computed(() => JSON.stringify(form) !== opened.value);
 // Whether an account's purchases round up is not here: it is chosen on the Save the Change screen, beside the rule it feeds.
 const validation = useFormValidation({
 	'account-name': () => nameProblem(form.name),
-	'account-type': () => (ledger.accountTypes.some((type) => type.id === form.typeId) ? null : 'Choose a type.'),
-	'account-balance': () => (parseMoney(form.startingBalance) === null ? 'Enter a number, such as 1250.00.' : null),
+	'account-type': () => (ledger.accountTypes.some((type) => type.id === form.typeId) ? null : t('accounts.chooseType')),
+	'account-balance': () => (parseMoney(form.startingBalance) === null ? t('accounts.balanceNumber') : null),
 	'account-currency': () => currencyProblem(form.currency),
 	'account-logo': () => logoUrlProblem(form.logoUrl),
 });
@@ -65,10 +66,10 @@ const adjustForm = reactive({
 const adjustValidation = useFormValidation({
 	'adjust-balance': () => {
 		const target = parseMoney(adjustForm.balance);
-		if (target === null) return 'Enter a number, such as 1250.00.';
-		return adjusting.value && target === adjusting.value.balance ? 'That is already the current balance.' : null;
+		if (target === null) return t('accounts.balanceNumber');
+		return adjusting.value && target === adjusting.value.balance ? t('accounts.balanceUnchanged') : null;
 	},
-	'adjust-payee': () => (adjustForm.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null),
+	'adjust-payee': () => (adjustForm.payee.trim().length > 120 ? t('accounts.payeeTooLong', { max: 120 }) : null),
 });
 const { error: adjustFieldError, touch: adjustTouch } = adjustValidation;
 
@@ -133,7 +134,7 @@ const groups = computed<AccountGroup[]>(() => {
 
 	// An account whose type is no longer listed still needs a home, last.
 	for (const [typeId, accounts] of byType) {
-		groups.push(toGroup(typeId || 'untyped', accounts[0]!.typeName ?? 'Uncategorized', accounts));
+		groups.push(toGroup(typeId || 'untyped', accounts[0]!.typeName ?? t('common.uncategorized'), accounts));
 	}
 
 	return groups;
@@ -190,10 +191,10 @@ async function save(): Promise<void> {
 		else await api.createAccount(payload);
 
 		dialogOpen.value = false;
-		showSnackbar(editing.value ? 'Account updated' : 'Account added');
+		showSnackbar(editing.value ? t('accounts.updated') : t('accounts.added'));
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the account.';
+		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
 }
 
@@ -216,16 +217,16 @@ async function saveAdjustment(): Promise<void> {
 	try {
 		await api.adjustAccount(account.id, { balance, occurredOn: today(), payee: adjustForm.payee.trim() || undefined });
 		adjustDialogOpen.value = false;
-		showSnackbar('Balance adjusted');
+		showSnackbar(t('accounts.adjusted'));
 		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
-		adjustError.value = caught instanceof ApiError ? caught.message : 'Could not adjust the balance.';
+		adjustError.value = caught instanceof ApiError ? caught.message : t('accounts.couldNotAdjust');
 	}
 }
 
 async function toggleArchived(account: Account): Promise<void> {
 	await api.updateAccount(account.id, { archived: !account.archived });
-	showSnackbar(account.archived ? 'Account restored' : 'Account archived');
+	showSnackbar(account.archived ? t('accounts.restored') : t('accounts.archived'));
 	await ledger.refreshAccounts();
 }
 
@@ -248,12 +249,12 @@ async function remove(): Promise<void> {
 	} catch (caught) {
 		// The API refuses to silently destroy history; say so and ask again before forcing it.
 		if (caught instanceof ApiError && caught.status === 409) deleteHasHistory.value = true;
-		else showSnackbar(caught instanceof ApiError ? caught.message : 'Could not delete the account.');
+		else showSnackbar(caught instanceof ApiError ? caught.message : t('accounts.couldNotDelete'));
 		return;
 	}
 
 	closeDelete();
-	showSnackbar('Account deleted');
+	showSnackbar(t('accounts.deleted'));
 	await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
 }
 
@@ -262,7 +263,7 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="px-4 pt-4 pb-24">
-		<EmptyState v-if="!groups.length" fill title="It's quiet in here" description="Add an account and give the cat something to count." />
+		<EmptyState v-if="!groups.length" fill :title="t('accounts.emptyTitle')" :description="t('accounts.emptyDescription')" />
 
 		<!-- Accounts under their type. The rows of a type are a hair apart, the way a settings group is drawn;
 		     the space between one type and the next comes from the heading's own padding. -->
@@ -276,20 +277,22 @@ onMounted(() => ledger.load());
 				<li v-for="account in group.accounts" :key="account.id">
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon icon="adjust" :label="`Adjust balance for ${account.name}`" @click="openAdjust(account)" />
+							<ActionIcon icon="adjust" :label="t('accounts.nudgeFor', { name: account.name })" @click="openAdjust(account)" />
 							<ActionIcon
 								:icon="account.archived ? 'restore' : 'archive'"
-								:label="`${account.archived ? 'Restore' : 'Archive'} ${account.name}`"
+								:label="t(account.archived ? 'common.restore' : 'common.archive', { name: account.name })"
 								@click="toggleArchived(account)"
 							/>
-							<ActionIcon icon="delete" :label="`Delete ${account.name}`" danger @click="pendingDelete = account" />
+							<ActionIcon icon="delete" :label="t('common.delete', { name: account.name })" danger @click="pendingDelete = account" />
 						</template>
 
 						<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
 						<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(account)">
 							<span class="flex items-center gap-4 px-4 py-3">
 								<span class="flex min-w-0 flex-1 flex-col gap-1">
-									<span class="type-title-medium truncate">{{ account.archived ? `${account.name} (Archived)` : account.name }}</span>
+									<span class="type-title-medium truncate">{{
+										account.archived ? t('common.archivedName', { name: account.name }) : account.name
+									}}</span>
 									<span class="type-body-small">{{ currencyName(account.currency) }}</span>
 									<MoneyText :amount="account.balance" :currency="account.currency" tone="signed-alert" class="type-title-medium" />
 								</span>
@@ -303,26 +306,32 @@ onMounted(() => ledger.load());
 
 		<div v-if="archivedCount > 0" class="pt-1">
 			<button type="button" class="btn-text" @click="showArchived = !showArchived">
-				{{ showArchived ? 'Hide' : 'Show' }} {{ archivedCount }} archived
+				{{ t(showArchived ? 'common.hideArchived' : 'common.showArchived', { count: archivedCount }) }}
 			</button>
 		</div>
 
 		<FormDialog
 			:open="dialogOpen"
-			:title="editing ? 'Edit account' : 'New account'"
+			:title="editing ? t('accounts.editAccount') : t('accounts.newAccount')"
 			:save-enabled="validation.isValid.value"
 			:dirty="dirty"
 			@close="dialogOpen = false"
 			@save="save"
 		>
 			<div class="contents" @input="validation.onInput">
-				<TextField id="account-name" v-model="form.name" label="Name" :error="fieldError('account-name')" @blur="touch('account-name')" />
+				<TextField
+					id="account-name"
+					v-model="form.name"
+					:label="t('common.name')"
+					:error="fieldError('account-name')"
+					@blur="touch('account-name')"
+				/>
 
 				<div>
 					<SelectField
 						id="account-type"
 						v-model="form.typeId"
-						label="Type"
+						:label="t('common.type')"
 						:options="typeChoices"
 						:invalid="Boolean(fieldError('account-type'))"
 						:describedby="describe('account-type')"
@@ -334,7 +343,7 @@ onMounted(() => ledger.load());
 				<TextField
 					id="account-balance"
 					v-model="form.startingBalance"
-					label="Starting balance"
+					:label="t('accounts.startingBalance')"
 					placeholder="0.00"
 					inputmode="decimal"
 					:error="fieldError('account-balance')"
@@ -344,7 +353,7 @@ onMounted(() => ledger.load());
 				<TextField
 					id="account-currency"
 					v-model="form.currency"
-					label="Currency"
+					:label="t('common.currency')"
 					class="uppercase"
 					maxlength="3"
 					:error="fieldError('account-currency')"
@@ -354,7 +363,7 @@ onMounted(() => ledger.load());
 				<TextField
 					id="account-logo"
 					v-model="form.logoUrl"
-					label="Logo URL (optional)"
+					:label="t('accounts.logoUrl')"
 					type="url"
 					:error="fieldError('account-logo')"
 					@blur="touch('account-logo')"
@@ -362,15 +371,15 @@ onMounted(() => ledger.load());
 
 				<!-- Always shown, not only once a logo is entered; it has no effect until the account has one. -->
 				<div class="type-body-large flex items-center text-on-surface">
-					<span class="flex-1">Invert colours in dark mode</span>
-					<ToggleSwitch v-model="form.logoInvertDark" label="Invert colours in dark mode" />
+					<span class="flex-1">{{ t('accounts.invertDark') }}</span>
+					<ToggleSwitch v-model="form.logoInvertDark" :label="t('accounts.invertDark')" />
 				</div>
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
 			</div>
 		</FormDialog>
 
-		<AlertDialog :open="adjustDialogOpen" title="Adjust balance" role="dialog" @close="adjustDialogOpen = false">
+		<AlertDialog :open="adjustDialogOpen" :title="t('accounts.nudge')" role="dialog" @close="adjustDialogOpen = false">
 			<form
 				v-if="adjusting"
 				id="adjust-form"
@@ -380,14 +389,13 @@ onMounted(() => ledger.load());
 				@input="adjustValidation.onInput"
 			>
 				<p>
-					{{ adjusting.name }}'s current balance is {{ displayMoney(adjusting.balance, adjusting.currency) }}. Enter what it should be
-					instead — the difference is logged as its own transaction, dated today.
+					{{ t('accounts.nudgeDescription', { name: adjusting.name, balance: displayMoney(adjusting.balance, adjusting.currency) }) }}
 				</p>
 
 				<TextField
 					id="adjust-balance"
 					v-model="adjustForm.balance"
-					label="New balance"
+					:label="t('accounts.newBalance')"
 					placeholder="0.00"
 					inputmode="decimal"
 					:error="adjustFieldError('adjust-balance')"
@@ -395,13 +403,17 @@ onMounted(() => ledger.load());
 				/>
 
 				<p v-if="adjustDifference" class="type-body-small">
-					Logs {{ displayMoney(adjustDifference, adjusting.currency) }} as {{ adjustDifference > 0 ? 'income' : 'an expense' }}.
+					{{
+						t(adjustDifference > 0 ? 'accounts.logsIncome' : 'accounts.logsExpense', {
+							amount: displayMoney(adjustDifference, adjusting.currency),
+						})
+					}}
 				</p>
 
 				<TextField
 					id="adjust-payee"
 					v-model="adjustForm.payee"
-					label="Payee (optional)"
+					:label="t('accounts.payeeOptional')"
 					:error="adjustFieldError('adjust-payee')"
 					@blur="adjustTouch('adjust-payee')"
 				/>
@@ -411,25 +423,31 @@ onMounted(() => ledger.load());
 
 			<!-- Outside the form, as a dialog's buttons are, so Save names the form it submits. -->
 			<template #actions>
-				<button type="button" class="btn-text" @click="adjustDialogOpen = false">Cancel</button>
-				<button type="submit" form="adjust-form" class="btn-text" :disabled="!adjustValidation.isValid.value">Save adjustment</button>
-			</template>
-		</AlertDialog>
-
-		<AlertDialog :open="pendingDelete !== null" :title="`Delete &quot;${pendingDelete?.name}&quot;?`" :icon="DELETE" @close="closeDelete">
-			<template v-if="deleteHasHistory">
-				{{ pendingDelete?.name }} still has transactions, and deleting it deletes them too. To keep your history, go back and archive the
-				account instead. This cannot be undone.
-			</template>
-			<template v-else>The account and any subscriptions that post to it will be removed. This cannot be undone.</template>
-			<template #actions>
-				<button type="button" class="btn-text" @click="closeDelete">No, go back</button>
-				<button type="button" class="btn-text text-error" @click="remove">
-					{{ deleteHasHistory ? 'Yes, delete everything' : 'Yes, delete it' }}
+				<button type="button" class="btn-text" @click="adjustDialogOpen = false">{{ t('common.cancel') }}</button>
+				<button type="submit" form="adjust-form" class="btn-text" :disabled="!adjustValidation.isValid.value">
+					{{ t('accounts.saveAdjustment') }}
 				</button>
 			</template>
 		</AlertDialog>
 
-		<FabButton label="New account" @click="openCreate" />
+		<AlertDialog
+			:open="pendingDelete !== null"
+			:title="t('accounts.deleteTitle', { name: pendingDelete?.name ?? '' })"
+			:icon="DELETE"
+			@close="closeDelete"
+		>
+			<template v-if="deleteHasHistory">
+				{{ t('accounts.deleteHistory', { name: pendingDelete?.name ?? '' }) }}
+			</template>
+			<template v-else>{{ t('accounts.deleteBody') }}</template>
+			<template #actions>
+				<button type="button" class="btn-text" @click="closeDelete">{{ t('common.noGoBack') }}</button>
+				<button type="button" class="btn-text text-error" @click="remove">
+					{{ deleteHasHistory ? t('accounts.deleteEverything') : t('common.yesDelete') }}
+				</button>
+			</template>
+		</AlertDialog>
+
+		<FabButton :label="t('accounts.newAccount')" @click="openCreate" />
 	</div>
 </template>

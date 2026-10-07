@@ -5,6 +5,7 @@ import { DEFAULT_CURRENCY } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import type { CategoryBreakdown } from '@/types';
 import { computed } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * A horizontal ranked bar per category (`CategoryBarList` in `BarCharts.kt`), each carrying its own value
@@ -31,7 +32,7 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 	<section class="card p-5">
 		<h2 class="type-title-large">{{ title }}</h2>
 
-		<p v-if="!rows.length" class="type-body-small mt-3">Nothing recorded this month.</p>
+		<p v-if="!rows.length" class="type-body-small mt-3">{{ t('dashboard.nothingRecorded') }}</p>
 
 		<ul v-else class="mt-3 flex flex-col gap-2.5">
 			<li v-for="row in rows" :key="row.categoryId">

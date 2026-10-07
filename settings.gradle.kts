@@ -23,5 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Yuuka"
-include(":app")
- 
+include(":app", ":webapp")

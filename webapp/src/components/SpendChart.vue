@@ -4,6 +4,7 @@ import { formatLongDate } from '@/lib/dates';
 import { currencySymbol, DEFAULT_CURRENCY } from '@/lib/money';
 import { displayMoney, useAmountVisibility } from '@/lib/privacy';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 const props = withDefaults(
 	defineProps<{
@@ -180,14 +181,13 @@ onBeforeUnmount(() => observer?.disconnect());
 <template>
 	<!-- On a secondary container, as on Android: the one card on the dashboard that is a picture rather than a figure. -->
 	<section class="card-secondary p-5">
-		<h2 class="type-title-large">Spending by day</h2>
+		<h2 class="type-title-large">{{ t('dashboard.chart.title') }}</h2>
 
-		<p v-if="!hasData" class="type-body-small">No spending recorded this month.</p>
+		<p v-if="!hasData" class="type-body-small">{{ t('dashboard.chart.empty') }}</p>
 
 		<template v-else>
 			<p class="type-body-small">
-				{{ displayMoney(total, currency) }} across {{ spentDays.length }}
-				{{ spentDays.length === 1 ? 'day' : 'days' }}
+				{{ t('dashboard.chart.summary', { amount: displayMoney(total, currency) }, spentDays.length) }}
 			</p>
 
 			<div class="relative mt-3 flex items-start">
@@ -196,10 +196,16 @@ onBeforeUnmount(() => observer?.disconnect());
 					ref="scroller"
 					class="focus-ring min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]"
 					tabindex="0"
-					aria-label="Spending by day, scrolls sideways"
+					:aria-label="t('dashboard.chart.scrolls')"
 					@scroll.passive="onScroll"
 				>
-					<svg :width="contentWidth" :height="svgHeight" class="block max-w-none" role="img" :aria-label="`Spending by day for ${month}`">
+					<svg
+						:width="contentWidth"
+						:height="svgHeight"
+						class="block max-w-none"
+						role="img"
+						:aria-label="t('dashboard.chart.forMonth', { month })"
+					>
 						<!-- Behind the bars, so a bar covers the line where it crosses. -->
 						<line
 							v-if="average !== null"
@@ -295,21 +301,25 @@ onBeforeUnmount(() => observer?.disconnect());
 			</div>
 
 			<ul class="type-label-small mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
-				<li class="flex items-center gap-1.5"><span class="inline-block h-0.5 w-4 bg-primary" aria-hidden="true" /> Daily average</li>
 				<li class="flex items-center gap-1.5">
-					<span class="inline-block size-2.5 rounded-full bg-tertiary" aria-hidden="true" /> At or above average
+					<span class="inline-block h-0.5 w-4 bg-primary" aria-hidden="true" /> {{ t('dashboard.chart.dailyAverage') }}
+				</li>
+				<li class="flex items-center gap-1.5">
+					<span class="inline-block size-2.5 rounded-full bg-tertiary" aria-hidden="true" /> {{ t('dashboard.chart.atOrAbove') }}
 				</li>
 			</ul>
 
 			<!-- The table is the non-visual route to the same numbers. -->
 			<table class="sr-only">
 				<caption>
-					Spending by day
+					{{
+						t('dashboard.chart.title')
+					}}
 				</caption>
 				<thead>
 					<tr>
-						<th scope="col">Date</th>
-						<th scope="col">Spent</th>
+						<th scope="col">{{ t('dashboard.chart.date') }}</th>
+						<th scope="col">{{ t('common.spent') }}</th>
 					</tr>
 				</thead>
 				<tbody>

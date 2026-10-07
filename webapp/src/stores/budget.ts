@@ -4,6 +4,7 @@ import { currentMonth } from '@/lib/dates';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Summary } from '@/types';
+import { t } from '@/i18n';
 
 /** How many months' summaries the local copy holds. */
 const KEEP_MONTHS = 6;
@@ -80,7 +81,7 @@ export const useBudgetStore = defineStore('budget', () => {
 			// Out of reach with this month's figures on screen: keep showing them.
 			const showingLocalCopy = summary.value?.month === requested;
 			if (!(showingLocalCopy && isNetworkError(caught))) {
-				error.value = caught instanceof Error ? caught.message : 'Could not load the summary.';
+				error.value = caught instanceof Error ? caught.message : t('common.errors.loadSummary');
 			}
 			return false;
 		} finally {

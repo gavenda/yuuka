@@ -3,6 +3,7 @@ import { readCache, writeCache } from '@/lib/cache';
 import type { Subscription } from '@/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { t } from '@/i18n';
 
 const CACHE_KEY = 'subscriptions';
 
@@ -43,7 +44,7 @@ export const useSubscriptionStore = defineStore('subscriptions', () => {
 		} catch (caught) {
 			// Out of reach with a copy on screen: keep showing it.
 			if (!(loaded.value && isNetworkError(caught))) {
-				error.value = caught instanceof Error ? caught.message : 'Could not load subscriptions.';
+				error.value = caught instanceof Error ? caught.message : t('common.errors.loadSubscriptions');
 			}
 		} finally {
 			loading.value = false;

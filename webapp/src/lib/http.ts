@@ -8,6 +8,7 @@
  */
 
 import { deviceId } from './device';
+import { t } from '@/i18n';
 
 /** An error carrying the API's status code and any per-field validation detail. */
 export class ApiError extends Error {
@@ -78,7 +79,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 			},
 		});
 	} catch {
-		throw new ApiError(0, 'Network error. Check your connection.');
+		throw new ApiError(0, t('common.errors.network'));
 	}
 
 	if (response.status === 204) return undefined as T;

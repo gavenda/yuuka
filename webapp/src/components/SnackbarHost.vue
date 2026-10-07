@@ -3,6 +3,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import { CLOSE } from '@/lib/icons';
 import { dismissSnackbar, snackbarQueue } from '@/lib/snackbar';
 import { computed, onBeforeUnmount, watch } from 'vue';
+import { t } from '@/i18n';
 
 /** Only the head of the queue is on screen; the next one takes over once it has gone. */
 const current = computed(() => snackbarQueue[0] ?? null);
@@ -54,7 +55,7 @@ function act(): void {
 					v-if="current.duration === null"
 					type="button"
 					class="btn-icon text-inverse-on-surface"
-					aria-label="Dismiss"
+					:aria-label="t('common.dismiss')"
 					@click="dismissSnackbar(current.id)"
 				>
 					<AppIcon :icon="CLOSE" />

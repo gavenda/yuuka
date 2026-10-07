@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
 import { CHECK } from '@/lib/icons';
+import { t } from '@/i18n';
 
 /**
  * A multi-select filter as one row of chips that slides down under the filter bar and scrolls sideways, the
@@ -49,7 +50,7 @@ function toggle(id: string): void {
 						</button>
 					</div>
 
-					<button v-if="selected.length" type="button" class="btn-text shrink-0" @click="selected = []">Clear</button>
+					<button v-if="selected.length" type="button" class="btn-text shrink-0" @click="selected = []">{{ t('common.clear') }}</button>
 				</template>
 			</div>
 		</div>

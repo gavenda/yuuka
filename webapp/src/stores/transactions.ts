@@ -3,6 +3,7 @@ import { dropCacheFamily, readCache, snapshotKey, writeCache } from '@/lib/cache
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Transaction, TransactionFilters } from '@/types';
+import { t } from '@/i18n';
 
 const PAGE_SIZE = 50;
 
@@ -71,7 +72,7 @@ export const useTransactionStore = defineStore('transactions', () => {
 			if (!append) persist();
 		} catch (caught) {
 			if (!(keepOnNetworkError && isNetworkError(caught))) {
-				error.value = caught instanceof Error ? caught.message : 'Could not load transactions.';
+				error.value = caught instanceof Error ? caught.message : t('common.errors.loadTransactions');
 			}
 		} finally {
 			loading.value = false;

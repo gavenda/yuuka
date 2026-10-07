@@ -1,4 +1,5 @@
 import type { Transaction, TransactionTag } from '@/types';
+import { t } from '@/i18n';
 
 /** A transfer is two linked rows; every list shows them as the single movement they represent. */
 export interface TransferRow {
@@ -88,7 +89,7 @@ export function describeRow(row: TransactionRow): RowCard {
 		return {
 			key: row.id,
 			// An unnamed transfer is stored under its own "From → To", which the subtitle already says.
-			title: !payee || payee === flow ? 'Transfer' : payee,
+			title: !payee || payee === flow ? t('common.transfer') : payee,
 			subtitle: flow,
 			automated: false,
 			occurredOn: row.leg.occurredOn,
@@ -106,7 +107,7 @@ export function describeRow(row: TransactionRow): RowCard {
 
 	return {
 		key: transaction.id,
-		title: transaction.payee || transaction.categoryName || 'Uncategorized',
+		title: transaction.payee || transaction.categoryName || t('common.uncategorized'),
 		subtitle: transaction.accountName ?? '',
 		automated: transaction.automated,
 		occurredOn: transaction.occurredOn,

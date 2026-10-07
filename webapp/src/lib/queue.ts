@@ -35,6 +35,7 @@ import { deviceId } from './device';
 import { clearOutbox, enqueue, pending, pendingCount, recordFailure, remove, type OutboxEntry } from './outbox';
 import { slicesForPath, type ChangeSlice } from './slices';
 import { showSnackbar } from './snackbar';
+import { t } from '@/i18n';
 
 /** Given up on after this many failed sends, so one impossible change cannot block the queue forever. */
 const MAX_ATTEMPTS = 8;
@@ -189,7 +190,7 @@ async function drain(): Promise<void> {
 				.filter((entry): entry is OutboxEntry & { seq: number } => entry.seq !== undefined)
 				.map((entry) => ({
 					seq: entry.seq,
-					error: error instanceof Error ? error.message : 'Could not reach the API.',
+					error: error instanceof Error ? error.message : t('common.errors.unreachable'),
 				})),
 		);
 		return;

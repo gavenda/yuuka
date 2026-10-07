@@ -15,6 +15,7 @@ import { colorProblem, nameProblem, sameName, useFormValidation } from '@/lib/va
 import { useLedgerStore } from '@/stores/ledger';
 import type { Tag } from '@/types';
 import { computed, onMounted, reactive, ref } from 'vue';
+import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
 const harmonised = useHarmonised();
@@ -29,11 +30,7 @@ const form = reactive({ name: '', color: PALETTE[0].light });
 
 const validation = useFormValidation({
 	'tag-name': () =>
-		nameProblem(
-			form.name,
-			(name) => ledger.tags.some((tag) => tag.id !== editing.value?.id && sameName(tag.name, name)),
-			'A tag with that name already exists.',
-		),
+		nameProblem(form.name, (name) => ledger.tags.some((tag) => tag.id !== editing.value?.id && sameName(tag.name, name)), t('tags.taken')),
 	'tag-color': () => colorProblem(form.color),
 });
 const { error: fieldError, touch } = validation;
@@ -81,10 +78,10 @@ async function save(): Promise<void> {
 		else await api.createTag({ name, color: form.color });
 
 		dialogOpen.value = false;
-		showSnackbar(wasEditing ? 'Tag updated' : 'Tag added');
+		showSnackbar(wasEditing ? t('tags.updated') : t('tags.added'));
 		await ledger.refreshTags();
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the tag.';
+		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	} finally {
 		saving.value = false;
 	}
@@ -94,10 +91,10 @@ async function save(): Promise<void> {
 async function remove(tag: Tag): Promise<void> {
 	try {
 		await api.deleteTag(tag.id);
-		showSnackbar('Tag deleted');
+		showSnackbar(t('tags.deleted'));
 		await ledger.refreshTags();
 	} catch (caught) {
-		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not delete the tag.');
+		showSnackbar(caught instanceof ApiError ? caught.message : t('tags.couldNotDelete'));
 	}
 }
 
@@ -109,30 +106,32 @@ onMounted(async () => {
 
 /** A copy saved before counts existed has none, so read a missing one as zero until the API answers. */
 const countOf = (tag: Tag) => tag.transactionCount ?? 0;
-const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) === 1 ? 'transaction' : 'transactions'}`;
+const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(countOf(tag)) }, countOf(tag));
 </script>
 
 <template>
 	<div class="px-4 pt-4 pb-24">
-		<EmptyState
-			v-if="!ledger.tags.length"
-			fill
-			title="No tags to bat around yet"
-			description="Add one, then stick it on a transaction to find it again later."
-		/>
+		<EmptyState v-if="!ledger.tags.length" fill :title="t('tags.emptyTitle')" :description="t('tags.emptyDescription')" />
 
 		<template v-else>
 			<!-- A long list is searched rather than scrolled; the field only appears once there is enough to lose something in. -->
-			<TextField v-if="ledger.tags.length >= SEARCH_FROM" id="tag-search" v-model="search" class="mb-1" label="Search tags" type="search" />
+			<TextField
+				v-if="ledger.tags.length >= SEARCH_FROM"
+				id="tag-search"
+				v-model="search"
+				class="mb-1"
+				:label="t('tags.search')"
+				type="search"
+			/>
 
-			<p v-if="!visible.length" class="type-body-small">No tag matches “{{ search.trim() }}”.</p>
+			<p v-if="!visible.length" class="type-body-small">{{ t('tags.noMatch', { search: search.trim() }) }}</p>
 
 			<!-- One row per tag — its colour leading, its count at the end — drawn as one connected block. -->
 			<ul v-else class="group-rows">
 				<li v-for="tag in visible" :key="tag.id">
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon icon="delete" :label="`Delete ${tag.name}`" danger @click="remove(tag)" />
+							<ActionIcon icon="delete" :label="t('common.delete', { name: tag.name })" danger @click="remove(tag)" />
 						</template>
 
 						<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(tag)">
@@ -149,7 +148,7 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 
 		<FormDialog
 			:open="dialogOpen"
-			:title="editing ? 'Edit tag' : 'New tag'"
+			:title="editing ? t('tags.editTag') : t('tags.newTag')"
 			:save-enabled="validation.isValid.value"
 			:submitting="saving"
 			:dirty="dirty"
@@ -157,7 +156,7 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 			@save="save"
 		>
 			<div class="contents" @input="validation.onInput">
-				<TextField id="tag-name" v-model="form.name" label="Name" :error="fieldError('tag-name')" @blur="touch('tag-name')" />
+				<TextField id="tag-name" v-model="form.name" :label="t('common.name')" :error="fieldError('tag-name')" @blur="touch('tag-name')" />
 
 				<ColourField id="tag-color" v-model="form.color" :error="fieldError('tag-color')" @touch="touch('tag-color')" />
 
@@ -165,6 +164,6 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 			</div>
 		</FormDialog>
 
-		<FabButton label="New tag" @click="openCreate" />
+		<FabButton :label="t('tags.newTag')" @click="openCreate" />
 	</div>
 </template>

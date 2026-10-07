@@ -7,6 +7,7 @@ import TopBar from '@/components/TopBar.vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { computed, onMounted } from 'vue';
+import { t } from '@/i18n';
 
 const budget = useBudgetStore();
 const ledger = useLedgerStore();
@@ -20,21 +21,21 @@ const month = computed({
 
 /** Where things stand: what there is, and what came in and went out this month. */
 const standing = computed(() => [
-	{ label: 'Net worth', amount: budget.summary?.netWorth ?? 0, watermark: true },
-	{ label: 'Income', amount: budget.summary?.income ?? 0 },
-	{ label: 'Spent', amount: budget.summary?.expenses ?? 0 },
+	{ label: t('common.netWorth'), amount: budget.summary?.netWorth ?? 0, watermark: true },
+	{ label: t('common.income'), amount: budget.summary?.income ?? 0 },
+	{ label: t('common.spent'), amount: budget.summary?.expenses ?? 0 },
 ]);
 
 /** How the month is going against the plan. */
 const progress = computed(() => {
 	const net = budget.summary?.net ?? 0;
 	return [
-		{ label: 'Net this month', amount: net, caption: net >= 0 ? 'Saved' : 'Overspent', signed: true },
-		{ label: 'Budget remaining', amount: budget.unspent, caption: 'Across budgeted categories' },
+		{ label: t('dashboard.netThisMonth'), amount: net, caption: net >= 0 ? t('dashboard.saved') : t('dashboard.overspent'), signed: true },
+		{ label: t('dashboard.budgetRemaining'), amount: budget.unspent, caption: t('dashboard.acrossBudgeted') },
 		{
-			label: 'Over budget',
+			label: t('dashboard.overBudget'),
 			amount: budget.overspent,
-			caption: budget.overspent < 0 ? 'Needs attention' : 'Nothing overspent',
+			caption: budget.overspent < 0 ? t('dashboard.needsAttention') : t('dashboard.nothingOverspent'),
 			signed: true,
 		},
 	];
@@ -54,6 +55,6 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 
 		<SpendChart :month="budget.month" :days="budget.summary?.dailySpend ?? []" :currency="currency" />
 
-		<CategoryBars title="Where the money went" :entries="budget.expenseBreakdown" :currency="currency" />
+		<CategoryBars :title="t('dashboard.whereMoneyWent')" :entries="budget.expenseBreakdown" :currency="currency" />
 	</div>
 </template>

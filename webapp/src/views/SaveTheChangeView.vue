@@ -11,6 +11,7 @@ import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account, RoundUpRule } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
@@ -45,7 +46,7 @@ const hasDestination = computed(() => ledger.activeAccounts.some((account) => ac
 /** The destination's problem is shown once the switch has been thrown or the picker opened, not on arrival. */
 const destinationTouched = ref(false);
 const destinationError = computed(() =>
-	destinationTouched.value && enabled.value && !hasDestination.value ? 'Choose a destination account to enable Save the Change.' : null,
+	destinationTouched.value && enabled.value && !hasDestination.value ? t('saveTheChange.chooseDestination') : null,
 );
 
 /**
@@ -68,7 +69,7 @@ async function persist(): Promise<void> {
 		await ledger.updateRoundUpRule(change);
 		await budget.refresh();
 	} catch (caught) {
-		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save Save the Change.');
+		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}
 }
 
@@ -91,8 +92,8 @@ const categorySheetOpen = ref(false);
 const sourceAccounts = computed(() => ledger.activeAccounts.filter((account) => account.roundUpSource));
 const sourceSummary = computed(() => {
 	const sources = sourceAccounts.value;
-	if (!sources.length) return 'None chosen';
-	return sources.length <= 2 ? sources.map((account) => account.name).join(', ') : `${sources.length} accounts`;
+	if (!sources.length) return t('saveTheChange.noSources');
+	return sources.length <= 2 ? sources.map((account) => account.name).join(', ') : t('saveTheChange.sourceCount', sources.length);
 });
 
 /**
@@ -105,12 +106,12 @@ async function toggleSource(account: Account): Promise<void> {
 		await api.updateAccount(account.id, { roundUpSource: !account.roundUpSource });
 		await ledger.refreshAccounts();
 	} catch (caught) {
-		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save the account.');
+		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}
 }
 
 const destinationName = computed(
-	() => ledger.activeAccounts.find((account) => account.id === destinationId.value)?.name ?? 'Choose an account',
+	() => ledger.activeAccounts.find((account) => account.id === destinationId.value)?.name ?? t('saveTheChange.chooseAccount'),
 );
 
 function openDestination(): void {
@@ -129,7 +130,7 @@ function pickDestination(id: string): void {
  * child carries its parent's name beneath it, standing in for the indent a list would give it.
  */
 const categoryRows = computed(() => [
-	{ id: null as string | null, name: 'Uncategorized', parentName: null as string | null },
+	{ id: null as string | null, name: t('common.uncategorized'), parentName: null as string | null },
 	...ledger
 		.groupForPicker(ledger.transferCategories)
 		.flatMap((group) => [
@@ -137,7 +138,7 @@ const categoryRows = computed(() => [
 			...group.children.map((child) => ({ id: child.id, name: child.name, parentName: group.parent.name })),
 		]),
 ]);
-const categoryName = computed(() => categoryRows.value.find((row) => row.id === categoryId.value)?.name ?? 'Uncategorized');
+const categoryName = computed(() => categoryRows.value.find((row) => row.id === categoryId.value)?.name ?? t('common.uncategorized'));
 
 function pickCategory(id: string | null): void {
 	categorySheetOpen.value = false;
@@ -151,31 +152,34 @@ onMounted(() => ledger.load());
 <template>
 	<div class="flex flex-col gap-4 p-4">
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Round-ups</h2>
+			<h2 class="settings-header">{{ t('saveTheChange.roundUps') }}</h2>
 			<div class="settings-group">
 				<!-- The whole row throws the switch, as a settings row does. -->
 				<div class="settings-row state-layer cursor-pointer" @click="setEnabled(!enabled)">
 					<AppIcon :icon="SAVINGS" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Round up purchases</span>
-						<span class="type-body-medium block"
-							>Rounds up ordinary expenses on the accounts you've opted in, and moves the difference into your chosen account.</span
-						>
+						<span class="type-title-medium block">{{ t('saveTheChange.roundUpPurchases') }}</span>
+						<span class="type-body-medium block">{{ t('saveTheChange.description') }}</span>
 					</span>
-					<ToggleSwitch :model-value="enabled" label="Round up purchases" :icon="false" @update:model-value="setEnabled" />
+					<ToggleSwitch
+						:model-value="enabled"
+						:label="t('saveTheChange.roundUpPurchases')"
+						:icon="false"
+						@update:model-value="setEnabled"
+					/>
 				</div>
 
 				<div class="settings-row flex-col items-stretch">
 					<div class="flex items-center gap-4">
 						<AppIcon :icon="CALCULATE" />
 						<span class="min-w-0 flex-1">
-							<span class="type-title-medium block">Round up to the nearest</span>
-							<span class="type-body-medium block">How far each purchase is rounded up</span>
+							<span class="type-title-medium block">{{ t('saveTheChange.roundTo') }}</span>
+							<span class="type-body-medium block">{{ t('saveTheChange.roundToHint') }}</span>
 						</span>
 					</div>
 					<ConnectedButtonGroup
 						:model-value="roundTo"
-						label="Round up to the nearest"
+						:label="t('saveTheChange.roundTo')"
 						:options="ROUND_TO"
 						@update:model-value="setRoundTo"
 					/>
@@ -184,12 +188,12 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Accounts</h2>
+			<h2 class="settings-header">{{ t('saveTheChange.accounts') }}</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="sourceSheetOpen = true">
 					<AppIcon :icon="WALLET" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Accounts that round up</span>
+						<span class="type-title-medium block">{{ t('saveTheChange.accountsThatRoundUp') }}</span>
 						<span class="type-body-medium block">{{ sourceSummary }}</span>
 					</span>
 				</button>
@@ -204,7 +208,7 @@ onMounted(() => ledger.load());
 				>
 					<AppIcon :icon="ACCOUNT_BALANCE_WALLET" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Destination account</span>
+						<span class="type-title-medium block">{{ t('saveTheChange.destination') }}</span>
 						<span class="type-body-medium block">{{ destinationName }}</span>
 					</span>
 				</button>
@@ -218,12 +222,12 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Category</h2>
+			<h2 class="settings-header">{{ t('saveTheChange.category') }}</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="categorySheetOpen = true">
 					<AppIcon :icon="CATEGORY" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Cashflow category</span>
+						<span class="type-title-medium block">{{ t('saveTheChange.cashflowCategory') }}</span>
 						<span class="type-body-medium block">{{ categoryName }}</span>
 					</span>
 				</button>
@@ -231,7 +235,12 @@ onMounted(() => ledger.load());
 		</section>
 
 		<!-- Any number of accounts: each press opts one in or out, and the dialog stays open. -->
-		<SelectionDialog :open="sourceSheetOpen" title="Choose accounts" @close="sourceSheetOpen = false" dismiss-label="Done">
+		<SelectionDialog
+			:open="sourceSheetOpen"
+			:title="t('saveTheChange.chooseAccounts')"
+			@close="sourceSheetOpen = false"
+			:dismiss-label="t('saveTheChange.done')"
+		>
 			<SelectionItem
 				v-for="account in ledger.activeAccounts"
 				:key="account.id"
@@ -243,7 +252,7 @@ onMounted(() => ledger.load());
 			/>
 		</SelectionDialog>
 
-		<SelectionDialog :open="destinationSheetOpen" title="Destination account" @close="destinationSheetOpen = false">
+		<SelectionDialog :open="destinationSheetOpen" :title="t('saveTheChange.destination')" @close="destinationSheetOpen = false">
 			<SelectionItem
 				v-for="account in ledger.activeAccounts"
 				:key="account.id"
@@ -255,7 +264,7 @@ onMounted(() => ledger.load());
 			/>
 		</SelectionDialog>
 
-		<SelectionDialog :open="categorySheetOpen" title="Cashflow category" @close="categorySheetOpen = false">
+		<SelectionDialog :open="categorySheetOpen" :title="t('saveTheChange.cashflowCategory')" @close="categorySheetOpen = false">
 			<SelectionItem
 				v-for="row in categoryRows"
 				:key="row.id ?? 'none'"

@@ -1,0 +1,18 @@
+export default {
+	roundUps: 'Round-ups',
+	roundUpPurchases: 'Round up purchases',
+	description: 'Rounds up your purchases and tucks the spare change into your chosen account, like coins behind the sofa.',
+	roundTo: 'Round up to the nearest',
+	roundToHint: 'How far each purchase is rounded up',
+	accounts: 'Accounts',
+	accountsThatRoundUp: 'Accounts that round up',
+	noSources: 'No takers yet',
+	sourceCount: '{count} account | {count} accounts',
+	destination: 'Destination account',
+	chooseAccount: 'Choose an account',
+	chooseDestination: 'Choose a destination account to enable Save the Change.',
+	category: 'Category',
+	cashflowCategory: 'Cashflow category',
+	chooseAccounts: 'Choose accounts',
+	done: 'Done',
+};

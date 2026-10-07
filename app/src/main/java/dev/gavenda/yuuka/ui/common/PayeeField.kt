@@ -1,12 +1,13 @@
 package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.PayeeKind
 import dev.gavenda.yuuka.domain.isExhausted
@@ -29,6 +30,7 @@ fun PayeeField(
 ) {
     var focused by remember { mutableStateOf(false) }
     val matches = remember(payees, value) { rankPayees(payees, value) }
+    var fieldWidth by remember { mutableStateOf(0) }
     val showList = focused && matches.isNotEmpty() && !isExhausted(matches, value)
 
     androidx.compose.foundation.layout.Box(modifier = modifier) {
@@ -39,10 +41,15 @@ fun PayeeField(
             placeholder = placeholder,
             singleLine = true,
             field = field,
-            modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+            modifier = Modifier.fillMaxWidth().onSizeChanged { fieldWidth = it.width }.onFocusChanged { focused = it.isFocused },
         )
 
-        DropdownMenu(expanded = showList, onDismissRequest = { }, properties = androidx.compose.ui.window.PopupProperties(focusable = false)) {
+        DropdownMenu(
+            expanded = showList,
+            onDismissRequest = { },
+            modifier = Modifier.width(with(LocalDensity.current) { fieldWidth.toDp() }),
+            properties = androidx.compose.ui.window.PopupProperties(focusable = false),
+        ) {
             matches.forEach { entry ->
                 DropdownMenuItem(
                     text = {
@@ -58,7 +65,6 @@ fun PayeeField(
                         }
                     },
                     onClick = { onSelect(entry); focused = false },
-                    modifier = Modifier.widthIn(min = 240.dp),
                 )
             }
         }

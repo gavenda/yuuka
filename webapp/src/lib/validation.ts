@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue';
+import { t } from '@/i18n';
 
 /** One field's check: the message to show when its value is not acceptable, or null when it is. */
 export type Rule = () => string | null;
@@ -67,35 +68,35 @@ export const NAME_MAX = 80;
 export function nameProblem(
 	value: string,
 	isTaken?: (name: string) => boolean,
-	takenMessage = 'That name is already in use.',
+	takenMessage = t('common.validation.nameTaken'),
 ): string | null {
 	const name = value.trim();
-	if (!name) return 'Enter a name.';
-	if (name.length > NAME_MAX) return `Use ${NAME_MAX} characters or fewer.`;
+	if (!name) return t('common.validation.nameRequired');
+	if (name.length > NAME_MAX) return t('common.validation.nameTooLong', { max: NAME_MAX });
 	return isTaken?.(name) ? takenMessage : null;
 }
 
 /** A colour is a full `#rrggbb`; the API accepts nothing shorter. */
 export function colorProblem(value: string): string | null {
-	return /^#[0-9a-fA-F]{6}$/.test(value.trim()) ? null : 'Use a hex colour such as #64748b.';
+	return /^#[0-9a-fA-F]{6}$/.test(value.trim()) ? null : t('common.validation.colour');
 }
 
 /** Exactly three letters, the shape of an ISO 4217 code; the API refuses anything else. */
 export function currencyProblem(value: string): string | null {
-	if (!value.trim()) return 'Enter a currency code.';
-	return /^[A-Za-z]{3}$/.test(value.trim()) ? null : 'Use a 3-letter currency code, such as PHP.';
+	if (!value.trim()) return t('common.validation.currencyRequired');
+	return /^[A-Za-z]{3}$/.test(value.trim()) ? null : t('common.validation.currencyShape');
 }
 
 /** An optional logo link. It ends up in an image load, so only http(s) is accepted. */
 export function logoUrlProblem(value: string): string | null {
 	const url = value.trim();
 	if (!url) return null;
-	if (url.length > 2048) return 'That URL is too long.';
+	if (url.length > 2048) return t('common.validation.urlTooLong');
 
 	try {
-		return ['http:', 'https:'].includes(new URL(url).protocol) ? null : 'Use an http or https link.';
+		return ['http:', 'https:'].includes(new URL(url).protocol) ? null : t('common.validation.urlScheme');
 	} catch {
-		return 'Use a full link, such as https://example.com/logo.png.';
+		return t('common.validation.urlShape');
 	}
 }
 

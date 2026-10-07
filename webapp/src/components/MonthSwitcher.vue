@@ -4,6 +4,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import { addMonths, currentMonth, formatMonth } from '@/lib/dates';
 import { KEYBOARD_ARROW_LEFT, KEYBOARD_ARROW_RIGHT } from '@/lib/icons';
 import { computed, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * The month a screen is looking at (`MonthSwitcher.kt`): the full width of the page on a secondary
@@ -46,21 +47,21 @@ function pick(month: string): void {
 
 <template>
 	<div class="card-secondary flex w-full items-center px-1">
-		<button type="button" class="btn-icon m-1" aria-label="Previous month" @click="shift(-1)">
+		<button type="button" class="btn-icon m-1" :aria-label="t('common.months.previous')" @click="shift(-1)">
 			<AppIcon :icon="KEYBOARD_ARROW_LEFT" />
 		</button>
 
 		<button
 			type="button"
 			class="state-layer focus-ring type-label-large min-w-0 flex-1 cursor-pointer rounded-sm py-3 text-center"
-			aria-label="Choose month"
+			:aria-label="t('common.months.choose')"
 			aria-haspopup="dialog"
 			@click="picking = true"
 		>
 			{{ label }}
 		</button>
 
-		<button type="button" class="btn-icon m-1" aria-label="Next month" @click="shift(1)">
+		<button type="button" class="btn-icon m-1" :aria-label="t('common.months.next')" @click="shift(1)">
 			<AppIcon :icon="KEYBOARD_ARROW_RIGHT" />
 		</button>
 
@@ -73,11 +74,11 @@ function pick(month: string): void {
 		<AlertDialog :open="picking" @close="picking = false">
 			<div class="w-[min(100%,20rem)] text-on-surface sm:w-80">
 				<div class="flex items-center">
-					<button type="button" class="btn-icon m-1" aria-label="Previous year" @click="year--">
+					<button type="button" class="btn-icon m-1" :aria-label="t('common.months.previousYear')" @click="year--">
 						<AppIcon :icon="KEYBOARD_ARROW_LEFT" />
 					</button>
 					<span class="type-title-medium flex-1 text-center" aria-live="polite">{{ year }}</span>
-					<button type="button" class="btn-icon m-1" aria-label="Next year" @click="year++">
+					<button type="button" class="btn-icon m-1" :aria-label="t('common.months.nextYear')" @click="year++">
 						<AppIcon :icon="KEYBOARD_ARROW_RIGHT" />
 					</button>
 				</div>
@@ -104,7 +105,7 @@ function pick(month: string): void {
 			</div>
 
 			<template #actions>
-				<button type="button" class="btn-text" @click="picking = false">Cancel</button>
+				<button type="button" class="btn-text" @click="picking = false">{{ t('common.cancel') }}</button>
 			</template>
 		</AlertDialog>
 	</div>

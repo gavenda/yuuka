@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { t } from '@/i18n';
 
 /**
  * A hue and saturation wheel over a brightness strip (`ColorWheelPicker`), for a colour that is not one of
@@ -107,7 +108,7 @@ const indicator = computed(() => {
 			ref="wheel"
 			role="slider"
 			tabindex="0"
-			aria-label="Hue and saturation"
+			:aria-label="t('form.hueSaturation')"
 			:aria-valuenow="Math.round(hsv.h)"
 			aria-valuemin="0"
 			aria-valuemax="360"
@@ -127,7 +128,7 @@ const indicator = computed(() => {
 			ref="strip"
 			role="slider"
 			tabindex="0"
-			aria-label="Brightness"
+			:aria-label="t('form.brightness')"
 			:aria-valuenow="Math.round(hsv.v * 100)"
 			aria-valuemin="0"
 			aria-valuemax="100"

@@ -1,4 +1,5 @@
 import type { Subscription } from '@/types';
+import { t } from '@/i18n';
 
 /** `1` -> `1st`, `22` -> `22nd`, `13` -> `13th`. */
 export function ordinal(day: number): string {
@@ -19,7 +20,7 @@ export function ordinal(day: number): string {
 
 /** How often a subscription posts, as a sentence fragment: `Monthly on the 15th`. */
 export function scheduleLabel(dayOfMonth: number): string {
-	return `Monthly on the ${ordinal(dayOfMonth)}`;
+	return t('subscriptions.schedule', { day: ordinal(dayOfMonth) });
 }
 
 /**

@@ -33,6 +33,7 @@ import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
 import type { Transaction } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 const store = useTransactionStore();
 const ledger = useLedgerStore();
@@ -77,7 +78,7 @@ const days = computed(() =>
 const accountOptions = computed(() => ledger.accounts.map((account) => ({ id: account.id, label: account.name })));
 // Top-level categories only: a parent's filter already takes in what is filed under its children.
 const categoryOptions = computed(() => [
-	{ id: 'none', label: 'Uncategorized' },
+	{ id: 'none', label: t('common.uncategorized') },
 	...ledger.categories.filter((category) => category.parentId === null).map((category) => ({ id: category.id, label: category.name })),
 ]);
 const tagOptions = computed(() => ledger.tags.map((tag) => ({ id: tag.id, label: tag.name })));
@@ -85,14 +86,24 @@ const tagOptions = computed(() => ledger.tags.map((tag) => ({ id: tag.id, label:
 /** In the order they were picked; anything no longer in the list is not counted. */
 const accountLabel = computed(() => {
 	const labels = accountFilter.value.flatMap((id) => accountOptions.value.find((option) => option.id === id)?.label ?? []);
-	if (!labels.length) return 'All accounts';
-	return labels.length === 1 ? labels[0] : `${labels[0]} & more`;
+	if (!labels.length) return t('transactions.allAccounts');
+	return labels.length === 1 ? labels[0] : t('transactions.andMore', { name: labels[0] });
 });
 
 const filterRows = {
-	accounts: { label: 'Filter by account', emptyText: 'No accounts yet', options: accountOptions, selected: accountFilter },
-	categories: { label: 'Filter by category', emptyText: 'No categories yet', options: categoryOptions, selected: categoryFilter },
-	tags: { label: 'Filter by tag', emptyText: 'No tags yet', options: tagOptions, selected: tagFilter },
+	accounts: {
+		label: t('transactions.filterByAccount'),
+		emptyText: t('accounts.emptyShort'),
+		options: accountOptions,
+		selected: accountFilter,
+	},
+	categories: {
+		label: t('transactions.filterByCategory'),
+		emptyText: t('categories.emptyShort'),
+		options: categoryOptions,
+		selected: categoryFilter,
+	},
+	tags: { label: t('transactions.filterByTag'), emptyText: t('tags.emptyTitle'), options: tagOptions, selected: tagFilter },
 };
 const shownRow = computed(() => filterRows[shownFilter.value]);
 const shownSelection = computed({
@@ -140,7 +151,12 @@ function openEdit(transaction: Transaction, transferToAccountId: string | null =
 /** Says "₱X saved to <account>" after a purchase triggers a Save the Change round-up. */
 function announceRoundUp(roundUp: Transaction): void {
 	const destinationCurrency = ledger.accountsById.get(roundUp.accountId)?.currency ?? currency.value;
-	showSnackbar(`${displayMoney(roundUp.amount, destinationCurrency)} saved to ${roundUp.accountName ?? 'your account'}`);
+	showSnackbar(
+		t('transactions.roundUpSaved', {
+			amount: displayMoney(roundUp.amount, destinationCurrency),
+			account: roundUp.accountName ?? t('transactions.roundUpFallback'),
+		}),
+	);
 }
 
 async function save(payload: Record<string, unknown> & { mode: string }): Promise<void> {
@@ -161,11 +177,17 @@ async function save(payload: Record<string, unknown> & { mode: string }): Promis
 		}
 
 		dialogOpen.value = false;
-		showSnackbar(wasEditing ? 'Changes saved' : mode === 'transfer' ? 'Transfer added' : 'Transaction added');
+		showSnackbar(
+			wasEditing
+				? t('transactions.changesSaved')
+				: mode === 'transfer'
+					? t('transactions.transferAdded')
+					: t('transactions.transactionAdded'),
+		);
 		if (roundUp) announceRoundUp(roundUp);
 		await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
 	} catch (caught) {
-		formRef.value?.fail(caught instanceof ApiError ? caught.message : 'Could not save the transaction.');
+		formRef.value?.fail(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}
 }
 
@@ -175,7 +197,7 @@ async function remove(): Promise<void> {
 
 	pendingDelete.value = null;
 	await api.deleteTransaction(target.id);
-	showSnackbar(target.transferId ? 'Transfer deleted' : 'Transaction deleted');
+	showSnackbar(target.transferId ? t('transactions.transferDeleted') : t('transactions.transactionDeleted'));
 	await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
 }
 </script>
@@ -190,8 +212,8 @@ async function remove(): Promise<void> {
 
 			<label class="search-field mt-8">
 				<AppIcon :icon="SEARCH" />
-				<input v-model="search" type="search" aria-label="Search" placeholder="Search payee, notes or tag" />
-				<button v-if="search" type="button" class="btn-icon -mr-2" aria-label="Clear" @click="search = ''">
+				<input v-model="search" type="search" :aria-label="t('transactions.search')" :placeholder="t('transactions.searchPlaceholder')" />
+				<button v-if="search" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @click="search = ''">
 					<AppIcon :icon="CLOSE" />
 				</button>
 			</label>
@@ -214,7 +236,7 @@ async function remove(): Promise<void> {
 				<button
 					type="button"
 					class="btn-icon relative m-1"
-					aria-label="Filter by tag"
+					:aria-label="t('transactions.filterByTag')"
 					:aria-expanded="openFilter === 'tags'"
 					aria-controls="filter-chips"
 					@click="toggleFilter('tags')"
@@ -226,7 +248,7 @@ async function remove(): Promise<void> {
 				<button
 					type="button"
 					class="btn-icon relative m-1"
-					aria-label="Filter by category"
+					:aria-label="t('transactions.filterByCategory')"
 					:aria-expanded="openFilter === 'categories'"
 					aria-controls="filter-chips"
 					@click="toggleFilter('categories')"
@@ -261,8 +283,8 @@ async function remove(): Promise<void> {
 			v-else-if="!store.transactions.length"
 			fill
 			class="m-4"
-			title="Not a whisker in sight"
-			description="Nothing matches these filters. Add a transaction, or widen the search."
+			:title="t('transactions.emptyTitle')"
+			:description="t('transactions.emptyDescription')"
 		/>
 
 		<!-- A day's rows under a heading for the day, drawn like the account groups: one block of separate rows. -->
@@ -279,7 +301,7 @@ async function remove(): Promise<void> {
 							<template #actions>
 								<ActionIcon
 									icon="delete"
-									label="Delete"
+									:label="t('common.deleteShort')"
 									danger
 									@click="pendingDelete = row.kind === 'transfer' ? row.leg : row.transaction"
 								/>
@@ -304,9 +326,9 @@ async function remove(): Promise<void> {
 										</span>
 										<span v-else class="type-body-small truncate">{{ card.subtitle }}</span>
 
-										<span v-if="card.automated" class="type-label-small text-tertiary" title="Posted automatically by a subscription"
-											>Subscription</span
-										>
+										<span v-if="card.automated" class="type-label-small text-tertiary" :title="t('transactions.automatedHint')">{{
+											t('transactions.automatedBadge')
+										}}</span>
 										<span v-if="formatTime(card.occurredOn)" class="type-body-small">{{ formatTime(card.occurredOn) }}</span>
 									</span>
 
@@ -357,7 +379,7 @@ async function remove(): Promise<void> {
 
 			<div v-if="store.hasMore" class="p-4">
 				<button type="button" class="btn-text w-full" :disabled="store.loading" @click="store.loadMore()">
-					{{ store.loading ? 'Loading…' : `Load more (${store.transactions.length} of ${store.total})` }}
+					{{ store.loading ? t('common.fetching') : t('transactions.loadMore', { shown: store.transactions.length, total: store.total }) }}
 				</button>
 			</div>
 			<!-- The end of the list, and only once there is no more of it to load: the cat, small and quiet, so
@@ -378,22 +400,20 @@ async function remove(): Promise<void> {
 
 		<AlertDialog
 			:open="pendingDelete !== null"
-			:title="pendingDelete?.transferId ? 'Delete this transfer?' : 'Delete this transaction?'"
+			:title="pendingDelete?.transferId ? t('transactions.deleteTransferTitle') : t('transactions.deleteTransactionTitle')"
 			:icon="DELETE"
 			@close="pendingDelete = null"
 		>
 			<template v-if="pendingDelete?.transferId">
-				Both sides of the transfer will be removed, and both accounts' balances will change to match. This cannot be undone.
+				{{ t('transactions.deleteTransferBody') }}
 			</template>
-			<template v-else
-				>It will be removed from your history, and its account's balance will change to match. This cannot be undone.</template
-			>
+			<template v-else>{{ t('transactions.deleteTransactionBody') }}</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">No, go back</button>
-				<button type="button" class="btn-text text-error" @click="remove">Yes, delete it</button>
+				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
+				<button type="button" class="btn-text text-error" @click="remove">{{ t('common.yesDelete') }}</button>
 			</template>
 		</AlertDialog>
 
-		<FabButton label="New transaction" @click="openCreate" />
+		<FabButton :label="t('transactions.newTransaction')" @click="openCreate" />
 	</div>
 </template>

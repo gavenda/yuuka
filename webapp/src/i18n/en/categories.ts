@@ -1,0 +1,18 @@
+export default {
+	emptyTitle: 'No boxes to sort into yet',
+	emptyShort: 'No boxes yet',
+	emptyDescription: 'Categories are the boxes your spending goes in. Cats love boxes.',
+	newCategory: 'New category',
+	editCategory: 'Edit category',
+	kindOf: 'Kind of category',
+	taken: 'A category with that name already exists here.',
+	nestedUnder: 'Nested under: {name}',
+	addSub: 'Add a subcategory',
+	addSubTo: 'Add a subcategory to {name}',
+	subcategories: '{count} subcategory | {count} subcategories',
+	added: 'Category added',
+	updated: 'Category updated',
+	archived: 'Category archived',
+	restored: 'Category restored',
+	deleted: 'Category deleted',
+};

@@ -14,13 +14,14 @@ import { supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Payee, Transaction } from '@/types';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 type Mode = 'expense' | 'income' | 'transfer';
 
 const MODES: { value: Mode; label: string }[] = [
-	{ value: 'expense', label: 'Expense' },
-	{ value: 'income', label: 'Income' },
-	{ value: 'transfer', label: 'Transfer' },
+	{ value: 'expense', label: t('common.expense') },
+	{ value: 'income', label: t('common.income') },
+	{ value: 'transfer', label: t('common.transfer') },
 ];
 
 /**
@@ -56,22 +57,22 @@ const error = ref<string | null>(null);
 const MAX_TAGS = 10;
 
 const validation = useFormValidation({
-	payee: () => (form.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null),
+	payee: () => (form.payee.trim().length > 120 ? t('transactions.form.payeeTooLong', { max: 120 }) : null),
 	amount: () => {
-		if (!form.amount.trim()) return 'Enter an amount.';
+		if (!form.amount.trim()) return t('transactions.form.amountRequired');
 		const minor = parseMoney(form.amount);
-		if (minor === null) return 'Enter an amount as a number, such as 45.99.';
-		return minor > 0 ? null : 'Enter an amount greater than zero.';
+		if (minor === null) return t('transactions.form.amountNumber');
+		return minor > 0 ? null : t('transactions.form.amountPositive');
 	},
-	account: () => (ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : 'Choose an account.'),
+	account: () => (ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : t('transactions.form.chooseAccount')),
 	'to-account': () => {
 		if (form.mode !== 'transfer') return null;
-		if (!ledger.activeAccounts.some((account) => account.id === form.toAccountId)) return 'Choose the account it goes to.';
-		return form.toAccountId === form.accountId ? 'Choose two different accounts.' : null;
+		if (!ledger.activeAccounts.some((account) => account.id === form.toAccountId)) return t('transactions.form.chooseToAccount');
+		return form.toAccountId === form.accountId ? t('transactions.form.differentAccounts') : null;
 	},
-	date: () => (form.occurredOn ? null : 'Enter a date.'),
-	notes: () => (form.notes.trim().length > 500 ? 'Use 500 characters or fewer.' : null),
-	tags: () => (form.tagIds.length > MAX_TAGS ? `A transaction can wear at most ${MAX_TAGS} tags.` : null),
+	date: () => (form.occurredOn ? null : t('transactions.form.dateRequired')),
+	notes: () => (form.notes.trim().length > 500 ? t('transactions.form.notesTooLong', { max: 500 }) : null),
+	tags: () => (form.tagIds.length > MAX_TAGS ? t('transactions.form.tooManyTags', { max: MAX_TAGS }) : null),
 });
 const { error: fieldError, touch } = validation;
 const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
@@ -92,7 +93,7 @@ const categoryGroups = computed(() => {
 });
 
 const accountChoices = computed(() => namedOptions(ledger.activeAccounts));
-const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
+const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: t('common.uncategorized') }));
 
 /** Flattened, for checking whether the current selection is still valid. */
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
@@ -237,20 +238,20 @@ defineExpose({
 <template>
 	<FormDialog
 		:open="open"
-		:title="isEditing ? 'Edit transaction' : 'New transaction'"
+		:title="isEditing ? t('transactions.editTransaction') : t('transactions.newTransaction')"
 		:save-enabled="validation.isValid.value"
 		:dirty="dirty"
 		@close="emit('close')"
 		@save="submit"
 	>
 		<div class="contents" @input="validation.onInput">
-			<ConnectedButtonGroup v-if="!isEditing" v-model="form.mode" label="Kind of transaction" :options="MODES" />
+			<ConnectedButtonGroup v-if="!isEditing" v-model="form.mode" :label="t('transactions.form.kindOf')" :options="MODES" />
 
 			<!-- First field: naming it is what makes the rest fill itself in. -->
 			<PayeeInput
 				v-model="form.payee"
-				:label="form.mode === 'transfer' ? 'Name' : 'Payee'"
-				:placeholder="form.mode === 'transfer' ? 'Leave blank to name it From → To' : 'Who was paid'"
+				:label="form.mode === 'transfer' ? t('transactions.form.name') : t('transactions.form.payee')"
+				:placeholder="form.mode === 'transfer' ? t('transactions.form.transferPlaceholder') : t('transactions.form.payeePlaceholder')"
 				:error="fieldError('payee')"
 				@select="applyPayee"
 				@blur="touch('payee')"
@@ -259,7 +260,7 @@ defineExpose({
 			<TextField
 				id="amount"
 				v-model="form.amount"
-				label="Amount"
+				:label="t('common.amount')"
 				placeholder="0.00"
 				inputmode="decimal"
 				:error="fieldError('amount')"
@@ -270,7 +271,7 @@ defineExpose({
 				<SelectField
 					id="account"
 					v-model="form.accountId"
-					:label="form.mode === 'transfer' ? 'From account' : 'Account'"
+					:label="form.mode === 'transfer' ? t('transactions.form.fromAccount') : t('common.account')"
 					:options="accountChoices"
 					:invalid="Boolean(fieldError('account'))"
 					:describedby="describe('account')"
@@ -283,7 +284,7 @@ defineExpose({
 				<SelectField
 					id="to-account"
 					v-model="form.toAccountId"
-					label="To account"
+					:label="t('transactions.form.toAccount')"
 					:options="accountChoices"
 					:invalid="Boolean(fieldError('to-account'))"
 					:describedby="describe('to-account')"
@@ -297,7 +298,7 @@ defineExpose({
 			<SelectField
 				id="category"
 				v-model="form.categoryId"
-				:label="form.mode === 'transfer' ? 'Cashflow category' : 'Category'"
+				:label="form.mode === 'transfer' ? t('transactions.form.cashflowCategory') : t('common.category')"
 				:options="categoryChoices"
 			/>
 
@@ -306,7 +307,7 @@ defineExpose({
 					<PickerField
 						id="date"
 						v-model="form.occurredOn"
-						label="Date"
+						:label="t('common.date')"
 						type="date"
 						:invalid="Boolean(fieldError('date'))"
 						:describedby="describe('date')"
@@ -320,23 +321,30 @@ defineExpose({
 					id="time"
 					v-model="form.occurredTime"
 					class="min-w-0 flex-1"
-					label="Time"
+					:label="t('common.time')"
 					type="time"
-					placeholder="Optional"
+					:placeholder="t('common.optional')"
 					:disabled="isAutomated"
 					:display="isAutomated ? '00:00 UTC' : undefined"
 				/>
 			</div>
 
 			<p v-if="isAutomated" class="type-body-small text-on-surface">
-				Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.
+				{{ t('transactions.form.automated') }}
 			</p>
 
-			<TextField id="notes" v-model="form.notes" label="Notes" placeholder="Optional" :error="fieldError('notes')" @blur="touch('notes')" />
+			<TextField
+				id="notes"
+				v-model="form.notes"
+				:label="t('common.notes')"
+				:placeholder="t('common.optional')"
+				:error="fieldError('notes')"
+				@blur="touch('notes')"
+			/>
 
 			<!-- Tags, unlike the category, are any number of labels. They change no figure. -->
 			<fieldset v-if="ledger.tags.length" id="tags" tabindex="-1" class="min-w-0" :aria-describedby="describe('tags')">
-				<legend class="type-label-medium pb-3.5 text-on-surface">Tags</legend>
+				<legend class="type-label-medium pb-3.5 text-on-surface">{{ t('common.tags') }}</legend>
 				<div class="flex flex-wrap gap-x-2 gap-y-1">
 					<button
 						v-for="tag in ledger.tags"

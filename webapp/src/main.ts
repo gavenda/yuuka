@@ -5,6 +5,7 @@ import { stopPush } from '@/lib/push';
 import { shouldReloadForStaleChunk } from '@/lib/staleChunk';
 import { registerServiceWorker } from '@/lib/pwa';
 import { router } from '@/router';
+import { i18n } from '@/i18n';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from './App.vue';
@@ -55,7 +56,7 @@ if (!isConfigured) {
 	});
 
 	// Router before Auth0: the plugin uses it to navigate after a login callback.
-	createApp(App).use(createPinia()).use(router).use(auth0).mount('#app');
+	createApp(App).use(createPinia()).use(i18n).use(router).use(auth0).mount('#app');
 }
 
 registerServiceWorker();

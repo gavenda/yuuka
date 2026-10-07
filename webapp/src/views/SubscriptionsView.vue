@@ -25,12 +25,13 @@ import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import type { Payee, Subscription } from '@/types';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { t } from '@/i18n';
 
 type Direction = 'expense' | 'income';
 
 const DIRECTIONS: { value: Direction; label: string }[] = [
-	{ value: 'expense', label: 'Expense' },
-	{ value: 'income', label: 'Income' },
+	{ value: 'expense', label: t('common.expense') },
+	{ value: 'income', label: t('common.income') },
 ];
 
 const ledger = useLedgerStore();
@@ -64,20 +65,26 @@ const pendingDelete = ref<Subscription | null>(null);
 const earliest = utcToday();
 
 const validation = useFormValidation({
-	payee: () => (form.payee.trim() ? (form.payee.trim().length > 120 ? 'Use 120 characters or fewer.' : null) : 'Enter a payee.'),
+	payee: () =>
+		form.payee.trim()
+			? form.payee.trim().length > 120
+				? t('subscriptions.payeeTooLong', { max: 120 })
+				: null
+			: t('subscriptions.payeeRequired'),
 	'subscription-amount': () => {
-		if (!form.amount.trim()) return 'Enter an amount.';
+		if (!form.amount.trim()) return t('subscriptions.amountRequired');
 		const minor = parseMoney(form.amount);
-		if (minor === null) return 'Enter an amount as a number, such as 45.99.';
-		return minor > 0 ? null : 'Enter an amount greater than zero.';
+		if (minor === null) return t('subscriptions.amountNumber');
+		return minor > 0 ? null : t('subscriptions.amountPositive');
 	},
-	'subscription-account': () => (ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : 'Choose an account.'),
+	'subscription-account': () =>
+		ledger.activeAccounts.some((account) => account.id === form.accountId) ? null : t('subscriptions.chooseAccount'),
 	// A date left as it was is fine even when it has since slipped into the past; choosing a new one is not.
-	'subscription-notes': () => (form.notes.trim().length > 500 ? 'Use 500 characters or fewer.' : null),
+	'subscription-notes': () => (form.notes.trim().length > 500 ? t('subscriptions.notesTooLong', { max: 500 }) : null),
 	'subscription-start': () => {
-		if (!form.startOn) return 'Enter a date.';
+		if (!form.startOn) return t('subscriptions.dateRequired');
 		const unchanged = editing.value !== null && form.startOn === initialStartOn;
-		return form.startOn < earliest && !unchanged ? 'The start date cannot be in the past.' : null;
+		return form.startOn < earliest && !unchanged ? t('subscriptions.startPast') : null;
 	},
 });
 const { error: fieldError, touch } = validation;
@@ -87,7 +94,7 @@ const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
 );
 const accountChoices = computed(() => namedOptions(ledger.activeAccounts));
-const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: 'Uncategorized' }));
+const categoryChoices = computed(() => categoryOptions(categoryGroups.value, { value: '', label: t('common.uncategorized') }));
 
 const selectable = computed(() => categoryGroups.value.flatMap((group) => [group.parent, ...group.children]));
 
@@ -183,20 +190,20 @@ async function submit(): Promise<void> {
 		else await api.createSubscription(payload);
 
 		dialogOpen.value = false;
-		showSnackbar(editing.value ? 'Subscription updated' : 'Subscription added');
+		showSnackbar(editing.value ? t('subscriptions.updated') : t('subscriptions.added'));
 		await store.refresh();
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Could not save the subscription.';
+		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
 }
 
 async function togglePaused(subscription: Subscription): Promise<void> {
 	try {
 		await api.updateSubscription(subscription.id, { enabled: !subscription.enabled });
-		showSnackbar(subscription.enabled ? 'Subscription paused' : 'Subscription resumed');
+		showSnackbar(subscription.enabled ? t('subscriptions.napping') : t('subscriptions.awake'));
 		await store.refresh();
 	} catch (caught) {
-		store.error = caught instanceof ApiError ? caught.message : 'Could not update the subscription.';
+		store.error = caught instanceof ApiError ? caught.message : t('subscriptions.couldNotUpdate');
 	}
 }
 
@@ -207,17 +214,17 @@ async function remove(): Promise<void> {
 
 	try {
 		await api.deleteSubscription(subscription.id);
-		showSnackbar('Subscription deleted');
+		showSnackbar(t('subscriptions.deleted'));
 		await store.refresh();
 	} catch (caught) {
-		store.error = caught instanceof ApiError ? caught.message : 'Could not delete the subscription.';
+		store.error = caught instanceof ApiError ? caught.message : t('subscriptions.couldNotDelete');
 	}
 }
 
 /** "Monthly on the 19th · next Oct 19, 2026"; a paused one has no next run to name. */
 function scheduleOf(subscription: Subscription): string {
 	const schedule = scheduleLabel(subscription.dayOfMonth);
-	return subscription.enabled ? `${schedule} · next ${formatLongDate(subscription.nextRunOn)}` : schedule;
+	return subscription.enabled ? t('subscriptions.next', { schedule, date: formatLongDate(subscription.nextRunOn) }) : schedule;
 }
 </script>
 
@@ -228,18 +235,18 @@ function scheduleOf(subscription: Subscription): string {
 		<!-- What the active subscriptions come to in a month, signed like the amounts: a net outflow is negative. -->
 		<div v-if="store.subscriptions.length" class="px-4 py-2">
 			<div class="type-title-medium flex items-center justify-between gap-4">
-				<h2>Total per month</h2>
+				<h2>{{ t('subscriptions.totalPerMonth') }}</h2>
 				<MoneyText :amount="total" :currency="ledger.displayCurrency" tone="signed-alert" />
 			</div>
-			<p v-if="pausedCount > 0" class="type-body-small">{{ pausedCount }} paused, not counted</p>
+			<p v-if="pausedCount > 0" class="type-body-small">{{ t('subscriptions.pausedNotCounted', { count: pausedCount }) }}</p>
 		</div>
 
 		<EmptyState
 			v-else-if="!store.loading"
 			fill
 			class="mx-4 my-2"
-			title="Nothing on repeat yet"
-			description="Set up rent, streaming or a loan payment once, and it will post itself every month while you nap."
+			:title="t('subscriptions.emptyTitle')"
+			:description="t('subscriptions.emptyDescription')"
 		/>
 
 		<ul class="group-rows px-4">
@@ -248,10 +255,15 @@ function scheduleOf(subscription: Subscription): string {
 					<template #actions>
 						<ActionIcon
 							:icon="subscription.enabled ? 'pause' : 'resume'"
-							:label="`${subscription.enabled ? 'Pause' : 'Resume'} ${subscription.payee}`"
+							:label="t(subscription.enabled ? 'subscriptions.pause' : 'subscriptions.resume', { name: subscription.payee })"
 							@click="togglePaused(subscription)"
 						/>
-						<ActionIcon icon="delete" :label="`Delete ${subscription.payee}`" danger @click="pendingDelete = subscription" />
+						<ActionIcon
+							icon="delete"
+							:label="t('common.delete', { name: subscription.payee })"
+							danger
+							@click="pendingDelete = subscription"
+						/>
 					</template>
 
 					<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
@@ -266,7 +278,7 @@ function scheduleOf(subscription: Subscription): string {
 										aria-hidden="true"
 									/>
 									<span class="type-title-medium truncate">{{ subscription.payee }}</span>
-									<span v-if="!subscription.enabled" class="type-label-small shrink-0">Paused</span>
+									<span v-if="!subscription.enabled" class="type-label-small shrink-0">{{ t('subscriptions.paused') }}</span>
 								</span>
 								<span v-if="subscription.accountName || subscription.categoryName" class="type-body-small truncate">
 									{{ [subscription.accountName, subscription.categoryName].filter(Boolean).join(' · ') }}
@@ -288,19 +300,24 @@ function scheduleOf(subscription: Subscription): string {
 
 		<FormDialog
 			:open="dialogOpen"
-			:title="editing ? 'Edit subscription' : 'New subscription'"
+			:title="editing ? t('subscriptions.editSubscription') : t('subscriptions.newSubscription')"
 			:save-enabled="validation.isValid.value"
 			:dirty="dirty"
 			@close="dialogOpen = false"
 			@save="submit"
 		>
 			<div class="contents" @input="validation.onInput">
-				<ConnectedButtonGroup :model-value="form.direction" label="Direction" :options="DIRECTIONS" @update:model-value="setDirection" />
+				<ConnectedButtonGroup
+					:model-value="form.direction"
+					:label="t('subscriptions.direction')"
+					:options="DIRECTIONS"
+					@update:model-value="setDirection"
+				/>
 
 				<PayeeInput
 					v-model="form.payee"
-					label="Payee"
-					placeholder="Who gets paid, e.g. Netflix"
+					:label="t('subscriptions.payee')"
+					:placeholder="t('subscriptions.payeePlaceholder')"
 					:error="fieldError('payee')"
 					@select="applyPayee"
 					@blur="touch('payee')"
@@ -309,7 +326,7 @@ function scheduleOf(subscription: Subscription): string {
 				<TextField
 					id="subscription-amount"
 					v-model="form.amount"
-					label="Amount"
+					:label="t('common.amount')"
 					placeholder="0.00"
 					inputmode="decimal"
 					:error="fieldError('subscription-amount')"
@@ -320,7 +337,7 @@ function scheduleOf(subscription: Subscription): string {
 					<SelectField
 						id="subscription-account"
 						v-model="form.accountId"
-						label="Account"
+						:label="t('common.account')"
 						:options="accountChoices"
 						:invalid="Boolean(fieldError('subscription-account'))"
 						:describedby="describe('subscription-account')"
@@ -329,14 +346,14 @@ function scheduleOf(subscription: Subscription): string {
 					<FieldSupport id="subscription-account" :error="fieldError('subscription-account')" />
 				</div>
 
-				<SelectField id="subscription-category" v-model="form.categoryId" label="Category" :options="categoryChoices" />
+				<SelectField id="subscription-category" v-model="form.categoryId" :label="t('common.category')" :options="categoryChoices" />
 
 				<div>
 					<!-- A date left as it was is fine even when it has since slipped into the past; choosing a new one is not. -->
 					<PickerField
 						id="subscription-start"
 						v-model="form.startOn"
-						:label="editing ? 'Next posts on' : 'Starts on'"
+						:label="editing ? t('subscriptions.nextPostsOn') : t('subscriptions.startsOn')"
 						type="date"
 						:min="editing && initialStartOn < earliest ? undefined : earliest"
 						:invalid="Boolean(fieldError('subscription-start'))"
@@ -346,15 +363,15 @@ function scheduleOf(subscription: Subscription): string {
 					<FieldSupport
 						id="subscription-start"
 						:error="fieldError('subscription-start')"
-						:hint="`Posts at 00:00 UTC on this day each month; a month too short for it posts on its last day.${editing ? ' Changing the date restarts the schedule from it.' : ''}`"
+						:hint="editing ? `${t('subscriptions.startHint')} ${t('subscriptions.restartHint')}` : t('subscriptions.startHint')"
 					/>
 				</div>
 
 				<TextField
 					id="subscription-notes"
 					v-model="form.notes"
-					label="Notes"
-					placeholder="Optional"
+					:label="t('common.notes')"
+					:placeholder="t('common.optional')"
 					:error="fieldError('subscription-notes')"
 					@blur="touch('subscription-notes')"
 				/>
@@ -363,15 +380,15 @@ function scheduleOf(subscription: Subscription): string {
 			</div>
 		</FormDialog>
 
-		<AlertDialog :open="pendingDelete !== null" title="Delete this subscription?" :icon="DELETE" @close="pendingDelete = null">
-			{{ pendingDelete?.payee }} will stop posting. Transactions it has already posted stay in your history. This cannot be undone.
+		<AlertDialog :open="pendingDelete !== null" :title="t('subscriptions.deleteTitle')" :icon="DELETE" @close="pendingDelete = null">
+			{{ t('subscriptions.deleteBody', { name: pendingDelete?.payee ?? '' }) }}
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">No, go back</button>
-				<button type="button" class="btn-text text-error" @click="remove">Yes, delete it</button>
+				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
+				<button type="button" class="btn-text text-error" @click="remove">{{ t('common.yesDelete') }}</button>
 			</template>
 		</AlertDialog>
 
 		<!-- A subscription needs an account to post to, so there is nothing to lead with until there is one. -->
-		<FabButton v-if="ledger.activeAccounts.length" label="New subscription" @click="openCreate" />
+		<FabButton v-if="ledger.activeAccounts.length" :label="t('subscriptions.newSubscription')" @click="openCreate" />
 	</div>
 </template>

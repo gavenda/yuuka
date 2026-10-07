@@ -25,6 +25,7 @@ import { useSubscriptionStore } from '@/stores/subscriptions';
 import { useTransactionStore } from '@/stores/transactions';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { t } from '@/i18n';
 
 const { isAuthenticated, isLoading, user, error, logout } = useAuth0();
 const ledger = useLedgerStore();
@@ -41,17 +42,17 @@ const userMenuRoot = ref<HTMLElement | null>(null);
  * Every destination. The daily ones sit in the rail and the phone's bar; `more: true` sends one to the rail's "More"
  * group and, on a phone, to the avatar menu instead.
  */
-const links = [
-	{ to: '/', label: 'Dashboard', icon: DASHBOARD },
-	{ to: '/transactions', label: 'Transactions', icon: RECEIPT },
-	{ to: '/budget', label: 'Budget', icon: PIE_CHART, more: true },
-	{ to: '/accounts', label: 'Accounts', icon: ACCOUNT_BALANCE_WALLET },
-	{ to: '/categories', label: 'Categories', icon: CATEGORY, more: true },
-	{ to: '/tags', label: 'Tags', icon: SELL, more: true },
-];
+const links = computed(() => [
+	{ to: '/', label: t('nav.dashboard'), icon: DASHBOARD },
+	{ to: '/transactions', label: t('nav.transactions'), icon: RECEIPT },
+	{ to: '/budget', label: t('nav.budget'), icon: PIE_CHART, more: true },
+	{ to: '/accounts', label: t('nav.accounts'), icon: ACCOUNT_BALANCE_WALLET },
+	{ to: '/categories', label: t('nav.categories'), icon: CATEGORY, more: true },
+	{ to: '/tags', label: t('nav.tags'), icon: SELL, more: true },
+]);
 
-const dailyLinks = links.filter((link) => !link.more);
-const moreLinks = links.filter((link) => link.more);
+const dailyLinks = computed(() => links.value.filter((link) => !link.more));
+const moreLinks = computed(() => links.value.filter((link) => link.more));
 
 const showShell = computed(() => isAuthenticated.value);
 
@@ -60,7 +61,7 @@ const { expanded: railExpanded } = useRail();
 const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
-const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'yuuka');
+const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
 
 /** The phone's bar sits on the page's background until content scrolls beneath it, then lifts a tonal step. */
@@ -161,7 +162,7 @@ watch(
 watch(
 	updateReady,
 	(ready) => {
-		if (ready) showSnackbar('A new version is ready.', { action: { label: 'Reload', run: applyUpdate }, duration: null });
+		if (ready) showSnackbar(t('nav.updateReady'), { action: { label: t('common.reload'), run: applyUpdate }, duration: null });
 	},
 	{ immediate: true },
 );
@@ -203,10 +204,10 @@ onBeforeUnmount(() => {
 		>
 			<div class="flex h-16 items-center gap-2 px-4">
 				<!-- A screen opened from another leads back to it, where the others lead home. -->
-				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 text-on-surface" aria-label="Back">
+				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 text-on-surface" :aria-label="t('common.back')">
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
-				<RouterLink v-else to="/" class="focus-ring shrink-0 rounded-full" aria-label="Dashboard">
+				<RouterLink v-else to="/" class="focus-ring shrink-0 rounded-full" :aria-label="t('nav.dashboard')">
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 
@@ -218,9 +219,9 @@ onBeforeUnmount(() => {
 						v-if="route.meta.amountFree !== true"
 						type="button"
 						class="btn-icon"
-						:aria-label="amountsHidden ? 'Show amounts' : 'Hide amounts'"
+						:aria-label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						:aria-pressed="amountsHidden"
-						:title="amountsHidden ? 'Show amounts' : 'Hide amounts'"
+						:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						@click="toggleAmounts"
 					>
 						<AppIcon :icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
@@ -232,7 +233,7 @@ onBeforeUnmount(() => {
 							class="btn-icon"
 							aria-haspopup="menu"
 							:aria-expanded="userMenuOpen"
-							aria-label="Account menu"
+							:aria-label="t('nav.accountMenu')"
 							@click="userMenuOpen = !userMenuOpen"
 						>
 							<img v-if="user?.picture" :src="user.picture" alt="" class="size-8 rounded-full" referrerpolicy="no-referrer" />
@@ -267,15 +268,19 @@ onBeforeUnmount(() => {
 								{{ link.label }}
 							</RouterLink>
 
-							<RouterLink to="/subscriptions" role="menuitem" class="menu-item" @click="userMenuOpen = false"> Subscriptions </RouterLink>
-
-							<RouterLink to="/save-the-change" role="menuitem" class="menu-item" @click="userMenuOpen = false">
-								Save the Change
+							<RouterLink to="/subscriptions" role="menuitem" class="menu-item" @click="userMenuOpen = false">
+								{{ t('nav.subscriptions') }}
 							</RouterLink>
 
-							<RouterLink to="/settings" role="menuitem" class="menu-item" @click="userMenuOpen = false"> Settings </RouterLink>
+							<RouterLink to="/save-the-change" role="menuitem" class="menu-item" @click="userMenuOpen = false">
+								{{ t('nav.saveTheChange') }}
+							</RouterLink>
 
-							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">Sign out</button>
+							<RouterLink to="/settings" role="menuitem" class="menu-item" @click="userMenuOpen = false">
+								{{ t('nav.settings') }}
+							</RouterLink>
+
+							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">{{ t('common.signOut') }}</button>
 						</div>
 					</div>
 				</div>
@@ -288,14 +293,14 @@ onBeforeUnmount(() => {
 		<div v-if="isLoading" class="relative isolate flex min-h-dvh items-center justify-center px-4">
 			<!-- The sign-in screen's print, so the wait before it and after it is the same place. -->
 			<CatPattern class="absolute inset-0 -z-10 size-full" />
-			<p class="type-body-medium text-on-surface-variant">Loading…</p>
+			<p class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
 			<div class="card flex max-w-sm flex-col items-center p-6 text-center">
 				<CatMark class="mb-4" />
 				<p class="type-body-medium text-error" role="alert">{{ error.message }}</p>
-				<RouterLink to="/login" class="btn-secondary mt-4">Back to sign in</RouterLink>
+				<RouterLink to="/login" class="btn-secondary mt-4">{{ t('nav.backToSignIn') }}</RouterLink>
 			</div>
 		</div>
 
@@ -316,13 +321,15 @@ onBeforeUnmount(() => {
 					class="type-label-large bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
 				>
 					<template v-if="hasUnsentChanges">
-						<template v-if="isSyncing">Syncing {{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }}…</template>
+						<template v-if="isSyncing">{{ t('common.unsent.syncing', unsentChanges) }}</template>
 						<template v-else>
-							{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved on this device, waiting to sync
-							<button v-if="isOnline" type="button" class="ml-1 underline underline-offset-2" @click="flush()">Try now</button>
+							{{ t('common.unsent.waiting', unsentChanges) }}
+							<button v-if="isOnline" type="button" class="ml-1 underline underline-offset-2" @click="flush()">
+								{{ t('common.tryNow') }}
+							</button>
 						</template>
 					</template>
-					<template v-else>You're offline. Showing what was last saved; changes are kept here until there is a connection.</template>
+					<template v-else>{{ t('common.unsent.offline') }}</template>
 				</p>
 			</div>
 
@@ -336,22 +343,29 @@ onBeforeUnmount(() => {
 		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone. -->
 		<nav
 			v-if="shellShown"
-			aria-label="Primary"
+			:aria-label="t('nav.primary')"
 			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
 		>
 			<NavDestination v-for="link in dailyLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
 		</nav>
 
 		<!-- Only a sign-out that loses work is a destructive one, so only that takes the error colour. -->
-		<AlertDialog :open="confirmingSignOut" title="Sign out?" :icon="CAT" :danger="hasUnsentChanges" @close="confirmingSignOut = false">
+		<AlertDialog
+			:open="confirmingSignOut"
+			:title="t('nav.signOutTitle')"
+			:icon="CAT"
+			:danger="hasUnsentChanges"
+			@close="confirmingSignOut = false"
+		>
 			<template v-if="hasUnsentChanges">
-				{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved on this device
-				{{ unsentChanges === 1 ? 'has' : 'have' }} not been synced yet. Signing out now will lose {{ unsentChanges === 1 ? 'it' : 'them' }}.
+				{{ t('nav.signOutUnsent', unsentChanges) }}
 			</template>
-			<template v-else>You will need to sign in again to see your ledger on this device.</template>
+			<template v-else>{{ t('nav.signOutBody') }}</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="confirmingSignOut = false">No, stay signed in</button>
-				<button type="button" class="btn-text" :class="{ 'text-error': hasUnsentChanges }" @click="signOut">Yes, sign out</button>
+				<button type="button" class="btn-text" @click="confirmingSignOut = false">{{ t('common.noStaySignedIn') }}</button>
+				<button type="button" class="btn-text" :class="{ 'text-error': hasUnsentChanges }" @click="signOut">
+					{{ t('common.yesSignOut') }}
+				</button>
 			</template>
 		</AlertDialog>
 

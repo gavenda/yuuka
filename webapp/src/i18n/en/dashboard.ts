@@ -1,0 +1,22 @@
+export default {
+	netThisMonth: 'Net this month',
+	saved: 'Stashed away',
+	overspent: 'Pounced too far',
+	budgetRemaining: 'Budget remaining',
+	acrossBudgeted: 'Across budgeted categories',
+	overBudget: 'Over budget',
+	needsAttention: 'Hissing for attention',
+	nothingOverspent: 'No knocked-over budgets',
+	whereMoneyWent: 'Where the coins rolled off to',
+	nothingRecorded: 'Nothing to sniff out this month.',
+	chart: {
+		title: 'Spending by day',
+		scrolls: 'Spending by day, scrolls sideways',
+		forMonth: 'Spending by day for {month}',
+		empty: 'A purr-fectly quiet month.',
+		summary: '{amount} across {count} day | {amount} across {count} days',
+		dailyAverage: 'Daily average',
+		atOrAbove: 'At or above average',
+		date: 'Date',
+	},
+};

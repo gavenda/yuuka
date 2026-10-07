@@ -13,6 +13,7 @@ import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { BudgetMode, Settings } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
+import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
@@ -21,14 +22,14 @@ const { mode: themeMode, setMode: setThemeMode } = useTheme();
 const appVersion = __APP_VERSION__;
 
 const THEME_MODES: { value: ThemeMode; label: string }[] = [
-	{ value: 'system', label: 'System' },
-	{ value: 'light', label: 'Light' },
-	{ value: 'dark', label: 'Dark' },
+	{ value: 'system', label: t('settings.themeSystem') },
+	{ value: 'light', label: t('settings.themeLight') },
+	{ value: 'dark', label: t('settings.themeDark') },
 ];
 
 const BUDGET_MODES: { value: BudgetMode; label: string }[] = [
-	{ value: 'fixed', label: 'Fixed' },
-	{ value: 'monthly', label: 'Monthly' },
+	{ value: 'fixed', label: t('settings.fixed') },
+	{ value: 'monthly', label: t('settings.monthly') },
 ];
 
 /**
@@ -43,12 +44,12 @@ async function persist(change: Partial<Pick<Settings, 'displayCurrency' | 'budge
 		// dashboard consistent with anything a setting touched.
 		await budget.refresh();
 	} catch (caught) {
-		showSnackbar(caught instanceof ApiError ? caught.message : 'Could not save the setting.');
+		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}
 }
 
 const defaultAccountName = computed(
-	() => ledger.accounts.find((account) => account.id === ledger.defaultAccountId)?.name ?? 'First active account',
+	() => ledger.accounts.find((account) => account.id === ledger.defaultAccountId)?.name ?? t('settings.firstActive'),
 );
 const accountsByType = computed(() => [...ledger.activeAccounts].sort((a, b) => (a.typeName ?? '').localeCompare(b.typeName ?? '')));
 const accountSheetOpen = ref(false);
@@ -109,12 +110,12 @@ onMounted(() => ledger.load());
 <template>
 	<div class="flex flex-col gap-4 p-4">
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Currency</h2>
+			<h2 class="settings-header">{{ t('settings.currency') }}</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="currencyDialogOpen = true">
 					<AppIcon :icon="ATTACH_MONEY" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Display currency</span>
+						<span class="type-title-medium block">{{ t('settings.displayCurrency') }}</span>
 						<span class="type-body-medium block">{{ ledger.displayCurrency }}</span>
 					</span>
 					<span class="type-headline-small" aria-hidden="true">{{ currencySymbol(ledger.displayCurrency) }}</span>
@@ -123,35 +124,40 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Appearance</h2>
+			<h2 class="settings-header">{{ t('settings.appearance') }}</h2>
 			<div class="settings-group">
 				<div class="settings-row flex-col items-stretch">
 					<div class="flex items-center gap-4">
 						<AppIcon :icon="DARK_MODE" />
 						<span class="min-w-0 flex-1">
-							<span class="type-title-medium block">App theme</span>
-							<span class="type-body-medium block">Choose how your app looks</span>
+							<span class="type-title-medium block">{{ t('settings.appTheme') }}</span>
+							<span class="type-body-medium block">{{ t('settings.appThemeHint') }}</span>
 						</span>
 					</div>
-					<ConnectedButtonGroup :model-value="themeMode" label="App theme" :options="THEME_MODES" @update:model-value="setThemeMode" />
+					<ConnectedButtonGroup
+						:model-value="themeMode"
+						:label="t('settings.appTheme')"
+						:options="THEME_MODES"
+						@update:model-value="setThemeMode"
+					/>
 				</div>
 			</div>
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Budgeting</h2>
+			<h2 class="settings-header">{{ t('settings.budgeting') }}</h2>
 			<div class="settings-group">
 				<div class="settings-row flex-col items-stretch">
 					<div class="flex items-center gap-4">
 						<AppIcon :icon="NOTE_ALT" />
 						<span class="min-w-0 flex-1">
-							<span class="type-title-medium block">Mode</span>
-							<span class="type-body-medium block">Choose whether you budget monthly or not</span>
+							<span class="type-title-medium block">{{ t('settings.mode') }}</span>
+							<span class="type-body-medium block">{{ t('settings.modeHint') }}</span>
 						</span>
 					</div>
 					<ConnectedButtonGroup
 						:model-value="ledger.budgetMode"
-						label="Budget mode"
+						:label="t('settings.budgetMode')"
 						:options="BUDGET_MODES"
 						@update:model-value="(mode) => mode !== ledger.budgetMode && persist({ budgetMode: mode })"
 					/>
@@ -160,26 +166,26 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Accounts</h2>
+			<h2 class="settings-header">{{ t('settings.accounts') }}</h2>
 			<div class="settings-group">
 				<!-- A list to manage rather than a value to pick, so it is a screen of its own. -->
 				<RouterLink to="/settings/account-types" class="settings-row state-layer focus-ring">
 					<AppIcon :icon="CONTRACT_EDIT" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Account types</span>
-						<span class="type-body-medium block">Add, rename or retire the labels your accounts are grouped under</span>
+						<span class="type-title-medium block">{{ t('nav.accountTypes') }}</span>
+						<span class="type-body-medium block">{{ t('settings.accountTypesHint') }}</span>
 					</span>
 				</RouterLink>
 			</div>
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">Transactions</h2>
+			<h2 class="settings-header">{{ t('settings.transactions') }}</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="accountSheetOpen = true">
 					<AppIcon :icon="SUPERVISOR_ACCOUNT" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Default account</span>
+						<span class="type-title-medium block">{{ t('settings.defaultAccount') }}</span>
 						<span class="type-body-medium block">{{ defaultAccountName }}</span>
 					</span>
 				</button>
@@ -187,12 +193,12 @@ onMounted(() => ledger.load());
 		</section>
 
 		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">About</h2>
+			<h2 class="settings-header">{{ t('settings.about') }}</h2>
 			<div class="settings-group">
 				<div class="settings-row">
 					<AppIcon :icon="INFO" />
 					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">Version</span>
+						<span class="type-title-medium block">{{ t('settings.version') }}</span>
 						<span class="type-body-medium block">{{ appVersion }}</span>
 					</span>
 				</div>
@@ -202,7 +208,7 @@ onMounted(() => ledger.load());
 		<!-- Every currency there is, behind a search. Its first row is drawn like a search bar. -->
 		<FormDialog
 			:open="currencyDialogOpen"
-			title="Display currency"
+			:title="t('settings.displayCurrency')"
 			:save-enabled="pickedCurrency !== ledger.displayCurrency"
 			:dirty="pickedCurrency !== ledger.displayCurrency"
 			@close="currencyDialogOpen = false"
@@ -214,10 +220,10 @@ onMounted(() => ledger.load());
 					v-model="currencySearch"
 					type="search"
 					autofocus
-					aria-label="Search currencies"
-					placeholder="Search currency name or code..."
+					:aria-label="t('settings.searchCurrencies')"
+					:placeholder="t('settings.searchPlaceholder')"
 				/>
-				<button v-if="currencySearch" type="button" class="btn-icon -mr-2" aria-label="Clear" @click="currencySearch = ''">
+				<button v-if="currencySearch" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @click="currencySearch = ''">
 					<AppIcon :icon="CLOSE" />
 				</button>
 			</label>
@@ -235,7 +241,7 @@ onMounted(() => ledger.load());
 			</div>
 		</FormDialog>
 
-		<SelectionDialog :open="accountSheetOpen" title="Select default account" @close="accountSheetOpen = false">
+		<SelectionDialog :open="accountSheetOpen" :title="t('settings.selectDefault')" @close="accountSheetOpen = false">
 			<SelectionItem
 				v-for="account in accountsByType"
 				:key="account.id"

@@ -8,6 +8,7 @@ import { useAmountVisibility } from '@/lib/privacy';
 import { railPushesContent, useRail } from '@/lib/rail';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { t } from '@/i18n';
 
 export interface RailLink {
 	to: string;
@@ -142,12 +143,12 @@ const showsAmounts = computed(() => route.meta.amountFree !== true);
  * destinations, and follow the less-visited screens passed as `moreLinks`. Save the Change sits with the
  * screens, as in the Android drawer, and Settings is its own screen too.
  */
-const MORE_LINKS: RailLink[] = [
-	{ to: '/subscriptions', label: 'Subscriptions', icon: EVENT_REPEAT },
-	{ to: '/save-the-change', label: 'Save the Change', icon: SAVINGS },
-	{ to: '/settings', label: 'Settings', icon: SETTINGS },
-];
-const allMoreLinks = computed(() => [...props.moreLinks, ...MORE_LINKS]);
+const ownMoreLinks = computed<RailLink[]>(() => [
+	{ to: '/subscriptions', label: t('nav.subscriptions'), icon: EVENT_REPEAT },
+	{ to: '/save-the-change', label: t('nav.saveTheChange'), icon: SAVINGS },
+	{ to: '/settings', label: t('nav.settings'), icon: SETTINGS },
+]);
+const allMoreLinks = computed(() => [...props.moreLinks, ...ownMoreLinks.value]);
 
 /** A floating rail is in the way once it has done its job; a docked one stays put. */
 function afterChoice(): void {
@@ -209,7 +210,7 @@ onBeforeUnmount(() => {
 	-->
 	<nav
 		id="primary-rail"
-		aria-label="Primary"
+		:aria-label="t('nav.primary')"
 		class="rail fixed inset-y-0 left-0 z-40 hidden overflow-hidden bg-surface sm:block"
 		:class="{ 'max-lg:bg-surface-container max-lg:shadow-elevation-2': expanded }"
 		:data-expanded="expanded"
@@ -238,7 +239,7 @@ onBeforeUnmount(() => {
 			<button
 				type="button"
 				class="btn-icon m-1 ml-7 text-on-surface"
-				:aria-label="expanded ? 'Collapse navigation' : 'Expand navigation'"
+				:aria-label="expanded ? t('nav.collapse') : t('nav.expand')"
 				:aria-expanded="expanded"
 				aria-controls="primary-rail"
 				@click="toggle"
@@ -295,7 +296,7 @@ onBeforeUnmount(() => {
 					<!-- Only in the open rail: it grows out of nothing rather than appearing, and is inert while shut. -->
 					<div class="rail-collapse" :data-open="expanded" :inert="!expanded">
 						<div>
-							<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">More</h2>
+							<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">{{ t('nav.more') }}</h2>
 
 							<RailItem
 								v-for="link in allMoreLinks"
@@ -308,7 +309,7 @@ onBeforeUnmount(() => {
 							/>
 
 							<RailItem
-								label="Sign out"
+								:label="t('common.signOut')"
 								:icon="LOGOUT"
 								expanded
 								@click="
@@ -327,12 +328,12 @@ onBeforeUnmount(() => {
 					<RailItem
 						v-if="showsAmounts"
 						variant="action"
-						:label="amountsHidden ? 'Show amounts' : 'Hide amounts'"
+						:label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						:icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY"
 						:expanded="expanded"
-						:aria-label="amountsHidden ? 'Show amounts' : 'Hide amounts'"
+						:aria-label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						:aria-pressed="amountsHidden"
-						:title="amountsHidden ? 'Show amounts' : 'Hide amounts'"
+						:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						@click="toggleAmounts"
 					/>
 
