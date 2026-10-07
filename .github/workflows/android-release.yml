@@ -17,13 +17,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Matches gradle/gradle-daemon-jvm.properties (JetBrains 25), so Gradle
       # runs its daemon on this JDK instead of downloading one through Foojay
       # on every build — a download that fails the release when Foojay is down.
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: jetbrains
           java-version: "25"
@@ -34,7 +34,7 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Resolve release tag
         id: tag
@@ -78,8 +78,11 @@ jobs:
         if: always()
         run: rm -rf keystore keystore.properties app/google-services.json
 
+      - name: Name the APK after the release
+        run: cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/yuuka-${{ steps.tag.outputs.tag }}.apk"
+
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: app-release
           path: app/build/outputs/apk/release/app-release.apk
@@ -88,4 +91,4 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          files: app/build/outputs/apk/release/app-release.apk
+          files: app/build/outputs/apk/release/yuuka-${{ steps.tag.outputs.tag }}.apk
