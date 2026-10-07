@@ -21,6 +21,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +42,7 @@ import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
 import dev.gavenda.yuuka.ui.categories.CategoriesScreen
 import dev.gavenda.yuuka.ui.common.AppBarShell
+import dev.gavenda.yuuka.ui.common.CatIcon
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHost
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHostState
 import dev.gavenda.yuuka.ui.common.LocalAppBarShell
@@ -111,6 +113,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val dialogHost = remember { FullScreenDialogHostState() }
+    // Signing out discards the queue, so it asks first rather than taking unsent work with it on a slip.
+    var confirmingSignOut by remember { mutableStateOf(false) }
 
     // How much of what is on screen the server has not been told about yet.
     // Writes are local-first, so a save never fails for want of a connection —
@@ -327,7 +331,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     onNavigate = navigateToTopLevel,
                     onNavigateDetail = navigateToDetail,
                     onToggleAmounts = amountVisibility::toggle,
-                    onSignOut = onSignOut,
+                    onSignOut = { confirmingSignOut = true },
                 )
                 Box(
                     modifier = Modifier
@@ -406,7 +410,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             selected = false,
                             onClick = {
                                 scope.launch { drawerState.close() }
-                                onSignOut()
+                                confirmingSignOut = true
                             },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
@@ -417,6 +421,37 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
         FullScreenDialogHost(dialogHost)
+
+        if (confirmingSignOut) {
+            // Only a sign-out that loses work is a destructive one, so only that takes the error colour.
+            val losesWork = unsentChanges > 0
+            AlertDialog(
+                onDismissRequest = { confirmingSignOut = false },
+                icon = { Icon(CatIcon, contentDescription = null) },
+                iconContentColor = if (losesWork) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                title = { Text(stringResource(R.string.sign_out_confirm_title)) },
+                text = {
+                    Text(
+                        if (losesWork) {
+                            pluralStringResource(R.plurals.sign_out_unsent_body, unsentChanges, unsentChanges)
+                        } else {
+                            stringResource(R.string.sign_out_body)
+                        },
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { confirmingSignOut = false; onSignOut() },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = if (losesWork) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        ),
+                    ) { Text(stringResource(R.string.action_yes_sign_out)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmingSignOut = false }) { Text(stringResource(R.string.action_no_stay_signed_in)) }
+                },
+            )
+        }
     }
 }
 

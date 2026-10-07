@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DELETE } from '@/lib/icons';
 import AccountLogo from '@/components/AccountLogo.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
@@ -230,11 +231,11 @@ async function toggleArchived(account: Account): Promise<void> {
 
 /** The account a delete has been asked for, and what the API said the first time it was tried. */
 const pendingDelete = ref<Account | null>(null);
-const deleteWarning = ref<string | null>(null);
+const deleteHasHistory = ref(false);
 
 function closeDelete(): void {
 	pendingDelete.value = null;
-	deleteWarning.value = null;
+	deleteHasHistory.value = false;
 }
 
 async function remove(): Promise<void> {
@@ -243,10 +244,10 @@ async function remove(): Promise<void> {
 
 	try {
 		// Having been told the account has history, the second press means it.
-		await api.deleteAccount(account.id, deleteWarning.value !== null);
+		await api.deleteAccount(account.id, deleteHasHistory.value);
 	} catch (caught) {
 		// The API refuses to silently destroy history; say so and ask again before forcing it.
-		if (caught instanceof ApiError && caught.status === 409) deleteWarning.value = caught.message;
+		if (caught instanceof ApiError && caught.status === 409) deleteHasHistory.value = true;
 		else showSnackbar(caught instanceof ApiError ? caught.message : 'Could not delete the account.');
 		return;
 	}
@@ -261,7 +262,7 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="px-4 pt-4 pb-24">
-		<EmptyState v-if="!groups.length" title="No accounts yet" description="Add the accounts you want to track." />
+		<EmptyState v-if="!groups.length" fill title="It's quiet in here" description="Add an account and give the cat something to count." />
 
 		<!-- Accounts under their type. The rows of a type are a hair apart, the way a settings group is drawn;
 		     the space between one type and the next comes from the heading's own padding. -->
@@ -415,11 +416,17 @@ onMounted(() => ledger.load());
 			</template>
 		</AlertDialog>
 
-		<AlertDialog :open="pendingDelete !== null" :title="`Delete &quot;${pendingDelete?.name}&quot;?`" @close="closeDelete">
-			<p v-if="deleteWarning" class="whitespace-pre-line">{{ deleteWarning }}{{ '\n\n' }}Delete the account and its transactions?</p>
+		<AlertDialog :open="pendingDelete !== null" :title="`Delete &quot;${pendingDelete?.name}&quot;?`" :icon="DELETE" @close="closeDelete">
+			<template v-if="deleteHasHistory">
+				{{ pendingDelete?.name }} still has transactions, and deleting it deletes them too. To keep your history, go back and archive the
+				account instead. This cannot be undone.
+			</template>
+			<template v-else>The account and any subscriptions that post to it will be removed. This cannot be undone.</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="closeDelete">Cancel</button>
-				<button type="button" class="btn-text" @click="remove">{{ deleteWarning ? 'Delete anyway' : 'Delete' }}</button>
+				<button type="button" class="btn-text" @click="closeDelete">No, go back</button>
+				<button type="button" class="btn-text text-error" @click="remove">
+					{{ deleteHasHistory ? 'Yes, delete everything' : 'Yes, delete it' }}
+				</button>
 			</template>
 		</AlertDialog>
 

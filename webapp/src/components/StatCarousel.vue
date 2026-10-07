@@ -8,6 +8,7 @@ export interface StatItem {
 	amount: number;
 	caption?: string;
 	signed?: boolean;
+	watermark?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ withDefaults(defineProps<{ stats: StatItem[]; currency?: string; tone?: 'surface
 			:currency="currency"
 			:caption="stat.caption"
 			:signed="stat.signed"
+			:watermark="stat.watermark"
 			:tone="tone"
 		/>
 	</div>

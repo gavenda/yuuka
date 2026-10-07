@@ -224,7 +224,7 @@ export const transferCreateSchema = z
 		tagIds: tagIds.optional(),
 	})
 	.refine((value) => value.fromAccountId !== value.toAccountId, {
-		message: 'Cannot transfer to the same account.',
+		error: 'Cannot transfer to the same account.',
 		path: ['toAccountId'],
 	});
 
@@ -283,7 +283,7 @@ export const incomePlanUpsertSchema = z
 		grossAmount: money.min(0).optional(),
 	})
 	.refine((value) => value.mode !== 'gross' || value.grossAmount !== undefined, {
-		message: 'Gross mode requires a gross amount.',
+		error: 'Gross mode requires a gross amount.',
 		path: ['grossAmount'],
 	});
 
@@ -384,7 +384,7 @@ export const syncOperationSchema = z.object({
 	/** An `/api/...` path, exactly as the same call would look online. */
 	path: z.string().min(2).max(300).startsWith('/api/'),
 	/** When the user made the change, not when it was sent. This is what a stale edit is judged against. */
-	at: z.string().datetime(),
+	at: z.iso.datetime(),
 	/** What the operation touches, for the staleness check. Left out, the operation is applied unconditionally. */
 	entity: z.enum(SYNC_ENTITIES).optional(),
 	/** Which row, for an entity that has more than one. */

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.*
@@ -134,9 +135,9 @@ internal fun SubscriptionsScreenContent(
             if (state.subscriptions.isEmpty()) {
                 item {
                     EmptyState(
-                        stringResource(R.string.no_subscriptions_yet),
+                        stringResource(R.string.subscriptions_empty_title),
                         description = stringResource(R.string.subscriptions_empty_description),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillParentMaxHeight().padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -213,10 +214,13 @@ internal fun SubscriptionsScreenContent(
 
         AlertDialog(
             onDismissRequest = { if (!deleting) pendingDelete = null },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.delete_subscription_confirm_title)) },
             text = { WithSnackbarOverlay { Text(stringResource(R.string.delete_subscription_body, subscription.payee)) } },
             confirmButton = {
                 TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     enabled = !deleting,
                     onClick = {
                         busy.run(deleteKey, snackbarHostState, successMessage = deletedMessage, onSuccess = { pendingDelete = null }) {
@@ -224,10 +228,10 @@ internal fun SubscriptionsScreenContent(
                         }
                     },
                 ) {
-                    if (deleting) MutationLoadingIndicator() else Text(stringResource(R.string.action_delete))
+                    if (deleting) MutationLoadingIndicator() else Text(stringResource(R.string.action_yes_delete))
                 }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
         )
     }
 }

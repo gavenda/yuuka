@@ -116,8 +116,9 @@ const countLabel = (tag: Tag) => `${formatCount(countOf(tag))} ${countOf(tag) ==
 	<div class="px-4 pt-4 pb-24">
 		<EmptyState
 			v-if="!ledger.tags.length"
-			title="No tags yet"
-			description="Add one, then put it on a transaction to find it by that label later."
+			fill
+			title="No tags to bat around yet"
+			description="Add one, then stick it on a transaction to find it again later."
 		/>
 
 		<template v-else>

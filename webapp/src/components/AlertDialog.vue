@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue';
+import type { IconPath } from '@/lib/icons';
 import { useModal } from '@/lib/modal';
 import { ref } from 'vue';
 
@@ -7,9 +9,17 @@ import { ref } from 'vue';
  * text buttons at the foot — a question that wants an answer before anything else happens, or a short
  * list to pick from. Put the buttons in the `actions` slot, the dismissing one first. It is an `alertdialog`
  * unless told otherwise: pass `role="dialog"` for one that is a list or a couple of fields rather than a
- * question.
+ * question. A dialog that asks for confirmation passes an `icon`: it is drawn above the headline, and the
+ * headline is centred under it, as `AlertDialog` does when it is given one. The icon takes the error colour,
+ * since what is confirmed is nearly always destructive; pass `:danger="false"` for one that is not.
  */
-const props = withDefaults(defineProps<{ open: boolean; title?: string; role?: 'alertdialog' | 'dialog' }>(), { role: 'alertdialog' });
+const props = withDefaults(
+	defineProps<{ open: boolean; title?: string; icon?: IconPath; danger?: boolean; role?: 'alertdialog' | 'dialog' }>(),
+	{
+		danger: true,
+		role: 'alertdialog',
+	},
+);
 const emit = defineEmits<{ close: [] }>();
 
 const panel = ref<HTMLElement | null>(null);
@@ -40,7 +50,9 @@ useModal(
 					tabindex="-1"
 					class="dialog-enter relative flex max-h-full w-full max-w-[560px] min-w-[280px] flex-col rounded-xl bg-surface-container-high p-6 shadow-elevation-3 outline-none [--surface-under:var(--color-surface-container-high)] sm:w-auto sm:min-w-[320px]"
 				>
-					<h2 v-if="title" class="type-headline-small pb-4 text-on-surface">{{ title }}</h2>
+					<div v-if="icon" class="flex justify-center pb-4" :class="danger ? 'text-error' : 'text-secondary'"><AppIcon :icon="icon" /></div>
+
+					<h2 v-if="title" class="type-headline-small pb-4 text-on-surface" :class="{ 'text-center': icon }">{{ title }}</h2>
 
 					<div class="type-body-medium min-h-0 overflow-y-auto text-on-surface-variant"><slot /></div>
 

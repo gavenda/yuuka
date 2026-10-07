@@ -176,8 +176,8 @@ onMounted(() => ledger.load());
 	<div class="flex flex-col gap-4 px-4 pt-4 pb-24">
 		<EmptyState
 			v-if="!ledger.categories.length"
-			title="No categories yet"
-			description="Categories are how spending gets grouped and budgeted."
+			title="No boxes to sort into yet"
+			description="Categories are the boxes your spending goes in. Cats love boxes."
 		/>
 
 		<!-- A section is one block of rows under its heading, as the settings groups are drawn. -->

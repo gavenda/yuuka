@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CatPattern from '@/components/CatPattern.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import RailItem from '@/components/RailItem.vue';
 import { currentFab, type FabAction, type FabEntry } from '@/lib/fab';
@@ -218,7 +219,15 @@ onBeforeUnmount(() => {
 			<!-- The app's mark, in either state, with its name and version beside it once the rail is open. It is
 			     a mark rather than a control (no link, and never the menu button, which sits beneath it), so it
 			     cannot be mistaken for one. The rail's Dashboard destination is the way home. -->
-			<div class="flex items-center pb-3 pl-7" aria-hidden="true">
+			<div class="relative isolate flex items-center pb-3 pl-7" aria-hidden="true">
+				<!-- Only in the open rail: a strip of the print behind the name, from the rail's top edge down to
+				     the menu button and thinning out towards the page. -->
+				<CatPattern
+					class="rail-fade absolute -top-16 left-0 -z-10 h-[calc(100%+4rem)] w-[220px]"
+					print="small"
+					fade="trailing"
+					:data-shown="expanded"
+				/>
 				<img src="/yuuka.png" alt="" class="size-10 shrink-0 rounded-full object-cover" />
 				<span class="rail-fade flex items-baseline gap-1.5 pr-4 pl-3 whitespace-nowrap text-on-surface" :data-shown="expanded">
 					<span class="type-title-large">yuuka</span>
@@ -330,8 +339,9 @@ onBeforeUnmount(() => {
 					<div class="rail-collapse" :data-open="expanded && !!account.name" :inert="!expanded">
 						<div>
 							<div
-								class="mx-6 my-4 flex w-fit items-center gap-3 rounded-xl bg-surface-container-highest px-4 py-3 text-on-surface-variant"
+								class="relative isolate mx-6 my-4 flex w-fit items-center gap-3 overflow-hidden rounded-xl bg-surface-container-highest px-4 py-3 text-on-surface-variant"
 							>
+								<CatPattern class="absolute inset-0 -z-10 size-full" print="small" fade="none" />
 								<img
 									v-if="account.picture"
 									:src="account.picture"

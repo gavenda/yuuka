@@ -113,7 +113,7 @@ internal fun CategoriesScreenContent(
             if (state.categories.isEmpty()) {
                 item {
                     EmptyState(
-                        stringResource(R.string.no_categories_yet),
+                        stringResource(R.string.categories_empty_title),
                         description = stringResource(R.string.categories_empty_description)
                     )
                 }

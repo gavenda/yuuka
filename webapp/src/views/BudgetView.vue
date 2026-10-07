@@ -126,7 +126,7 @@ const incomeLabel = computed(() => {
 /** The month's plan in figures: what is planned and spent, then — once there is an income to share out — where it has gone. */
 const stats = computed<StatItem[]>(() => {
 	const list: StatItem[] = [
-		{ label: 'Planned', amount: totalPlanned.value, caption: 'Across expense categories' },
+		{ label: 'Planned', amount: totalPlanned.value, caption: 'Across expense categories', watermark: true },
 		{
 			label: 'Spent',
 			amount: totalActual.value,
@@ -231,7 +231,11 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<StatCarousel :stats="stats" :currency="currency" tone="tertiary" />
 
-		<EmptyState v-if="!hasAnyCategories" title="No categories yet" description="Budgets are set per category, so create a few first." />
+		<EmptyState
+			v-if="!hasAnyCategories"
+			title="Nothing to budget yet"
+			description="A budget needs categories to sit in, so make a few first."
+		/>
 
 		<template v-if="budget.expenseBreakdown.length">
 			<h2 class="type-title-small">Expense</h2>

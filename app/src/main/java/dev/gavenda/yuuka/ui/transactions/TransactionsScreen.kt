@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,7 +22,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Sell
@@ -29,6 +32,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -39,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Transaction
+import dev.gavenda.yuuka.data.model.TransactionTag
 import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
@@ -199,7 +204,7 @@ internal fun TransactionsScreenContent(
                     item {
                         EmptyState(
                             stringResource(R.string.transactions_empty_title),
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.fillParentMaxHeight().padding(16.dp),
                             description = stringResource(R.string.transactions_empty_description),
                         )
                     }
@@ -260,6 +265,14 @@ internal fun TransactionsScreenContent(
                                 }
                             }
                         }
+                    } else {
+                        // The end of the list, and only once there is no more of it to load: the cat, small
+                        // and quiet, so the last row is not mistaken for a page that stopped short.
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp), contentAlignment = Alignment.Center) {
+                                CatMark(modifier = Modifier.alpha(0.5f), width = 40.dp)
+                            }
+                        }
                     }
                 }
             }
@@ -294,22 +307,24 @@ internal fun TransactionsScreenContent(
 
         AlertDialog(
             onDismissRequest = { if (!deleting) pendingDelete = null },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(if (toDelete.transferId != null) stringResource(R.string.delete_transfer_confirm_title) else stringResource(R.string.delete_transaction_confirm_title)) },
             text = {
                 WithSnackbarOverlay {
-                    if (toDelete.transferId != null) Text(stringResource(R.string.delete_transfer_body))
+                    Text(stringResource(if (toDelete.transferId != null) R.string.delete_transfer_body else R.string.delete_transaction_body))
                 }
             },
             confirmButton = {
-                TextButton(onClick = { onDelete(toDelete) }, enabled = !deleting) {
+                TextButton(onClick = { onDelete(toDelete) }, enabled = !deleting, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                     if (deleting) {
                         MutationLoadingIndicator()
                     } else {
-                        Text(stringResource(R.string.action_delete))
+                        Text(stringResource(R.string.action_yes_delete))
                     }
                 }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
         )
     }
 }
@@ -434,7 +449,70 @@ private fun TransactionRowItem(
                     )
                 }
             }
+
+            // Notes on the left, tags as chips at the right end of the same row, centred on each other.
+            // The icon stays with the note's first line.
+            if (notes.isNotEmpty() || tags.isNotEmpty()) {
+                BoxWithConstraints {
+                    val maxChipsWidth = maxWidth * 0.6f
+                    Row(
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (notes.isNotEmpty()) {
+                                Icon(
+                                    Icons.Filled.EditNote,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    notes,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        // Sized to what they hold, but never past 60% of the row, so a long tag list wraps rather than crowding the notes out.
+                        if (tags.isNotEmpty()) TagChips(tags, modifier = Modifier.widthIn(max = maxChipsWidth))
+                    }
+                }
+            }
           }
+        }
+    }
+}
+
+/** A transaction's tags as small chips, wrapping onto further lines and packed toward the end of the row. */
+@Composable
+private fun TagChips(tags: List<TransactionTag>, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        tags.forEach { tag -> TagChip(tag.name, tag.color) }
+    }
+}
+
+/** Read-only on a card: it is a label, and a tap on the card still opens the transaction. */
+@Composable
+private fun TagChip(name: String, colorHex: String) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.heightIn(min = 24.dp).padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(harmonisedColor(colorHex, MaterialTheme.colorScheme.onSurfaceVariant)))
+            Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

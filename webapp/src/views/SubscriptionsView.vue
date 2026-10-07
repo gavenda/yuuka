@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DELETE } from '@/lib/icons';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
@@ -235,9 +236,10 @@ function scheduleOf(subscription: Subscription): string {
 
 		<EmptyState
 			v-else-if="!store.loading"
+			fill
 			class="mx-4 my-2"
-			title="No subscriptions yet"
-			description="Set up rent, streaming or a loan payment once, and it will be posted for you every month."
+			title="Nothing on repeat yet"
+			description="Set up rent, streaming or a loan payment once, and it will post itself every month while you nap."
 		/>
 
 		<ul class="group-rows px-4">
@@ -361,11 +363,11 @@ function scheduleOf(subscription: Subscription): string {
 			</div>
 		</FormDialog>
 
-		<AlertDialog :open="pendingDelete !== null" title="Delete this subscription?" @close="pendingDelete = null">
-			{{ pendingDelete?.payee }} will stop posting. Transactions it has already posted stay in your history.
+		<AlertDialog :open="pendingDelete !== null" title="Delete this subscription?" :icon="DELETE" @close="pendingDelete = null">
+			{{ pendingDelete?.payee }} will stop posting. Transactions it has already posted stay in your history. This cannot be undone.
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">Cancel</button>
-				<button type="button" class="btn-text" @click="remove">Delete</button>
+				<button type="button" class="btn-text" @click="pendingDelete = null">No, go back</button>
+				<button type="button" class="btn-text text-error" @click="remove">Yes, delete it</button>
 			</template>
 		</AlertDialog>
 

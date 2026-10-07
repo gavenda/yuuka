@@ -20,7 +20,7 @@ const month = computed({
 
 /** Where things stand: what there is, and what came in and went out this month. */
 const standing = computed(() => [
-	{ label: 'Net worth', amount: budget.summary?.netWorth ?? 0 },
+	{ label: 'Net worth', amount: budget.summary?.netWorth ?? 0, watermark: true },
 	{ label: 'Income', amount: budget.summary?.income ?? 0 },
 	{ label: 'Spent', amount: budget.summary?.expenses ?? 0 },
 ]);

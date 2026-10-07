@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
-import { CLOSE } from '@/lib/icons';
+import { CLOSE, DELETE } from '@/lib/icons';
 import { useModal } from '@/lib/modal';
 import { ref } from 'vue';
 
@@ -97,11 +97,11 @@ useModal(() => props.open, close, panel);
 		</Transition>
 	</Teleport>
 
-	<AlertDialog :open="open && confirmingDiscard" title="Discard changes?" @close="confirmingDiscard = false">
-		What you entered has not been saved.
+	<AlertDialog :open="open && confirmingDiscard" title="Discard changes?" :icon="DELETE" @close="confirmingDiscard = false">
+		What you entered has not been saved and will be lost.
 		<template #actions>
-			<button type="button" class="btn-text" @click="confirmingDiscard = false">Keep editing</button>
-			<button type="button" class="btn-text" @click="discard">Discard</button>
+			<button type="button" class="btn-text" @click="confirmingDiscard = false">No, keep editing</button>
+			<button type="button" class="btn-text text-error" @click="discard">Yes, discard them</button>
 		</template>
 	</AlertDialog>
 </template>

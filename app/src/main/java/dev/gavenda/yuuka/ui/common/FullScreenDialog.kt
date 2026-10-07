@@ -19,7 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -295,10 +297,15 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
     if (confirmingDiscard && !leaving) {
         AlertDialog(
             onDismissRequest = { confirmingDiscard = false },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.discard_changes_title)) },
             text = { Text(stringResource(R.string.discard_changes_body)) },
             confirmButton = {
-                TextButton(onClick = { confirmingDiscard = false; onDismiss() }) { Text(stringResource(R.string.action_discard)) }
+                TextButton(
+                    onClick = { confirmingDiscard = false; onDismiss() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text(stringResource(R.string.action_discard)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmingDiscard = false }) { Text(stringResource(R.string.action_keep_editing)) }

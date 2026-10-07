@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,7 +103,7 @@ internal fun AccountsScreenContent(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (state.groups.isEmpty()) {
-                item { EmptyState(stringResource(R.string.no_accounts_yet), description = stringResource(R.string.accounts_empty_description)) }
+                item { EmptyState(stringResource(R.string.accounts_empty_title), modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.accounts_empty_description)) }
             } else {
                 state.groups.forEach { group ->
                     item(key = "type:${group.id}") {
@@ -201,14 +202,17 @@ internal fun AccountsScreenContent(
         val deleting = busy.isBusy(deleteKey)
         AlertDialog(
             onDismissRequest = { if (!deleting) { pendingDelete = null; deleteError = null } },
+            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.delete_confirm_title, toDelete.name)) },
             text = {
                 WithSnackbarOverlay {
-                    if (deleteError != null) Text(deleteError!!)
+                    Text(deleteError ?: stringResource(R.string.delete_account_body))
                 }
             },
             confirmButton = {
                 TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     enabled = !deleting,
                     onClick = {
                         busy.launch(deleteKey) {
@@ -219,7 +223,7 @@ internal fun AccountsScreenContent(
                                 snackbarHostState.showSnackbar(accountDeletedMessage)
                             } catch (e: ApiError) {
                                 if (e.status == 409) {
-                                    deleteError = deleteAccountTransactionsConfirmTemplate.format(e.message)
+                                    deleteError = deleteAccountTransactionsConfirmTemplate.format(toDelete.name)
                                 } else {
                                     snackbarHostState.showSnackbar(e.message ?: couldNotDeleteAccountMessage)
                                 }
@@ -230,11 +234,11 @@ internal fun AccountsScreenContent(
                     if (deleting) {
                         MutationLoadingIndicator()
                     } else {
-                        Text(if (deleteError != null) stringResource(R.string.delete_anyway) else stringResource(R.string.action_delete))
+                        Text(if (deleteError != null) stringResource(R.string.delete_anyway) else stringResource(R.string.action_yes_delete))
                     }
                 }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null; deleteError = null }, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) } },
+            dismissButton = { TextButton(onClick = { pendingDelete = null; deleteError = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
         )
     }
 }

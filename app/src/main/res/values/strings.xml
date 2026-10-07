@@ -17,15 +17,25 @@
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_close">Close</string>
-    <string name="action_discard">Discard</string>
-    <string name="action_keep_editing">Keep editing</string>
+    <string name="action_discard">Yes, discard them</string>
+    <string name="action_keep_editing">No, keep editing</string>
     <string name="discard_changes_title">Discard changes?</string>
-    <string name="discard_changes_body">What you entered has not been saved.</string>
+    <string name="discard_changes_body">What you entered has not been saved and will be lost.</string>
     <string name="action_delete">Delete</string>
+    <string name="action_yes_delete">Yes, delete it</string>
+    <string name="action_no_go_back">No, go back</string>
     <string name="action_add">Add</string>
     <string name="action_today">Today</string>
     <string name="action_log_in">Log in</string>
     <string name="action_sign_out">Sign out</string>
+    <string name="sign_out_confirm_title">Sign out?</string>
+    <string name="sign_out_body">You will need to sign in again to see your ledger on this device.</string>
+    <plurals name="sign_out_unsent_body">
+        <item quantity="one">%1$d change saved on this device has not been synced yet. Signing out now will lose it.</item>
+        <item quantity="other">%1$d changes saved on this device have not been synced yet. Signing out now will lose them.</item>
+    </plurals>
+    <string name="action_yes_sign_out">Yes, sign out</string>
+    <string name="action_no_stay_signed_in">No, stay signed in</string>
 
     <!-- Shared field labels -->
     <string name="label_name">Name</string>
@@ -133,7 +143,8 @@
     <string name="across_expense_categories">Across expense categories</string>
     <string name="percent_of_plan">%1$d%% of plan</string>
     <string name="no_plan_set">No plan set</string>
-    <string name="budget_empty_description">Budgets are set per category, so create a few first.</string>
+    <string name="budget_empty_title">Nothing to budget yet</string>
+    <string name="budget_empty_description">A budget needs categories to sit in, so make a few first.</string>
     <string name="percent_range_hint">Enter a percentage between 0 and 100.</string>
     <string name="set_a_budget">Set a budget</string>
     <string name="unbudgeted">Unbudgeted</string>
@@ -144,7 +155,8 @@
 
     <!-- Categories screen -->
     <string name="new_category">New category</string>
-    <string name="categories_empty_description">Categories are how spending gets grouped and budgeted.</string>
+    <string name="categories_empty_title">No boxes to sort into yet</string>
+    <string name="categories_empty_description">Categories are the boxes your spending goes in. Cats love boxes.</string>
     <string name="category_restored">Category restored</string>
     <string name="category_archived">Category archived</string>
     <string name="category_deleted">Category deleted</string>
@@ -163,7 +175,8 @@
     <string name="label_tags">Tags</string>
     <string name="tags_description">Labels to put on a transaction, shown beside its notes.</string>
     <string name="no_tags_yet">No tags yet</string>
-    <string name="tags_empty_description">Add one, then put it on a transaction to find it by that label later.</string>
+    <string name="tags_empty_title">No tags to bat around yet</string>
+    <string name="tags_empty_description">Add one, then stick it on a transaction to find it again later.</string>
     <string name="search_tags">Search tags</string>
     <plurals name="tag_transaction_count">
         <item quantity="one">%1$s transaction</item>
@@ -181,7 +194,8 @@
     <string name="new_account">New account</string>
     <string name="edit_account">Edit account</string>
     <string name="no_accounts_yet">No accounts yet</string>
-    <string name="accounts_empty_description">Add the accounts you want to track.</string>
+    <string name="accounts_empty_title">It\'s quiet in here</string>
+    <string name="accounts_empty_description">Add an account and give the cat something to count.</string>
     <string name="account_restored">Account restored</string>
     <string name="account_archived">Account archived</string>
     <string name="account_updated">Account updated</string>
@@ -189,8 +203,9 @@
     <string name="delete_confirm_title">Delete \"%1$s\"?</string>
     <string name="account_deleted">Account deleted</string>
     <string name="could_not_delete_account">Could not delete the account.</string>
-    <string name="delete_account_transactions_confirm">%1$s\n\nDelete the account and its transactions?</string>
-    <string name="delete_anyway">Delete anyway</string>
+    <string name="delete_account_body">The account and any subscriptions that post to it will be removed. This cannot be undone.</string>
+    <string name="delete_account_transactions_confirm">%1$s still has transactions, and deleting it deletes them too. To keep your history, go back and archive the account instead. This cannot be undone.</string>
+    <string name="delete_anyway">Yes, delete everything</string>
     <string name="label_starting_balance">Starting balance</string>
     <string name="label_logo_url">Logo URL (optional)</string>
     <string name="invert_colours_dark_mode">Invert colours in dark mode</string>
@@ -307,20 +322,21 @@
     <string name="filter_by_category">Filter by category</string>
     <string name="filter_by_tag">Filter by tag</string>
     <string name="action_clear">Clear</string>
-    <string name="transactions_empty_title">No transactions here</string>
-    <string name="transactions_empty_description">Nothing matches these filters yet. Add one, or widen the search.</string>
+    <string name="transactions_empty_title">Not a whisker in sight</string>
+    <string name="transactions_empty_description">Nothing matches these filters. Add a transaction, or widen the search.</string>
     <string name="loading_ellipsis">Loading…</string>
     <string name="load_more">Load more (%1$d of %2$d)</string>
     <string name="delete_transfer_confirm_title">Delete this transfer?</string>
     <string name="delete_transaction_confirm_title">Delete this transaction?</string>
-    <string name="delete_transfer_body">Both sides of the transfer will be removed.</string>
+    <string name="delete_transfer_body">Both sides of the transfer will be removed, and both accounts\' balances will change to match. This cannot be undone.</string>
+    <string name="delete_transaction_body">It will be removed from your history, and its account\'s balance will change to match. This cannot be undone.</string>
 
     <!-- Subscriptions -->
     <string name="subscriptions_description">Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.</string>
     <string name="new_subscription">New subscription</string>
     <string name="edit_subscription">Edit subscription</string>
-    <string name="no_subscriptions_yet">No subscriptions yet</string>
-    <string name="subscriptions_empty_description">Set up rent, streaming or a loan payment once, and it will be posted for you every month.</string>
+    <string name="subscriptions_empty_title">Nothing on repeat yet</string>
+    <string name="subscriptions_empty_description">Set up rent, streaming or a loan payment once, and it will post itself every month while you nap.</string>
     <string name="subscription_added">Subscription added</string>
     <string name="subscription_updated">Subscription updated</string>
     <string name="subscription_deleted">Subscription deleted</string>
@@ -338,7 +354,7 @@
     <string name="placeholder_subscription_payee">Who gets paid, e.g. Netflix</string>
     <string name="error_payee_required">Enter a payee.</string>
     <string name="delete_subscription_confirm_title">Delete this subscription?</string>
-    <string name="delete_subscription_body">%1$s will stop posting. Transactions it has already posted stay in your history.</string>
+    <string name="delete_subscription_body">%1$s will stop posting. Transactions it has already posted stay in your history. This cannot be undone.</string>
 
     <!-- Transactions posted by a subscription -->
     <string name="automated_badge">Subscription</string>

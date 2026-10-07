@@ -24,6 +24,7 @@ import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
 import dev.gavenda.yuuka.ui.YuukaApp
 import dev.gavenda.yuuka.ui.auth.AuthScreen
+import dev.gavenda.yuuka.ui.common.catPattern
 import dev.gavenda.yuuka.ui.theme.YuukaTheme
 import org.koin.android.ext.android.getKoin
 
@@ -56,6 +57,8 @@ class MainActivity : ComponentActivity() {
                         when (authState) {
                             is AuthState.Loading -> {
                                 val loadingLabel = stringResource(R.string.loading_ellipsis)
+                                // The sign-in screen's print, so the wait before it and after it is the same place.
+                                Box(modifier = Modifier.fillMaxSize().catPattern())
                                 LoadingIndicator(modifier = Modifier.align(Alignment.Center).semantics { contentDescription = loadingLabel })
                             }
 

@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.ui.common
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ fun StatCard(
     /** Draws the card on a secondary or tertiary container, with its figure in the container's own content colour. */
     tone: StatTone = StatTone.Surface,
     icon: @Composable (() -> Unit)? = null,
+    /** Lets the cat into the card's bottom corner, for the one card a screen leads with. */
+    watermark: Boolean = false,
 ) {
     // The inflow colour (primary) is not made for a tinted container, so the figure keeps the content colour and the sign carries the direction.
     val tinted = tone != StatTone.Surface
@@ -68,7 +71,8 @@ fun StatCard(
 
     val body: @Composable () -> Unit = {
         if (icon == null) {
-            Column(modifier = Modifier.padding(20.dp), content = content)
+            val mark = if (watermark) Modifier.fillMaxWidth().catWatermark(LocalContentColor.current) else Modifier
+            Column(modifier = mark.padding(20.dp), content = content)
         } else {
             Row(modifier = Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f), content = content)

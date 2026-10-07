@@ -2,6 +2,7 @@
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
+import CatMark from '@/components/CatMark.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FilterChipRow from '@/components/FilterChipRow.vue';
@@ -20,6 +21,7 @@ import {
 	ARROW_DROP_DOWN,
 	ARROW_RIGHT_ALT,
 	CLOSE,
+	DELETE,
 	EDIT_NOTE,
 	FILTER_LIST_OUTLINED,
 	SEARCH,
@@ -257,9 +259,10 @@ async function remove(): Promise<void> {
 
 		<EmptyState
 			v-else-if="!store.transactions.length"
+			fill
 			class="m-4"
-			title="No transactions here"
-			description="Nothing matches these filters yet. Add one, or widen the search."
+			title="Not a whisker in sight"
+			description="Nothing matches these filters. Add a transaction, or widen the search."
 		/>
 
 		<!-- A day's rows under a heading for the day, drawn like the account groups: one block of separate rows. -->
@@ -357,6 +360,11 @@ async function remove(): Promise<void> {
 					{{ store.loading ? 'Loading…' : `Load more (${store.transactions.length} of ${store.total})` }}
 				</button>
 			</div>
+			<!-- The end of the list, and only once there is no more of it to load: the cat, small and quiet, so
+			     the last row is not mistaken for a page that stopped short. -->
+			<div v-else class="flex justify-center pt-6 pb-2">
+				<CatMark class="w-10! opacity-50" />
+			</div>
 		</template>
 
 		<TransactionForm
@@ -371,12 +379,18 @@ async function remove(): Promise<void> {
 		<AlertDialog
 			:open="pendingDelete !== null"
 			:title="pendingDelete?.transferId ? 'Delete this transfer?' : 'Delete this transaction?'"
+			:icon="DELETE"
 			@close="pendingDelete = null"
 		>
-			<template v-if="pendingDelete?.transferId">Both sides of the transfer will be removed.</template>
+			<template v-if="pendingDelete?.transferId">
+				Both sides of the transfer will be removed, and both accounts' balances will change to match. This cannot be undone.
+			</template>
+			<template v-else
+				>It will be removed from your history, and its account's balance will change to match. This cannot be undone.</template
+			>
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">Cancel</button>
-				<button type="button" class="btn-text" @click="remove">Delete</button>
+				<button type="button" class="btn-text" @click="pendingDelete = null">No, go back</button>
+				<button type="button" class="btn-text text-error" @click="remove">Yes, delete it</button>
 			</template>
 		</AlertDialog>
 

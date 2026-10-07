@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -51,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -62,7 +64,10 @@ import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.BuildConfig
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.auth.IdTokenClaims
+import dev.gavenda.yuuka.ui.common.CatFade
+import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.FabEntry
+import dev.gavenda.yuuka.ui.common.catPattern
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.RailFabHost
 import dev.gavenda.yuuka.ui.common.UserAvatar
@@ -70,6 +75,10 @@ import dev.gavenda.yuuka.ui.theme.ShapeXl
 
 /** The gap Material's wide rail leaves between its header and its items (`HeaderSpaceMinimum`, which is not public). */
 private val RAIL_HEADER_GAP = 40.dp
+
+/** The strip of the print behind the open rail's name: how far above the mark it starts, and how wide it runs. */
+private val RAIL_PRINT_RISE = 64.dp
+private val RAIL_PRINT_WIDTH = 220.dp
 
 /**
  * The navigation rail of a wide window, mirroring `NavRail.vue`: slim it shows the daily destinations
@@ -104,13 +113,21 @@ fun YuukaNavRail(
     val afterChoice = { if (!docked && expanded) onExpandedChange(false) }
 
     val header: @Composable () -> Unit = {
+        val printAlpha by animateFloatAsState(if (expanded) 1f else 0f, label = "railPrint")
         Column {
             // The app's mark, in either state, with its name and version beside it once the rail is open. It
             // is a mark rather than a control — no click, and never the menu button beneath it — so nothing
             // announces it or mistakes it for one.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 28.dp, bottom = 12.dp).clearAndSetSemantics {},
+                modifier = Modifier
+                    // Only in the open rail: a strip of the print behind the name, from the rail's top edge down
+                    // to the menu button and thinning out towards the page.
+                    .catPattern(CatPrint.Small, CatFade.Trailing, alpha = printAlpha) {
+                        Rect(0f, -RAIL_PRINT_RISE.toPx(), RAIL_PRINT_WIDTH.toPx(), size.height)
+                    }
+                    .padding(start = 28.dp, bottom = 12.dp)
+                    .clearAndSetSemantics {},
             ) {
                 Image(
                     painter = painterResource(R.drawable.yuuka_logo),
@@ -265,7 +282,10 @@ fun YuukaNavRail(
                         AccountSummary(
                             claims = claims,
                             fallbackName = stringResource(R.string.brand_name),
-                            modifier = Modifier.widthIn(max = 220.dp).padding(horizontal = 16.dp, vertical = 12.dp),
+                            modifier = Modifier
+                                .widthIn(max = 220.dp)
+                                .catPattern(CatPrint.Small, CatFade.None)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                         )
                     }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CatMark from '@/components/CatMark.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { computed } from 'vue';
@@ -20,8 +21,10 @@ const props = withDefaults(
 		/** Renders at hero size. Use for the one figure a view leads with. */
 		hero?: boolean;
 		tone?: 'surface' | 'secondary' | 'tertiary';
+		/** Lets the cat into the card's bottom corner, for the one card a screen leads with. */
+		watermark?: boolean;
 	}>(),
-	{ currency: DEFAULT_CURRENCY, signed: false, hero: false, tone: 'surface' },
+	{ currency: DEFAULT_CURRENCY, signed: false, hero: false, tone: 'surface', watermark: false },
 );
 
 const card = computed(() => (props.tone === 'secondary' ? 'card-secondary' : props.tone === 'tertiary' ? 'card-tertiary' : 'card'));
@@ -29,7 +32,8 @@ const figure = computed(() => (props.hero ? 'type-display-small' : 'type-headlin
 </script>
 
 <template>
-	<div class="p-5" :class="card">
+	<div class="p-5" :class="[card, { 'relative overflow-hidden': watermark }]">
+		<CatMark v-if="watermark" watermark />
 		<p class="type-label-small uppercase">{{ label }}</p>
 		<!-- Proportional figures: these are standalone numbers, not a column. -->
 		<MoneyText

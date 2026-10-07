@@ -3,7 +3,9 @@
 Guidance for working in this repo. The README covers setup, deploying and the
 route list; this file covers the decisions behind the code and the invariants
 that must survive a change. It describes how the application behaves, for the
-web app and the Android app alike. Technical detail specific to the web app and
+web app and the Android app alike. 
+
+Technical detail specific to the web app and
 its API (commands, architecture, security, auth, tests) lives in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
@@ -15,6 +17,7 @@ The following bullets and sections are important and should be adhered:
 - Even if the user says android app, you can only touch the API part of webapp when making API changes.
 - Versions of the android app and web app are synced. So whenever an android only bump is made, both versions will be affected.
 - When an emulator is running, and you want to visually check, always ask the user if they want to visually check before proceeding.
+- Any user interface must change both apps.
 
 ### Deployment
 
@@ -35,23 +38,23 @@ configuration name is `app` for running the application in the emulator.
 
 If Idea MCP is available, use it for the following:
 
-- Analyze function paths (analyze_calls)
-- Building (build_project)
-- Linting (line_files)
-- Getting symbol info (get_symbol_info)
-- Creating new file (create_new_file)
-- Listing directories (list_directory_tree)
-- Reformatting (reformat_file)
-- Applying patches (apply_patch)
-- Read file (read_file)
-- Search file (search_file)
-- Search text (search_text)
-- Search regex (search_regex)
-- Search symbol (search_symbol)
-- Refactor rename (rename_refactoring)
-- Get repositories (get_repositories)
-- Git Status (git_status)
-- Launching build scripts (get_run_configurations, execute_run_configuration)
+- Analyze function paths (`analyze_calls`)
+- Building (`build_project`)
+- Linting (`line_files`)
+- Getting symbol info (`get_symbol_info`)
+- Creating new file (`create_new_file`)
+- Listing directories (`list_directory_tree`)
+- Reformatting (`reformat_file`)
+- Applying patches (`apply_patch`)
+- Read file (`read_file`)
+- Search file (`search_file`)
+- Search text (`search_text`)
+- Search regex (`search_regex`)
+- Search symbol (`search_symbol`)
+- Refactor rename (`rename_refactoring`)
+- Get repositories (`get_repositories`)
+- Git Status (`git_status`)
+- Launching build scripts (`get_run_configurations`, `execute_run_configuration`)
 
 When debugging, use `get_run_configuration` to get the debug config and use `execute_run_configuration` to run it.
 
@@ -59,13 +62,13 @@ Otherwise, opt-in for shell commands.
 
 ## Money
 
-**Money is never a float.** Every amount is a signed integer in the currency's
+- **Money is never a float**: Every amount is a signed integer in the currency's
 minor unit (cents). Outflows are negative and inflows positive, so an account
 balance is `starting_balance + SUM(amount)` and a month's net is a plain sum.
 Decimal strings exist only at the UI edge, where the input is split on the
 decimal point rather than multiplied by 100 — `45.99` becomes exactly `4599`.
 
-**Two different currency questions, answered separately.** Each account records
+- **Two different currency questions, answered separately**: Each account records
 the currency it actually holds. The _display currency_ is a user preference —
 what net worth, the monthly summary and budgets are shown in — and defaults to
 PHP. Never infer it from whichever account happens to be first. Any three-letter
@@ -73,7 +76,7 @@ code is accepted, and formatting one the platform does not know must degrade to
 the amount plus the code rather than throw, because a malformed value would
 otherwise blank every figure on the page.
 
-**Every figure renders through `displayMoney`, not `formatMoney`.** An eye
+- **Every figure renders through `displayMoney`, not `formatMoney`**: An eye
 toggle in the header masks all amounts at once — the "someone is looking over my
 shoulder" switch — and routing every figure through one helper is what stops the
 toggle missing one. (`displayMoney` in the web app; `AmountVisibility.displayMoney`,
@@ -83,14 +86,14 @@ digits are masked, the currency stays visible, and the mask is a fixed width —
 one that grew with the amount would give away the magnitude it exists to hide.
 Edit forms still show the value being edited.
 
-## Ledger model
+## Ledger
 
-**Transfers are two linked rows.** Moving money between your own accounts writes
+- **Transfers are two linked rows**: Moving money between your own accounts writes
 one negative and one positive transaction sharing a `transfer_id`. Both are
 excluded from income and spending totals, because a transfer is neither; deleting
 either side deletes the pair, so the two accounts can never disagree.
 
-**Categories nest one level, budgets stay on the parent.** A subcategory inherits
+- **Categories nest one level, budgets stay on the parent**: A subcategory inherits
 its parent's kind, so an "Investments" under "Cashflow" is always a
 transfer category. Its spending counts towards the parent's plan, and
 `/api/summary` returns top-level categories only — each carrying its children's
@@ -98,7 +101,7 @@ figures — so summing the list cannot double-count. A transaction holds a singl
 category column, which makes "the main or the sub, never both" true by
 construction rather than by validation.
 
-**A budget's month is a per-user mode, not a per-budget choice.** The budget mode
+- **A budget's month is a per-user mode, not a per-budget choice**: The budget mode
 is `'fixed'` (the default) or `'monthly'`, set from Settings. A fixed budget
 answers every month's summary with the same planned figure; a monthly one
 belongs to the month it was set for. Switching modes doesn't move data between
@@ -110,7 +113,7 @@ percentage-based budget is a share of, so it would be inconsistent for it to sta
 per-month while the budgets built on it go fixed. How the mode is stored and
 resolved is in [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
-**Tags are labels beside the category, never instead of it.** A user manages
+- **Tags are labels beside the category, never instead of it**: A user manages
 their own tags (a name and a palette colour, unique per user whatever the case)
 on a Tags screen of their own — a long list would otherwise drown the
 categories, so it is searchable once it grows — and a transaction wears any number of them, up to
@@ -125,7 +128,7 @@ out keeps them. Deleting a tag only takes the label off — the transactions sta
 matches a payee or notes. Round-ups and automated subscription rows wear none,
 and the payee history does not remember them.
 
-**Cashflow categories belong to transfers.** A category's `kind` says what it is
+- **Cashflow categories belong to transfers**: A category's `kind` says what it is
 for: `income` and `expense` categorise spending and income, `transfer`
 categorises movements between your own accounts. They are three values of one
 field rather than a kind and a separate scope — a transfer category had no
@@ -135,7 +138,7 @@ zero; the cashflow figure measures the outflow leg. It stays out of income,
 spending, the daily chart and the expense budget total: budgeting a movement is
 not budgeting spending.
 
-**Account types are the user's own vocabulary.** Everyone starts with the usual
+- **Account types are the user's own vocabulary**: Everyone starts with the usual
 set — Checking, Savings, Cash, Credit Card, Investment, Loan — and can rename,
 extend or retire it. Accounts reference a type by id, so a rename propagates with
 no backfill. Nothing calculates differently per type; it is a label for grouping
@@ -147,7 +150,7 @@ their own, opened from a row in Settings (`/settings/account-types` on the web,
 stays the marked destination while it is on show, and its leading action is
 "New type".
 
-**The payee is the first field, and it fills in the rest.** Saving a named
+- **The payee is the first field, and it fills in the rest**: Saving a named
 transaction records what it was filed under — account, category, notes, and which
 of the three shapes it was. Typing that name again offers it back and restores
 the lot, switching the form's mode to match. Newest use wins rather than merging:
@@ -155,7 +158,7 @@ the question is "what did I do last time", and a half-updated row answers it
 wrongly. Names match case-insensitively. A transfer left unnamed describes itself
 (`Checking → Savings`); that composed name is derived, so it is never remembered.
 
-**Subscriptions post ordinary transactions, once a month, at 00:00 UTC.** A
+- **Subscriptions post ordinary transactions, once a month, at 00:00 UTC**: A
 subscription is an account, a payee, a category, notes, a signed amount and a
 start date — no more; it is not a new kind of transaction. The start date's day
 of the month is the anchor for every later run, and a month too short for it
@@ -167,34 +170,33 @@ one. Every run is at 00:00 UTC, so nobody chooses a time of day — the flag is
 what lets both apps lock the time field, and the API refuses to give an
 automated row a time. The date can still be edited. The rules that keep it
 honest:
+  - A start date must be today (UTC) or later. Past dates are refused, so setting
+    one up never backfills history; a run that was missed catches up on the next
+    tick, bounded, and resuming a paused subscription skips whatever fell due
+    while it was paused rather than posting a backlog.
+  - A run is posted at most once. Deleting an automated transaction is a decision
+    the schedule respects — it has already moved on and does not bring it back.
+  - Deleting a subscription keeps everything it already posted (history), and the
+    same goes for its category being deleted (the subscription becomes
+    uncategorised). Deleting its account deletes it — it is configuration, not
+    history.
+  - A subscription takes an `income` or `expense` category, never a `transfer`
+    one, as for any ordinary transaction. Automated rows do not trigger "Save the
+    Change" and do not teach the payee history: both follow what a person enters,
+    not what a schedule does.
 
-- A start date must be today (UTC) or later. Past dates are refused, so setting
-  one up never backfills history; a run that was missed catches up on the next
-  tick, bounded, and resuming a paused subscription skips whatever fell due
-  while it was paused rather than posting a backlog.
-- A run is posted at most once. Deleting an automated transaction is a decision
-  the schedule respects — it has already moved on and does not bring it back.
-- Deleting a subscription keeps everything it already posted (history), and the
-  same goes for its category being deleted (the subscription becomes
-  uncategorised). Deleting its account deletes it — it is configuration, not
-  history.
-- A subscription takes an `income` or `expense` category, never a `transfer`
-  one, as for any ordinary transaction. Automated rows do not trigger "Save the
-  Change" and do not teach the payee history: both follow what a person enters,
-  not what a schedule does.
-
-The Subscriptions screen states what the active subscriptions come to in a month
+  The Subscriptions screen states what the active subscriptions come to in a month
 (`monthlyTotal`, in both apps), signed like the amounts: a net outflow is
 negative. A paused subscription posts nothing, so it is left out and the screen
 says how many were. Like net worth it is added up as it stands and shown in the
 display currency — amounts are not converted between currencies.
 
-**Deleting a category never destroys history.** Transactions fall back to
+- **Deleting a category never destroys history**: Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
 _would_ take its transactions with it, so the API answers `409` until the caller
 repeats the request with `?includeTransactions=true`.
 
-**A balance adjustment is an ordinary, uncategorised transaction.** `POST
+- **A balance adjustment is an ordinary, uncategorised transaction**: `POST
 /accounts/:id/adjust` takes the balance the account should read, not the
 amount to post — it computes the difference itself, in the same statement
 that reads the account's current balance and writes the transaction, so a
@@ -204,8 +206,8 @@ income or spending exactly like any other uncategorised transaction, because
 that is what it is. A request that would post a zero amount is rejected
 rather than silently writing nothing.
 
-**"Save the Change" round-ups are an ordinary linked transfer, not a new
-transaction shape.** `POST /transactions` is the only place it can trigger:
+- **"Save the Change" round-ups are an ordinary linked transfer, not a new
+transaction shape**: `POST /transactions` is the only place it can trigger:
 when the new row is an expense (negative amount) on an account that has opted
 in (`accounts.round_up_source`), and the per-user `round_up_rules` row is
 enabled with a destination account set, the gap between the amount and the
@@ -235,7 +237,7 @@ writes on Save. The other exception is a rule switched on before a
 destination is chosen — it cannot be saved, so it waits on the screen with the
 error beside the field and is written the moment an account is picked.
 
-**Account logos are linked, not uploaded.** An account may carry an image URL the
+- **Account logos are linked, not uploaded**: An account may carry an image URL the
 client loads from wherever it lives — no upload, no copy, no storage beyond the
 string. The scheme is restricted to http(s), because the value ends up in an
 image load and anything else invites `data:` payloads and similar surprises. A
@@ -246,7 +248,7 @@ inverted the same way would come out wrong.
 
 ## Navigation
 
-**Navigation follows the window, in both apps.** From 600dp / the `sm` breakpoint up (on Android, any
+- **Navigation follows the window, in both apps**: From 600dp / the `sm` breakpoint up (on Android, any
 window width class but Compact, from `calculateWindowSizeClass`) it is a
 rail that opens into a labelled drawer (a "More" group holding the destinations that are not
 daily ones, Save the Change, Settings and Sign out, plus the signed-in account); below that a
@@ -264,14 +266,14 @@ action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone'
 action to the rail, so a new screen never places its own. The web side is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
-**The web app is the Android app as a tablet draws it.** From the rail's breakpoint up, a screen in the
+- **The web app is the Android app as a tablet draws it**: From the rail's breakpoint up, a screen in the
 browser is its Compose screen in a window with a rail: the same layout, the same colour roles (the scheme
 `ui/theme/Theme.kt` generates, written out in `webapp/src/style.css`), the same components and the same
 words. Compose is the specification, so a change to how a screen looks on Android is a change to its web
 view as well — the two are not allowed to drift. What that means for the web code is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
 
-**A form takes the screen over.** The transaction, subscription, account, category and tag forms
+- **A form takes the screen over**: The transaction, subscription, account, category and tag forms
 and the display-currency list open as Material 3 full-screen dialogs
 (`FullScreenDialog`, `ui/common/FullScreenDialog.kt`, on Android; `FormDialog.vue` on the web): close where the
 drawer button would be, the title, and Save as the bar's one action, bound to the same `form.valid(...)` a save
@@ -279,7 +281,7 @@ button always was. Closing a form that no longer holds what it opened with asks 
 keeps that shape for a phone, so a window with a rail gets an ordinary dialog of the same content with its
 buttons at the foot. A new form goes through it rather than a surface of its own.
 
-**There are no bottom sheets.** What is picked from a short list — the default account, and Save the Change's
+- **There are no bottom sheets**: What is picked from a short list — the default account, and Save the Change's
 destination, category and the accounts that round up — is Material's basic dialog (`SelectionDialog`,
 `ui/common/SelectionDialog.kt` on Android; `SelectionDialog.vue` on the web): the title, the rows, and Cancel,
 or Done where each press is written as it is made and the dialog stays open for the next. Adjusting a balance
@@ -288,16 +290,39 @@ its single field, opened from the Account types screen by its leading action or 
 category button slides a row of that filter's chips down under the filter bar (`FilterChipRow` in both apps),
 which scrolls sideways and applies a change at once; pressing the button again puts the row away.
 
-**A row's actions are behind a swipe.** A list row shows no buttons of its own: pressing it is its main
+- **A row's actions are behind a swipe**: A list row shows no buttons of its own: pressing it is its main
 action, and what else can be done to it — delete, archive, adjust, pause — is revealed by dragging the row
 left (`SwipeToRevealActions` on Android, `SwipeReveal.vue` on the web, where a held mouse drags as a finger
 does and the keyboard reaches the actions by Tab). Deleting what would take history with it, or cannot be
 undone from the list, asks first in a dialog; taking a label or a category off does not.
 
+- **A confirmation says what it will do, and its buttons answer the question**: Deleting an account, a
+transaction or transfer, or a subscription, discarding a changed form and signing out each ask first, in
+Material's basic dialog with an icon above a centred headline (`AlertDialog`'s `icon` on Android; the `icon`
+prop of `AlertDialog.vue` on the web). The headline is the question, and the body is never empty: it says what
+goes with the action — the subscriptions that post to an account, both sides of a transfer, the unsent
+changes a sign-out would lose — and that it cannot be undone when it cannot. The buttons are worded as
+answers to that question rather than as bare verbs: "Yes, delete it" and "No, go back", "Yes, discard them"
+and "No, keep editing", "Yes, sign out" and "No, stay signed in" — never "OK", "Cancel" or a lone "Delete",
+so each can be read on its own without the headline. The icon and the confirming button take the error
+colour when the answer destroys something, and the declining one stays primary; a sign-out with nothing
+unsent destroys nothing, so it keeps the ordinary colours. The words are the client's own: a message the API
+wrote for a caller is not shown in a dialog. Both apps use the same words, and a new confirmation follows
+the same shape. A dialog that is fields or a list rather than a question — adjusting a balance, naming an
+account type, a selection — keeps a start-aligned headline, no icon, and Cancel.
+
+- **The cat print is the app's one piece of decoration**: It is the print on the pyjamas Yuuka wears in the
+logo, redrawn as a vector so it takes the theme's colours (`ui/common/CatPattern.kt` on Android; `lib/cat.ts`,
+`CatPattern.vue` and `CatMark.vue` on the web — the same path strings in both). It goes where a screen has
+nothing else to show: behind the sign-in and loading screens, as a single mark in an empty state, small under the last transaction once
+there are no more to load, and as the sign-out dialog's icon. In daily use it is only a faint presence — a strip behind the open rail's name, the
+account card at the rail's foot, and a watermark in the corner of the card a screen leads with: net worth on the dashboard, Planned on Budget. It never goes
+behind a list, a form, a chart or a column of amounts.
+
 ## Sync
 
-**Both apps are offline-first. A change is written locally and sent afterwards,
-never the other way round.** A save does not wait for the network and cannot
+- **Both apps are offline-first. A change is written locally and sent afterwards,
+never the other way round**: A save does not wait for the network and cannot
 fail for want of one: the row the user made goes into the local database, the
 call that would have been made online goes into an outbox, and the screen — which
 reads the local database — updates at once. The queue drains as a single
@@ -307,8 +332,8 @@ drains on every write, when the network comes back, and (on Android) under a
 WorkManager connectivity constraint so a queue built on a plane is sent even if
 the app is never reopened.
 
-**The server is still the source of truth; what is written locally is a good
-guess.** The client works out what the API would have filled in — an account's
+- **The server is still the source of truth; what is written locally is a good
+guess**: The client works out what the API would have filled in — an account's
 name, a category's colour, a balance that has moved, the "Save the Change"
 round-up a purchase triggers — so the figures read correctly in the moment. Once
 the batch lands, the parts of the ledger it touched are refetched and the
@@ -318,7 +343,7 @@ approximate for one back-dated into the middle of its history, and a month's
 summary is not recomputed locally at all, because it depends on every
 transaction in the month.
 
-**The client names the rows it creates.** A transaction entered offline may
+- **The client names the rows it creates**: A transaction entered offline may
 reference an account that is itself still queued, so ids are generated on the
 client in the server's own shape (`txn_…`, `acc_…`) and the server stores the
 name it was given. Nothing downstream can tell which side generated an id. It is
@@ -326,7 +351,7 @@ also what makes sending the same batch twice safe: a repeated create resolves to
 the row that is already there, and deleting something already gone reports
 success.
 
-**Last write wins, judged by when the user acted.** Each queued operation
+- **Last write wins, judged by when the user acted**: Each queued operation
 carries the moment the change was made, not the moment it was sent. If the row
 it names has moved on since — the other device edited it, and that reached the
 server first — the operation is dropped rather than applied. A change made on a
@@ -334,13 +359,13 @@ plane loses to one made on the ground an hour later instead of winning by
 arriving second. There is no conflict UI; a dropped operation just leaves the
 newer value in place.
 
-**A rejection arrives late, and is still reported.** A name the server considers
+- **A rejection arrives late, and is still reported**: A name the server considers
 a duplicate is only known to be one when the batch lands. That is surfaced as a
 snackbar, and the refresh that follows takes the optimistic row back off the
 screen. Both apps also say how much has not reached the server yet — a count
 from the queue, not a guess.
 
-**A form is reactive: it answers for its own errors, live, beside the field.** A
+- **A form is reactive: it answers for its own errors, live, beside the field**: A
 save never waits for the server, so everything the API would refuse for the form's
 own values — an empty or over-long name, a name already taken (tags, account types
 and sibling categories are unique), an amount that is not a positive number, a
@@ -360,7 +385,7 @@ in `useFormValidation` (`lib/validation.ts`, with `TextField.vue` and `FieldSupp
 and in `FormValidation` (`ui/common/FormValidation.kt`, with `YuukaTextField` and
 `DropdownField`) on Android; the shared rules are `domain/Validation.kt`.
 
-**The queue is the one thing that is not a cache.** Everything else stored
+- **The queue is the one thing that is not a cache**: Everything else stored
 locally can be thrown away and refetched; a queued change exists nowhere else.
 On Android it therefore lives in its own Room database (`OutboxDatabase`),
 because the cache database falls back to a destructive migration and a queue
@@ -370,7 +395,7 @@ discarded when the user signs out, and when a different person signs in — but
 **not** when a token merely expires, because that is the same person, who will
 sign in again and still wants their work.
 
-**The other device is told, not left to find out.** A write pushes a data-only
+- **The other device is told, not left to find out**: A write pushes a data-only
 Firebase Cloud Messaging message naming which slices of the ledger moved
 (`accounts`, `transactions`, `summary`, …), and the receiving app refetches
 those and nothing else — a transaction added in the browser should not cost the
@@ -381,7 +406,7 @@ nothing may be built on a message arriving — delivery is not promised, and a
 deployment with no FCM configured simply never sends one. Setting it up is in
 [webapp/README.md](webapp/README.md).
 
-**Pull-to-refresh is still a full sync, not a top-up.** The per-screen loads
+- **Pull-to-refresh is still a full sync, not a top-up**:: The per-screen loads
 only fold rows in, so something deleted elsewhere would otherwise linger here
 indefinitely. A full sync replaces accounts, types, categories, tags, settings,
 the round-up rule, subscriptions and payees from the API, and only once that has

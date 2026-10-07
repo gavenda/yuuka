@@ -68,7 +68,7 @@ internal fun DashboardScreenContent(
                 item {
                     StatCarousel(
                         listOf(
-                            StatItem(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, state.currency),
+                            StatItem(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, state.currency, watermark = true),
                             StatItem(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, state.currency),
                             StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency),
                         ),

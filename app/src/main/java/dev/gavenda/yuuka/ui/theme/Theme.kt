@@ -10,6 +10,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -39,11 +43,18 @@ fun YuukaTheme(
         }
     }
 
+    // The two schemes come from different theme composables, so the content is called from two
+    // places. Moved rather than recomposed from scratch, it keeps its state across the switch:
+    // otherwise flipping the setting rebuilds the whole app, back stack included, and the Settings
+    // screen that holds the switch is replaced by the start destination.
+    val currentContent by rememberUpdatedState(content)
+    val movableContent = remember { movableContentOf { currentContent() } }
+
     if (dynamicColor) {
         MaterialExpressiveTheme(
             colorScheme = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context),
             motionScheme = MotionScheme.expressive(),
-            content = content,
+            content = movableContent,
         )
     } else {
         DynamicMaterialExpressiveTheme(
@@ -54,7 +65,7 @@ fun YuukaTheme(
             isDark = darkTheme,
             animate = true,
             animationSpec = tween(durationMillis = 300),
-            content = content,
+            content = movableContent,
         )
     }
 }

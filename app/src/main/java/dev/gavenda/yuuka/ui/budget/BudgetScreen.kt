@@ -226,7 +226,7 @@ internal fun BudgetScreenContent(
                 item {
                     StatCarousel(
                         buildList {
-                            add(StatItem(stringResource(R.string.label_planned), state.totalPlanned, state.currency, caption = stringResource(R.string.across_expense_categories)))
+                            add(StatItem(stringResource(R.string.label_planned), state.totalPlanned, state.currency, caption = stringResource(R.string.across_expense_categories), watermark = true))
                             add(
                                 StatItem(
                                     stringResource(R.string.label_spent),
@@ -274,7 +274,7 @@ internal fun BudgetScreenContent(
                 }
 
                 if (!state.hasAnyCategories) {
-                    item { EmptyState(stringResource(R.string.no_categories_yet), description = stringResource(R.string.budget_empty_description)) }
+                    item { EmptyState(stringResource(R.string.budget_empty_title), description = stringResource(R.string.budget_empty_description)) }
                 }
 
                 if (state.expenseBreakdown.isNotEmpty()) {

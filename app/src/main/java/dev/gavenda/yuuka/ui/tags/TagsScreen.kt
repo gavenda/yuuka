@@ -101,7 +101,7 @@ internal fun TagsScreenContent(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (state.tags.isEmpty()) {
-                item { EmptyState(stringResource(R.string.no_tags_yet), description = stringResource(R.string.tags_empty_description)) }
+                item { EmptyState(stringResource(R.string.tags_empty_title), modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.tags_empty_description)) }
             } else {
                 if (state.showSearch) {
                     item {

@@ -1,7 +1,11 @@
 <script setup lang="ts">
+import AlertDialog from '@/components/AlertDialog.vue';
+import CatMark from '@/components/CatMark.vue';
+import CatPattern from '@/components/CatPattern.vue';
 import NavDestination from '@/components/NavDestination.vue';
 import NavRail from '@/components/NavRail.vue';
 import SnackbarHost from '@/components/SnackbarHost.vue';
+import { CAT } from '@/lib/cat';
 import { clearCache } from '@/lib/cache';
 import AppIcon from '@/components/AppIcon.vue';
 import { ACCOUNT_BALANCE_WALLET, ARROW_BACK, ATTACH_MONEY, CATEGORY, DASHBOARD, MONEY_OFF, PIE_CHART, RECEIPT, SELL } from '@/lib/icons';
@@ -70,8 +74,15 @@ const appVersion = __APP_VERSION__;
 const displayName = computed(() => user.value?.name ?? user.value?.nickname ?? user.value?.email ?? null);
 const avatarInitial = computed(() => displayName.value?.trim().charAt(0).toUpperCase() || '?');
 
-async function signOut(): Promise<void> {
+/** Signing out discards the queue, so it asks first rather than taking unsent work with it on a slip. */
+const confirmingSignOut = ref(false);
+function askSignOut(): void {
 	userMenuOpen.value = false;
+	confirmingSignOut.value = true;
+}
+
+async function signOut(): Promise<void> {
+	confirmingSignOut.value = false;
 
 	// Clear cached data first: logging out navigates away to Auth0, and the next
 	// sign-in should not briefly show the previous session's books. That includes
@@ -178,7 +189,7 @@ onBeforeUnmount(() => {
 			:more-links="moreLinks"
 			:version="appVersion"
 			:account="{ name: displayName, email: user?.email ?? null, picture: user?.picture ?? null, initial: avatarInitial }"
-			@sign-out="signOut"
+			@sign-out="askSignOut"
 		/>
 
 		<!-- Phones only. With a rail the current destination is already marked, so a bar naming the
@@ -264,7 +275,7 @@ onBeforeUnmount(() => {
 
 							<RouterLink to="/settings" role="menuitem" class="menu-item" @click="userMenuOpen = false"> Settings </RouterLink>
 
-							<button type="button" role="menuitem" class="menu-item" @click="signOut">Sign out</button>
+							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">Sign out</button>
 						</div>
 					</div>
 				</div>
@@ -274,12 +285,15 @@ onBeforeUnmount(() => {
 		<!-- On a cold load the SDK is still restoring the session, or exchanging
 		     the code Auth0 just redirected back with; the router is waiting on it,
 		     so say something rather than showing a blank page. -->
-		<div v-if="isLoading" class="flex min-h-dvh items-center justify-center px-4">
+		<div v-if="isLoading" class="relative isolate flex min-h-dvh items-center justify-center px-4">
+			<!-- The sign-in screen's print, so the wait before it and after it is the same place. -->
+			<CatPattern class="absolute inset-0 -z-10 size-full" />
 			<p class="type-body-medium text-on-surface-variant">Loading…</p>
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
-			<div class="card max-w-sm p-6 text-center">
+			<div class="card flex max-w-sm flex-col items-center p-6 text-center">
+				<CatMark class="mb-4" />
 				<p class="type-body-medium text-error" role="alert">{{ error.message }}</p>
 				<RouterLink to="/login" class="btn-secondary mt-4">Back to sign in</RouterLink>
 			</div>
@@ -327,6 +341,19 @@ onBeforeUnmount(() => {
 		>
 			<NavDestination v-for="link in dailyLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
 		</nav>
+
+		<!-- Only a sign-out that loses work is a destructive one, so only that takes the error colour. -->
+		<AlertDialog :open="confirmingSignOut" title="Sign out?" :icon="CAT" :danger="hasUnsentChanges" @close="confirmingSignOut = false">
+			<template v-if="hasUnsentChanges">
+				{{ unsentChanges }} {{ unsentChanges === 1 ? 'change' : 'changes' }} saved on this device
+				{{ unsentChanges === 1 ? 'has' : 'have' }} not been synced yet. Signing out now will lose {{ unsentChanges === 1 ? 'it' : 'them' }}.
+			</template>
+			<template v-else>You will need to sign in again to see your ledger on this device.</template>
+			<template #actions>
+				<button type="button" class="btn-text" @click="confirmingSignOut = false">No, stay signed in</button>
+				<button type="button" class="btn-text" :class="{ 'text-error': hasUnsentChanges }" @click="signOut">Yes, sign out</button>
+			</template>
+		</AlertDialog>
 
 		<SnackbarHost />
 	</div>
