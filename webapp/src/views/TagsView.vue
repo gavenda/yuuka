@@ -4,6 +4,7 @@ import ColourField from '@/components/ColourField.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FormDialog from '@/components/FormDialog.vue';
+import YuukaSays from '@/components/YuukaSays.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
@@ -161,6 +162,9 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 				<ColourField id="tag-color" v-model="form.color" :error="fieldError('tag-color')" @touch="touch('tag-color')" />
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+
+				<!-- Only a new one: Yuuka at the foot of the form. -->
+				<YuukaSays v-if="!editing" mood="pleased" class="pt-2">{{ t('tags.formLine') }}</YuukaSays>
 			</div>
 		</FormDialog>
 

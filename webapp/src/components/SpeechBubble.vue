@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Something Yuuka says, in a bubble with a tail on its start side (`SpeechBubble` in `YuukaPortrait.kt`): it goes
- * after her portrait in a row, where the tail, halfway up the bubble, points back at her. About has the only one.
+ * after her portrait in a row, where the tail, halfway up the bubble, points back at her. About and the end of the transaction list have the only ones.
  */
 </script>
 

@@ -56,7 +56,7 @@ describe('SpendChart', () => {
 
 	it('puts the display currency in the badge', () => {
 		const chart = mount({ currency: 'PHP' });
-		const badgeText = [...host!.querySelectorAll('text')].filter((node) => node.classList.contains('fill-on-tertiary-container'));
+		const badgeText = [...host!.querySelectorAll('text')].filter((node) => node.classList.contains('fill-on-primary'));
 
 		expect(chart.badges()).toHaveLength(2);
 		expect(badgeText).toHaveLength(2);
@@ -65,7 +65,7 @@ describe('SpendChart', () => {
 
 	it('falls back to the code for a currency the platform does not know', () => {
 		mount({ currency: 'ZZZ' });
-		const badgeText = [...host!.querySelectorAll('text')].filter((node) => node.classList.contains('fill-on-tertiary-container'));
+		const badgeText = [...host!.querySelectorAll('text')].filter((node) => node.classList.contains('fill-on-primary'));
 
 		expect(badgeText[0].textContent?.trim()).toBe(currencySymbol('ZZZ'));
 	});

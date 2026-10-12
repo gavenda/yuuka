@@ -5,7 +5,16 @@ import SelectionDialog from '@/components/SelectionDialog.vue';
 import SelectionItem from '@/components/SelectionItem.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
-import { ACCOUNT_BALANCE_WALLET, ACCOUNT_CIRCLE, BLOCK, CALCULATE, CATEGORY, ERROR, SAVINGS, WALLET } from '@/lib/icons';
+import {
+	ACCOUNT_BALANCE_WALLET_FILL,
+	ACCOUNT_CIRCLE,
+	BLOCK,
+	CALCULATE,
+	CATEGORY_FILL,
+	ERROR,
+	SAVINGS_FILL,
+	WALLET,
+} from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -156,7 +165,7 @@ onMounted(() => ledger.load());
 			<div class="settings-group">
 				<!-- The whole row throws the switch, as a settings row does. -->
 				<div class="settings-row state-layer cursor-pointer" @click="setEnabled(!enabled)">
-					<AppIcon :icon="SAVINGS" />
+					<AppIcon :icon="SAVINGS_FILL" />
 					<span class="min-w-0 flex-1">
 						<span class="type-title-medium block">{{ t('saveTheChange.roundUpPurchases') }}</span>
 						<span class="type-body-medium block">{{ t('saveTheChange.description') }}</span>
@@ -206,7 +215,7 @@ onMounted(() => ledger.load());
 					aria-describedby="destination-error"
 					@click="openDestination"
 				>
-					<AppIcon :icon="ACCOUNT_BALANCE_WALLET" />
+					<AppIcon :icon="ACCOUNT_BALANCE_WALLET_FILL" />
 					<span class="min-w-0 flex-1">
 						<span class="type-title-medium block">{{ t('saveTheChange.destination') }}</span>
 						<span class="type-body-medium block">{{ destinationName }}</span>
@@ -225,7 +234,7 @@ onMounted(() => ledger.load());
 			<h2 class="settings-header">{{ t('saveTheChange.category') }}</h2>
 			<div class="settings-group">
 				<button type="button" class="settings-row" aria-haspopup="dialog" @click="categorySheetOpen = true">
-					<AppIcon :icon="CATEGORY" />
+					<AppIcon :icon="CATEGORY_FILL" />
 					<span class="min-w-0 flex-1">
 						<span class="type-title-medium block">{{ t('saveTheChange.cashflowCategory') }}</span>
 						<span class="type-body-medium block">{{ categoryName }}</span>
@@ -268,7 +277,7 @@ onMounted(() => ledger.load());
 			<SelectionItem
 				v-for="row in categoryRows"
 				:key="row.id ?? 'none'"
-				:icon="row.id === null ? BLOCK : CATEGORY"
+				:icon="row.id === null ? BLOCK : CATEGORY_FILL"
 				:title="row.name"
 				:subtitle="row.parentName"
 				:selected="row.id === categoryId"

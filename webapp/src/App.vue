@@ -72,6 +72,38 @@ const moreLinks = computed(() => links.value.filter((link) => link.more));
 
 const showShell = computed(() => isAuthenticated.value);
 
+/** The status strip slides down and back up, so it keeps saying what it said while it is going away. */
+const bannerWanted = computed(() => !isOnline.value || hasUnsentChanges.value);
+/** It stays up a beat after the queue empties, long enough to be read, and only then slides away. */
+const BANNER_LINGER_MS = 2500;
+const bannerOpen = ref(bannerWanted.value);
+let bannerTimer: ReturnType<typeof setTimeout> | undefined;
+watch(bannerWanted, (wanted) => {
+	clearTimeout(bannerTimer);
+	if (wanted) bannerOpen.value = true;
+	else bannerTimer = setTimeout(() => (bannerOpen.value = false), BANNER_LINGER_MS);
+});
+onBeforeUnmount(() => clearTimeout(bannerTimer));
+const banner = ref({ unsent: false, syncing: false, count: 0, online: true, sent: false });
+watch(
+	[bannerWanted, hasUnsentChanges, isSyncing, unsentChanges, isOnline],
+	() => {
+		if (bannerWanted.value) {
+			banner.value = {
+				unsent: hasUnsentChanges.value,
+				syncing: isSyncing.value,
+				count: unsentChanges.value,
+				online: isOnline.value,
+				sent: false,
+			};
+		} else if (banner.value.unsent) {
+			// The queue has emptied: it says so, in her words, for as long as it lingers.
+			banner.value = { ...banner.value, unsent: false, sent: true };
+		}
+	},
+	{ immediate: true },
+);
+
 /** The page makes room for the rail (`.shell` in style.css): a slim one always, an open one only where it fits beside the page. */
 const { expanded: railExpanded } = useRail();
 const shellShown = computed(() => showShell.value && !isLoading.value);
@@ -337,22 +369,30 @@ onBeforeUnmount(() => {
 				     save can fail — but it is still worth saying that what is on screen has not reached the
 				     server yet, and how much of it. The count is the queue's, not a guess. Worth noticing,
 				     but neither a failure nor an action: tertiary, not error or primary. -->
-				<p
-					v-if="!isOnline || hasUnsentChanges"
-					role="status"
-					class="type-label-large bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
-				>
-					<template v-if="hasUnsentChanges">
-						<template v-if="isSyncing">{{ t('common.unsent.syncing', unsentChanges) }}</template>
-						<template v-else>
-							{{ t('common.unsent.waiting', unsentChanges) }}
-							<button v-if="isOnline" type="button" class="ml-1 underline underline-offset-2" @click="flush()">
-								{{ t('common.tryNow') }}
-							</button>
-						</template>
-					</template>
-					<template v-else>{{ t('common.unsent.offline') }}</template>
-				</p>
+				<div class="slide-down" :data-open="bannerOpen" :inert="!bannerOpen">
+					<div>
+						<p
+							role="status"
+							class="type-label-large flex flex-col items-center gap-1 bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
+						>
+							<!-- The cat print's mark, small, over the line. -->
+							<AppIcon :icon="CAT" :size="16" />
+							<span>
+								<template v-if="banner.sent">{{ t('common.unsent.sent') }}</template>
+								<template v-else-if="banner.unsent">
+									<template v-if="banner.syncing">{{ t('common.unsent.syncing', banner.count) }}</template>
+									<template v-else>
+										{{ t('common.unsent.waiting', banner.count) }}
+										<button v-if="banner.online" type="button" class="ml-1 underline underline-offset-2" @click="flush()">
+											{{ t('common.tryNow') }}
+										</button>
+									</template>
+								</template>
+								<template v-else>{{ t('common.unsent.offline') }}</template>
+							</span>
+						</p>
+					</div>
+				</div>
 			</div>
 
 			<RouterView v-slot="{ Component }">

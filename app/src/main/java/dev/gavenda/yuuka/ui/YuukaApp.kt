@@ -1,5 +1,12 @@
 package dev.gavenda.yuuka.ui
 
+import dev.gavenda.yuuka.ui.common.catPattern
+import dev.gavenda.yuuka.ui.common.CatPrint
+import dev.gavenda.yuuka.ui.common.CatFade
+import dev.gavenda.yuuka.BuildConfig
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -385,6 +392,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 gesturesEnabled = currentDestination != null,
                 drawerContent = {
                     ModalDrawerSheet {
+                        // A strip of the rail's print at the top, reaching up behind the status bar and
+                        // thinning out towards the sheet's edge. No mark and no name: the rail keeps those.
+                        Spacer(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(DRAWER_PRINT_HEIGHT)
+                                .catPattern(CatPrint.Small, CatFade.Trailing) {
+                                    Rect(0f, -DRAWER_PRINT_RISE.toPx(), size.width, size.height)
+                                },
+                        )
                         // The same card the open rail puts the signed-in account in, so the two
                         // shells introduce the user the same way — here it spans the sheet, and
                         // lines up with the destinations below it.
@@ -396,7 +413,10 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             AccountSummary(
                                 claims = claims,
                                 fallbackName = brandName,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .catPattern(CatPrint.Small, CatFade.None)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
                             )
                         }
                         Column(
@@ -420,7 +440,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             // it's a ledger concern, not app configuration.
                             NavigationDrawerItem(
                                 label = { Text(saveTheChangeLabel) },
-                                icon = { Icon(painterResource(R.drawable.savings_48px), contentDescription = null) },
+                                icon = {
+                                    Icon(
+                                        painterResource(if (currentRoute == SAVE_THE_CHANGE_ROUTE) R.drawable.savings_fill_48px else R.drawable.savings_48px),
+                                        contentDescription = null,
+                                    )
+                                },
                                 selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
                                 onClick = {
                                     navigateToDetail(SAVE_THE_CHANGE_ROUTE)
@@ -431,7 +456,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         }
                         NavigationDrawerItem(
                             label = { Text(settingsLabel) },
-                            icon = { Icon(painterResource(R.drawable.settings_48px), contentDescription = null) },
+                            icon = {
+                                Icon(
+                                    painterResource(if (isSettingsRoute(currentRoute)) R.drawable.settings_fill_48px else R.drawable.settings_48px),
+                                    contentDescription = null,
+                                )
+                            },
                             selected = isSettingsRoute(currentRoute),
                             onClick = {
                                 navigateToDetail(SETTINGS_ROUTE)
@@ -505,3 +535,7 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideDirection(
     if (fromIndex == -1 || toIndex == -1) return null
     return if (toIndex >= fromIndex) 1 else -1
 }
+
+/** How far the drawer header's print reaches up, so it runs behind the status bar as the rail's does. */
+private val DRAWER_PRINT_RISE = 64.dp
+private val DRAWER_PRINT_HEIGHT = 56.dp

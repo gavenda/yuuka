@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 /**
- * The month a screen is looking at (`MonthSwitcher.kt`): the full width of the page on a secondary
+ * The month a screen is looking at (`MonthSwitcher.kt`): the full width of the page on a surface
  * container, the arrows at its ends and the month between them. Pressing the month opens a picker — a year
  * with its twelve months — and "Today" comes back to the current one whenever another is showing.
  */
@@ -46,7 +46,7 @@ function pick(month: string): void {
 </script>
 
 <template>
-	<div class="card-secondary flex w-full items-center px-1">
+	<div class="card flex w-full items-center px-1">
 		<button type="button" class="btn-icon m-1" :aria-label="t('common.months.previous')" @click="shift(-1)">
 			<AppIcon :icon="KEYBOARD_ARROW_LEFT" />
 		</button>
@@ -65,7 +65,7 @@ function pick(month: string): void {
 			<AppIcon :icon="KEYBOARD_ARROW_RIGHT" />
 		</button>
 
-		<button v-if="!isCurrent" type="button" class="btn-text text-on-secondary-container" @click="emit('update:modelValue', currentMonth())">
+		<button v-if="!isCurrent" type="button" class="btn-text text-on-surface" @click="emit('update:modelValue', currentMonth())">
 			Today
 		</button>
 

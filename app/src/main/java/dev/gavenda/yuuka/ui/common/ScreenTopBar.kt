@@ -1,7 +1,20 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.Alignment
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -193,24 +206,54 @@ fun AmountVisibilityAction() {
  */
 @Composable
 private fun UnsentChangesBanner(count: Int, sending: Boolean) {
-    AnimatedVisibility(visible = count > 0) {
+    // The queue can empty a moment after the banner appears, so it stays up for a beat saying what it last
+    // said, long enough to be read, and only then goes.
+    var shown by remember { mutableStateOf(count > 0) }
+    var last by remember { mutableStateOf(count to sending) }
+    if (count > 0) last = count to sending
+    LaunchedEffect(count > 0) {
+        if (count > 0) {
+            shown = true
+        } else {
+            delay(BANNER_LINGER_MS)
+            shown = false
+        }
+    }
+    // It slides down from under the bar and back up into it, rather than growing out of its corner.
+    AnimatedVisibility(
+        visible = shown,
+        enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+    ) {
         // Worth noticing, but neither a failure nor an action: tertiary, not error or primary.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.tertiaryContainer,
         ) {
-            Text(
-                text = pluralStringResource(
-                    if (sending) R.plurals.sync_sending else R.plurals.sync_unsent,
-                    count,
-                    count,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                // The cat print's mark, small, over the line.
+                Icon(CatIcon, contentDescription = null, modifier = Modifier.size(16.dp))
+                Text(
+                    // Once the queue is empty it says so, and in her words, for as long as it lingers.
+                    text = if (count > 0) {
+                        pluralStringResource(
+                            if (last.second) R.plurals.sync_sending else R.plurals.sync_unsent,
+                            last.first,
+                            last.first,
+                        )
+                    } else {
+                        stringResource(R.string.sync_all_sent)
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
+
+private const val BANNER_LINGER_MS = 2500L

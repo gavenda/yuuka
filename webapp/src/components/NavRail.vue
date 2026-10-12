@@ -12,7 +12,9 @@ import {
 	MENU_OPEN,
 	MONEY_OFF,
 	SAVINGS,
+	SAVINGS_FILL,
 	SETTINGS,
+	SETTINGS_FILL,
 	type IconPath,
 } from '@/lib/icons';
 import { useAmountVisibility } from '@/lib/privacy';
@@ -157,8 +159,8 @@ const showsAmounts = computed(() => route.meta.amountFree !== true);
  */
 const ownMoreLinks = computed<RailLink[]>(() => [
 	{ to: '/subscriptions', label: t('nav.subscriptions'), icon: EVENT_REPEAT, iconSelected: EVENT_REPEAT_FILL },
-	{ to: '/save-the-change', label: t('nav.saveTheChange'), icon: SAVINGS },
-	{ to: '/settings', label: t('nav.settings'), icon: SETTINGS },
+	{ to: '/save-the-change', label: t('nav.saveTheChange'), icon: SAVINGS, iconSelected: SAVINGS_FILL },
+	{ to: '/settings', label: t('nav.settings'), icon: SETTINGS, iconSelected: SETTINGS_FILL },
 ]);
 const allMoreLinks = computed(() => [...props.moreLinks, ...ownMoreLinks.value]);
 

@@ -8,7 +8,7 @@ This file records what is used, where, and the rules that hold it together, as b
 
 1. **The theme is the app's own.** Three colours, two of them sampled from her clothes. The wallpaper's colours are not taken up, and there is no setting for them.
 2. **Yuuka speaks as "I", to "you".** She never says "Sensei", and she makes no cat puns: the cats are on her pyjamas, not in her mouth.
-3. **Her face is for a screen with nothing to show, the end of the transaction list, About, and the sign-out dialog, where she is 144 wide and uneasy, as if asking you to stay.** It is never beside a figure, in a form, a chart or any other dialog.
+3. **Her face is for a screen with nothing to show, the end of the transaction list, About, the foot of the form for a new transaction, account, category, tag or subscription, and the sign-out dialog, where she is 144 wide and uneasy, as if asking you to stay.** It is never beside a figure, in any other form, a chart or any other dialog.
 4. **A badge masks her.** She is cut off at the scalloped edge of a badge in her pyjamas' blue, and her head, bow and halo stand clear above it.
 5. **The cat print is a backdrop**, behind the screens that have nothing else on them and faintly in a few fixed places.
 6. **Every image comes from one script**, `scripts/brand_assets.py`, so the two apps cannot drift and no image is edited by hand.
@@ -90,33 +90,43 @@ The icon is her face and her bow on the pyjamas' blue. Her halo is left off: it 
 
 Every icon in the interface is a Material Symbol (Outlined, weight 400), taken from Google's `material-design-icons` repository and never drawn by hand.
 
-- **Android.** One vector drawable per symbol in `res/drawable`, named `<symbol>_48px.xml` (and `<symbol>_fill_48px.xml` for the filled glyph), as in kozeki, and drawn with `painterResource(R.drawable.…)`. The files are set to 24dp with no tint, so `Icon` sizes and colours them; the directional ones (arrows, logout, menu open) are `autoMirrored`. A parameter that takes an icon is a `@DrawableRes Int`.
-- **The web.** The same symbols' paths in `lib/icons.ts`, in the symbols' `0 -960 960 960` box, drawn by `AppIcon`. The names are the symbol's, in capitals.
-- **A destination wears the filled glyph while it is current**, in the bottom bar, the rail and the drawer (`iconSelected`); everything else is outlined.
+- **Filled by default.** An icon is the filled glyph. The one exception is navigation: a destination is outlined until it is the current one and filled while it is (`iconSelected`), in the bottom bar, the rail and the drawer. A destination's icon used anywhere that is not navigation (a setting's row) is its filled glyph. A toggle that opens something follows the same rule as a destination: the Transactions filter buttons are outlined while their row of chips is shut and filled while it is open.
+- **Android.** One vector drawable per symbol in `res/drawable`, named `<symbol>_48px.xml`, as in kozeki, and drawn with `painterResource(R.drawable.…)`. A destination also has `<symbol>_fill_48px.xml` for its filled glyph, and `<symbol>_48px.xml` is its outline. The files are set to 24dp with no tint, so `Icon` sizes and colours them; the directional ones (arrows, logout, menu open) are `autoMirrored`. A parameter that takes an icon is a `@DrawableRes Int`.
+- **The web.** The same symbols' paths in `lib/icons.ts`, in the symbols' `0 -960 960 960` box, drawn by `AppIcon`. The names are the symbol's, in capitals; a destination has `NAME` (outlined) and `NAME_FILL`.
 - **A new icon** is the same symbol on both sides, added to the two places above in the same change.
 
 ## Yuuka's portraits
 
 `YuukaPortrait(mood)` (`ui/common/YuukaPortrait.kt`; `YuukaPortrait.vue` with `lib/yuuka.ts`) shows Yuuka from the shoulders up in a badge: twelve scallops, the hem of her pyjamas, in `secondaryContainer`. The badge masks her. From its middle down she is cut off at its edge, and her head, her bow and her halo stand clear above it. Android draws the badge as Material's twelve-sided cookie and the web as its own scalloped path, and each cuts her with the shape it draws. She is 192 wide unless given another width, and is hidden from a screen reader, as the words beside her say what the screen has to.
 
-She is in three kinds of place and nowhere else.
+She is in a few kinds of place and nowhere else.
 
 **A screen with nothing to show.** `EmptyState` requires a `mood`. A smaller message inside a card, such as a month with nothing recorded on the dashboard, is plain text with no face.
 
-**The end of the transaction list.** Once there are no more to load she is asleep under the last row, 96 wide, over "That's every last one, all accounted for.", so the last row is not mistaken for a page that stopped short.
+**The end of the transaction list.** Once there are no more to load she is asleep under the last row, 96 wide, with "That's every last one, all accounted for." in a speech bubble beside her, so the last row is not mistaken for a page that stopped short.
 
-**About.** The last thing in Settings, with no card and no heading: her `Gentle` face at 96, a speech bubble beside it with her line, and "yuuka" with the version underneath. Under the version are two plain lines in the third person: "Kept by Yuuka, the Seminar's accountant", with her name alone in `primary`, and, quieter, "Character design by Owa, illustration by Paruru, from Blue Archive". On 14 March the bubble says "It's my birthday today. A month within budget would be present enough." instead. It is the only speech bubble in the app (`SpeechBubble`).
+**A new item's form.** The forms for a new transaction, account, category, tag or subscription end with her (`YuukaSays`: her portrait at 96 wide with a line in a speech bubble). Editing shows nothing there, and the account type's small dialog has no room for her.
+
+| Form | Mood | Line |
+|---|---|---|
+| Transaction | `Attentive` | Every coin goes in the book, and I count it twice. |
+| Account | `Attentive` | Tell me what it holds, and I'll count from there. |
+| Category | `Neutral` | Name it, and I'll file every coin under it. |
+| Tag | `Pleased` | Tags don't change my sums. They only help you find things. |
+| Subscription | `Stern` | Another one? I'm keeping a running total, and I'm not impressed. |
+
+**About.** The last thing in Settings, with no card and no heading: her `Gentle` face at 96, a speech bubble beside it with her line, and "yuuka" with the version underneath. Under the version are two plain lines in the third person: "Kept by Yuuka, the Seminar's accountant", with her name alone in `primary`, and, quieter, "Character design by Owa, illustration by Paruru, from Blue Archive" with Owa in `secondary` and Paruru in `tertiary`. On 14 March the bubble says "It's my birthday today. A month within budget would be present enough." instead. Her speech bubble (`SpeechBubble`) is used only here, at the end of the transaction list and and in the form for a new transaction, account, category, tag or subscription.
 
 Eight faces are cut, and a new empty state picks from them first. The source number is the `<n>` of `branding/expressions/Yuuka_Pajamas_Portrait_Expression_<n>.webp`.
 
 | Mood | Shows | Source | Used for |
 |---|---|---|---|
-| `Neutral` | Her usual level look | 1 | Categories, with none yet |
-| `Attentive` | Mouth a little open, listening | 2 | Accounts, with none yet |
-| `Stern` | A frown | 5 | Budget, with no categories to budget |
+| `Neutral` | Her usual level look | 1 | Categories, with none yet, and a new category's form |
+| `Attentive` | Mouth a little open, listening | 2 | Accounts, with none yet, and the foot of a new transaction or account's form |
+| `Stern` | A frown | 5 | Budget, with no categories to budget; a new subscription's form |
 | `Worried` | Brows up, mouth open | 6 | The web's sign-in failure card, which Android has no screen for, so only the web ships it |
 | `Gentle` | A slight smile | 7 | Subscriptions, with none yet; About |
-| `Pleased` | A smile, eyes open | 13 | Tags, with none yet |
+| `Pleased` | A smile, eyes open | 13 | Tags, with none yet, and a new tag's form |
 | `Uneasy` | A wavering mouth | 15 | Transactions, with nothing matching |
 | `Asleep` | Eyes closed and calm | 99 | The end of the transaction list |
 
@@ -140,8 +150,9 @@ The print on her pyjamas, a round head with two pointed ears, redrawn as a vecto
 |---|---|
 | The sign-in and loading screens | The whole backdrop, thinning towards the middle |
 | The loading screen and Android's splash | One mark, filled, in the middle of the window (`ic_splash_cat`, drawn in as kozeki's halo is, on a 288dp canvas of which the launch screen shows the middle two thirds; `CatIcon`; `CAT`) |
+| The sync banner | One small mark, centred over its line |
 | Pull to refresh (Android) | The indicator: it slides down as the pull grows and turns while the sync runs |
-| The open rail | A strip behind the name, and behind the account card at its foot |
+| The open rail, and Android's phone drawer | A strip at the top (behind the mark and name in the rail, bare in the drawer), and behind the account card |
 | The card a screen leads with | One large mark as a watermark in its corner: net worth on the dashboard, Planned on Budget |
 
 It never goes behind a list, a form, a chart or a column of amounts, and it no longer stands in an empty state: Yuuka does.

@@ -8,7 +8,7 @@ import { useId } from 'vue';
  * one — and in About. A scalloped badge — the hem of her pyjamas — in the secondary container, which is their
  * blue, masks her: from its middle down she is cut off at its edge, and her head, bow and halo stand clear above
  * it. She is decoration, like the cat print, so she is hidden from assistive tech: the words beside her say what
- * the screen has to. Never beside a figure, in a form, a chart or any other dialog. 192 wide unless a class says
+ * the screen has to. Never beside a figure, in any other form, a chart or any other dialog. 192 wide unless a class says
  * otherwise.
  */
 defineProps<{ mood: YuukaMood }>();

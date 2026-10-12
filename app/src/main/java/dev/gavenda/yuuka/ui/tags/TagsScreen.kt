@@ -289,6 +289,11 @@ private fun TagForm(
                 field = colourField,
             )
         }
+
+        // Only a new one: Yuuka at the foot of the form.
+        if (editing == null) {
+            YuukaSays(YuukaMood.Pleased, stringResource(R.string.tags_form_line), Modifier.padding(top = 8.dp))
+        }
     }
 }
 

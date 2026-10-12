@@ -26,6 +26,7 @@ export default {
 	deleteTransactionTitle: 'Delete this transaction?',
 	form: {
 		kindOf: 'Kind of transaction',
+		newLine: 'Every coin goes in the book, and I count it twice.',
 		name: 'Name',
 		payee: 'Payee',
 		transferPlaceholder: 'Leave blank to name it From → To',

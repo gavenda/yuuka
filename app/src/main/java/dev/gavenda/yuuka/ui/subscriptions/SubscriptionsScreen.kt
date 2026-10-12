@@ -467,6 +467,11 @@ private fun SubscriptionForm(
             field = notesField,
         )
 
+
+        // Only a new one: Yuuka at the foot of the form.
+        if (editing == null) {
+            YuukaSays(YuukaMood.Stern, stringResource(R.string.subscriptions_form_line), Modifier.padding(top = 8.dp))
+        }
     }
 }
 

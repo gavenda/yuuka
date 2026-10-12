@@ -108,7 +108,7 @@ fun DailySpendChart(
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = colors.onSecondaryContainer.copy(alpha = 0.72f))
     val averageStyle = MaterialTheme.typography.labelSmall.copy(color = colors.primary, fontWeight = FontWeight.Medium)
     val glyphStyle = MaterialTheme.typography.labelMedium.copy(
-        color = colors.onTertiaryContainer,
+        color = colors.onPrimary,
         fontWeight = FontWeight.Medium,
         // A one-character symbol has room to be read; a three-letter code has to shrink to fit the badge.
         fontSize = when (glyph.length) {
@@ -178,11 +178,11 @@ fun DailySpendChart(
                                     val badgeLeft = left + (metrics.barWidth - metrics.badgeSize) / 2
                                     val badgeTop = top + metrics.badgeInset
                                     translate(left = badgeLeft, top = badgeTop) {
-                                        drawOutline(outline = badgeOutline, color = colors.tertiaryContainer.copy(alpha = fade))
+                                        drawOutline(outline = badgeOutline, color = colors.primary.copy(alpha = fade))
                                     }
                                     drawText(
                                         textLayoutResult = glyphLayout,
-                                        color = colors.onTertiaryContainer.copy(alpha = fade),
+                                        color = colors.onPrimary.copy(alpha = fade),
                                         topLeft = Offset(
                                             badgeLeft + (metrics.badgeSize - glyphLayout.size.width) / 2,
                                             badgeTop + (metrics.badgeSize - glyphLayout.size.height) / 2,

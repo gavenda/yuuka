@@ -10,6 +10,7 @@ import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
+import SpeechBubble from '@/components/SpeechBubble.vue';
 import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
@@ -18,14 +19,17 @@ import { showSnackbar } from '@/lib/snackbar';
 import { useHarmonised } from '@/lib/harmonise';
 import {
 	ACCOUNT_BALANCE_WALLET,
+	ACCOUNT_BALANCE_WALLET_FILL,
 	ARROW_DROP_DOWN,
 	ARROW_RIGHT_ALT,
 	CLOSE,
 	DELETE,
 	EDIT_NOTE,
-	FILTER_LIST_OUTLINED,
+	FILTER_LIST,
+	FILTER_LIST_FILL,
 	SEARCH,
-	SELL_OUTLINED,
+	SELL,
+	SELL_FILL,
 } from '@/lib/icons';
 import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
@@ -227,7 +231,7 @@ async function remove(): Promise<void> {
 						aria-controls="filter-chips"
 						@click="toggleFilter('accounts')"
 					>
-						<AppIcon :icon="ACCOUNT_BALANCE_WALLET" :size="18" class="mr-2" />
+						<AppIcon :icon="openFilter === 'accounts' ? ACCOUNT_BALANCE_WALLET_FILL : ACCOUNT_BALANCE_WALLET" :size="18" class="mr-2" />
 						<span class="truncate">{{ accountLabel }}</span>
 						<AppIcon :icon="ARROW_DROP_DOWN" :size="18" />
 					</button>
@@ -241,7 +245,7 @@ async function remove(): Promise<void> {
 					aria-controls="filter-chips"
 					@click="toggleFilter('tags')"
 				>
-					<AppIcon :icon="SELL_OUTLINED" />
+					<AppIcon :icon="openFilter === 'tags' ? SELL_FILL : SELL" />
 					<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
 				</button>
 
@@ -253,7 +257,7 @@ async function remove(): Promise<void> {
 					aria-controls="filter-chips"
 					@click="toggleFilter('categories')"
 				>
-					<AppIcon :icon="FILTER_LIST_OUTLINED" />
+					<AppIcon :icon="openFilter === 'categories' ? FILTER_LIST_FILL : FILTER_LIST" />
 					<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
 				</button>
 			</div>
@@ -384,10 +388,13 @@ async function remove(): Promise<void> {
 				</button>
 			</div>
 			<!-- The end of the list, and only once there is no more of it to load: Yuuka, asleep over closed
-			     books, so the last row is not mistaken for a page that stopped short. -->
-			<div v-else class="flex flex-col items-center gap-2 pt-6 pb-2">
+			     books, saying so, so the last row is not mistaken for a page that stopped short. -->
+			<div v-else class="flex items-end justify-center gap-1 px-4 pt-6 pb-2">
 				<YuukaPortrait mood="asleep" class="w-24!" />
-				<p class="type-label-medium text-on-surface-variant">{{ t('transactions.end') }}</p>
+				<!-- As tall as the badge she is in, so the tail is level with her face. -->
+				<div class="flex min-h-24 min-w-0 items-center">
+					<SpeechBubble>{{ t('transactions.end') }}</SpeechBubble>
+				</div>
 			</div>
 		</template>
 

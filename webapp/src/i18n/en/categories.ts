@@ -1,4 +1,5 @@
 export default {
+	formLine: "Name it, and I'll file every coin under it.",
 	emptyTitle: 'Nowhere to file anything yet',
 	emptyShort: 'No categories yet',
 	emptyDescription: "Every expense needs a line to go on. Add a few categories and I'll do the sorting.",

@@ -61,6 +61,7 @@ export default {
 	unsent: {
 		syncing: 'Syncing {count} change… | Syncing {count} changes…',
 		waiting: '{count} change saved on this device, waiting to sync | {count} changes saved on this device, waiting to sync',
+		sent: 'All sent. I checked twice.',
 		offline: "You're offline. Showing what was last saved; changes are kept here until there is a connection.",
 	},
 	errors: {

@@ -225,6 +225,13 @@ internal fun SettingsScreenContent(
                             persist(currencyDraft, it, defaultAccountDraft)
                         },
                         labelProvider = { stringResource(if (it == BudgetMode.fixed) R.string.label_fixed else R.string.budget_mode_monthly) },
+                        // A fixed plan holds for every month, ticked off once; a monthly one is set month by month.
+                        optionIcon = {
+                            when (it) {
+                                BudgetMode.fixed -> R.drawable.calendar_check_48px
+                                BudgetMode.monthly -> R.drawable.calendar_month_48px
+                            }
+                        },
                         position = ItemPosition.Single
                     )
                 }
@@ -237,7 +244,7 @@ internal fun SettingsScreenContent(
                             .clickable(onClick = onOpenAccountTypes).padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(painterResource(R.drawable.ic_contract_edit), contentDescription = null)
+                        Icon(painterResource(R.drawable.account_tree_48px), contentDescription = null)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(stringResource(R.string.account_types_title), style = MaterialTheme.typography.titleMedium)
@@ -677,8 +684,23 @@ private fun About(birthday: Boolean) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        // The two names are picked out, the designer in secondary and the illustrator in tertiary: the
+        // pyjamas' blue and the pink of their bows.
+        val designer = stringResource(R.string.designer_name)
+        val illustrator = stringResource(R.string.illustrator_name)
+        val credit = stringResource(R.string.about_credit, designer, illustrator)
+        val designerColor = MaterialTheme.colorScheme.secondary
+        val illustratorColor = MaterialTheme.colorScheme.tertiary
         Text(
-            text = stringResource(R.string.about_credit),
+            text = remember(credit, designer, illustrator, designerColor, illustratorColor) {
+                buildAnnotatedString {
+                    append(credit)
+                    val first = credit.indexOf(designer)
+                    if (first >= 0) addStyle(SpanStyle(color = designerColor), first, first + designer.length)
+                    val second = credit.indexOf(illustrator)
+                    if (second >= 0) addStyle(SpanStyle(color = illustratorColor), second, second + illustrator.length)
+                }
+            },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center,

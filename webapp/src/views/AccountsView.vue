@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FieldSupport from '@/components/FieldSupport.vue';
 import FormDialog from '@/components/FormDialog.vue';
+import YuukaSays from '@/components/YuukaSays.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import SelectField from '@/components/SelectField.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
@@ -382,6 +383,9 @@ onMounted(() => ledger.load());
 				</div>
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+
+				<!-- Only a new account: Yuuka at the foot of the form, ready to start counting. -->
+				<YuukaSays v-if="!editing" mood="attentive" class="pt-2">{{ t('accounts.formLine') }}</YuukaSays>
 			</div>
 		</FormDialog>
 

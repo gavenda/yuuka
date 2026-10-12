@@ -325,8 +325,8 @@ generated from them. There is no dynamic colour, and a setting for it is not to 
 again. `ConnectedButtonGroup` does it in both apps; a caller never passes a colour.
 - **Copy with any character in it is Yuuka's**: "I", to "you", never "Sensei", and no cat puns. Labels,
 validation messages and confirmations stay plain.
-- **Her face is for a screen with nothing to show, the end of the transaction list, About, and the sign-out dialog**: through
-`YuukaPortrait`, which `EmptyState` requires a mood for. Never beside a figure, in a form, a chart or a dialog.
+- **Her face is for a screen with nothing to show, the end of the transaction list, About, and the sign-out dialog, and the foot of a new transaction, account, category, tag or subscription's form**: through
+`YuukaPortrait`, which `EmptyState` requires a mood for. Never beside a figure, in any other form, a chart or a dialog.
 - **Every image comes from `scripts/brand_assets.py`**: the source art in `branding/` is deliberately not in
 the repository, and nothing the script writes is edited by hand.
 

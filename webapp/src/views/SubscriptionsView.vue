@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FieldSupport from '@/components/FieldSupport.vue';
 import FormDialog from '@/components/FormDialog.vue';
+import YuukaSays from '@/components/YuukaSays.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import PayeeInput from '@/components/PayeeInput.vue';
 import PickerField from '@/components/PickerField.vue';
@@ -378,6 +379,9 @@ function scheduleOf(subscription: Subscription): string {
 				/>
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+
+				<!-- Only a new one: Yuuka at the foot of the form. -->
+				<YuukaSays v-if="!editing" mood="stern" class="pt-2">{{ t('subscriptions.formLine') }}</YuukaSays>
 			</div>
 		</FormDialog>
 

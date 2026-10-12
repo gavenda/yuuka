@@ -1,5 +1,8 @@
 package dev.gavenda.yuuka.ui.transactions
 
+import androidx.compose.ui.Alignment
+import dev.gavenda.yuuka.ui.common.YuukaSays
+import dev.gavenda.yuuka.ui.common.YuukaMood
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -346,5 +349,9 @@ fun TransactionForm(
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
+        // Only a new transaction: Yuuka at the foot of the form, ready to count it.
+        if (!isEditing) {
+            YuukaSays(YuukaMood.Attentive, stringResource(R.string.transaction_form_line), Modifier.padding(top = 8.dp))
+        }
     }
 }

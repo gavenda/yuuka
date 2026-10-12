@@ -156,6 +156,7 @@ internal fun TransactionsScreenContent(
                     // The button is only as wide as its label; the box takes the rest of the row, which pushes the icons to the end.
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         AccountFilterButton(
+                            open = openFilter == FilterKind.ACCOUNTS,
                             options = accountOptions,
                             selected = state.accountFilter,
                             allLabel = stringResource(R.string.all_accounts),
@@ -163,13 +164,13 @@ internal fun TransactionsScreenContent(
                         )
                     }
                     FilterIconButton(
-                        icon = R.drawable.sell_48px,
+                        icon = if (openFilter == FilterKind.TAGS) R.drawable.sell_fill_48px else R.drawable.sell_48px,
                         description = stringResource(R.string.filter_by_tag),
                         count = state.tagFilter.size,
                         onClick = { toggleFilter(FilterKind.TAGS) },
                     )
                     FilterIconButton(
-                        icon = R.drawable.filter_list_48px,
+                        icon = if (openFilter == FilterKind.CATEGORIES) R.drawable.filter_list_fill_48px else R.drawable.filter_list_48px,
                         description = stringResource(R.string.filter_by_category),
                         count = state.categoryFilter.size,
                         onClick = { toggleFilter(FilterKind.CATEGORIES) },
@@ -252,19 +253,22 @@ internal fun TransactionsScreenContent(
                         }
                     } else {
                         // The end of the list, and only once there is no more of it to load: Yuuka, asleep
-                        // over closed books, so the last row is not mistaken for a page that stopped short.
+                        // over closed books, saying so, so the last row is not mistaken for a page that
+                        // stopped short.
                         item {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                                verticalAlignment = Alignment.Bottom,
                             ) {
                                 YuukaPortrait(YuukaMood.Asleep, width = 96.dp)
-                                Text(
-                                    stringResource(R.string.transactions_end),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                // As tall as the badge she is in, so the tail is level with her face.
+                                Box(
+                                    modifier = Modifier.weight(1f, fill = false).heightIn(min = 96.dp),
+                                    contentAlignment = Alignment.CenterStart,
+                                ) {
+                                    SpeechBubble(stringResource(R.string.transactions_end))
+                                }
                             }
                         }
                     }
@@ -562,6 +566,7 @@ private fun CategoryLabel(name: String, colorHex: String?) {
 
 @Composable
 private fun AccountFilterButton(
+    open: Boolean,
     options: List<FilterOption>,
     selected: Set<String>,
     allLabel: String,
@@ -580,7 +585,11 @@ private fun AccountFilterButton(
         modifier = modifier,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(painterResource(R.drawable.account_balance_wallet_48px), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Icon(
+                painterResource(if (open) R.drawable.account_balance_wallet_fill_48px else R.drawable.account_balance_wallet_48px),
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize),
+            )
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             Icon(painterResource(R.drawable.arrow_drop_down_48px), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))

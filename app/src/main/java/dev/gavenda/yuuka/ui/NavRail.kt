@@ -210,7 +210,7 @@ fun YuukaNavRail(
                         }
                         RailItem(
                             label = stringResource(R.string.destination_save_the_change),
-                            icon = R.drawable.savings_48px,
+                            icon = if (currentRoute == SAVE_THE_CHANGE_ROUTE) R.drawable.savings_fill_48px else R.drawable.savings_48px,
                             selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
                             expanded = true,
                             onClick = {
@@ -220,7 +220,7 @@ fun YuukaNavRail(
                         )
                         RailItem(
                             label = stringResource(R.string.destination_settings),
-                            icon = R.drawable.settings_48px,
+                            icon = if (isSettingsRoute(currentRoute)) R.drawable.settings_fill_48px else R.drawable.settings_48px,
                             selected = isSettingsRoute(currentRoute),
                             expanded = true,
                             onClick = {

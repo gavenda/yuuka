@@ -373,6 +373,11 @@ private fun AccountFormContent(
             Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
             YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
         }
+
+        // Only a new account: Yuuka at the foot of the form, ready to start counting.
+        if (account == null) {
+            YuukaSays(YuukaMood.Attentive, stringResource(R.string.account_form_line), Modifier.padding(top = 8.dp))
+        }
     }
 }
 

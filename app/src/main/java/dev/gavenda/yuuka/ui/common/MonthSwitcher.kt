@@ -42,8 +42,8 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Row(
@@ -72,7 +72,7 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
             if (!isCurrent) {
                 TextButton(
                     onClick = { onMonthChange(currentMonth()) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
                 ) {
                     Text(stringResource(R.string.action_today))
                 }

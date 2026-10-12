@@ -12,6 +12,7 @@ export default {
 	startingBalance: 'Starting balance',
 	logoUrl: 'Logo URL (optional)',
 	invertDark: 'Invert colours in dark mode',
+	formLine: "Tell me what it holds, and I'll count from there.",
 	chooseType: 'Choose a type.',
 	balanceNumber: 'Enter a number, such as 1250.00.',
 	adjust: 'Adjust balance',

@@ -222,14 +222,14 @@ onBeforeUnmount(() => observer?.disconnect());
 							<rect data-bar :x="bar.x" :y="bar.y" :width="BAR" :height="bar.height" :rx="BAR / 2" :class="bar.fill" />
 
 							<template v-if="bar.highlighted">
-								<path data-badge :d="bar.badge" class="fill-tertiary-container" />
+								<path data-badge :d="bar.badge" class="fill-primary" />
 								<text
 									:x="bar.x + BAR / 2"
 									:y="bar.y + BADGE_INSET + BADGE / 2"
 									text-anchor="middle"
 									dominant-baseline="central"
 									:font-size="glyphSize"
-									class="fill-on-tertiary-container font-medium"
+									class="fill-on-primary font-medium"
 								>
 									{{ glyph }}
 								</text>

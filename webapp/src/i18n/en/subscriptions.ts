@@ -1,4 +1,5 @@
 export default {
+	formLine: "Another one? I'm keeping a running total, and I'm not impressed.",
 	emptyTitle: 'Nothing on repeat yet',
 	emptyDescription: "Set up rent, streaming or a loan payment once and I'll post it every month, even while you sleep.",
 	newSubscription: 'New subscription',

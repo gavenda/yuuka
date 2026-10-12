@@ -1,5 +1,9 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -62,7 +66,7 @@ enum class YuukaMood(@DrawableRes internal val art: Int) {
  * the hem of her pyjamas — in the secondary container, which is their blue, masks her: from its middle down she is
  * cut off at its edge, and her head, bow and halo stand clear above it. She is decoration, like the cat print, so
  * she is not described to a screen reader: the words beside her say what the screen has to. Never beside a
- * figure, in a form, a chart or a dialog. Mirrors `YuukaPortrait.vue`.
+ * figure, in any other form, a chart or a dialog. Mirrors `YuukaPortrait.vue`.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -85,7 +89,7 @@ private const val PORTRAIT_HEIGHT = 740f / 620f
 
 /**
  * Something Yuuka says, in a bubble with a tail on its start side: it goes after her [YuukaPortrait] in a row,
- * where the tail, halfway up the bubble, points back at her. About has the only one. Mirrors `SpeechBubble.vue`.
+ * where the tail, halfway up the bubble, points back at her. About and the end of the transaction list have the only ones. Mirrors `SpeechBubble.vue`.
  */
 @Composable
 fun SpeechBubble(text: String, modifier: Modifier = Modifier) {
@@ -97,6 +101,24 @@ fun SpeechBubble(text: String, modifier: Modifier = Modifier) {
             .background(MaterialTheme.colorScheme.surfaceContainerHigh, SpeechBubbleShape)
             .padding(start = BUBBLE_TAIL + 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
     )
+}
+
+/**
+ * Yuuka saying a line: her [YuukaPortrait] with a [SpeechBubble] beside it, as tall as the badge she is in so the
+ * tail is level with her face. Mirrors `YuukaSays.vue`.
+ */
+@Composable
+fun YuukaSays(mood: YuukaMood, text: String, modifier: Modifier = Modifier, width: Dp = 96.dp) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        YuukaPortrait(mood, width = width)
+        Box(modifier = Modifier.weight(1f, fill = false).heightIn(min = width), contentAlignment = Alignment.CenterStart) {
+            SpeechBubble(text)
+        }
+    }
 }
 
 /** A rounded box, less a strip on its start side that only the tail crosses. */

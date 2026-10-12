@@ -10,10 +10,12 @@ import { ApiError } from '@/lib/api';
 import { isYuukaBirthday } from '@/lib/dates';
 import {
 	ACCOUNT_CIRCLE,
+	ACCOUNT_TREE,
 	ATTACH_MONEY,
 	BRIGHTNESS_AUTO,
 	CLOSE,
-	CONTRACT_EDIT,
+	CALENDAR_CHECK,
+	CALENDAR_MONTH,
 	DARK_MODE,
 	LIGHT_MODE,
 	NOTE_ALT,
@@ -46,6 +48,29 @@ const keeper = (() => {
 	return at < 0 ? { before: line, name: '', after: '' } : { before: line.slice(0, at), name, after: line.slice(at + name.length) };
 })();
 
+/** The credit, split around the two names wherever a translation puts them: the designer in secondary, the illustrator in tertiary. */
+const credit = (() => {
+	const designer = t('settings.designerName');
+	const illustrator = t('settings.illustratorName');
+	const line = t('settings.aboutCredit', { designer, illustrator });
+	const names = [
+		{ text: designer, class: 'text-secondary' },
+		{ text: illustrator, class: 'text-tertiary' },
+	]
+		.map((name) => ({ ...name, at: line.indexOf(name.text) }))
+		.filter((name) => name.at >= 0)
+		.sort((a, b) => a.at - b.at);
+	const parts: { text: string; class?: string }[] = [];
+	let from = 0;
+	for (const name of names) {
+		if (name.at > from) parts.push({ text: line.slice(from, name.at) });
+		parts.push({ text: name.text, class: name.class });
+		from = name.at + name.text.length;
+	}
+	if (from < line.length) parts.push({ text: line.slice(from) });
+	return parts;
+})();
+
 // Following the system is the icon alone; light and dark say so beside theirs.
 const THEME_MODES: { value: ThemeMode; label: string; icon: IconPath; iconOnly?: boolean }[] = [
 	{ value: 'system', label: t('settings.themeSystem'), icon: BRIGHTNESS_AUTO, iconOnly: true },
@@ -53,9 +78,10 @@ const THEME_MODES: { value: ThemeMode; label: string; icon: IconPath; iconOnly?:
 	{ value: 'dark', label: t('settings.themeDark'), icon: DARK_MODE },
 ];
 
-const BUDGET_MODES: { value: BudgetMode; label: string }[] = [
-	{ value: 'fixed', label: t('settings.fixed') },
-	{ value: 'monthly', label: t('settings.monthly') },
+// A fixed plan holds for every month, ticked off once; a monthly one is set month by month.
+const BUDGET_MODES: { value: BudgetMode; label: string; icon: IconPath }[] = [
+	{ value: 'fixed', label: t('settings.fixed'), icon: CALENDAR_CHECK },
+	{ value: 'monthly', label: t('settings.monthly'), icon: CALENDAR_MONTH },
 ];
 
 /**
@@ -196,7 +222,7 @@ onMounted(() => ledger.load());
 			<div class="settings-group">
 				<!-- A list to manage rather than a value to pick, so it is a screen of its own. -->
 				<RouterLink to="/settings/account-types" class="settings-row state-layer focus-ring">
-					<AppIcon :icon="CONTRACT_EDIT" />
+					<AppIcon :icon="ACCOUNT_TREE" />
 					<span class="min-w-0 flex-1">
 						<span class="type-title-medium block">{{ t('nav.accountTypes') }}</span>
 						<span class="type-body-medium block">{{ t('settings.accountTypesHint') }}</span>
@@ -236,7 +262,11 @@ onMounted(() => ledger.load());
 				{{ keeper.before }}<span class="text-primary">{{ keeper.name }}</span
 				>{{ keeper.after }}
 			</p>
-			<p class="type-label-small text-outline">{{ t('settings.aboutCredit') }}</p>
+			<p class="type-label-small text-outline">
+				<template v-for="(part, index) in credit" :key="index"
+					><span :class="part.class">{{ part.text }}</span></template
+				>
+			</p>
 		</footer>
 
 		<!-- Every currency there is, behind a search. Its first row is drawn like a search bar. -->

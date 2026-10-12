@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FormDialog from '@/components/FormDialog.vue';
+import YuukaSays from '@/components/YuukaSays.vue';
 import PickerField from '@/components/PickerField.vue';
 import SelectField from '@/components/SelectField.vue';
 import TextField from '@/components/TextField.vue';
@@ -363,6 +364,9 @@ defineExpose({
 
 			<!-- Only for a failure that is no one field's — the save itself. What is wrong with a field is said beneath the field. -->
 			<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
+
+			<!-- Only a new transaction: Yuuka at the foot of the form, ready to count it. -->
+			<YuukaSays v-if="!isEditing" mood="attentive" class="pt-2">{{ t('transactions.form.newLine') }}</YuukaSays>
 		</div>
 	</FormDialog>
 </template>

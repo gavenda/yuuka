@@ -130,7 +130,7 @@ internal fun SaveTheChangeScreenContent(
                 SettingsGroupHeader(title = "Round-ups")
                 SettingsGroupContainer {
                     ExpressiveSwitchSettingItem(
-                        icon = R.drawable.savings_48px,
+                        icon = R.drawable.savings_fill_48px,
                         title = stringResource(R.string.save_the_change_enabled),
                         subtitle = stringResource(R.string.save_the_change_description),
                         checked = enabledDraft,
@@ -173,7 +173,7 @@ internal fun SaveTheChangeScreenContent(
                         onClick = { isSourceSheetOpen = true },
                     )
                     SelectionSettingRow(
-                        icon = R.drawable.account_balance_wallet_48px,
+                        icon = R.drawable.account_balance_wallet_fill_48px,
                         title = stringResource(R.string.destination_account),
                         value = state.accounts.firstOrNull { it.id == destinationDraft }?.name ?: chooseAnAccountLabel,
                         position = ItemPosition.Bottom,
@@ -192,7 +192,7 @@ internal fun SaveTheChangeScreenContent(
                 SettingsGroupHeader(title = "Category")
                 SettingsGroupContainer {
                     SelectionSettingRow(
-                        icon = R.drawable.category_48px,
+                        icon = R.drawable.category_fill_48px,
                         title = stringResource(R.string.label_cashflow_category),
                         value = selectedCategoryLabel,
                         position = ItemPosition.Single,
@@ -264,7 +264,7 @@ internal fun SaveTheChangeScreenContent(
         SelectionDialog(title = stringResource(R.string.label_cashflow_category), onDismiss = { isCategorySheetOpen = false }) {
             itemsIndexed(categoryRows) { index, row ->
                 ExpressiveModalSelectionItem(
-                    icon = if (row.id == null) R.drawable.block_48px else R.drawable.category_48px,
+                    icon = if (row.id == null) R.drawable.block_48px else R.drawable.category_fill_48px,
                     title = row.name,
                     subtitle = row.parentName,
                     isSelected = row.id == categoryDraft,

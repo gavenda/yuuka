@@ -487,6 +487,11 @@ private fun CategoryFormContent(
                 field = colourField,
             )
         }
+
+        // Only a new one: Yuuka at the foot of the form.
+        if (editing == null) {
+            YuukaSays(YuukaMood.Neutral, stringResource(R.string.categories_form_line), Modifier.padding(top = 8.dp))
+        }
     }
 }
 

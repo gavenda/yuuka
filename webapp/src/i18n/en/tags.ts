@@ -1,4 +1,5 @@
 export default {
+	formLine: "Tags don't change my sums. They only help you find things.",
 	emptyTitle: 'No tags yet',
 	emptyDescription: "Add one and put it on a transaction. I'll find it again for you later.",
 	search: 'Search tags',

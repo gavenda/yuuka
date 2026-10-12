@@ -27,5 +27,7 @@ export default {
 	aboutVersion: 'yuuka {version}',
 	characterName: 'Yuuka',
 	aboutKeeper: "Kept by {name}, the Seminar's accountant",
-	aboutCredit: 'Character design by Owa, illustration by Paruru, from Blue Archive',
+	designerName: 'Owa',
+	illustratorName: 'Paruru',
+	aboutCredit: 'Character design by {designer}, illustration by {illustrator}, from Blue Archive',
 };
