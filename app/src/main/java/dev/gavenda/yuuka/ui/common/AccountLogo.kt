@@ -3,14 +3,12 @@ package dev.gavenda.yuuka.ui.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.luminance
@@ -62,23 +60,5 @@ fun AccountLogo(name: String, logoUrl: String?, invertDark: Boolean, modifier: M
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
-    }
-}
-
-/** A faint, decorative mark in the corner of an account card. No fallback: absent or broken, the card simply has none. Mirrors `AccountWatermark.vue`. */
-@Composable
-fun AccountWatermark(logoUrl: String?, invertDark: Boolean, modifier: Modifier = Modifier) {
-    var failed by remember(logoUrl) { mutableStateOf(false) }
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-
-    if (logoUrl != null && !failed) {
-        AsyncImage(
-            model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current).data(logoUrl).crossfade(true).build(),
-            contentDescription = null,
-            modifier = modifier.height(20.dp).alpha(0.7f),
-            contentScale = ContentScale.Fit,
-            colorFilter = if (invertDark && dark) ColorFilter.colorMatrix(INVERT_MATRIX) else null,
-            onError = { failed = true },
-        )
     }
 }

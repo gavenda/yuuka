@@ -27,7 +27,7 @@ suspend fun <T> apiCall(block: suspend () -> T): T {
         throw ApiError(e.code(), parsed?.error ?: "Request failed (${e.code()}).", parsed?.details)
     } catch (e: ApiError) {
         throw e
-    } catch (e: IOException) {
+    } catch (_: IOException) {
         throw ApiError(0, "Network error. Check your connection.", null)
     }
 }

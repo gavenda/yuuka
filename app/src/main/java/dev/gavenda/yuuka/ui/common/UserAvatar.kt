@@ -29,7 +29,7 @@ import dev.gavenda.yuuka.R
  * display, such as the small summary at the top of the navigation drawer.
  */
 @Composable
-fun UserAvatar(name: String?, pictureUrl: String?, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier, size: Int = 32) {
+fun UserAvatar(name: String?, pictureUrl: String?, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, size: Int = 32) {
     var failed by remember(pictureUrl) { mutableStateOf(false) }
     val accountLabel = stringResource(R.string.cd_account)
 

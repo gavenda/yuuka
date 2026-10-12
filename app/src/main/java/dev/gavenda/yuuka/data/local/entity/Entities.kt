@@ -7,7 +7,7 @@ import androidx.room3.PrimaryKey
 /**
  * Room mirrors of the API's resources. Enum-shaped fields are stored as their
  * raw string value (matching the wire format exactly) rather than through a
- * Room [androidx.room3.TypeConverter], so the entity <-> domain mapping is the
+ * Room `TypeConverter`, so the entity <-> domain mapping is the
  * only place that needs to know about the enum type.
  */
 

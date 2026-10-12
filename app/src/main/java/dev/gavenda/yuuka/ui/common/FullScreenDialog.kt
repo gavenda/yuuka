@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +54,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -155,7 +153,6 @@ fun FullScreenDialogHost(state: FullScreenDialogHostState) {
 }
 
 /** The dialog itself. [leaving] plays its way out, and [onGone] is called once that has finished. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean, onGone: () -> Unit) {
     val title = spec.title
@@ -245,8 +242,8 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
             // slide that overshoots shows the screen behind it along its bottom edge.
             AnimatedVisibility(
                 visibleState = visible,
-                enter = slideInVertically(MaterialTheme.motionScheme.slowEffectsSpec<IntOffset>()) { it },
-                exit = slideOutVertically(MaterialTheme.motionScheme.defaultEffectsSpec<IntOffset>()) { it },
+                enter = slideInVertically(MaterialTheme.motionScheme.slowEffectsSpec()) { it },
+                exit = slideOutVertically(MaterialTheme.motionScheme.defaultEffectsSpec()) { it },
                 // On its way out the form holds what it was last given, so nothing on it may be pressed again.
                 modifier = if (leaving) Modifier.pointerInput(Unit) {
                     awaitPointerEventScope {

@@ -48,7 +48,7 @@ data class SyncBatchResponse(val results: List<SyncResultDto>)
 
 /**
  * The server requires `platform`, so it cannot carry a Kotlin default: the
- * shared [apiJson] leaves defaults off the wire — deliberately, since an
+ * shared `apiJson` leaves defaults off the wire — deliberately, since an
  * omitted field means "leave this alone" everywhere else in the API — and a
  * registration without it is refused as a malformed body.
  */

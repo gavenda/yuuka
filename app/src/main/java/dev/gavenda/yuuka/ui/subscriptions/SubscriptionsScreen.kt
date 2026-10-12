@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -40,7 +39,6 @@ private data class SubscriptionSubmission(
     val startOn: String?,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsViewModel = org.koin.compose.viewmodel.koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,7 +53,6 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SubscriptionsScreenContent(
     state: SubscriptionsUiState,
@@ -86,7 +83,7 @@ internal fun SubscriptionsScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { LargeScreenTopBar(stringResource(R.string.destination_subscriptions), scrollBehavior) },
         

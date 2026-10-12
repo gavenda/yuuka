@@ -21,9 +21,4 @@ class PayeeRepository(
         val response = apiCall { api.listPayees(limit = limit) }
         dao.replaceAll(response.payees.map { it.toEntity() })
     }
-
-    suspend fun forget(id: String) {
-        apiCall { api.forgetPayee(id) }
-        dao.deleteById(id)
-    }
 }

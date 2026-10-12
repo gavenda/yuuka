@@ -5,6 +5,9 @@ import dev.gavenda.yuuka.data.model.DailySpend
 import java.text.NumberFormat
 import java.time.YearMonth
 import java.util.Locale
+import kotlin.math.floor
+import kotlin.math.log10
+import kotlin.math.pow
 
 data class DaySeriesEntry(val day: Int, val date: String, val amount: Long)
 
@@ -61,7 +64,7 @@ fun axisScale(max: Long): AxisScale {
     if (max <= 0) return AxisScale(top = 100, step = 100)
 
     val raw = max / AXIS_INTERVALS.toDouble()
-    val magnitude = Math.pow(10.0, Math.floor(Math.log10(raw)))
+    val magnitude = 10.0.pow(floor(log10(raw)))
     val step = (NICE_STEPS.map { it * magnitude }.first { it >= raw }).toLong().coerceAtLeast(1)
     return AxisScale(top = (max + step - 1) / step * step, step = step)
 }

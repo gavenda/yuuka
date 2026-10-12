@@ -17,11 +17,13 @@ fun rankPayees(all: List<Payee>, typed: String, limit: Int = 8): List<Payee> {
     fun startsWith(entry: Payee) = entry.payee.lowercase().startsWith(query)
 
     return all
+        .asSequence()
         .filter { it.payee.lowercase().contains(query) }
         .withIndex()
         .sortedWith(compareByDescending<IndexedValue<Payee>> { startsWith(it.value) }.thenBy { it.index })
         .take(limit)
         .map { it.value }
+        .toList()
 }
 
 /** True when the only match is what has already been typed, so the list is noise. */

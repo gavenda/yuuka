@@ -103,7 +103,7 @@ fun YuukaTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     field: FieldState? = null,
     hint: String? = null,
     placeholder: String? = null,
@@ -117,7 +117,7 @@ fun YuukaTextField(
         value = value,
         // Typing in a field is visiting it: the error shows as soon as there is something to say, not only once focus leaves.
         onValueChange = { field?.touch(); onValueChange(it) },
-        modifier = modifier.tracked(field),
+        modifier = modifier.fillMaxWidth().tracked(field),
         enabled = enabled,
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
@@ -144,7 +144,7 @@ fun <T> DropdownField(
     value: String,
     options: List<SelectOption<T>>,
     onSelect: (T) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     field: FieldState? = null,
     hint: String? = null,
     enabled: Boolean = true,
@@ -157,7 +157,7 @@ fun <T> DropdownField(
         field?.touch()
     }
 
-    ExposedDropdownMenuBox(expanded = open, onExpandedChange = { open = it }, modifier = modifier) {
+    ExposedDropdownMenuBox(expanded = open, onExpandedChange = { open = it }, modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = value,
             onValueChange = {},

@@ -5,7 +5,6 @@ import dev.gavenda.yuuka.data.local.Provisional
 import dev.gavenda.yuuka.data.local.dao.AccountDao
 import dev.gavenda.yuuka.data.local.dao.CategoryDao
 import dev.gavenda.yuuka.data.local.dao.RoundUpRuleDao
-import dev.gavenda.yuuka.data.local.dao.TagDao
 import dev.gavenda.yuuka.data.local.dao.TransactionDao
 import dev.gavenda.yuuka.data.local.entity.TransactionEntity
 import dev.gavenda.yuuka.data.local.entity.TransactionTagEntity
@@ -55,7 +54,6 @@ class TransactionRepository(
     private val dao: TransactionDao,
     private val accountDao: AccountDao,
     private val categoryDao: CategoryDao,
-    private val tagDao: TagDao,
     private val roundUpRuleDao: RoundUpRuleDao,
 ) {
     /** Rows and the tags they wear go in together, so a chip never outlives its transaction or the reverse. */
@@ -300,11 +298,6 @@ class TransactionRepository(
             put("notes", notes)
         }
         outbox.enqueue("POST", "/api/accounts/$accountId/adjust", body)
-    }
-
-    suspend fun deleteTransaction(id: String) {
-        dao.deleteById(id)
-        outbox.enqueue("DELETE", "/api/transactions/$id", entity = "transaction", rowId = id)
     }
 
     suspend fun createTransfer(

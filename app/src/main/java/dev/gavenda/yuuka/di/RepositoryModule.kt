@@ -20,7 +20,7 @@ val repositoryModule = module {
     single { PushRegistrar(get(), get()) }
 
     single { LedgerRepository(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single { TransactionRepository(get(), get(), get(), get(), get(), get(), get()) }
+    single { TransactionRepository(get(), get(), get(), get(), get(), get()) }
     single { BudgetRepository(get(), get(), get(), get(), get()) }
     single { PayeeRepository(get(), get()) }
     single { SubscriptionRepository(get(), get(), get(), get(), get()) }

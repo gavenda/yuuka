@@ -3,7 +3,6 @@ package dev.gavenda.yuuka.ui.tags
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Tag
-import dev.gavenda.yuuka.domain.nextColor
 import dev.gavenda.yuuka.repository.LedgerRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

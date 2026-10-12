@@ -1,11 +1,9 @@
 package dev.gavenda.yuuka.ui.categories
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
@@ -20,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.draw.clip
@@ -45,7 +42,6 @@ import androidx.core.graphics.toColorInt
 import dev.gavenda.yuuka.domain.nextColor
 import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -61,7 +57,6 @@ fun CategoriesScreen(modifier: Modifier = Modifier, viewModel: CategoriesViewMod
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CategoriesScreenContent(
     state: CategoriesUiState,
@@ -92,7 +87,7 @@ internal fun CategoriesScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { LargeScreenTopBar(stringResource(R.string.destination_categories), scrollBehavior, actions = {}) },
         
@@ -467,7 +462,7 @@ private fun CategoryFormContent(
                     .selectable(selected = isCustomColor, role = Role.RadioButton) {
                         if (!isCustomColor) color = "#64748b"
                     },
-                contentAlignment = androidx.compose.ui.Alignment.Center,
+                contentAlignment = Alignment.Center,
             ) {
                 if (!isCustomColor) {
                     Icon(

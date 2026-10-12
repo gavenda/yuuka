@@ -58,6 +58,7 @@ data class Budget(
 )
 
 @Serializable
+@Suppress("EnumEntryName") // the entry names are the API's wire values
 enum class IncomePlanMode {
     gross,
     fixed,
@@ -129,6 +130,7 @@ data class Summary(
 )
 
 @Serializable
+@Suppress("EnumEntryName") // the entry names are the API's wire values
 enum class PayeeKind {
     expense,
     income,

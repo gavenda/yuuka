@@ -14,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -75,15 +74,14 @@ import dev.gavenda.yuuka.sync.Outbox
  *   compact summary of the signed-in user instead of a dedicated Profile screen.
  * - On a wider window a navigation rail takes over both (see [YuukaNavRail]). It marks the current
  *   destination, so there is no top app bar, and it carries the screen's leading action as its FAB
- *   ([ScreenFab]) — including Save on Settings and Save the Change.
+ *   (`ScreenFab`) — including Save on Settings and Save the Change.
  *
  * The shell draws no app bar of its own: a screen knows its own title and its own actions, so each one
- * puts a [ScreenTopBar] (or a [DetailTopBar]) in its own Scaffold. What those bars share — the drawer
+ * puts a `ScreenTopBar` (or a `DetailTopBar`) in its own Scaffold. What those bars share — the drawer
  * button, the hide-amounts switch, back, and whether a rail has taken the bar's place — is handed down
  * in [LocalAppBarShell].
  */
 @OptIn(
-    ExperimentalMaterial3Api::class,
     ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalMaterial3WindowSizeClassApi::class,
 )
@@ -184,10 +182,10 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     // Settings and Save the Change are pushed on top of whatever tab was showing, so they
     // just need the same guard against re-navigating to the screen already shown.
     val navigateToDetail: (String) -> Unit = { route ->
-        when {
-            route == currentRoute -> Unit
+        when (route) {
+            currentRoute -> Unit
             // Settings from a screen it opened is the way back to it, not a second copy on top.
-            route == SETTINGS_ROUTE && currentRoute == ACCOUNT_TYPES_ROUTE -> navController.popBackStack()
+            SETTINGS_ROUTE if currentRoute == ACCOUNT_TYPES_ROUTE -> navController.popBackStack()
             else -> navController.navigate(route)
         }
     }

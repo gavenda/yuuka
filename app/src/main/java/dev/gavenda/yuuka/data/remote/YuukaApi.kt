@@ -2,15 +2,12 @@ package dev.gavenda.yuuka.data.remote
 
 import dev.gavenda.yuuka.data.model.Summary
 import dev.gavenda.yuuka.data.remote.dto.*
-import kotlinx.serialization.json.JsonObject
 import retrofit2.http.*
 
 /**
  * All routes are under `/api`, mirroring the `api` object in the web app's
- * `src/lib/api.ts`. Partial request bodies (`PATCH`, and the settable fields of
- * `POST`/`PUT`) are passed as a [JsonObject] built by the caller, rather than a
- * fixed request class per endpoint, since the API accepts a subset of fields on
- * every write.
+ * `src/lib/api.ts`. Only reads and the sync batch are here: every write goes
+ * through the outbox, whose queued operations are replayed by [syncBatch].
  */
 interface YuukaApi {
     @GET("auth/me")
@@ -19,68 +16,23 @@ interface YuukaApi {
     @GET("payees")
     suspend fun listPayees(@Query("search") search: String? = null, @Query("limit") limit: Int = 20): PayeesResponse
 
-    @DELETE("payees/{id}")
-    suspend fun forgetPayee(@Path("id") id: String)
-
     @GET("settings")
     suspend fun getSettings(): SettingsResponse
-
-    @PATCH("settings")
-    suspend fun updateSettings(@Body body: JsonObject): SettingsResponse
 
     @GET("round-up")
     suspend fun getRoundUpRule(): RoundUpRuleResponse
 
-    @PATCH("round-up")
-    suspend fun updateRoundUpRule(@Body body: JsonObject): RoundUpRuleResponse
-
     @GET("account-types")
     suspend fun listAccountTypes(@Query("includeArchived") includeArchived: Boolean = false): AccountTypesResponse
-
-    @POST("account-types")
-    suspend fun createAccountType(@Body body: JsonObject): AccountTypeResponse
-
-    @DELETE("account-types/{id}")
-    suspend fun deleteAccountType(@Path("id") id: String)
 
     @GET("accounts")
     suspend fun listAccounts(@Query("includeArchived") includeArchived: Boolean = false): AccountsResponse
 
-    @POST("accounts")
-    suspend fun createAccount(@Body body: JsonObject): AccountResponse
-
-    @PATCH("accounts/{id}")
-    suspend fun updateAccount(@Path("id") id: String, @Body body: JsonObject): AccountResponse
-
-    @DELETE("accounts/{id}")
-    suspend fun deleteAccount(@Path("id") id: String, @Query("includeTransactions") includeTransactions: Boolean = false)
-
-    @POST("accounts/{id}/adjust")
-    suspend fun adjustAccountBalance(@Path("id") id: String, @Body body: JsonObject): TransactionResponse
-
     @GET("categories")
     suspend fun listCategories(@Query("includeArchived") includeArchived: Boolean = false): CategoriesResponse
 
-    @POST("categories")
-    suspend fun createCategory(@Body body: JsonObject): CategoryResponse
-
-    @PATCH("categories/{id}")
-    suspend fun updateCategory(@Path("id") id: String, @Body body: JsonObject): CategoryResponse
-
-    @DELETE("categories/{id}")
-    suspend fun deleteCategory(@Path("id") id: String)
-
     @GET("tags")
     suspend fun listTags(): TagsResponse
-
-    @POST("tags")
-    suspend fun createTag(@Body body: JsonObject): TagResponse
-
-    @PATCH("tags/{id}")
-    suspend fun updateTag(@Path("id") id: String, @Body body: JsonObject): TagResponse
-
-    @DELETE("tags/{id}")
-    suspend fun deleteTag(@Path("id") id: String)
 
     @GET("transactions")
     suspend fun listTransactions(
@@ -94,29 +46,8 @@ interface YuukaApi {
         @Query("offset") offset: Int,
     ): dev.gavenda.yuuka.data.model.TransactionPage
 
-    @POST("transactions")
-    suspend fun createTransaction(@Body body: JsonObject): TransactionResponse
-
-    @PATCH("transactions/{id}")
-    suspend fun updateTransaction(@Path("id") id: String, @Body body: JsonObject): TransactionResponse
-
-    @DELETE("transactions/{id}")
-    suspend fun deleteTransaction(@Path("id") id: String)
-
-    @POST("transactions/transfer")
-    suspend fun createTransfer(@Body body: JsonObject): TransferResponse
-
-    @PATCH("transactions/transfer/{transferId}")
-    suspend fun updateTransfer(@Path("transferId") transferId: String, @Body body: JsonObject): TransferResponse
-
     @GET("subscriptions")
     suspend fun listSubscriptions(): SubscriptionsResponse
-
-    @PUT("budgets")
-    suspend fun setBudget(@Body body: JsonObject): BudgetResponse
-
-    @PUT("income-plan")
-    suspend fun setIncomePlan(@Body body: JsonObject): IncomePlanResponse
 
     @GET("summary")
     suspend fun summary(@Query("month") month: String): Summary

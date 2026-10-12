@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.domain
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.core.content.edit
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,7 @@ class AmountVisibility(context: Context) {
     fun toggle() {
         val next = !_hidden.value
         _hidden.value = next
-        prefs.edit().putBoolean(KEY_HIDDEN, next).apply()
+        prefs.edit { putBoolean(KEY_HIDDEN, next) }
     }
 
     /**

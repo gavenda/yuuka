@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.toColorInt
 import com.materialkolor.blend.Blend
 
 /**
@@ -17,7 +18,7 @@ import com.materialkolor.blend.Blend
 fun harmonisedColorOrNull(hex: String?): Color? {
     val primary = MaterialTheme.colorScheme.primary
     return remember(hex, primary) {
-        hex?.let { runCatching { Color(Blend.harmonize(android.graphics.Color.parseColor(it), primary.toArgb())) }.getOrNull() }
+        hex?.let { runCatching { Color(Blend.harmonize(it.toColorInt(), primary.toArgb())) }.getOrNull() }
     }
 }
 

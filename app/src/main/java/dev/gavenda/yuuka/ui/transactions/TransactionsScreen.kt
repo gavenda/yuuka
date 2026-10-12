@@ -35,8 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,14 +49,12 @@ import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatTime
 import dev.gavenda.yuuka.ui.common.*
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
 import dev.gavenda.yuuka.data.model.Payee
 import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -90,7 +86,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TransactionsScreenContent(
     state: TransactionsUiState,
@@ -139,7 +134,7 @@ internal fun TransactionsScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
         
@@ -341,7 +336,7 @@ private fun groupByDate(rows: List<TransactionRow>): List<Pair<String, List<Tran
     return groups.entries.map { it.key to it.value }
 }
 
-/** Net change to your accounts' balances for the day — transfers move money between your own accounts, so they don't count, mirroring why [AccountGroup.total] sums balances rather than raw amounts. */
+/** Net change to your accounts' balances for the day — transfers move money between your own accounts, so they don't count, mirroring why `AccountGroup.total` sums balances rather than raw amounts. */
 private fun dailyAccrued(rows: List<TransactionRow>): Long =
     rows.filterIsInstance<TransactionRow.Single>().sumOf { it.transaction.amount }
 

@@ -2,7 +2,6 @@ package dev.gavenda.yuuka.ui.tags
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -12,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +23,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Tag
@@ -37,7 +36,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import dev.gavenda.yuuka.domain.nextColor
 import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,7 +54,6 @@ fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinVie
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TagsScreenContent(
     state: TagsUiState,
@@ -82,7 +79,7 @@ internal fun TagsScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { LargeScreenTopBar(stringResource(R.string.destination_tags), scrollBehavior, actions = {}) },
         
@@ -194,7 +191,7 @@ private val HEX_COLOR_REGEX = Regex("^#[0-9a-fA-F]{6}$")
 
 @Composable
 private fun colorFromHex(hex: String): Color =
-    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
+    runCatching { Color(hex.toColorInt()) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
 
 /** A tag is a name and a colour: one of the palette's, or a hand-picked one, as for a category. */
 @Composable

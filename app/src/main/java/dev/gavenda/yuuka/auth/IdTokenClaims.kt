@@ -24,7 +24,7 @@ fun decodeIdTokenClaims(idToken: String): IdTokenClaims? {
     return try {
         val decoded = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
         json.decodeFromString<IdTokenClaims>(String(decoded, Charsets.UTF_8))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }

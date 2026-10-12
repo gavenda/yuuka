@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,7 +28,6 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.domain.currentMonth
 import java.time.YearMonth
 import java.time.format.TextStyle
-import java.util.Locale
 
 /**
  * A month picker in the standard Material 3 dialog. Material 3 ships a day picker but no
@@ -45,6 +45,7 @@ fun MonthPickerDialog(
     val selected = YearMonth.parse(month)
     val current = YearMonth.parse(currentMonth())
     var year by rememberSaveable { mutableIntStateOf(selected.year) }
+    val locale = LocalConfiguration.current.locales[0]
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -72,7 +73,7 @@ fun MonthPickerDialog(
                             for (col in 0 until 3) {
                                 val ym = YearMonth.of(year, row * 3 + col + 1)
                                 MonthCell(
-                                    label = ym.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                                    label = ym.month.getDisplayName(TextStyle.SHORT, locale),
                                     isSelected = ym == selected,
                                     isCurrent = ym == current,
                                     onClick = { onPicked("%04d-%02d".format(ym.year, ym.monthValue)) },

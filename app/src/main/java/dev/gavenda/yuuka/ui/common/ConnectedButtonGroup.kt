@@ -20,7 +20,6 @@ import androidx.compose.ui.semantics.semantics
  * The end buttons get fully rounded outer corners and the selected one morphs to a pill.
  * [label] gives each option's text.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ConnectedButtonGroup(
     options: List<T>,

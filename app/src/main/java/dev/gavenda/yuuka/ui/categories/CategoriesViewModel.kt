@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
-import dev.gavenda.yuuka.domain.nextColor
 import dev.gavenda.yuuka.repository.LedgerRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

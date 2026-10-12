@@ -40,7 +40,6 @@ import dev.gavenda.yuuka.ui.common.PreviewData
 import dev.gavenda.yuuka.ui.common.ScreenPreview
 import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaveTheChangeScreen(
     modifier: Modifier = Modifier,
@@ -56,7 +55,6 @@ fun SaveTheChangeScreen(
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SaveTheChangeScreenContent(
     state: SaveTheChangeUiState,
@@ -118,7 +116,7 @@ internal fun SaveTheChangeScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier,
         topBar = { ScreenTopBar(stringResource(R.string.destination_save_the_change), actions = {}) },
         

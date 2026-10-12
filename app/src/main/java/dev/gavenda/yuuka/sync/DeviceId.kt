@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.sync
 
 import android.content.Context
+import androidx.core.content.edit
 import java.util.UUID
 
 private const val PREFS_NAME = "yuuka.device"
@@ -25,7 +26,7 @@ class DeviceId(context: Context) {
 
     val value: String by lazy {
         prefs.getString(KEY_DEVICE_ID, null) ?: "android-${UUID.randomUUID()}".also {
-            prefs.edit().putString(KEY_DEVICE_ID, it).apply()
+            prefs.edit { putString(KEY_DEVICE_ID, it) }
         }
     }
 }

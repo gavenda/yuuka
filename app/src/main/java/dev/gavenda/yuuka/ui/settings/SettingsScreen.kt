@@ -58,7 +58,6 @@ import androidx.compose.ui.tooling.preview.Preview
 /** The default currency and nine of the most traded: what the display-currency list offers before a search. */
 private val COMMON_CURRENCIES = listOf("PHP", "USD", "EUR", "JPY", "GBP", "CNY", "AUD", "CAD", "SGD", "HKD")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -77,7 +76,6 @@ fun SettingsScreen(
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsScreenContent(
     state: SettingsUiState,
@@ -132,7 +130,7 @@ internal fun SettingsScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier,
         topBar = { DetailTopBar(title = stringResource(R.string.destination_settings)) },
         

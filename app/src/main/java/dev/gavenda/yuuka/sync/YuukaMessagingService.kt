@@ -50,6 +50,8 @@ class YuukaMessagingService : FirebaseMessagingService() {
         }
     }
 
+    // Superseded by `onRegistered`, which delivers installation ids — see PushRegistrar.
+    @Deprecated("Superseded by onRegistered(installationId)")
     override fun onNewToken(token: String) {
         scope.launch { registrar.register(token) }
     }

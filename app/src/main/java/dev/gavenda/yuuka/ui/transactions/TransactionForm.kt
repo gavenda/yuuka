@@ -89,7 +89,6 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
 private fun tagColor(hex: String): Color =
     harmonisedColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransactionForm(
     editing: Transaction?,

@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -16,6 +15,7 @@ import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.IncomePlanMode
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
+import kotlin.math.roundToInt
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
@@ -44,7 +44,6 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun BudgetScreenContent(
     state: BudgetUiState,
@@ -80,7 +79,7 @@ internal fun BudgetScreenContent(
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
     ) { padding ->
@@ -114,7 +113,7 @@ internal fun BudgetScreenContent(
                                 // Drawn straight on the card, as a category's budget is edited on its own.
                                 Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
                                     androidx.compose.runtime.CompositionLocalProvider(
-                                        androidx.compose.material3.LocalTextStyle provides MaterialTheme.typography.headlineSmall,
+                                        LocalTextStyle provides MaterialTheme.typography.headlineSmall,
                                     ) {
                                         DenseOutlinedTextField(
                                             value = incomeDraft,
@@ -127,7 +126,7 @@ internal fun BudgetScreenContent(
                                         )
                                     }
                                     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        androidx.compose.material3.TextButton(
+                                        TextButton(
                                             enabled = !savingIncome,
                                             modifier = Modifier.weight(1f),
                                             onClick = {
@@ -136,7 +135,7 @@ internal fun BudgetScreenContent(
                                         ) {
                                             Text(stringResource(R.string.action_cancel))
                                         }
-                                        androidx.compose.material3.Button(
+                                        Button(
                                             enabled = !savingIncome,
                                             modifier = Modifier.weight(1f),
                                             onClick = {
@@ -262,7 +261,7 @@ internal fun BudgetScreenContent(
                                         // Unclamped, unlike percentOf: over-allocating reads as a negative share.
                                         caption = stringResource(
                                             R.string.percent_of_income_unallocated,
-                                            Math.round(state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).toInt(),
+                                            (state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).roundToInt(),
                                         ),
                                         signed = true,
                                     ),
@@ -366,14 +365,14 @@ private fun BudgetRow(
                         field = plannedField,
                     )
                     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.OutlinedButton(
+                        OutlinedButton(
                             enabled = !saving,
                             modifier = Modifier.weight(1f),
                             onClick = { editing = false },
                         ) {
                             Text(stringResource(R.string.action_cancel))
                         }
-                        androidx.compose.material3.Button(
+                        Button(
                             enabled = !saving && form.valid(plannedField),
                             modifier = Modifier.weight(1f),
                             onClick = {

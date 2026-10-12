@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -93,7 +92,6 @@ private val RAIL_PRINT_WIDTH = 220.dp
  * The items are one scrolling column rather than direct children of the rail, which lays out its
  * children without scrolling: on a short window the open rail would otherwise run off the bottom.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun YuukaNavRail(
     docked: Boolean,

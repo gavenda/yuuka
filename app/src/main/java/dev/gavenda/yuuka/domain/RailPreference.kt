@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.domain
 
 import android.content.Context
+import androidx.core.content.edit
 
 private const val PREFS_NAME = "yuuka.rail"
 private const val KEY_EXPANDED = "expanded"
@@ -18,6 +19,6 @@ class RailPreference(context: Context) {
     var expanded: Boolean
         get() = prefs.getBoolean(KEY_EXPANDED, false)
         set(value) {
-            prefs.edit().putBoolean(KEY_EXPANDED, value).apply()
+            prefs.edit { putBoolean(KEY_EXPANDED, value) }
         }
 }

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 /** Shapes returned by the yuuka API. Amounts are integer minor units (cents). Mirrors `src/types.ts`. */
 
 @Serializable
+@Suppress("EnumEntryName") // the entry names are the API's wire values
 enum class BudgetMode {
     fixed,
     monthly,
@@ -90,6 +91,7 @@ data class Tag(
  * income; [transfer] categorises movements between the user's own accounts.
  */
 @Serializable
+@Suppress("EnumEntryName") // the entry names are the API's wire values
 enum class CategoryKind {
     income,
     expense,

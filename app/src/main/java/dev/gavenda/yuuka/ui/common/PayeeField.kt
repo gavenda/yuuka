@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onSizeChanged
@@ -30,7 +31,7 @@ fun PayeeField(
 ) {
     var focused by remember { mutableStateOf(false) }
     val matches = remember(payees, value) { rankPayees(payees, value) }
-    var fieldWidth by remember { mutableStateOf(0) }
+    var fieldWidth by remember { mutableIntStateOf(0) }
     val showList = focused && matches.isNotEmpty() && !isExhausted(matches, value)
 
     androidx.compose.foundation.layout.Box(modifier = modifier) {

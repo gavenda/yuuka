@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.domain
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,6 +10,7 @@ private const val PREFS_NAME = "yuuka.theme"
 private const val KEY_MODE = "mode"
 private const val KEY_DYNAMIC_COLOR = "dynamic_color"
 
+@Suppress("EnumEntryName") // the entry names are persisted/wire values
 enum class ThemeMode {
     system,
     light,
@@ -38,11 +40,11 @@ class ThemePreference(context: Context) {
 
     fun setThemeMode(mode: ThemeMode) {
         _themeMode.value = mode
-        prefs.edit().putString(KEY_MODE, mode.name).apply()
+        prefs.edit { putString(KEY_MODE, mode.name) }
     }
 
     fun setDynamicColor(enabled: Boolean) {
         _dynamicColor.value = enabled
-        prefs.edit().putBoolean(KEY_DYNAMIC_COLOR, enabled).apply()
+        prefs.edit { putBoolean(KEY_DYNAMIC_COLOR, enabled) }
     }
 }

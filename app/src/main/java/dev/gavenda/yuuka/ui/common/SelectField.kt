@@ -48,7 +48,7 @@ fun <T> SelectField(
     options: List<SelectOption<T>>,
     selected: T,
     onSelect: (T) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     /** Inside the tap target, keeping the text off the edge of the highlight. */
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -57,6 +57,7 @@ fun <T> SelectField(
 
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .clickable(enabled = enabled, role = Role.Button) { open = true }
             .padding(contentPadding),
     ) {
@@ -108,5 +109,5 @@ fun <T> SelectField(
 fun categoryOptions(groups: List<CategoryGroup>, noneLabel: String): List<SelectOption<String?>> =
     listOf(SelectOption<String?>(null, noneLabel)) + groups.flatMap { group ->
         listOf(SelectOption<String?>(group.parent.id, group.parent.name)) +
-            group.children.map { SelectOption<String?>(it.id, it.name, indent = true) }
+            group.children.map { SelectOption(it.id, it.name, indent = true) }
     }

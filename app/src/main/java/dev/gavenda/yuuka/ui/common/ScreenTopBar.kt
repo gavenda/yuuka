@@ -10,8 +10,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoneyOff
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.IconButton
@@ -58,7 +56,6 @@ val LocalAppBarShell = compositionLocalOf { AppBarShell() }
  * draws none, so nothing ever tells the behaviour how tall it is; left connected it would take every scroll as the
  * bar collapsing and the page would not move.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Modifier.appBarScroll(scrollBehavior: TopAppBarScrollBehavior): Modifier =
     if (LocalAppBarShell.current.useRail) this else this.nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -72,7 +69,6 @@ fun Modifier.appBarScroll(scrollBehavior: TopAppBarScrollBehavior): Modifier =
  * `Scaffold(topBar = ...)`; it handles its own status-bar inset, so the screen's Scaffold takes none
  * (`contentWindowInsets = WindowInsets(0)`).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenTopBar(
     title: String,
@@ -96,7 +92,6 @@ fun ScreenTopBar(
  * row stays put rather than leaving, so the drawer button and the hide-amounts switch are always
  * reachable. The screen must hang the behaviour's `nestedScrollConnection` on its own Scaffold.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LargeScreenTopBar(
     title: String,
@@ -119,32 +114,26 @@ fun LargeScreenTopBar(
 }
 
 /**
- * A month-scoped destination's app bar (Dashboard, Transactions): the month switcher itself where the
- * title would be, with the drawer button and the hide-amounts switch untouched around it.
+ * A month-scoped destination's app bar (Dashboard, Transactions, Budget): the drawer button and the
+ * hide-amounts switch, with the month switcher on its own row beneath rather than inside the bar.
+ * [scrollBehavior] — an `enterAlways` one — takes the whole thing off the screen as the user scrolls
+ * down. The screen must hang that behaviour's `nestedScrollConnection` on its own Scaffold.
  *
- * The switcher used to sit in the page, which cost a row of the screen and scrolled away with the
- * content. In the bar it is always a thumb away, and [scrollBehavior] — an `enterAlways` one — takes
- * the whole bar off the screen as the user scrolls down and brings it straight back on the first
- * scroll up. The screen must hang that behaviour's `nestedScrollConnection` on its own Scaffold, or
- * the bar never moves.
- *
- * A rail window has no bar to put it in, so there it keeps the card it always had.
+ * A rail window has no bar, so there it is the switcher card alone.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: TopAppBarScrollBehavior) {
     val shell = LocalAppBarShell.current
     Column {
-        if (shell.useRail) {
-            MonthSwitcher(month = month, onMonthChange = onMonthChange, modifier = Modifier.fillMaxWidth().padding(16.dp))
-        } else {
+        if (!shell.useRail) {
             TopAppBar(
-                title = { MonthTitle(month = month, onMonthChange = onMonthChange) },
+                title = {},
                 navigationIcon = { NavigationMenuButton() },
                 actions = { AmountVisibilityAction() },
                 scrollBehavior = scrollBehavior,
             )
         }
+        MonthSwitcher(month = month, onMonthChange = onMonthChange, modifier = Modifier.fillMaxWidth().padding(16.dp))
         UnsentChangesBanner(count = shell.unsentChanges, sending = shell.sending)
     }
 }

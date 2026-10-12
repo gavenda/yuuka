@@ -34,6 +34,9 @@ class PushRegistrar(
     /** Called once a session exists — a token is useless before the server knows whose it is. */
     suspend fun register() {
         val token = try {
+            // `getToken()` is deprecated for `register()`, which hands out an installation
+            // id instead and needs the manifest flag and a server that sends to it.
+            @Suppress("DEPRECATION")
             FirebaseMessaging.getInstance().token.await()
         } catch (error: Exception) {
             Log.i(TAG, "No messaging token; this device will sync without push.", error)

@@ -10,8 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,7 +29,6 @@ import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.tooling.preview.Preview
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,7 +45,6 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
 }
 
 /** The screen itself, drawn from the state it is handed — which is what lets a preview show it without a view model. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AccountsScreenContent(
     state: AccountsUiState,
@@ -78,14 +74,12 @@ internal fun AccountsScreenContent(
     val couldNotDeleteAccountMessage = stringResource(R.string.could_not_delete_account)
     val deleteAccountTransactionsConfirmTemplate = stringResource(R.string.delete_account_transactions_confirm)
 
-    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
-        modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { LargeScreenTopBar(stringResource(R.string.destination_accounts), scrollBehavior) },
+        contentWindowInsets = WindowInsets(0),
+        modifier = modifier,
+        // Bottom-bar destinations carry no title: the bar below already says where this is.
+        topBar = { ScreenTopBar(title = "") },
         
         floatingActionButton = {
             ScreenFab(
@@ -97,7 +91,7 @@ internal fun AccountsScreenContent(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.padding(padding).fillMaxWidth(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             // The rows of a type are a hair apart, the way a settings group is drawn; the space between
             // one type and the next comes from the header's own padding.
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -377,7 +371,7 @@ private fun AccountFormContent(
         YuukaTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = stringResource(R.string.label_logo_url), singleLine = true, field = logoField)
 
         // Always shown, not only once a logo is entered; it has no effect until the account has one.
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
             YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
         }
@@ -393,9 +387,9 @@ private fun AccountAdjustDialog(account: Account, submitting: Boolean, onSave: (
     val difference = targetMinor?.let { it - account.balance }
     val balanceField = form.field(
         "balance",
-        when {
-            targetMinor == null -> stringResource(R.string.error_balance_number)
-            targetMinor == account.balance -> stringResource(R.string.error_balance_unchanged)
+        when (targetMinor) {
+            null -> stringResource(R.string.error_balance_number)
+            account.balance -> stringResource(R.string.error_balance_unchanged)
             else -> null
         },
     )
