@@ -477,8 +477,10 @@ subcategories opens and closes them instead; its edit is behind the swipe.
 
 **The page is the window beside the rail, edge to edge.** There is no maximum width: a screen fills what
 the rail leaves, 16px in from each side, as it does on a tablet. What a screen pins while its list scrolls
-— the month switcher, on Transactions the search and the filter row — goes in a `TopBar`, which teleports
-it into the shell's sticky strip (`#top-bar` in `App.vue`) above the unsent-changes banner.
+— on Transactions the search and the filter row — goes in a `TopBar`, which teleports
+it into the shell's sticky strip (`#top-bar` in `App.vue`) above the unsent-changes banner. The month
+switcher is not one of them: it is ordinary page content at the top of Dashboard, Transactions and Budget
+(on Android, a row beneath the app bar), never inside the bar.
 
 **Settings and Save the Change are screens with no Save**, as on Android (`/settings` and
 `/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). Every choice

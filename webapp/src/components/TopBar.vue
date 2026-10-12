@@ -4,7 +4,7 @@
  * `Scaffold` does on Android. It is drawn in the shell's sticky strip (`#top-bar` in `App.vue`) rather than
  * in the page, so it sits above the unsent-changes banner and keeps its place between screens. A window
  * with a rail has no titled bar — the rail marks the destination — so this holds only what a screen pins
- * there itself: the month switcher, a search field.
+ * there itself: a search field.
  */
 </script>
 

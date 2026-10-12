@@ -207,10 +207,10 @@ async function remove(): Promise<void> {
 		<!-- What stays put while the list scrolls: the month, the search, and one row of filters, each opening
 		     a row of chips under it. The account button is only as wide as its label; the tag and category icons
 		     (each with a count of what is on) sit at the end. -->
-		<TopBar>
-			<MonthSwitcher v-model="month" />
+		<div class="px-4 pt-4"><MonthSwitcher v-model="month" /></div>
 
-			<label class="search-field mt-8">
+		<TopBar>
+			<label class="search-field">
 				<AppIcon :icon="SEARCH" />
 				<input v-model="search" type="search" :aria-label="t('transactions.search')" :placeholder="t('transactions.searchPlaceholder')" />
 				<button v-if="search" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @click="search = ''">

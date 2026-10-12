@@ -61,6 +61,7 @@ const { expanded: railExpanded } = useRail();
 const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
+const isTabDestination = computed(() => ['dashboard', 'transactions', 'accounts'].includes(route.name as string));
 const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
 
@@ -195,7 +196,7 @@ onBeforeUnmount(() => {
 
 		<!-- Phones only. With a rail the current destination is already marked, so a bar naming the
 		     screen would just repeat it; the heading below keeps the page titled for assistive tech. -->
-		<h1 v-if="shellShown" class="sr-only max-sm:hidden">{{ pageTitle }}</h1>
+		<h1 v-if="shellShown" class="sr-only" :class="{ 'max-sm:hidden': !isTabDestination }">{{ pageTitle }}</h1>
 
 		<header
 			v-if="shellShown"
@@ -211,7 +212,9 @@ onBeforeUnmount(() => {
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 
-				<h1 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ pageTitle }}</h1>
+				<!-- The three bottom-bar destinations carry no title: the bar below already names them. -->
+				<h1 v-if="!isTabDestination" class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ pageTitle }}</h1>
+				<div v-else class="flex-1" />
 
 				<div class="flex shrink-0 items-center">
 					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->

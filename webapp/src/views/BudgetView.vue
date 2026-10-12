@@ -6,7 +6,6 @@ import EmptyState from '@/components/EmptyState.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import StatCarousel, { type StatItem } from '@/components/StatCarousel.vue';
-import TopBar from '@/components/TopBar.vue';
 import { currencySymbol, parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
@@ -161,7 +160,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 <template>
 	<div class="flex flex-col gap-4 p-4">
-		<TopBar><MonthSwitcher v-model="month" /></TopBar>
+		<MonthSwitcher v-model="month" />
 
 		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 
