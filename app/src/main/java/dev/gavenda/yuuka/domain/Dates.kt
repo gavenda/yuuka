@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.domain
 
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -42,3 +43,6 @@ fun formatTime(date: String): String? {
     val local = LocalTime.parse(time)
     return local.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
 }
+
+/** Yuuka's birthday, 14 March. */
+fun isYuukaBirthday(date: LocalDate = LocalDate.now()): Boolean = date.month == Month.MARCH && date.dayOfMonth == 14

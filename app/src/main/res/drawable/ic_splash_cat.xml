@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   The cat print on the launch screen (CatIcon, ui/common/CatPattern.kt), drawing itself in: the outline
+   runs round the head, then the head fills in with its eyes and ears cut out. The launch screen shows only
+   the middle two thirds of what it is given, so the mark is about 110dp in the middle of a 288dp canvas.
+   The system gives an animated icon at least 400ms on screen, and this one is done in 500.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="288dp"
+            android:height="288dp"
+            android:viewportWidth="288"
+            android:viewportHeight="288">
+            <group
+                android:translateX="89"
+                android:translateY="100"
+                android:scaleX="1.1"
+                android:scaleY="1.1">
+                <path
+                    android:name="outline"
+                    android:pathData="M14,36 L13,14 Q13,6 21,10 L38,20 Q50,16 62,20 L79,10 Q87,6 87,14 L86,36 C100,46 98,74 50,74 C2,74 0,46 14,36 Z"
+                    android:strokeColor="@color/splash_cat"
+                    android:strokeLineCap="round"
+                    android:strokeLineJoin="round"
+                    android:strokeWidth="3.5"
+                    android:trimPathEnd="0" />
+                <path
+                    android:name="body"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/splash_cat"
+                    android:pathData="M14,36 L13,14 Q13,6 21,10 L38,20 Q50,16 62,20 L79,10 Q87,6 87,14 L86,36 C100,46 98,74 50,74 C2,74 0,46 14,36 Z M32,52 a4,5 0 1 0 8,0 a4,5 0 1 0 -8,0 Z M60,52 a4,5 0 1 0 8,0 a4,5 0 1 0 -8,0 Z M20,18 L21,31 L31,24 Z M80,18 L69,24 L79,31 Z" />
+            </group>
+        </vector>
+    </aapt:attr>
+    <target android:name="outline">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="350"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1" />
+        </aapt:attr>
+    </target>
+    <target android:name="body">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="150"
+                android:propertyName="fillAlpha"
+                android:startOffset="300"
+                android:valueFrom="0"
+                android:valueTo="1" />
+        </aapt:attr>
+    </target>
+</animated-vector>

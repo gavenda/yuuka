@@ -10,7 +10,7 @@ export default {
 	back: 'Back',
 	reload: 'Reload',
 	tryNow: 'Try now',
-	fetching: 'Fetching…',
+	fetching: 'Calculating…',
 	// A confirmation's buttons answer its question, so each reads on its own.
 	yesDelete: 'Yes, delete it',
 	noGoBack: 'No, go back',
@@ -46,9 +46,9 @@ export default {
 	cashflow: 'Cashflow',
 	spent: 'Spent',
 	planned: 'Planned',
-	netWorth: 'Total hoard',
-	errorGeneric: 'Oops, something got knocked off the shelf.',
-	couldNotSave: "Couldn't save that. The cat sat on the keyboard, try again?",
+	netWorth: 'Net worth',
+	errorGeneric: "Something doesn't add up. Try that again?",
+	couldNotSave: "Couldn't save that. Give it another try?",
 	showAmounts: 'Show amounts',
 	hideAmounts: 'Hide amounts',
 	months: {

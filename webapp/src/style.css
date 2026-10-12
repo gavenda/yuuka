@@ -9,14 +9,14 @@
 	--color-on-primary: #343f61;
 	--color-primary-container: #465174;
 	--color-on-primary-container: #dce2ff;
-	--color-secondary: #c1c6dd;
-	--color-on-secondary: #3a4052;
-	--color-secondary-container: #353b4d;
-	--color-on-secondary-container: #babed5;
-	--color-tertiary: #f3deff;
-	--color-on-tertiary: #604b72;
-	--color-tertiary-container: #e9cdfd;
-	--color-on-tertiary-container: #574269;
+	--color-secondary: #accae6;
+	--color-on-secondary: #25435a;
+	--color-secondary-container: #203e55;
+	--color-on-secondary-container: #a5c3df;
+	--color-tertiary: #ffcce5;
+	--color-on-tertiary: #6c3e59;
+	--color-tertiary-container: #f8badb;
+	--color-on-tertiary-container: #623550;
 	--color-error: #fa746f;
 	--color-on-error: #490006;
 	--color-error-container: #871f21;
@@ -42,9 +42,11 @@
 }
 
 /* The Android app's Material 3 scheme, role for role: what `ui/theme/Theme.kt` builds at runtime with
-   MaterialKolor from the brand seed #415BA3 (`ui/theme/Color.kt`) — tonal spot, the 2026 colour spec,
-   default contrast. The values are that generator's output, not picked by eye: regenerate the whole
-   set from a new seed rather than editing single roles, and keep the two in step. The `.dark` block
+   MaterialKolor from the brand seeds in `ui/theme/Color.kt` — #415BA3 for primary and the neutrals,
+   and two sampled from Yuuka's clothes, the pyjamas' blue #9EBCD8 for secondary and the slipper bows'
+   pink #EDB0D0 for tertiary — tonal spot, the 2026 colour spec, default contrast. The values are that
+   generator's output, not picked by eye: regenerate the whole set from a new seed rather than editing
+   single roles, and keep the two in step. The `.dark` block
    above replaces the same variables, so a utility such as `bg-surface` follows the theme with no
    `dark:` variant. Figures follow `MoneyText.kt`: an inflow is `primary`, a transfer `secondary`,
    below zero is `error` where that is worth noticing, and `tertiary` is kept for what is worth a
@@ -54,14 +56,14 @@
 	--color-on-primary: #f9f8ff;
 	--color-primary-container: #bbcaff;
 	--color-on-primary-container: #33426e;
-	--color-secondary: #595e72;
-	--color-on-secondary: #f9f8ff;
-	--color-secondary-container: #dde1f9;
-	--color-on-secondary-container: #4c5164;
-	--color-tertiary: #6c567f;
-	--color-on-tertiary: #fff6fe;
-	--color-tertiary-container: #e9cdfd;
-	--color-on-tertiary-container: #574269;
+	--color-secondary: #45627b;
+	--color-on-secondary: #f6f9ff;
+	--color-secondary-container: #cce5ff;
+	--color-on-secondary-container: #37556d;
+	--color-tertiary: #81506c;
+	--color-on-tertiary: #fff7f8;
+	--color-tertiary-container: #f8badb;
+	--color-on-tertiary-container: #623550;
 	--color-error: #a83836;
 	--color-on-error: #fff7f6;
 	--color-error-container: #fa746f;
@@ -568,9 +570,11 @@
 
 	/*
 	 * A connected button group (`ConnectedButtonGroup.kt`): toggle buttons two dp apart, pill-ended at the
-	 * outside with small inner corners. The selected one fills with the primary colour and rounds off
-	 * completely, so the choice reads by shape as well as colour. Its "full" radius is half the height
-	 * rather than a huge value, so the corners can animate between the two.
+	 * outside with small inner corners. A button's place in the row gives it its colour — the first is
+	 * primary, the second secondary, the third tertiary, and round again — resting in that role's
+	 * container and filling with the role itself when selected, when it also rounds off completely, so
+	 * the choice reads by shape as well as colour. Its "full" radius is half the height rather than a
+	 * huge value, so the corners can animate between the two.
 	 */
 	.connected-group {
 		--button-full: 1.25rem;
@@ -579,12 +583,37 @@
 	}
 
 	.connected-group > button {
-		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center bg-surface-container px-4 text-on-surface-variant;
+		--role: var(--color-primary);
+		--on-role: var(--color-on-primary);
+		--role-container: var(--color-primary-container);
+		--on-role-container: var(--color-on-primary-container);
+		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-2 px-4;
 		border-radius: var(--button-inner);
+		background-color: var(--role-container);
+		color: var(--on-role-container);
 		transition:
 			border-radius 250ms var(--ease-standard),
 			background-color 200ms var(--ease-standard),
 			color 200ms var(--ease-standard);
+	}
+
+	.connected-group > button:nth-child(3n + 2) {
+		--role: var(--color-secondary);
+		--on-role: var(--color-on-secondary);
+		--role-container: var(--color-secondary-container);
+		--on-role-container: var(--color-on-secondary-container);
+	}
+
+	.connected-group > button:nth-child(3n) {
+		--role: var(--color-tertiary);
+		--on-role: var(--color-on-tertiary);
+		--role-container: var(--color-tertiary-container);
+		--on-role-container: var(--color-on-tertiary-container);
+	}
+
+	/* An option that is its icon alone is only as wide as that takes; the rest share what is left. */
+	.connected-group > button[data-icon-only] {
+		@apply flex-none;
 	}
 
 	.connected-group > button:first-child {
@@ -598,8 +627,9 @@
 	}
 
 	.connected-group > button[aria-checked='true'] {
-		@apply bg-primary text-on-primary;
 		border-radius: var(--button-full);
+		background-color: var(--role);
+		color: var(--on-role);
 	}
 
 	.connected-group > button:disabled {

@@ -311,13 +311,24 @@ wrote for a caller is not shown in a dialog. Both apps use the same words, and a
 the same shape. A dialog that is fields or a list rather than a question — adjusting a balance, naming an
 account type, a selection — keeps a start-aligned headline, no icon, and Cancel.
 
-- **The cat print is the app's one piece of decoration**: It is the print on the pyjamas Yuuka wears in the
-logo, redrawn as a vector so it takes the theme's colours (`ui/common/CatPattern.kt` on Android; `lib/cat.ts`,
-`CatPattern.vue` and `CatMark.vue` on the web — the same path strings in both). It goes where a screen has
-nothing else to show: behind the sign-in and loading screens, as a single mark in an empty state, small under the last transaction once
-there are no more to load, and as the sign-out dialog's icon. In daily use it is only a faint presence — a strip behind the open rail's name, the
-account card at the rail's foot, and a watermark in the corner of the card a screen leads with: net worth on the dashboard, Planned on Budget. It never goes
-behind a list, a form, a chart or a column of amounts.
+## Brand
+
+The app is Hayase Yuuka, in her pyjamas, and what makes it look and sound like her is written down in
+[BRANDING.md](BRANDING.md): the three colours and where each goes, her voice, her portraits and the moods they
+come in, About, the cat print, the icons, and the script that cuts every image. Read it before a change that
+touches a colour, a line of copy with any character in it, her face or an icon, and update it in the same
+change. What it asks of any screen:
+
+- **The theme is the brand's and nobody's wallpaper**: three seeds in `ui/theme/Color.kt`, the web's roles
+generated from them. There is no dynamic colour, and a setting for it is not to come back.
+- **A connected button group takes its colours from position**: primary, secondary, tertiary, and round
+again. `ConnectedButtonGroup` does it in both apps; a caller never passes a colour.
+- **Copy with any character in it is Yuuka's**: "I", to "you", never "Sensei", and no cat puns. Labels,
+validation messages and confirmations stay plain.
+- **Her face is for a screen with nothing to show, the end of the transaction list, About, and the sign-out dialog**: through
+`YuukaPortrait`, which `EmptyState` requires a mood for. Never beside a figure, in a form, a chart or a dialog.
+- **Every image comes from `scripts/brand_assets.py`**: the source art in `branding/` is deliberately not in
+the repository, and nothing the script writes is edited by hand.
 
 ## Sync
 

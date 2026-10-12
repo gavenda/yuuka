@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -12,7 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 
 /** One entry of a rail FAB's menu, for a screen whose leading action is really a few. */
 class FabAction(
@@ -28,7 +29,7 @@ class FabAction(
  */
 class FabEntry(
     val label: String,
-    val icon: ImageVector,
+    @DrawableRes val icon: Int,
     val onClick: () -> Unit,
     val enabled: Boolean = true,
     val busy: Boolean = false,
@@ -73,13 +74,13 @@ val LocalRailFabHost = staticCompositionLocalOf<RailFabHost?> { null }
 @Composable
 fun ScreenFab(
     label: String,
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     onClick: () -> Unit,
     actions: List<FabAction> = emptyList(),
     phoneFab: @Composable () -> Unit = {
         ExtendedFloatingActionButton(
             onClick = onClick,
-            icon = { Icon(icon, contentDescription = null) },
+            icon = { Icon(painterResource(icon), contentDescription = null) },
             text = { Text(label) },
         )
     },

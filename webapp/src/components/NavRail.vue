@@ -3,7 +3,18 @@ import CatPattern from '@/components/CatPattern.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import RailItem from '@/components/RailItem.vue';
 import { currentFab, type FabAction, type FabEntry } from '@/lib/fab';
-import { ATTACH_MONEY, EVENT_REPEAT, LOGOUT, MENU, MENU_OPEN, MONEY_OFF, SAVINGS, SETTINGS, type IconPath } from '@/lib/icons';
+import {
+	ATTACH_MONEY,
+	EVENT_REPEAT,
+	EVENT_REPEAT_FILL,
+	LOGOUT,
+	MENU,
+	MENU_OPEN,
+	MONEY_OFF,
+	SAVINGS,
+	SETTINGS,
+	type IconPath,
+} from '@/lib/icons';
 import { useAmountVisibility } from '@/lib/privacy';
 import { railPushesContent, useRail } from '@/lib/rail';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
@@ -14,6 +25,7 @@ export interface RailLink {
 	to: string;
 	label: string;
 	icon: IconPath;
+	iconSelected?: IconPath;
 }
 
 const props = defineProps<{
@@ -144,7 +156,7 @@ const showsAmounts = computed(() => route.meta.amountFree !== true);
  * screens, as in the Android drawer, and Settings is its own screen too.
  */
 const ownMoreLinks = computed<RailLink[]>(() => [
-	{ to: '/subscriptions', label: t('nav.subscriptions'), icon: EVENT_REPEAT },
+	{ to: '/subscriptions', label: t('nav.subscriptions'), icon: EVENT_REPEAT, iconSelected: EVENT_REPEAT_FILL },
 	{ to: '/save-the-change', label: t('nav.saveTheChange'), icon: SAVINGS },
 	{ to: '/settings', label: t('nav.settings'), icon: SETTINGS },
 ]);
@@ -289,6 +301,7 @@ onBeforeUnmount(() => {
 						:to="link.to"
 						:label="link.label"
 						:icon="link.icon"
+						:icon-selected="link.iconSelected"
 						:expanded="expanded"
 						@click="afterChoice"
 					/>
@@ -304,6 +317,7 @@ onBeforeUnmount(() => {
 								:to="link.to"
 								:label="link.label"
 								:icon="link.icon"
+								:icon-selected="link.iconSelected"
 								expanded
 								@click="afterChoice"
 							/>

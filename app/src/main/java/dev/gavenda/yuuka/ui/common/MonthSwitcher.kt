@@ -1,12 +1,10 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,7 +51,7 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         ) {
             IconButton(onClick = { onMonthChange(addMonths(month, -1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.cd_previous_month))
+                Icon(painterResource(R.drawable.keyboard_arrow_left_48px), contentDescription = stringResource(R.string.cd_previous_month))
             }
 
             Text(
@@ -68,7 +66,7 @@ fun MonthSwitcher(month: String, onMonthChange: (String) -> Unit, modifier: Modi
             )
 
             IconButton(onClick = { onMonthChange(addMonths(month, 1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.cd_next_month))
+                Icon(painterResource(R.drawable.keyboard_arrow_right_48px), contentDescription = stringResource(R.string.cd_next_month))
             }
 
             if (!isCurrent) {

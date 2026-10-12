@@ -7,6 +7,8 @@ defineProps<{
 	to: string;
 	label: string;
 	icon: IconPath;
+	/** The filled glyph worn while it is current. */
+	iconSelected?: IconPath;
 }>();
 </script>
 
@@ -23,7 +25,7 @@ defineProps<{
 				class="grid h-8 w-16 place-items-center rounded-full transition-colors"
 				:class="isActive ? 'bg-secondary-container text-on-secondary-container' : 'group-hover:bg-on-surface/8'"
 			>
-				<AppIcon :icon="icon" />
+				<AppIcon :icon="isActive && iconSelected ? iconSelected : icon" />
 			</span>
 			<span class="type-label-medium" :class="isActive ? 'text-on-surface' : ''">{{ label }}</span>
 		</a>

@@ -4,8 +4,24 @@ import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FormDialog from '@/components/FormDialog.vue';
 import SelectionDialog from '@/components/SelectionDialog.vue';
 import SelectionItem from '@/components/SelectionItem.vue';
+import SpeechBubble from '@/components/SpeechBubble.vue';
+import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { ApiError } from '@/lib/api';
-import { ACCOUNT_CIRCLE, ATTACH_MONEY, CLOSE, CONTRACT_EDIT, DARK_MODE, INFO, NOTE_ALT, SEARCH, SUPERVISOR_ACCOUNT } from '@/lib/icons';
+import { isYuukaBirthday } from '@/lib/dates';
+import {
+	ACCOUNT_CIRCLE,
+	ATTACH_MONEY,
+	BRIGHTNESS_AUTO,
+	CLOSE,
+	CONTRACT_EDIT,
+	DARK_MODE,
+	LIGHT_MODE,
+	NOTE_ALT,
+	PALETTE,
+	SEARCH,
+	SUPERVISOR_ACCOUNT,
+	type IconPath,
+} from '@/lib/icons';
 import { currencyName, currencySymbol } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
 import { useTheme, type ThemeMode } from '@/lib/theme';
@@ -20,11 +36,21 @@ const budget = useBudgetStore();
 const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
 const appVersion = __APP_VERSION__;
+const birthday = isYuukaBirthday();
 
-const THEME_MODES: { value: ThemeMode; label: string }[] = [
-	{ value: 'system', label: t('settings.themeSystem') },
-	{ value: 'light', label: t('settings.themeLight') },
-	{ value: 'dark', label: t('settings.themeDark') },
+/** The line saying who keeps the books, split around her name wherever a translation puts it. */
+const keeper = (() => {
+	const name = t('settings.characterName');
+	const line = t('settings.aboutKeeper', { name });
+	const at = line.indexOf(name);
+	return at < 0 ? { before: line, name: '', after: '' } : { before: line.slice(0, at), name, after: line.slice(at + name.length) };
+})();
+
+// Following the system is the icon alone; light and dark say so beside theirs.
+const THEME_MODES: { value: ThemeMode; label: string; icon: IconPath; iconOnly?: boolean }[] = [
+	{ value: 'system', label: t('settings.themeSystem'), icon: BRIGHTNESS_AUTO, iconOnly: true },
+	{ value: 'light', label: t('settings.themeLight'), icon: LIGHT_MODE },
+	{ value: 'dark', label: t('settings.themeDark'), icon: DARK_MODE },
 ];
 
 const BUDGET_MODES: { value: BudgetMode; label: string }[] = [
@@ -128,15 +154,15 @@ onMounted(() => ledger.load());
 			<div class="settings-group">
 				<div class="settings-row flex-col items-stretch">
 					<div class="flex items-center gap-4">
-						<AppIcon :icon="DARK_MODE" />
+						<AppIcon :icon="PALETTE" />
 						<span class="min-w-0 flex-1">
-							<span class="type-title-medium block">{{ t('settings.appTheme') }}</span>
-							<span class="type-body-medium block">{{ t('settings.appThemeHint') }}</span>
+							<span class="type-title-medium block">{{ t('settings.displayMode') }}</span>
+							<span class="type-body-medium block">{{ t('settings.displayModeHint') }}</span>
 						</span>
 					</div>
 					<ConnectedButtonGroup
 						:model-value="themeMode"
-						:label="t('settings.appTheme')"
+						:label="t('settings.displayMode')"
 						:options="THEME_MODES"
 						@update:model-value="setThemeMode"
 					/>
@@ -192,18 +218,26 @@ onMounted(() => ledger.load());
 			</div>
 		</section>
 
-		<section class="flex flex-col gap-4">
-			<h2 class="settings-header">{{ t('settings.about') }}</h2>
-			<div class="settings-group">
-				<div class="settings-row">
-					<AppIcon :icon="INFO" />
-					<span class="min-w-0 flex-1">
-						<span class="type-title-medium block">{{ t('settings.version') }}</span>
-						<span class="type-body-medium block">{{ appVersion }}</span>
-					</span>
+		<!-- About: Yuuka saying what she is here for, over the app's name and version, then who she is and who
+		     drew her. On her birthday she says so instead. It ends the screen and is no setting, so it has no
+		     card and no heading. -->
+		<footer class="flex flex-col items-center gap-2 px-2 py-4 text-center">
+			<div class="flex items-end gap-1">
+				<YuukaPortrait mood="gentle" class="w-24!" />
+				<!-- As tall as the badge she is in, so the bubble's tail is level with her face, not her halo. -->
+				<div class="flex min-h-24 min-w-0 items-center">
+					<SpeechBubble>{{ birthday ? t('settings.aboutBirthday') : t('settings.aboutLine') }}</SpeechBubble>
 				</div>
 			</div>
-		</section>
+			<p class="type-title-medium">{{ t('settings.aboutVersion', { version: appVersion }) }}</p>
+			<!-- Two plain lines in the third person, as they are about her and not from her; her name alone is
+			     picked out. The credit is the quieter of the two. -->
+			<p class="type-body-small text-on-surface-variant">
+				{{ keeper.before }}<span class="text-primary">{{ keeper.name }}</span
+				>{{ keeper.after }}
+			</p>
+			<p class="type-label-small text-outline">{{ t('settings.aboutCredit') }}</p>
+		</footer>
 
 		<!-- Every currency there is, behind a search. Its first row is drawn like a search bar. -->
 		<FormDialog

@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import CatMark from '@/components/CatMark.vue';
+import YuukaPortrait from '@/components/YuukaPortrait.vue';
+import type { YuukaMood } from '@/lib/yuuka';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 /**
- * What a screen says when it has nothing to list (`EmptyState.kt`): the cat, a line or two, and room for an
- * action, straight on the page. With `fill`, where it is all the screen holds, it takes the height left under
- * whatever is above it — less the room the page keeps clear beneath — and sits in the middle of that, as
- * `fillParentMaxHeight()` does on Android.
+ * What a screen says when it has nothing to list (`EmptyState.kt`): Yuuka, in the `mood` the news puts her in, a
+ * line or two in her voice, and room for an action, straight on the page. With `fill`, where it is all the screen
+ * holds, it takes the height left under whatever is above it — less the room the page keeps clear beneath — and
+ * sits in the middle of that, as `fillParentMaxHeight()` does on Android.
  */
-const props = defineProps<{ title: string; description?: string; fill?: boolean }>();
+const props = defineProps<{ title: string; mood: YuukaMood; description?: string; fill?: boolean }>();
 
 const root = ref<HTMLElement | null>(null);
 const minHeight = ref<string>();
@@ -36,7 +37,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', measure));
 
 <template>
 	<div ref="root" class="flex flex-col items-center justify-center gap-1 px-6 py-8 text-center text-on-surface" :style="{ minHeight }">
-		<CatMark class="mb-3" />
+		<YuukaPortrait :mood="mood" class="mb-3" />
 		<p class="type-title-small">{{ title }}</p>
 		<p v-if="description" class="type-body-small">{{ description }}</p>
 		<div v-if="$slots.default" class="pt-3"><slot /></div>

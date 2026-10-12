@@ -78,10 +78,11 @@ stale-chunk reload above is still needed — it covers a tab whose chunk was
 deleted by a deploy before its worker ever updated. Do not put a long
 `Cache-Control` on `sw.js`: Static Assets serves it with `max-age=0,
 must-revalidate`, which is what lets a new worker be noticed. The icons are the
-Android launcher art: `pwa-192.png` and `pwa-512.png` are the same 432px crop of
-the adaptive foreground over `#2A78D6` that `yuuka.png` is, and
-`pwa-maskable-512.png` is the whole 648px canvas, since Android's safe zone is
-stricter than a maskable icon's.
+Android launcher art, written with it by `scripts/brand_assets.py` at the
+repository's root: `pwa-192.png` and `pwa-512.png` are the same 432px crop of
+the adaptive foreground over `#9EBCD8` (the brand's secondary seed) that
+`yuuka.png` is, and `pwa-maskable-512.png` is the whole 648px canvas, since
+Android's safe zone is stricter than a maskable icon's.
 
 **The local copy is a cache, and losing it costs nothing.** `lib/cache.ts` keeps
 it in `localStorage` under `yuuka.cache.*`, and every function there is
@@ -398,15 +399,16 @@ out, coloured and worded as its Compose screen is in a window with a rail: the s
 rows, cards and dialogs, the same copy. The Compose source is the specification — when a screen
 changes there, change its view here to match, and when in doubt read the `.kt` file rather than guess. A
 view's name says which: `DashboardView.vue` is `DashboardScreen.kt`, and so on. What a browser has no
-equivalent of is left out rather than faked (dynamic colour from the wallpaper), and what only a pointer
-needs is added quietly (a hover wash, focus rings, Tab reaching a swiped row's actions).
+equivalent of is left out rather than faked, and what only a pointer needs is added quietly (a hover wash,
+focus rings, Tab reaching a swiped row's actions).
 
 **The theme is the Android app's Material 3 scheme.** `src/style.css` declares every role as a Tailwind
 colour (`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`, `text-error`,
 `text-secondary`, …), with the dark values replacing the same variables under `.dark`. The values are what
-`ui/theme/Theme.kt` builds at runtime — MaterialKolor, tonal spot, the 2026 colour spec, from the seed in
-`ui/theme/Color.kt` — so they are generated, never picked: a new seed means regenerating both blocks from
-the same library and checking them against a screenshot. Use the roles, never the palette scales
+`ui/theme/Theme.kt` builds at runtime — MaterialKolor, tonal spot, the 2026 colour spec, from the three seeds
+in `ui/theme/Color.kt`: the brand's blue, and for secondary and tertiary the two sampled from Yuuka's clothes
+(see [BRANDING.md](../BRANDING.md)) — so they are generated, never picked: a new seed means regenerating both
+blocks from the same library and checking them against a screenshot. Use the roles, never the palette scales
 (`slate-*`, `blue-*`…), and never a `dark:` variant for colour: the role already follows the theme.
 Figures follow `MoneyText.kt` through `MoneyText.vue`'s `tone`: an inflow is `primary`, a transfer
 `secondary`, below zero is `error` only where that is worth noticing (`signed-alert`: a balance, a
@@ -415,8 +417,8 @@ for what is worth a glance without being either (a budget near its limit, a day 
 Almost all text is `on-surface`, as on Android; `on-surface-variant` is for what Material itself draws
 that way (a resting label, a placeholder, supporting text in a list item, the rail's unselected items).
 The theme is a local preference set from Settings — System, Light or Dark (`lib/theme.ts`) — and
-`index.html` applies it before first paint. Dynamic colour is an Android 12+ feature, so the web app
-always uses the seed's scheme. The typeface is Google Sans Flex, the Material 3
+`index.html` applies it before first paint. Neither app has dynamic colour: the scheme is the brand's
+on every device. The typeface is Google Sans Flex, the Material 3
 Expressive one, bundled with the build (`@fontsource-variable/google-sans-flex`) so it is in the service worker's precache with the rest of the shell.
 
 **A category's or tag's colour is drawn harmonised.** What is stored is the colour as it was picked; a
@@ -451,7 +453,10 @@ classes, not one-offs:
   (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in.
 
 A few more components carry markup a class can't: `ConnectedButtonGroup` (Material's connected button
-group: choose one of a few), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
+group: choose one of a few, each button coloured by its place in the row — primary, secondary, tertiary —
+which `.connected-group` does, not the caller; an option may lead its label with an icon, or with `iconOnly`
+be the icon alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
+`EmptyState` leads with — see [BRANDING.md](../BRANDING.md)), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
 sideways when the window is too narrow for it), `MonthSwitcher` (with its month picker), `SwipeReveal`
 and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
 filled set Android uses, extracted from Material's own SVGs rather than redrawn.

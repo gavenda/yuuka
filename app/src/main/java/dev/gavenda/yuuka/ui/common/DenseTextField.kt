@@ -1,9 +1,8 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -64,7 +63,7 @@ fun DenseOutlinedTextField(
                 } else if (onClear != null && value.isNotEmpty()) {
                     {
                         IconButton(onClick = onClear, enabled = enabled) {
-                            Icon(Icons.Filled.Cancel, contentDescription = stringResource(R.string.cd_clear))
+                            Icon(painterResource(R.drawable.cancel_48px), contentDescription = stringResource(R.string.cd_clear))
                         }
                     }
                 } else {

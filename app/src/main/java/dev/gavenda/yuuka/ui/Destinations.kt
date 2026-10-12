@@ -1,9 +1,7 @@
 package dev.gavenda.yuuka.ui
 
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 import dev.gavenda.yuuka.R
 
 /**
@@ -12,14 +10,14 @@ import dev.gavenda.yuuka.R
  * bottom-nav tabs; `YuukaApp` puts the rest in the drawer. A wide window's rail lists the same three as
  * the bottom bar ([RAIL_DESTINATIONS]) and keeps the rest under "More" ([RAIL_MORE_DESTINATIONS]).
  */
-enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
-    DASHBOARD("dashboard", R.string.destination_dashboard, Icons.Filled.Dashboard),
-    TRANSACTIONS("transactions", R.string.destination_transactions, Icons.Filled.Receipt),
-    BUDGET("budget", R.string.destination_budget, Icons.Filled.PieChart),
-    ACCOUNTS("accounts", R.string.destination_accounts, Icons.Filled.AccountBalanceWallet),
-    CATEGORIES("categories", R.string.destination_categories, Icons.Filled.Category),
-    TAGS("tags", R.string.destination_tags, Icons.Filled.Sell),
-    SUBSCRIPTIONS("subscriptions", R.string.destination_subscriptions, Icons.Filled.EventRepeat),
+enum class YuukaDestination(val route: String, @StringRes val labelRes: Int, @DrawableRes val icon: Int, @DrawableRes val iconSelected: Int) {
+    DASHBOARD("dashboard", R.string.destination_dashboard, R.drawable.dashboard_48px, R.drawable.dashboard_fill_48px),
+    TRANSACTIONS("transactions", R.string.destination_transactions, R.drawable.receipt_48px, R.drawable.receipt_fill_48px),
+    BUDGET("budget", R.string.destination_budget, R.drawable.pie_chart_48px, R.drawable.pie_chart_fill_48px),
+    ACCOUNTS("accounts", R.string.destination_accounts, R.drawable.account_balance_wallet_48px, R.drawable.account_balance_wallet_fill_48px),
+    CATEGORIES("categories", R.string.destination_categories, R.drawable.category_48px, R.drawable.category_fill_48px),
+    TAGS("tags", R.string.destination_tags, R.drawable.sell_48px, R.drawable.sell_fill_48px),
+    SUBSCRIPTIONS("subscriptions", R.string.destination_subscriptions, R.drawable.event_repeat_48px, R.drawable.event_repeat_fill_48px),
 }
 
 /** The rail's row of daily destinations: the ones the phone's bottom bar holds. */

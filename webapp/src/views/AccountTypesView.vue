@@ -171,7 +171,7 @@ onMounted(() => ledger.load());
 
 			<template #actions>
 				<button type="button" class="btn-text" :disabled="busy" @click="nameOpen = false">{{ t('common.cancel') }}</button>
-				<button type="submit" form="account-type-form" class="btn-text" :disabled="busy || !validation.isValid.value">
+				<button type="submit" form="account-type-form" class="btn-primary" :disabled="busy || !validation.isValid.value">
 					{{ renaming ? t('common.save') : t('common.add') }}
 				</button>
 			</template>

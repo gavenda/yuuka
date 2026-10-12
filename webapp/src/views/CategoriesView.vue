@@ -175,7 +175,12 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="flex flex-col gap-4 px-4 pt-4 pb-24">
-		<EmptyState v-if="!ledger.categories.length" :title="t('categories.emptyTitle')" :description="t('categories.emptyDescription')" />
+		<EmptyState
+			v-if="!ledger.categories.length"
+			mood="neutral"
+			:title="t('categories.emptyTitle')"
+			:description="t('categories.emptyDescription')"
+		/>
 
 		<!-- A section is one block of rows under its heading, as the settings groups are drawn. -->
 		<section v-for="section in sections" :key="section.key" class="flex flex-col gap-4">

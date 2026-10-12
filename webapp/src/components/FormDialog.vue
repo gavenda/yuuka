@@ -82,7 +82,9 @@ useModal(() => props.open, close, panel);
 							<AppIcon :icon="CLOSE" />
 						</button>
 						<h2 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ title }}</h2>
-						<button v-if="save" type="submit" class="btn-text mr-2" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
+						<button v-if="save" type="submit" class="btn-primary mr-2" :disabled="!saveEnabled || submitting">
+							{{ t('common.save') }}
+						</button>
 					</header>
 
 					<h2 class="type-headline-small flex-none px-6 pt-6 pb-4 text-on-surface max-sm:hidden">{{ title }}</h2>
@@ -93,7 +95,7 @@ useModal(() => props.open, close, panel);
 						<button type="button" class="btn-text" :disabled="submitting" @click="close">
 							{{ save ? t('common.cancel') : t('common.close') }}
 						</button>
-						<button v-if="save" type="submit" class="btn-text" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
+						<button v-if="save" type="submit" class="btn-primary" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
 					</footer>
 				</form>
 			</div>
@@ -104,7 +106,7 @@ useModal(() => props.open, close, panel);
 		{{ t('form.discardBody') }}
 		<template #actions>
 			<button type="button" class="btn-text" @click="confirmingDiscard = false">{{ t('common.noKeepEditing') }}</button>
-			<button type="button" class="btn-text text-error" @click="discard">{{ t('common.yesDiscard') }}</button>
+			<button type="button" class="btn-danger" @click="discard">{{ t('common.yesDiscard') }}</button>
 		</template>
 	</AlertDialog>
 </template>

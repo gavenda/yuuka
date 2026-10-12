@@ -1,5 +1,17 @@
 package dev.gavenda.yuuka.ui
 
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import dev.gavenda.yuuka.ui.common.CatIcon
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.slideInHorizontally
@@ -7,12 +19,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -41,7 +49,8 @@ import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
 import dev.gavenda.yuuka.ui.categories.CategoriesScreen
 import dev.gavenda.yuuka.ui.common.AppBarShell
-import dev.gavenda.yuuka.ui.common.CatIcon
+import dev.gavenda.yuuka.ui.common.YuukaMood
+import dev.gavenda.yuuka.ui.common.YuukaPortrait
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHost
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHostState
 import dev.gavenda.yuuka.ui.common.LocalAppBarShell
@@ -214,11 +223,39 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
             // draws its topBar after the body, so an indicator nested in the body would render behind
             // the screen's app bar whenever the two overlap.
             indicator = {
-                PullToRefreshDefaults.LoadingIndicator(
-                    state = pullToRefreshState,
-                    isRefreshing = isSyncing,
-                    modifier = Modifier.align(Alignment.TopCenter),
+                // The cat print as the indicator: it slides down and fades in as the pull grows, then
+                // turns while the sync runs.
+                val turn by rememberInfiniteTransition(label = "refresh").animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing)),
+                    label = "turn",
                 )
+                val fraction = pullToRefreshState.distanceFraction
+                if (fraction > 0f || isSyncing) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer {
+                                val shown = if (isSyncing) 1f else fraction.coerceIn(0f, 1f)
+                                translationY = shown * 72.dp.toPx() - size.height
+                                alpha = shown
+                            },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shadowElevation = 6.dp,
+                    ) {
+                        Icon(
+                            CatIcon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .size(28.dp)
+                                .graphicsLayer { rotationZ = if (isSyncing) turn else fraction * 180f },
+                        )
+                    }
+                }
             },
         ) {
             Scaffold(
@@ -238,7 +275,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             bottomNavDestinations.forEach { destination ->
                                 NavigationBarItem(
                                     label = { Text(stringResource(destination.labelRes)) },
-                                    icon = { Icon(destination.icon, contentDescription = null) },
+                                    icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
                                     selected = destination == currentDestination,
                                     onClick = { navigateToTopLevel(destination.route) },
                                 )
@@ -370,7 +407,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             drawerDestinations.forEach { destination ->
                                 NavigationDrawerItem(
                                     label = { Text(stringResource(destination.labelRes)) },
-                                    icon = { Icon(destination.icon, contentDescription = null) },
+                                    icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
                                     selected = destination == currentDestination,
                                     onClick = {
                                         navigateToTopLevel(destination.route)
@@ -383,7 +420,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             // it's a ledger concern, not app configuration.
                             NavigationDrawerItem(
                                 label = { Text(saveTheChangeLabel) },
-                                icon = { Icon(Icons.Filled.Savings, contentDescription = null) },
+                                icon = { Icon(painterResource(R.drawable.savings_48px), contentDescription = null) },
                                 selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
                                 onClick = {
                                     navigateToDetail(SAVE_THE_CHANGE_ROUTE)
@@ -394,7 +431,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         }
                         NavigationDrawerItem(
                             label = { Text(settingsLabel) },
-                            icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            icon = { Icon(painterResource(R.drawable.settings_48px), contentDescription = null) },
                             selected = isSettingsRoute(currentRoute),
                             onClick = {
                                 navigateToDetail(SETTINGS_ROUTE)
@@ -404,7 +441,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                         )
                         NavigationDrawerItem(
                             label = { Text(stringResource(R.string.action_sign_out)) },
-                            icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
+                            icon = { Icon(painterResource(R.drawable.logout_48px), contentDescription = null) },
                             selected = false,
                             onClick = {
                                 scope.launch { drawerState.close() }
@@ -425,8 +462,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
             val losesWork = unsentChanges > 0
             AlertDialog(
                 onDismissRequest = { confirmingSignOut = false },
-                icon = { Icon(CatIcon, contentDescription = null) },
-                iconContentColor = if (losesWork) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                icon = { YuukaPortrait(YuukaMood.Uneasy, width = 144.dp) },
                 title = { Text(stringResource(R.string.sign_out_confirm_title)) },
                 text = {
                     Text(
@@ -438,11 +474,13 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     )
                 },
                 confirmButton = {
-                    TextButton(
+                    Button(
                         onClick = { confirmingSignOut = false; onSignOut() },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = if (losesWork) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        ),
+                        colors = if (losesWork) {
+                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                        } else {
+                            ButtonDefaults.buttonColors()
+                        },
                     ) { Text(stringResource(R.string.action_yes_sign_out)) }
                 },
                 dismissButton = {

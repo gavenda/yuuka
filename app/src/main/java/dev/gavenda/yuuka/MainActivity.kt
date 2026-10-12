@@ -7,8 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.auth.AuthManager
 import dev.gavenda.yuuka.auth.AuthState
@@ -24,6 +26,7 @@ import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
 import dev.gavenda.yuuka.ui.YuukaApp
 import dev.gavenda.yuuka.ui.auth.AuthScreen
+import dev.gavenda.yuuka.ui.common.CatIcon
 import dev.gavenda.yuuka.ui.common.catPattern
 import dev.gavenda.yuuka.ui.theme.YuukaTheme
 import org.koin.android.ext.android.getKoin
@@ -39,14 +42,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by themePreference.themeMode.collectAsStateWithLifecycle()
-            val dynamicColor by themePreference.dynamicColor.collectAsStateWithLifecycle()
             val darkTheme = when (themeMode) {
                 ThemeMode.system -> isSystemInDarkTheme()
                 ThemeMode.light -> false
                 ThemeMode.dark -> true
             }
 
-            YuukaTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
+            YuukaTheme(darkTheme = darkTheme) {
                 val authState by authManager.authState.collectAsStateWithLifecycle()
 
                 // The XML theme follows the system, but the in-app theme mode can override it, so
@@ -59,7 +61,12 @@ class MainActivity : ComponentActivity() {
                                 val loadingLabel = stringResource(R.string.loading_ellipsis)
                                 // The sign-in screen's print, so the wait before it and after it is the same place.
                                 Box(modifier = Modifier.fillMaxSize().catPattern())
-                                LoadingIndicator(modifier = Modifier.align(Alignment.Center).semantics { contentDescription = loadingLabel })
+                                Icon(
+                                    CatIcon,
+                                    contentDescription = loadingLabel,
+                                    modifier = Modifier.align(Alignment.Center).size(96.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
                             }
 
                             is AuthState.Unauthenticated -> AuthScreen(onLogin = { authManager.login(this@MainActivity) })

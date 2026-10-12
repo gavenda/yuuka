@@ -1,7 +1,7 @@
 export default {
-	emptyTitle: "It's quiet in here",
-	emptyShort: 'Nothing to count yet',
-	emptyDescription: 'Add an account and give the cat something to count.',
+	emptyTitle: 'Nothing to count yet',
+	emptyShort: 'No accounts yet',
+	emptyDescription: "Add an account and I'll keep it balanced to the last coin.",
 	newAccount: 'New account',
 	editAccount: 'Edit account',
 	added: 'Account added',
@@ -14,9 +14,9 @@ export default {
 	invertDark: 'Invert colours in dark mode',
 	chooseType: 'Choose a type.',
 	balanceNumber: 'Enter a number, such as 1250.00.',
-	nudge: 'Nudge balance',
-	nudgeFor: 'Nudge balance for {name}',
-	nudgeDescription:
+	adjust: 'Adjust balance',
+	adjustFor: 'Adjust balance for {name}',
+	adjustDescription:
 		"{name}'s current balance is {balance}. Enter what it should be instead — the difference is logged as its own transaction, dated today.",
 	newBalance: 'New balance',
 	payeeOptional: 'Payee (optional)',
@@ -24,9 +24,9 @@ export default {
 	logsExpense: 'Logs {amount} as an expense.',
 	balanceUnchanged: 'That is already the current balance.',
 	saveAdjustment: 'Save adjustment',
-	adjusted: 'Balance nudged into place',
-	couldNotAdjust: "Couldn't adjust the balance. The cat sat on the keyboard, try again?",
-	couldNotDelete: "Couldn't delete the account. The cat sat on the keyboard, try again?",
+	adjusted: 'Balance corrected. The books agree again.',
+	couldNotAdjust: "Couldn't adjust the balance. Give it another try?",
+	couldNotDelete: "Couldn't delete the account. Give it another try?",
 	deleteTitle: 'Delete "{name}"?',
 	deleteBody: 'The account and any subscriptions that post to it will be removed. This cannot be undone.',
 	deleteHistory:
@@ -35,7 +35,7 @@ export default {
 	payeeTooLong: 'Use {max} characters or fewer.',
 	types: {
 		description: 'Your own labels. Rename one and every account using it follows along.',
-		unused: "Nobody's using this one",
+		unused: 'Not in use',
 		accountCount: '{count} account | {count} accounts',
 		inUse: '{name} is in use and cannot be deleted',
 		newType: 'New type',

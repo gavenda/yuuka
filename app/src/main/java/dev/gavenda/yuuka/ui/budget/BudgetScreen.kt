@@ -273,7 +273,7 @@ internal fun BudgetScreenContent(
                 }
 
                 if (!state.hasAnyCategories) {
-                    item { EmptyState(stringResource(R.string.budget_empty_title), description = stringResource(R.string.budget_empty_description)) }
+                    item { EmptyState(stringResource(R.string.budget_empty_title), YuukaMood.Stern, description = stringResource(R.string.budget_empty_description)) }
                 }
 
                 if (state.expenseBreakdown.isNotEmpty()) {

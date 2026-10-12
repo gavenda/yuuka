@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import AlertDialog from '@/components/AlertDialog.vue';
-import CatMark from '@/components/CatMark.vue';
 import CatPattern from '@/components/CatPattern.vue';
+import { CAT } from '@/lib/cat';
 import NavDestination from '@/components/NavDestination.vue';
 import NavRail from '@/components/NavRail.vue';
 import SnackbarHost from '@/components/SnackbarHost.vue';
-import { CAT } from '@/lib/cat';
+import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { clearCache } from '@/lib/cache';
 import AppIcon from '@/components/AppIcon.vue';
-import { ACCOUNT_BALANCE_WALLET, ARROW_BACK, ATTACH_MONEY, CATEGORY, DASHBOARD, MONEY_OFF, PIE_CHART, RECEIPT, SELL } from '@/lib/icons';
+import {
+	ACCOUNT_BALANCE_WALLET,
+	ACCOUNT_BALANCE_WALLET_FILL,
+	ARROW_BACK,
+	ATTACH_MONEY,
+	CATEGORY,
+	CATEGORY_FILL,
+	DASHBOARD,
+	DASHBOARD_FILL,
+	MONEY_OFF,
+	PIE_CHART,
+	PIE_CHART_FILL,
+	RECEIPT,
+	RECEIPT_FILL,
+	SELL,
+	SELL_FILL,
+} from '@/lib/icons';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
@@ -43,12 +59,12 @@ const userMenuRoot = ref<HTMLElement | null>(null);
  * group and, on a phone, to the avatar menu instead.
  */
 const links = computed(() => [
-	{ to: '/', label: t('nav.dashboard'), icon: DASHBOARD },
-	{ to: '/transactions', label: t('nav.transactions'), icon: RECEIPT },
-	{ to: '/budget', label: t('nav.budget'), icon: PIE_CHART, more: true },
-	{ to: '/accounts', label: t('nav.accounts'), icon: ACCOUNT_BALANCE_WALLET },
-	{ to: '/categories', label: t('nav.categories'), icon: CATEGORY, more: true },
-	{ to: '/tags', label: t('nav.tags'), icon: SELL, more: true },
+	{ to: '/', label: t('nav.dashboard'), icon: DASHBOARD, iconSelected: DASHBOARD_FILL },
+	{ to: '/transactions', label: t('nav.transactions'), icon: RECEIPT, iconSelected: RECEIPT_FILL },
+	{ to: '/budget', label: t('nav.budget'), icon: PIE_CHART, iconSelected: PIE_CHART_FILL, more: true },
+	{ to: '/accounts', label: t('nav.accounts'), icon: ACCOUNT_BALANCE_WALLET, iconSelected: ACCOUNT_BALANCE_WALLET_FILL },
+	{ to: '/categories', label: t('nav.categories'), icon: CATEGORY, iconSelected: CATEGORY_FILL, more: true },
+	{ to: '/tags', label: t('nav.tags'), icon: SELL, iconSelected: SELL_FILL, more: true },
 ]);
 
 const dailyLinks = computed(() => links.value.filter((link) => !link.more));
@@ -296,12 +312,15 @@ onBeforeUnmount(() => {
 		<div v-if="isLoading" class="relative isolate flex min-h-dvh items-center justify-center px-4">
 			<!-- The sign-in screen's print, so the wait before it and after it is the same place. -->
 			<CatPattern class="absolute inset-0 -z-10 size-full" />
-			<p class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
+			<div class="flex flex-col items-center gap-4">
+				<AppIcon :icon="CAT" :size="96" class="text-primary" />
+				<p class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
+			</div>
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
 			<div class="card flex max-w-sm flex-col items-center p-6 text-center">
-				<CatMark class="mb-4" />
+				<YuukaPortrait mood="worried" class="mb-4" />
 				<p class="type-body-medium text-error" role="alert">{{ error.message }}</p>
 				<RouterLink to="/login" class="btn-secondary mt-4">{{ t('nav.backToSignIn') }}</RouterLink>
 			</div>
@@ -349,24 +368,26 @@ onBeforeUnmount(() => {
 			:aria-label="t('nav.primary')"
 			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
 		>
-			<NavDestination v-for="link in dailyLinks" :key="link.to" :to="link.to" :label="link.label" :icon="link.icon" />
+			<NavDestination
+				v-for="link in dailyLinks"
+				:key="link.to"
+				:to="link.to"
+				:label="link.label"
+				:icon="link.icon"
+				:icon-selected="link.iconSelected"
+			/>
 		</nav>
 
 		<!-- Only a sign-out that loses work is a destructive one, so only that takes the error colour. -->
-		<AlertDialog
-			:open="confirmingSignOut"
-			:title="t('nav.signOutTitle')"
-			:icon="CAT"
-			:danger="hasUnsentChanges"
-			@close="confirmingSignOut = false"
-		>
+		<AlertDialog :open="confirmingSignOut" :title="t('nav.signOutTitle')" :danger="hasUnsentChanges" @close="confirmingSignOut = false">
+			<template #icon><YuukaPortrait mood="uneasy" class="w-36!" /></template>
 			<template v-if="hasUnsentChanges">
 				{{ t('nav.signOutUnsent', unsentChanges) }}
 			</template>
 			<template v-else>{{ t('nav.signOutBody') }}</template>
 			<template #actions>
 				<button type="button" class="btn-text" @click="confirmingSignOut = false">{{ t('common.noStaySignedIn') }}</button>
-				<button type="button" class="btn-text" :class="{ 'text-error': hasUnsentChanges }" @click="signOut">
+				<button type="button" :class="hasUnsentChanges ? 'btn-danger' : 'btn-primary'" @click="signOut">
 					{{ t('common.yesSignOut') }}
 				</button>
 			</template>

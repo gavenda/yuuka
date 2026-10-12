@@ -2,4 +2,5 @@
 <resources>
     <!-- The dark scheme's surface, as built from SeedColor in ui/theme/Color.kt. -->
     <color name="window_background">#FF0D0E12</color>
+    <color name="splash_cat">#B3C5FF</color>
 </resources>

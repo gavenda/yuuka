@@ -15,17 +15,18 @@ import androidx.compose.foundation.text.input.clearText
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.BuildConfig
@@ -34,12 +35,16 @@ import dev.gavenda.yuuka.data.model.BudgetMode
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.ThemeMode
 import dev.gavenda.yuuka.domain.ThemePreference
+import dev.gavenda.yuuka.domain.isYuukaBirthday
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.DetailTopBar
 import dev.gavenda.yuuka.ui.common.FullScreenDialog
 import dev.gavenda.yuuka.ui.common.ItemPosition
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.SelectionDialog
+import dev.gavenda.yuuka.ui.common.SpeechBubble
+import dev.gavenda.yuuka.ui.common.YuukaMood
+import dev.gavenda.yuuka.ui.common.YuukaPortrait
 import dev.gavenda.yuuka.ui.common.groupedItemColor
 import dev.gavenda.yuuka.ui.common.groupedItemShape
 import dev.gavenda.yuuka.ui.common.pillTextFieldColors
@@ -88,7 +93,6 @@ internal fun SettingsScreenContent(
     val snackbarHostState = LocalSnackbarHostState.current
 
     val themeMode by themePreference.themeMode.collectAsStateWithLifecycle()
-    val dynamicColor by themePreference.dynamicColor.collectAsStateWithLifecycle()
 
     val currencies = remember {
         Currency.getAvailableCurrencies().toList()
@@ -149,8 +153,7 @@ internal fun SettingsScreenContent(
                         .clickable { isCurrencySheetOpen = true }
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.AttachMoney,
+                        Icon(painterResource(R.drawable.attach_money_48px),
                             contentDescription = null,
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -180,9 +183,9 @@ internal fun SettingsScreenContent(
                 SettingsGroupHeader(title = "Appearance")
                 SettingsGroupContainer {
                     ExpressiveButtonGroupSettingItem(
-                        icon = Icons.Default.DarkMode,
-                        title = "App theme",
-                        subtitle = "Choose how your app looks",
+                        icon = R.drawable.palette_48px,
+                        title = "Display mode",
+                        subtitle = "Change how the application looks",
                         options = ThemeMode.entries,
                         selectedOption = themeMode,
                         onOptionSelected = { themePreference.setThemeMode(it) },
@@ -195,15 +198,16 @@ internal fun SettingsScreenContent(
                                 },
                             )
                         },
-                        position = ItemPosition.Top
-                    )
-                    ExpressiveSwitchSettingItem(
-                        icon = Icons.Default.Palette,
-                        title = "Dynamic theming",
-                        subtitle = "Match system wallpaper colors",
-                        checked = dynamicColor,
-                        onCheckedChange = { themePreference.setDynamicColor(it) },
-                        position = ItemPosition.Bottom
+                        // Following the system is the icon alone; light and dark say so beside theirs.
+                        optionIcon = {
+                            when (it) {
+                                ThemeMode.system -> R.drawable.brightness_auto_48px
+                                ThemeMode.light -> R.drawable.light_mode_48px
+                                ThemeMode.dark -> R.drawable.dark_mode_48px
+                            }
+                        },
+                        iconOnly = setOf(ThemeMode.system),
+                        position = ItemPosition.Single
                     )
                 }
 
@@ -211,7 +215,7 @@ internal fun SettingsScreenContent(
                 SettingsGroupHeader(title = "Budgeting")
                 SettingsGroupContainer {
                     ExpressiveButtonGroupSettingItem(
-                        icon = Icons.Default.NoteAlt,
+                        icon = R.drawable.note_alt_48px,
                         title = "Mode",
                         subtitle = "Choose whether you budget monthly or not",
                         options = BudgetMode.entries,
@@ -249,8 +253,7 @@ internal fun SettingsScreenContent(
                         modifier = Modifier.fillMaxWidth().clip(ShapeXl)
                         .clickable { isAccountSheetOpen = true }.padding(horizontal = 20.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.SupervisorAccount,
+                        Icon(painterResource(R.drawable.supervisor_account_48px),
                             contentDescription = null,
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -265,26 +268,7 @@ internal fun SettingsScreenContent(
                     }
                 }
 
-                // Section 6: About
-                SettingsGroupHeader(title = "About")
-                SettingsGroupContainer {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
-                            .padding(horizontal = 20.dp, vertical = 20.dp), verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info, contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.version), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                stringResource(R.string.version_value, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                }
+                About(birthday = remember { isYuukaBirthday() })
             }
 
         }
@@ -322,11 +306,11 @@ internal fun SettingsScreenContent(
                 shape = CircleShape,
                 colors = pillTextFieldColors(),
                 placeholder = { Text("Search currency name or code...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                leadingIcon = { Icon(painterResource(R.drawable.search_48px), contentDescription = null) },
                 trailingIcon = {
                     if (currencyFieldState.text.isNotEmpty()) {
                         IconButton(onClick = { currencyFieldState.clearText() }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cd_clear))
+                            Icon(painterResource(R.drawable.close_48px), contentDescription = stringResource(R.string.cd_clear))
                         }
                     }
                 },
@@ -368,7 +352,7 @@ internal fun SettingsScreenContent(
         SelectionDialog(title = "Select default account", onDismiss = { isAccountSheetOpen = false }) {
             itemsIndexed(accounts) { index, account ->
                 ExpressiveModalSelectionItem(
-                    icon = Icons.Default.AccountCircle,
+                    icon = R.drawable.account_circle_48px,
                     title = account.name,
                     subtitle = account.typeName,
                     isSelected = account.id == defaultAccountDraft,
@@ -406,13 +390,15 @@ fun SettingsGroupContainer(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 fun <T> ExpressiveButtonGroupSettingItem(
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     title: String,
     subtitle: String,
     options: List<T>,
     selectedOption: T,
     onOptionSelected: (T) -> Unit,
     labelProvider: @Composable (T) -> String,
+    optionIcon: ((T) -> Int)? = null,
+    iconOnly: Set<T> = emptySet(),
     position: ItemPosition
 ) {
     // Outer setting block layout structured uniformly with other rows
@@ -433,6 +419,8 @@ fun <T> ExpressiveButtonGroupSettingItem(
                 selected = selectedOption,
                 onSelect = onOptionSelected,
                 label = { labelProvider(it) },
+                icon = optionIcon,
+                iconOnly = iconOnly,
             )
         }
     }
@@ -440,7 +428,7 @@ fun <T> ExpressiveButtonGroupSettingItem(
 
 @Composable
 fun ExpressiveSwitchSettingItem(
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -457,9 +445,9 @@ fun ExpressiveSwitchSettingItem(
 }
 
 @Composable
-private fun RowScope.SettingIconAndText(icon: ImageVector, title: String, subtitle: String) {
+private fun RowScope.SettingIconAndText(@DrawableRes icon: Int, title: String, subtitle: String) {
     Icon(
-        imageVector = icon,
+        painter = painterResource(icon),
         contentDescription = null,
         modifier = Modifier.size(24.dp)
     )
@@ -490,7 +478,7 @@ private fun SettingItemRow(
 
 @Composable
 fun ExpressiveModalSelectionItem(
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     title: String,
     subtitle: String? = null,
     isSelected: Boolean,
@@ -530,7 +518,7 @@ fun ExpressiveModalSelectionItem(
             .padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon,
+            painter = painterResource(icon),
             contentDescription = null,
             modifier = Modifier.size(24.dp),
             tint = contentColor,
@@ -553,8 +541,7 @@ fun ExpressiveModalSelectionItem(
                 modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.onPrimaryContainer, shape = CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Check,
+                Icon(painterResource(R.drawable.check_48px),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.primaryContainer,
@@ -635,8 +622,7 @@ fun ExpressiveCurrencyItemRow(
                 modifier = Modifier.size(20.dp).background(MaterialTheme.colorScheme.onPrimaryContainer, shape = CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Check,
+                Icon(painterResource(R.drawable.check_48px),
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
                     tint = badgeContentColor,
@@ -645,6 +631,62 @@ fun ExpressiveCurrencyItemRow(
         }
     }
 }
+
+/**
+ * Yuuka saying what she is here for, over the app's name and version, then who she is and who drew her. On her
+ * birthday she says so instead. It ends the screen and is no setting, so it has no card and no heading. Mirrors
+ * the foot of `SettingsView.vue`.
+ */
+@Composable
+private fun About(birthday: Boolean) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            YuukaPortrait(YuukaMood.Gentle, width = ABOUT_PORTRAIT_WIDTH)
+            // As tall as the badge she is in, which is as tall as it is wide, so the bubble's tail is level
+            // with her face and not with the halo over it.
+            Box(
+                modifier = Modifier.weight(1f, fill = false).heightIn(min = ABOUT_PORTRAIT_WIDTH),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                SpeechBubble(stringResource(if (birthday) R.string.about_birthday else R.string.about_line))
+            }
+        }
+        Text(stringResource(R.string.about_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.titleMedium)
+        // Two plain lines in the third person, as they are about her and not from her. The credit is the
+        // quieter of the two.
+        val name = stringResource(R.string.character_name)
+        val keeper = stringResource(R.string.about_keeper, name)
+        val nameColor = MaterialTheme.colorScheme.primary
+        Text(
+            // Her name alone is picked out, wherever a translation puts it in the line.
+            text = remember(keeper, name, nameColor) {
+                buildAnnotatedString {
+                    append(keeper)
+                    val start = keeper.indexOf(name)
+                    if (start >= 0) addStyle(SpanStyle(color = nameColor), start, start + name.length)
+                }
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(R.string.about_credit),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private val ABOUT_PORTRAIT_WIDTH = 96.dp
 
 @Preview(showBackground = true)
 @Composable

@@ -1,7 +1,7 @@
 export default {
-	emptyTitle: 'No boxes to sort into yet',
-	emptyShort: 'No boxes yet',
-	emptyDescription: 'Categories are the boxes your spending goes in. Cats love boxes.',
+	emptyTitle: 'Nowhere to file anything yet',
+	emptyShort: 'No categories yet',
+	emptyDescription: "Every expense needs a line to go on. Add a few categories and I'll do the sorting.",
 	newCategory: 'New category',
 	editCategory: 'Edit category',
 	kindOf: 'Kind of category',

@@ -198,3 +198,5 @@ keystore.properties
 # GOOGLE_SERVICES_JSON secret instead. See webapp/README.md.
 app/google-services.json
 .idea/deploymentTargetSelector.xml
+
+branding

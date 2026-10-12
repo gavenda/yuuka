@@ -32,8 +32,9 @@ export default defineConfig({
 				],
 			},
 			workbox: {
-				// The whole app shell, lazy route chunks and the bundled font included, so any screen opens offline.
-				globPatterns: ['**/*.{js,css,html,png,webmanifest,woff2}'],
+				// The whole app shell — lazy route chunks, the bundled font and Yuuka's portraits included — so any
+				// screen opens offline, an empty one with her on it.
+				globPatterns: ['**/*.{js,css,html,png,webp,webmanifest,woff2}'],
 				// A navigation is answered with the cached shell — the router takes it from there — but
 				// never for the API, which is not a page.
 				navigateFallback: '/index.html',

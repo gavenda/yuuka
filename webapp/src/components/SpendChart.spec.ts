@@ -109,7 +109,7 @@ describe('SpendChart', () => {
 		const chart = mount({ days: [] });
 
 		expect(chart.bars()).toHaveLength(0);
-		expect(chart.text()).toContain('A purr-fectly quiet month.');
+		expect(chart.text()).toContain('Not a coin spent yet. Keep it up.');
 	});
 
 	it('keeps the same figures as a table beside the chart, for whoever cannot see it', () => {

@@ -1,6 +1,6 @@
 export default {
-	emptyTitle: 'No tags to bat around yet',
-	emptyDescription: 'Add one, then stick it on a transaction to find it again later.',
+	emptyTitle: 'No tags yet',
+	emptyDescription: "Add one and put it on a transaction. I'll find it again for you later.",
 	search: 'Search tags',
 	noMatch: 'No tag matches “{search}”.',
 	transactions: '{amount} transaction | {amount} transactions',

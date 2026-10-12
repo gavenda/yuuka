@@ -2,7 +2,6 @@
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
-import CatMark from '@/components/CatMark.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FilterChipRow from '@/components/FilterChipRow.vue';
@@ -11,6 +10,7 @@ import MonthSwitcher from '@/components/MonthSwitcher.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
+import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
@@ -282,6 +282,7 @@ async function remove(): Promise<void> {
 		<EmptyState
 			v-else-if="!store.transactions.length"
 			fill
+			mood="uneasy"
 			class="m-4"
 			:title="t('transactions.emptyTitle')"
 			:description="t('transactions.emptyDescription')"
@@ -382,10 +383,11 @@ async function remove(): Promise<void> {
 					{{ store.loading ? t('common.fetching') : t('transactions.loadMore', { shown: store.transactions.length, total: store.total }) }}
 				</button>
 			</div>
-			<!-- The end of the list, and only once there is no more of it to load: the cat, small and quiet, so
-			     the last row is not mistaken for a page that stopped short. -->
-			<div v-else class="flex justify-center pt-6 pb-2">
-				<CatMark class="w-10! opacity-50" />
+			<!-- The end of the list, and only once there is no more of it to load: Yuuka, asleep over closed
+			     books, so the last row is not mistaken for a page that stopped short. -->
+			<div v-else class="flex flex-col items-center gap-2 pt-6 pb-2">
+				<YuukaPortrait mood="asleep" class="w-24!" />
+				<p class="type-label-medium text-on-surface-variant">{{ t('transactions.end') }}</p>
 			</div>
 		</template>
 
@@ -410,7 +412,7 @@ async function remove(): Promise<void> {
 			<template v-else>{{ t('transactions.deleteTransactionBody') }}</template>
 			<template #actions>
 				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-text text-error" @click="remove">{{ t('common.yesDelete') }}</button>
+				<button type="button" class="btn-danger" @click="remove">{{ t('common.yesDelete') }}</button>
 			</template>
 		</AlertDialog>
 

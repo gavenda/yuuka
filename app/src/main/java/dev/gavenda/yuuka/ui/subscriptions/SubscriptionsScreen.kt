@@ -1,13 +1,11 @@
 package dev.gavenda.yuuka.ui.subscriptions
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -92,7 +90,7 @@ internal fun SubscriptionsScreenContent(
             if (activeAccounts.isNotEmpty()) {
                 ScreenFab(
                     label = stringResource(R.string.new_subscription),
-                    icon = Icons.Filled.Add,
+                    icon = R.drawable.add_48px,
                     onClick = { creating = true },
                 )
             }
@@ -133,6 +131,7 @@ internal fun SubscriptionsScreenContent(
                 item {
                     EmptyState(
                         stringResource(R.string.subscriptions_empty_title),
+                        YuukaMood.Gentle,
                         description = stringResource(R.string.subscriptions_empty_description),
                         modifier = Modifier.fillParentMaxHeight().padding(horizontal = 16.dp, vertical = 8.dp),
                     )
@@ -211,13 +210,13 @@ internal fun SubscriptionsScreenContent(
 
         AlertDialog(
             onDismissRequest = { if (!deleting) pendingDelete = null },
-            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
             iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.delete_subscription_confirm_title)) },
             text = { WithSnackbarOverlay { Text(stringResource(R.string.delete_subscription_body, subscription.payee)) } },
             confirmButton = {
-                TextButton(
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                     enabled = !deleting,
                     onClick = {
                         busy.run(deleteKey, snackbarHostState, successMessage = deletedMessage, onSuccess = { pendingDelete = null }) {

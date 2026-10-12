@@ -1,5 +1,5 @@
 export default {
-	tagline: 'Keep an eye on every coin, one paw at a time.',
+	tagline: "Every coin accounted for. Then a good night's sleep.",
 	logIn: 'Log in',
 	redirecting: 'Redirecting…',
 };

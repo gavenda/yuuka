@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, currentMonth, today } from './dates';
+import { addMonths, currentMonth, isYuukaBirthday, today } from './dates';
 
 describe('date helpers', () => {
 	it('shifts months across year boundaries', () => {
@@ -14,5 +14,12 @@ describe('date helpers', () => {
 		const date = new Date(2026, 2, 8, 23, 30);
 		expect(currentMonth(date)).toBe('2026-03');
 		expect(today(date)).toBe('2026-03-08');
+	});
+
+	it("knows Yuuka's birthday, whatever the year", () => {
+		expect(isYuukaBirthday(new Date(2026, 2, 14))).toBe(true);
+		expect(isYuukaBirthday(new Date(2031, 2, 14, 23, 59))).toBe(true);
+		expect(isYuukaBirthday(new Date(2026, 2, 13))).toBe(false);
+		expect(isYuukaBirthday(new Date(2026, 3, 14))).toBe(false);
 	});
 });

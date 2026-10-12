@@ -11,7 +11,7 @@ import { onBeforeUnmount, reactive, ref, watch } from 'vue';
  * menu of them instead, for a screen whose leading action is really a few.
  */
 const props = withDefaults(defineProps<{ label: string; icon?: IconPath; disabled?: boolean; actions?: FabAction[] }>(), {
-	icon: ADD,
+	icon: () => ADD,
 	disabled: false,
 	actions: () => [],
 });

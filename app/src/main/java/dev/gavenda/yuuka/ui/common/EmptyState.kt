@@ -13,13 +13,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * What a screen says when it has nothing to list: the cat, a line or two, and room for an action, straight on the
- * page. Given a height — `fillParentMaxHeight()` where it is all a list holds — it sits in the middle of it.
- * Mirrors `EmptyState.vue`.
+ * What a screen says when it has nothing to list: Yuuka, in the [mood] the news puts her in, a line or two in her
+ * voice, and room for an action, straight on the page. Given a height — `fillParentMaxHeight()` where it is all a
+ * list holds — it sits in the middle of it. Mirrors `EmptyState.vue`.
  */
 @Composable
 fun EmptyState(
     title: String,
+    mood: YuukaMood,
     modifier: Modifier = Modifier,
     description: String? = null,
     action: (@Composable () -> Unit)? = null,
@@ -31,7 +32,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
-        CatMark(modifier = Modifier.padding(bottom = 12.dp))
+        YuukaPortrait(mood, modifier = Modifier.padding(bottom = 12.dp))
         Text(text = title, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
         if (description != null) {
             Text(

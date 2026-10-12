@@ -43,7 +43,7 @@ fun YuukaDatePickerDialog(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            Button(
                 enabled = state.selectedDateMillis != null,
                 onClick = {
                     state.selectedDateMillis?.let { onPicked(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
@@ -74,7 +74,7 @@ fun YuukaTimePickerDialog(
     VibrantTimePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            Button(
                 enabled = state.isInputValid,
                 onClick = { onPicked(LocalTime.of(state.hour, state.minute)) },
             ) { Text(stringResource(R.string.action_ok)) }

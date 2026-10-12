@@ -21,14 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoneyOff
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,7 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -158,7 +150,7 @@ fun YuukaNavRail(
             }
             IconButton(modifier = Modifier.padding(start = 24.dp), onClick = { onExpandedChange(!expanded) }) {
                 Icon(
-                    if (expanded) Icons.AutoMirrored.Filled.MenuOpen else Icons.Filled.Menu,
+                    painterResource(if (expanded) R.drawable.menu_open_48px else R.drawable.menu_48px),
                     contentDescription = stringResource(if (expanded) R.string.cd_collapse_navigation else R.string.cd_expand_navigation),
                 )
             }
@@ -180,7 +172,7 @@ fun YuukaNavRail(
                 RAIL_DESTINATIONS.forEach { destination ->
                     RailItem(
                         label = stringResource(destination.labelRes),
-                        icon = destination.icon,
+                        icon = if (destination.route == currentRoute) destination.iconSelected else destination.icon,
                         selected = destination.route == currentRoute,
                         expanded = expanded,
                         onClick = {
@@ -207,7 +199,7 @@ fun YuukaNavRail(
                         RAIL_MORE_DESTINATIONS.forEach { destination ->
                             RailItem(
                                 label = stringResource(destination.labelRes),
-                                icon = destination.icon,
+                                icon = if (destination.route == currentRoute) destination.iconSelected else destination.icon,
                                 selected = destination.route == currentRoute,
                                 expanded = true,
                                 onClick = {
@@ -218,7 +210,7 @@ fun YuukaNavRail(
                         }
                         RailItem(
                             label = stringResource(R.string.destination_save_the_change),
-                            icon = Icons.Filled.Savings,
+                            icon = R.drawable.savings_48px,
                             selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
                             expanded = true,
                             onClick = {
@@ -228,7 +220,7 @@ fun YuukaNavRail(
                         )
                         RailItem(
                             label = stringResource(R.string.destination_settings),
-                            icon = Icons.Filled.Settings,
+                            icon = R.drawable.settings_48px,
                             selected = isSettingsRoute(currentRoute),
                             expanded = true,
                             onClick = {
@@ -238,7 +230,7 @@ fun YuukaNavRail(
                         )
                         RailItem(
                             label = stringResource(R.string.action_sign_out),
-                            icon = Icons.AutoMirrored.Filled.Logout,
+                            icon = R.drawable.logout_48px,
                             selected = false,
                             expanded = true,
                             onClick = {
@@ -258,7 +250,7 @@ fun YuukaNavRail(
                 if (currentRoute !in AMOUNT_FREE_ROUTES) {
                     RailItem(
                         label = stringResource(if (amountsHidden) R.string.cd_show_amounts else R.string.cd_hide_amounts),
-                        icon = if (amountsHidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
+                        icon = if (amountsHidden) R.drawable.money_off_48px else R.drawable.attach_money_48px,
                         selected = false,
                         expanded = expanded,
                         onClick = onToggleAmounts,
@@ -335,7 +327,7 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
                 expanded = railExpanded,
                 icon = {
                     if (shown.busy) MutationLoadingIndicator(size = 24.dp) else Icon(
-                        shown.icon,
+                        painterResource(shown.icon),
                         contentDescription = null
                     )
                 },
@@ -368,7 +360,7 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
 @Composable
 private fun RailItem(
     label: String,
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     selected: Boolean,
     expanded: Boolean,
     onClick: () -> Unit,
@@ -379,7 +371,7 @@ private fun RailItem(
     WideNavigationRailItem(
         selected = selected,
         onClick = onClick,
-        icon = { Icon(icon, contentDescription = if (labelled) null else label) },
+        icon = { Icon(painterResource(icon), contentDescription = if (labelled) null else label) },
         label = if (labelled) ({ Text(label) }) else null,
         railExpanded = expanded,
     )

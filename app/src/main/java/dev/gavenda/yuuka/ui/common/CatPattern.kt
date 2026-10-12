@@ -1,7 +1,5 @@
 package dev.gavenda.yuuka.ui.common
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +15,6 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
@@ -27,11 +24,12 @@ import kotlin.math.ceil
 import kotlin.math.hypot
 
 /*
- * The print on the pyjamas Yuuka wears in the logo, and the app's one piece of decoration: a round head with two
- * pointed ears, drawn as an outline with its eyes and the insides of its ears filled. It goes where a screen has
- * nothing else to show — signing in, loading, an empty list — and as a faint mark on the rail and the dashboard's
- * first card, never behind a list, a form or a chart. The paths are SVG path data in a 100 by 80 box, the same
- * strings as `lib/cat.ts`; `CatPattern.vue` and `CatMark.vue` are this file's twins.
+ * The print on Yuuka's pyjamas, and the backdrop to the brand: a round head with two pointed ears, drawn as an
+ * outline with its eyes and the insides of its ears filled — in the tertiary colour, which is the pink they are
+ * on the fabric. It goes behind the screens that have nothing else on them — signing in, loading — and as a faint
+ * mark on the rail and the card a screen leads with, never behind a list, a form or a chart. Where a list is
+ * empty it is Yuuka herself who says so (`YuukaPortrait`). The paths are SVG path data in a 100 by 80 box, the
+ * same strings as `lib/cat.ts`; `CatPattern.vue` and `CatMark.vue` are this file's twins.
  */
 private const val HEAD = "M 14 36 L 13 14 Q 13 6 21 10 L 38 20 Q 50 16 62 20 L 79 10 Q 87 6 87 14 L 86 36 C 100 46 98 74 50 74 C 2 74 0 46 14 36 Z"
 private const val EYES = "M 32 52 a 4 5 0 1 0 8 0 a 4 5 0 1 0 -8 0 Z M 60 52 a 4 5 0 1 0 8 0 a 4 5 0 1 0 -8 0 Z"
@@ -128,23 +126,9 @@ fun Modifier.catPattern(
     }
 }
 
-/** One motif in the print's own colours, for a screen with nothing to list. Mirrors `CatMark.vue`. */
-@Composable
-fun CatMark(modifier: Modifier = Modifier, width: Dp = 64.dp) {
-    val outline = MaterialTheme.colorScheme.primary
-    val ears = MaterialTheme.colorScheme.tertiary
-    Canvas(modifier = modifier.size(width, width * 0.8f)) {
-        scale(size.width / 100f, pivot = Offset.Zero) {
-            drawPath(headPath, outline, style = headStroke)
-            drawPath(eyesPath, outline)
-            drawPath(earsPath, ears)
-        }
-    }
-}
-
 /**
  * One large motif let into the bottom corner of a card, in the card's own content [color] and faint enough to
- * read a figure over: a watermark, cut off by the card's edge.
+ * read a figure over: a watermark, cut off by the card's edge. Mirrors `CatMark.vue`.
  */
 fun Modifier.catWatermark(color: Color): Modifier = drawBehind {
     val unit = WATERMARK_WIDTH.toPx() / 100f

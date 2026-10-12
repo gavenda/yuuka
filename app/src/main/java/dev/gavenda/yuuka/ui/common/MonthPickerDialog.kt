@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,9 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,7 +52,7 @@ fun MonthPickerDialog(
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     IconButton(onClick = { year-- }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.cd_previous_year))
+                        Icon(painterResource(R.drawable.keyboard_arrow_left_48px), contentDescription = stringResource(R.string.cd_previous_year))
                     }
                     Text(
                         text = year.toString(),
@@ -63,7 +61,7 @@ fun MonthPickerDialog(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = { year++ }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.cd_next_year))
+                        Icon(painterResource(R.drawable.keyboard_arrow_right_48px), contentDescription = stringResource(R.string.cd_next_year))
                     }
                 }
 

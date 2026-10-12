@@ -1,11 +1,12 @@
 import type { IconPath } from '@/lib/icons';
 
 /*
- * The print on the pyjamas Yuuka wears in the logo, and the app's one piece of decoration (`CatPattern.kt`): a
- * round head with two pointed ears, drawn as an outline with its eyes and the insides of its ears filled. It goes
- * where a screen has nothing else to show — signing in, loading, an empty list — and as a faint mark on the rail
- * and the dashboard's first card, never behind a list, a form or a chart. The paths are in a 100 by 80 box, the
- * same strings Android parses.
+ * The print on Yuuka's pyjamas, and the backdrop to the brand (`CatPattern.kt`): a round head with two pointed
+ * ears, drawn as an outline with its eyes and the insides of its ears filled — in the tertiary colour, which is
+ * the pink they are on the fabric. It goes behind the screens that have nothing else on them — signing in,
+ * loading — and as a faint mark on the rail and the card a screen leads with, never behind a list, a form or a
+ * chart. Where a list is empty it is Yuuka herself who says so (`YuukaPortrait`). The paths are in a 100 by 80
+ * box, the same strings Android parses.
  */
 export const CAT_HEAD =
 	'M 14 36 L 13 14 Q 13 6 21 10 L 38 20 Q 50 16 62 20 L 79 10 Q 87 6 87 14 L 86 36 C 100 46 98 74 50 74 C 2 74 0 46 14 36 Z';

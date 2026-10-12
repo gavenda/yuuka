@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -7,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenu
@@ -71,7 +70,7 @@ fun nameProblem(value: String, @StringRes takenMessage: Int? = null, isTaken: (S
 /** The trailing icon Material 3 puts on a text field in error. */
 @Composable
 internal fun ErrorIcon() {
-    Icon(Icons.Filled.Error, contentDescription = null)
+    Icon(painterResource(R.drawable.error_48px), contentDescription = null)
 }
 
 /**
@@ -88,7 +87,7 @@ fun FieldError(message: String?, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Error, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+        Icon(painterResource(R.drawable.error_48px), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
         Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
     }
 }

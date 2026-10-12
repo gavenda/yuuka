@@ -33,7 +33,7 @@ const figure = computed(() => (props.hero ? 'type-display-small' : 'type-headlin
 
 <template>
 	<div class="p-5" :class="[card, { 'relative overflow-hidden': watermark }]">
-		<CatMark v-if="watermark" watermark />
+		<CatMark v-if="watermark" />
 		<p class="type-label-small uppercase">{{ label }}</p>
 		<!-- Proportional figures: these are standalone numbers, not a column. -->
 		<MoneyText

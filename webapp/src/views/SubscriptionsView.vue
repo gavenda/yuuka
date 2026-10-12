@@ -244,6 +244,7 @@ function scheduleOf(subscription: Subscription): string {
 		<EmptyState
 			v-else-if="!store.loading"
 			fill
+			mood="gentle"
 			class="mx-4 my-2"
 			:title="t('subscriptions.emptyTitle')"
 			:description="t('subscriptions.emptyDescription')"
@@ -384,7 +385,7 @@ function scheduleOf(subscription: Subscription): string {
 			{{ t('subscriptions.deleteBody', { name: pendingDelete?.payee ?? '' }) }}
 			<template #actions>
 				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-text text-error" @click="remove">{{ t('common.yesDelete') }}</button>
+				<button type="button" class="btn-danger" @click="remove">{{ t('common.yesDelete') }}</button>
 			</template>
 		</AlertDialog>
 

@@ -1,15 +1,11 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.IconButton
@@ -158,7 +154,7 @@ fun DetailTopBar(title: String) {
 fun NavigationMenuButton() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onOpenNavigation) {
-        Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.cd_menu))
+        Icon(painterResource(R.drawable.menu_48px), contentDescription = stringResource(R.string.cd_menu))
     }
 }
 
@@ -167,7 +163,7 @@ fun NavigationMenuButton() {
 fun BackButton() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+        Icon(painterResource(R.drawable.arrow_back_48px), contentDescription = stringResource(R.string.cd_back))
     }
 }
 
@@ -177,7 +173,7 @@ fun AmountVisibilityAction() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onToggleAmounts) {
         Icon(
-            if (shell.amountsHidden) Icons.Filled.MoneyOff else Icons.Filled.AttachMoney,
+            painterResource(if (shell.amountsHidden) R.drawable.money_off_48px else R.drawable.attach_money_48px),
             contentDescription = stringResource(
                 if (shell.amountsHidden) R.string.cd_show_amounts else R.string.cd_hide_amounts,
             ),

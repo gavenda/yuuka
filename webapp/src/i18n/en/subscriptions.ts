@@ -1,6 +1,6 @@
 export default {
 	emptyTitle: 'Nothing on repeat yet',
-	emptyDescription: 'Set up rent, streaming or a loan payment once, and it will post itself every month while you nap.',
+	emptyDescription: "Set up rent, streaming or a loan payment once and I'll post it every month, even while you sleep.",
 	newSubscription: 'New subscription',
 	editSubscription: 'Edit subscription',
 	totalPerMonth: 'Total per month',

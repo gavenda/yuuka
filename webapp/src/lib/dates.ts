@@ -8,6 +8,11 @@ export function today(now: Date = new Date()): string {
 	return `${currentMonth(now)}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+/** Yuuka's birthday, 14 March. */
+export function isYuukaBirthday(now: Date = new Date()): boolean {
+	return now.getMonth() === 2 && now.getDate() === 14;
+}
+
 export function currentTime(now: Date = new Date()): string {
 	return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }

@@ -1,11 +1,9 @@
 package dev.gavenda.yuuka.ui.accounts
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -84,7 +82,7 @@ internal fun AccountsScreenContent(
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_account),
-                icon = Icons.Filled.Add,
+                icon = R.drawable.add_48px,
                 onClick = { creating = true },
             )
         },
@@ -97,7 +95,7 @@ internal fun AccountsScreenContent(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (state.groups.isEmpty()) {
-                item { EmptyState(stringResource(R.string.accounts_empty_title), modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.accounts_empty_description)) }
+                item { EmptyState(stringResource(R.string.accounts_empty_title), YuukaMood.Attentive, modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.accounts_empty_description)) }
             } else {
                 state.groups.forEach { group ->
                     item(key = "type:${group.id}") {
@@ -196,7 +194,7 @@ internal fun AccountsScreenContent(
         val deleting = busy.isBusy(deleteKey)
         AlertDialog(
             onDismissRequest = { if (!deleting) { pendingDelete = null; deleteError = null } },
-            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
             iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.delete_confirm_title, toDelete.name)) },
             text = {
@@ -205,8 +203,8 @@ internal fun AccountsScreenContent(
                 }
             },
             confirmButton = {
-                TextButton(
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                     enabled = !deleting,
                     onClick = {
                         busy.launch(deleteKey) {
@@ -436,10 +434,10 @@ private fun AccountAdjustDialog(account: Account, submitting: Boolean, onSave: (
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 enabled = !submitting && form.valid(balanceField, payeeField),
                 onClick = {
-                    val target = targetMinor ?: return@TextButton
+                    val target = targetMinor ?: return@Button
                     onSave(target, payee.trim())
                 },
             ) {

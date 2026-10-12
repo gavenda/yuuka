@@ -1,18 +1,17 @@
 package dev.gavenda.yuuka.ui.savethechange
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -131,7 +130,7 @@ internal fun SaveTheChangeScreenContent(
                 SettingsGroupHeader(title = "Round-ups")
                 SettingsGroupContainer {
                     ExpressiveSwitchSettingItem(
-                        icon = Icons.Default.Savings,
+                        icon = R.drawable.savings_48px,
                         title = stringResource(R.string.save_the_change_enabled),
                         subtitle = stringResource(R.string.save_the_change_description),
                         checked = enabledDraft,
@@ -143,7 +142,7 @@ internal fun SaveTheChangeScreenContent(
                         position = ItemPosition.Top,
                     )
                     ExpressiveButtonGroupSettingItem(
-                        icon = Icons.Default.Calculate,
+                        icon = R.drawable.calculate_48px,
                         title = stringResource(R.string.round_to_label),
                         subtitle = "How far each purchase is rounded up",
                         options = listOf(1000L, 10000L),
@@ -162,7 +161,7 @@ internal fun SaveTheChangeScreenContent(
                 SettingsGroupHeader(title = "Accounts")
                 SettingsGroupContainer {
                     SelectionSettingRow(
-                        icon = Icons.Default.Wallet,
+                        icon = R.drawable.wallet_48px,
                         title = stringResource(R.string.round_up_purchases_account_label),
                         // A couple of names read better than a count; a longer list would be a wall of text, so it is counted instead.
                         value = when {
@@ -174,7 +173,7 @@ internal fun SaveTheChangeScreenContent(
                         onClick = { isSourceSheetOpen = true },
                     )
                     SelectionSettingRow(
-                        icon = Icons.Default.AccountBalanceWallet,
+                        icon = R.drawable.account_balance_wallet_48px,
                         title = stringResource(R.string.destination_account),
                         value = state.accounts.firstOrNull { it.id == destinationDraft }?.name ?: chooseAnAccountLabel,
                         position = ItemPosition.Bottom,
@@ -193,7 +192,7 @@ internal fun SaveTheChangeScreenContent(
                 SettingsGroupHeader(title = "Category")
                 SettingsGroupContainer {
                     SelectionSettingRow(
-                        icon = Icons.Default.Category,
+                        icon = R.drawable.category_48px,
                         title = stringResource(R.string.label_cashflow_category),
                         value = selectedCategoryLabel,
                         position = ItemPosition.Single,
@@ -208,7 +207,7 @@ internal fun SaveTheChangeScreenContent(
         SelectionDialog(title = stringResource(R.string.destination_account), onDismiss = { isAccountSheetOpen = false }) {
             itemsIndexed(state.accounts) { index, account ->
                 ExpressiveModalSelectionItem(
-                    icon = Icons.Default.AccountCircle,
+                    icon = R.drawable.account_circle_48px,
                     title = account.name,
                     subtitle = account.typeName,
                     isSelected = account.id == destinationDraft,
@@ -233,7 +232,7 @@ internal fun SaveTheChangeScreenContent(
         ) {
             itemsIndexed(state.accounts) { index, account ->
                 ExpressiveModalSelectionItem(
-                    icon = Icons.Default.AccountCircle,
+                    icon = R.drawable.account_circle_48px,
                     title = account.name,
                     subtitle = account.typeName,
                     isSelected = account.roundUpSource,
@@ -265,7 +264,7 @@ internal fun SaveTheChangeScreenContent(
         SelectionDialog(title = stringResource(R.string.label_cashflow_category), onDismiss = { isCategorySheetOpen = false }) {
             itemsIndexed(categoryRows) { index, row ->
                 ExpressiveModalSelectionItem(
-                    icon = if (row.id == null) Icons.Default.Block else Icons.Default.Category,
+                    icon = if (row.id == null) R.drawable.block_48px else R.drawable.category_48px,
                     title = row.name,
                     subtitle = row.parentName,
                     isSelected = row.id == categoryDraft,
@@ -284,7 +283,7 @@ internal fun SaveTheChangeScreenContent(
 /** A settings row that says what is chosen and opens a dialog to change it — the shape Settings uses for its currency and default account. */
 @Composable
 private fun SelectionSettingRow(
-    icon: ImageVector,
+    @DrawableRes icon: Int,
     title: String,
     value: String,
     position: ItemPosition,
@@ -296,7 +295,7 @@ private fun SelectionSettingRow(
         modifier = Modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null)
+        Icon(painterResource(icon), contentDescription = null)
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)

@@ -6,5 +6,7 @@
     <style name="Theme.Yuuka" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:colorBackground">@color/window_background</item>
         <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowSplashScreenBackground">@color/window_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_cat</item>
     </style>
 </resources>

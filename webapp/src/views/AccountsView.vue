@@ -263,7 +263,13 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="px-4 pt-4 pb-24">
-		<EmptyState v-if="!groups.length" fill :title="t('accounts.emptyTitle')" :description="t('accounts.emptyDescription')" />
+		<EmptyState
+			v-if="!groups.length"
+			fill
+			mood="attentive"
+			:title="t('accounts.emptyTitle')"
+			:description="t('accounts.emptyDescription')"
+		/>
 
 		<!-- Accounts under their type. The rows of a type are a hair apart, the way a settings group is drawn;
 		     the space between one type and the next comes from the heading's own padding. -->
@@ -277,7 +283,7 @@ onMounted(() => ledger.load());
 				<li v-for="account in group.accounts" :key="account.id">
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon icon="adjust" :label="t('accounts.nudgeFor', { name: account.name })" @click="openAdjust(account)" />
+							<ActionIcon icon="adjust" :label="t('accounts.adjustFor', { name: account.name })" @click="openAdjust(account)" />
 							<ActionIcon
 								:icon="account.archived ? 'restore' : 'archive'"
 								:label="t(account.archived ? 'common.restore' : 'common.archive', { name: account.name })"
@@ -379,7 +385,7 @@ onMounted(() => ledger.load());
 			</div>
 		</FormDialog>
 
-		<AlertDialog :open="adjustDialogOpen" :title="t('accounts.nudge')" role="dialog" @close="adjustDialogOpen = false">
+		<AlertDialog :open="adjustDialogOpen" :title="t('accounts.adjust')" role="dialog" @close="adjustDialogOpen = false">
 			<form
 				v-if="adjusting"
 				id="adjust-form"
@@ -389,7 +395,7 @@ onMounted(() => ledger.load());
 				@input="adjustValidation.onInput"
 			>
 				<p>
-					{{ t('accounts.nudgeDescription', { name: adjusting.name, balance: displayMoney(adjusting.balance, adjusting.currency) }) }}
+					{{ t('accounts.adjustDescription', { name: adjusting.name, balance: displayMoney(adjusting.balance, adjusting.currency) }) }}
 				</p>
 
 				<TextField
@@ -424,7 +430,7 @@ onMounted(() => ledger.load());
 			<!-- Outside the form, as a dialog's buttons are, so Save names the form it submits. -->
 			<template #actions>
 				<button type="button" class="btn-text" @click="adjustDialogOpen = false">{{ t('common.cancel') }}</button>
-				<button type="submit" form="adjust-form" class="btn-text" :disabled="!adjustValidation.isValid.value">
+				<button type="submit" form="adjust-form" class="btn-primary" :disabled="!adjustValidation.isValid.value">
 					{{ t('accounts.saveAdjustment') }}
 				</button>
 			</template>
@@ -442,7 +448,7 @@ onMounted(() => ledger.load());
 			<template v-else>{{ t('accounts.deleteBody') }}</template>
 			<template #actions>
 				<button type="button" class="btn-text" @click="closeDelete">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-text text-error" @click="remove">
+				<button type="button" class="btn-danger" @click="remove">
 					{{ deleteHasHistory ? t('accounts.deleteEverything') : t('common.yesDelete') }}
 				</button>
 			</template>

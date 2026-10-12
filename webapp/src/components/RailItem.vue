@@ -16,13 +16,15 @@ import { useLink, useRoute } from 'vue-router';
 const props = withDefaults(
 	defineProps<{
 		icon: IconPath;
+		/** The filled glyph worn while it is current. */
+		iconSelected?: IconPath;
 		label: string;
 		expanded: boolean;
 		/** Makes it a link; without one it is a button and the parent handles `click`. */
 		to?: string;
 		variant?: 'destination' | 'action';
 	}>(),
-	{ variant: 'destination', to: undefined },
+	{ variant: 'destination', to: undefined, iconSelected: undefined },
 );
 
 const emit = defineEmits<{ click: [] }>();
@@ -53,7 +55,7 @@ function onClick(event: MouseEvent): void {
 		<!-- What gives the item its open width; never seen, never read out. -->
 		<span class="rail-item-ghost" aria-hidden="true">{{ label }}</span>
 		<span class="rail-item-pill" />
-		<AppIcon :icon="icon" class="rail-item-icon" />
+		<AppIcon :icon="isActive && iconSelected ? iconSelected : icon" class="rail-item-icon" />
 		<span class="rail-item-label">{{ label }}</span>
 	</component>
 </template>

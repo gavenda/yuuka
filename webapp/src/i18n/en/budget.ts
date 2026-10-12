@@ -1,6 +1,6 @@
 export default {
 	// A budget's card, on the Budget screen and nowhere else.
-	unbudgeted: 'Roaming free',
+	unbudgeted: 'Spent without a plan',
 	noBudget: 'Nothing planned yet',
 	over: '{amount} over',
 	left: '{amount} left',
@@ -10,8 +10,8 @@ export default {
 	amountNumber: 'Enter an amount as a number, such as 250.00.',
 	negative: 'A budget cannot be negative.',
 	plannedIncome: 'Planned income',
-	grossHint: 'Tell the cat your gross monthly pay.\nThe take-home net is what you budget from.',
-	netHint: 'Tell the cat what you expect to bring in.\nBudget a category as a percentage of it.',
+	grossHint: 'Tell me your gross monthly pay.\nThe take-home net is what you budget from.',
+	netHint: 'Tell me what you expect to bring in.\nBudget a category as a percentage of it.',
 	setGross: 'Set gross income',
 	setIncome: 'Set income',
 	grossPlaceholder: 'Gross 0.00',
@@ -25,8 +25,8 @@ export default {
 	usedAsIncome: 'Used as planned income',
 	allocated: 'Allocated',
 	plannedAcross: 'Planned across categories',
-	unallocated: 'Still up for grabs',
+	unallocated: 'Not yet assigned',
 	percentOfIncome: '{percent}% of planned income',
 	emptyTitle: 'Nothing to budget yet',
-	emptyDescription: 'A budget needs boxes to curl up in, so make a few categories first.',
+	emptyDescription: 'A budget needs categories to hold it to. Make a few first, then we decide what each is allowed.',
 };

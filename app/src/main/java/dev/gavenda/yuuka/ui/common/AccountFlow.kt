@@ -1,10 +1,10 @@
 package dev.gavenda.yuuka.ui.common
 
+import dev.gavenda.yuuka.R
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowRightAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +26,7 @@ fun AccountFlow(
     val iconSize = with(LocalDensity.current) { style.fontSize.toDp() } + 4.dp
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(from, style = style)
-        Icon(Icons.AutoMirrored.Filled.ArrowRightAlt, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(iconSize))
+        Icon(painterResource(R.drawable.arrow_right_alt_48px), contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(iconSize))
         Text(to, style = style)
     }
 }

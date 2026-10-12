@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.categories
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -10,9 +11,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import dev.gavenda.yuuka.ui.theme.ShapeXl
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -94,7 +92,7 @@ internal fun CategoriesScreenContent(
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_category),
-                icon = Icons.Filled.Add,
+                icon = R.drawable.add_48px,
                 onClick = { creatingIn = state.sections.first(); creatingParentId = null },
             )
         },
@@ -109,6 +107,7 @@ internal fun CategoriesScreenContent(
                 item {
                     EmptyState(
                         stringResource(R.string.categories_empty_title),
+                        YuukaMood.Neutral,
                         description = stringResource(R.string.categories_empty_description)
                     )
                 }
@@ -311,10 +310,9 @@ private fun CategoryRow(
                 {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (onAddSub != null) IconButton(onClick = onAddSub) {
-                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_sub))
+                            Icon(painterResource(R.drawable.add_48px), contentDescription = stringResource(R.string.add_sub))
                         }
-                        if (subCount > 0) Icon(
-                            Icons.Filled.ExpandMore,
+                        if (subCount > 0) Icon(painterResource(R.drawable.expand_more_48px),
                             contentDescription = if (expanded) {
                                 stringResource(R.string.cd_collapse_section, category.name)
                             } else {
@@ -465,8 +463,7 @@ private fun CategoryFormContent(
                 contentAlignment = Alignment.Center,
             ) {
                 if (!isCustomColor) {
-                    Icon(
-                        Icons.Filled.Add,
+                    Icon(painterResource(R.drawable.add_48px),
                         contentDescription = stringResource(R.string.custom_colour),
                         modifier = Modifier.size(16.dp),
                     )

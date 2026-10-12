@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.slideInVertically
@@ -17,9 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -28,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -198,7 +197,7 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
                                 Text(stringResource(if (onSave != null) R.string.action_cancel else R.string.action_close))
                             }
                             if (onSave != null) {
-                                TextButton(onClick = onSave, enabled = canSave) {
+                                Button(onClick = onSave, enabled = canSave) {
                                     if (submitting) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
                                 }
                             }
@@ -258,12 +257,12 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
                             title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             navigationIcon = {
                                 IconButton(onClick = close, enabled = !submitting) {
-                                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_close))
+                                    Icon(painterResource(R.drawable.close_48px), contentDescription = stringResource(R.string.action_close))
                                 }
                             },
                             actions = {
                                 if (onSave != null) {
-                                    TextButton(onClick = onSave, enabled = canSave) {
+                                    Button(onClick = onSave, enabled = canSave) {
                                         if (submitting) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
                                     }
                                 }
@@ -294,14 +293,14 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
     if (confirmingDiscard && !leaving) {
         AlertDialog(
             onDismissRequest = { confirmingDiscard = false },
-            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
             iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(stringResource(R.string.discard_changes_title)) },
             text = { Text(stringResource(R.string.discard_changes_body)) },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = { confirmingDiscard = false; onDismiss() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
                 ) { Text(stringResource(R.string.action_discard)) }
             },
             dismissButton = {

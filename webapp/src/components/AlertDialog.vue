@@ -50,9 +50,13 @@ useModal(
 					tabindex="-1"
 					class="dialog-enter relative flex max-h-full w-full max-w-[560px] min-w-[280px] flex-col rounded-xl bg-surface-container-high p-6 shadow-elevation-3 outline-none [--surface-under:var(--color-surface-container-high)] sm:w-auto sm:min-w-[320px]"
 				>
-					<div v-if="icon" class="flex justify-center pb-4" :class="danger ? 'text-error' : 'text-secondary'"><AppIcon :icon="icon" /></div>
+					<!-- A portrait can take the icon's place, and brings its own colours. -->
+					<div v-if="$slots.icon" class="flex justify-center pb-4"><slot name="icon" /></div>
+					<div v-else-if="icon" class="flex justify-center pb-4" :class="danger ? 'text-error' : 'text-secondary'">
+						<AppIcon :icon="icon" />
+					</div>
 
-					<h2 v-if="title" class="type-headline-small pb-4 text-on-surface" :class="{ 'text-center': icon }">{{ title }}</h2>
+					<h2 v-if="title" class="type-headline-small pb-4 text-on-surface" :class="{ 'text-center': icon || $slots.icon }">{{ title }}</h2>
 
 					<div class="type-body-medium min-h-0 overflow-y-auto text-on-surface-variant"><slot /></div>
 

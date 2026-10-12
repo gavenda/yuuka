@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.asStateFlow
 
 private const val PREFS_NAME = "yuuka.theme"
 private const val KEY_MODE = "mode"
-private const val KEY_DYNAMIC_COLOR = "dynamic_color"
 
 @Suppress("EnumEntryName") // the entry names are persisted/wire values
 enum class ThemeMode {
@@ -18,11 +17,11 @@ enum class ThemeMode {
 }
 
 /**
- * How the app should be themed — a local display preference, like
+ * Whether the app is drawn light or dark — a local display preference, like
  * [AmountVisibility], rather than a server-side setting: it depends on this
- * device's display and Android version, so it shouldn't follow the account
- * onto someone else's device. Provided as a Koin singleton so every screen
- * shares the same values.
+ * device's display, so it shouldn't follow the account onto someone else's
+ * device. The colours themselves are the brand's and are not a preference.
+ * Provided as a Koin singleton so every screen shares the same value.
  */
 class ThemePreference(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -33,18 +32,8 @@ class ThemePreference(context: Context) {
     )
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
-    // Off by default so the app renders the brand seed's scheme, the same one the webapp mirrors,
-    // rather than a per-device wallpaper palette the webapp has no equivalent for.
-    private val _dynamicColor = MutableStateFlow(prefs.getBoolean(KEY_DYNAMIC_COLOR, false))
-    val dynamicColor: StateFlow<Boolean> = _dynamicColor.asStateFlow()
-
     fun setThemeMode(mode: ThemeMode) {
         _themeMode.value = mode
         prefs.edit { putString(KEY_MODE, mode.name) }
-    }
-
-    fun setDynamicColor(enabled: Boolean) {
-        _dynamicColor.value = enabled
-        prefs.edit { putBoolean(KEY_DYNAMIC_COLOR, enabled) }
     }
 }

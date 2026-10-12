@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.tags
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -8,8 +9,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,7 +85,7 @@ internal fun TagsScreenContent(
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_tag),
-                icon = Icons.Filled.Add,
+                icon = R.drawable.add_48px,
                 onClick = { creating = true },
             )
         },
@@ -98,7 +97,7 @@ internal fun TagsScreenContent(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (state.tags.isEmpty()) {
-                item { EmptyState(stringResource(R.string.tags_empty_title), modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.tags_empty_description)) }
+                item { EmptyState(stringResource(R.string.tags_empty_title), YuukaMood.Pleased, modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.tags_empty_description)) }
             } else {
                 if (state.showSearch) {
                     item {
@@ -266,8 +265,7 @@ private fun TagForm(
                 contentAlignment = Alignment.Center,
             ) {
                 if (!isCustomColor) {
-                    Icon(
-                        Icons.Filled.Add,
+                    Icon(painterResource(R.drawable.add_48px),
                         contentDescription = stringResource(R.string.custom_colour),
                         modifier = Modifier.size(16.dp),
                     )

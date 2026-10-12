@@ -232,7 +232,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<StatCarousel :stats="stats" :currency="currency" tone="tertiary" />
 
-		<EmptyState v-if="!hasAnyCategories" :title="t('budget.emptyTitle')" :description="t('budget.emptyDescription')" />
+		<EmptyState v-if="!hasAnyCategories" mood="stern" :title="t('budget.emptyTitle')" :description="t('budget.emptyDescription')" />
 
 		<template v-if="budget.expenseBreakdown.length">
 			<h2 class="type-title-small">{{ t('common.expense') }}</h2>

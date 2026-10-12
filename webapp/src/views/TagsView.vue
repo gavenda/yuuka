@@ -111,7 +111,7 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 
 <template>
 	<div class="px-4 pt-4 pb-24">
-		<EmptyState v-if="!ledger.tags.length" fill :title="t('tags.emptyTitle')" :description="t('tags.emptyDescription')" />
+		<EmptyState v-if="!ledger.tags.length" fill mood="pleased" :title="t('tags.emptyTitle')" :description="t('tags.emptyDescription')" />
 
 		<template v-else>
 			<!-- A long list is searched rather than scrolled; the field only appears once there is enough to lose something in. -->

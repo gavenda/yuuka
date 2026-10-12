@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.transactions
 
+import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -17,24 +18,12 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -141,7 +130,7 @@ internal fun TransactionsScreenContent(
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_transaction),
-                icon = Icons.Filled.Add,
+                icon = R.drawable.add_48px,
                 onClick = onOpenCreate,
             )
         },
@@ -174,13 +163,13 @@ internal fun TransactionsScreenContent(
                         )
                     }
                     FilterIconButton(
-                        icon = Icons.Outlined.Sell,
+                        icon = R.drawable.sell_48px,
                         description = stringResource(R.string.filter_by_tag),
                         count = state.tagFilter.size,
                         onClick = { toggleFilter(FilterKind.TAGS) },
                     )
                     FilterIconButton(
-                        icon = Icons.Outlined.FilterList,
+                        icon = R.drawable.filter_list_48px,
                         description = stringResource(R.string.filter_by_category),
                         count = state.categoryFilter.size,
                         onClick = { toggleFilter(FilterKind.CATEGORIES) },
@@ -199,6 +188,7 @@ internal fun TransactionsScreenContent(
                     item {
                         EmptyState(
                             stringResource(R.string.transactions_empty_title),
+                            YuukaMood.Uneasy,
                             modifier = Modifier.fillParentMaxHeight().padding(16.dp),
                             description = stringResource(R.string.transactions_empty_description),
                         )
@@ -261,11 +251,20 @@ internal fun TransactionsScreenContent(
                             }
                         }
                     } else {
-                        // The end of the list, and only once there is no more of it to load: the cat, small
-                        // and quiet, so the last row is not mistaken for a page that stopped short.
+                        // The end of the list, and only once there is no more of it to load: Yuuka, asleep
+                        // over closed books, so the last row is not mistaken for a page that stopped short.
                         item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp), contentAlignment = Alignment.Center) {
-                                CatMark(modifier = Modifier.alpha(0.5f), width = 40.dp)
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                YuukaPortrait(YuukaMood.Asleep, width = 96.dp)
+                                Text(
+                                    stringResource(R.string.transactions_end),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -302,7 +301,7 @@ internal fun TransactionsScreenContent(
 
         AlertDialog(
             onDismissRequest = { if (!deleting) pendingDelete = null },
-            icon = { Icon(Icons.Filled.Delete, contentDescription = null) },
+            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
             iconContentColor = MaterialTheme.colorScheme.error,
             title = { Text(if (toDelete.transferId != null) stringResource(R.string.delete_transfer_confirm_title) else stringResource(R.string.delete_transaction_confirm_title)) },
             text = {
@@ -311,7 +310,7 @@ internal fun TransactionsScreenContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { onDelete(toDelete) }, enabled = !deleting, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                Button(onClick = { onDelete(toDelete) }, enabled = !deleting, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) {
                     if (deleting) {
                         MutationLoadingIndicator()
                     } else {
@@ -457,8 +456,7 @@ private fun TransactionRowItem(
                     ) {
                         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (notes.isNotEmpty()) {
-                                Icon(
-                                    Icons.Filled.EditNote,
+                                Icon(painterResource(R.drawable.edit_note_48px),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp),
@@ -523,11 +521,11 @@ private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
         colors = pillTextFieldColors(),
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = { Text(stringResource(R.string.search_payee_notes)) },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = { Icon(painterResource(R.drawable.search_48px), contentDescription = null) },
         trailingIcon = {
             if (state.text.isNotEmpty()) {
                 IconButton(onClick = { state.clearText() }) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.cd_clear))
+                    Icon(painterResource(R.drawable.close_48px), contentDescription = stringResource(R.string.cd_clear))
                 }
             }
         },
@@ -582,21 +580,21 @@ private fun AccountFilterButton(
         modifier = modifier,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Icon(painterResource(R.drawable.account_balance_wallet_48px), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
             Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Icon(painterResource(R.drawable.arrow_drop_down_48px), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
         }
     }
 }
 
 @Composable
-private fun FilterIconButton(icon: ImageVector, description: String, count: Int, onClick: () -> Unit) {
+private fun FilterIconButton(@DrawableRes icon: Int, description: String, count: Int, onClick: () -> Unit) {
     IconButton(onClick = onClick) {
         // A count of active filters is not an alert, so it leaves the badge's default error colour.
         BadgedBox(badge = { if (count > 0) Badge(containerColor = MaterialTheme.colorScheme.tertiary) { Text(count.toString()) } }) {
             Icon(
-                icon,
+                painterResource(icon),
                 contentDescription = description,
             )
         }
@@ -639,7 +637,7 @@ private fun FilterChipRow(chips: FilterChips?) {
                                 onClick = { shown.onChange(if (active) shown.selected - option.id else shown.selected + option.id) },
                                 label = { Text(option.label) },
                                 leadingIcon = if (active) {
-                                    { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                                    { Icon(painterResource(R.drawable.done_48px), contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
                                 } else {
                                     null
                                 },

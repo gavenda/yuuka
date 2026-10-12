@@ -1,8 +1,8 @@
 package dev.gavenda.yuuka.ui.common
 
+import dev.gavenda.yuuka.R
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -23,7 +23,7 @@ fun YuukaSwitch(
         modifier = modifier,
         enabled = enabled,
         thumbContent = if (checked) {
-            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+            { Icon(painterResource(R.drawable.check_48px), contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
         } else {
             null
         },

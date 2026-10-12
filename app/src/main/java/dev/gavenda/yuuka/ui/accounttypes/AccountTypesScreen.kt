@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -76,7 +74,7 @@ internal fun AccountTypesScreenContent(
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_account_type),
-                icon = Icons.Filled.Add,
+                icon = R.drawable.add_48px,
                 onClick = { adding = true },
             )
         },
@@ -213,7 +211,7 @@ private fun AccountTypeNameDialog(
             )
         },
         confirmButton = {
-            TextButton(enabled = !submitting && form.valid(nameField), onClick = { onSave(name.trim()) }) {
+            Button(enabled = !submitting && form.valid(nameField), onClick = { onSave(name.trim()) }) {
                 if (submitting) {
                     MutationLoadingIndicator()
                 } else {
