@@ -106,60 +106,7 @@ internal fun BudgetScreenContent(
                                 modifier = Modifier.padding(top = 12.dp),
                             )
 
-                            if (incomeEditing) {
-                                val savingIncome = BudgetViewModel.INCOME_KEY in savingKeys
-                                // setIncomePlan is fire-and-forget, so the row stays open (showing the
-                                // spinner) until the save actually finishes rather than collapsing on tap.
-                                var incomeSaveStarted by remember { mutableStateOf(false) }
-                                LaunchedEffect(savingIncome) {
-                                    if (savingIncome) incomeSaveStarted = true else if (incomeSaveStarted) incomeEditing = false
-                                }
-
-                                // Drawn straight on the card, as a category's budget is edited on its own.
-                                Column(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                                    androidx.compose.runtime.CompositionLocalProvider(
-                                        LocalTextStyle provides MaterialTheme.typography.headlineSmall,
-                                    ) {
-                                        DenseOutlinedTextField(
-                                            value = incomeDraft,
-                                            onValueChange = { incomeDraft = it },
-                                            placeholder = if (usingGross) stringResource(R.string.placeholder_gross_income) else stringResource(R.string.placeholder_amount_decimal),
-                                            prefix = currencySymbol(state.currency),
-                                            modifier = Modifier.fillMaxWidth(),
-                                            enabled = !savingIncome,
-                                            onClear = { incomeDraft = "" },
-                                        )
-                                    }
-                                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TextButton(
-                                            enabled = !savingIncome,
-                                            modifier = Modifier.weight(1f),
-                                            onClick = {
-                                                incomeEditing = false
-                                            },
-                                        ) {
-                                            Text(stringResource(R.string.action_cancel))
-                                        }
-                                        Button(
-                                            enabled = !savingIncome,
-                                            modifier = Modifier.weight(1f),
-                                            onClick = {
-                                                val amount = if (incomeDraft.isBlank()) 0L else parseMoney(incomeDraft)
-                                                if (amount == null || amount < 0) return@Button
-                                                val toSave = if (usingGross && amount > 0) computeNetPay(amount).netPay else amount
-                                                onSetIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
-                                            },
-                                        ) {
-                                            if (savingIncome) {
-                                                MutationLoadingIndicator()
-                                            } else {
-                                                Text(stringResource(R.string.action_save))
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                TextButton(
+                            TextButton(
                                     onClick = { incomeEditing = true },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
@@ -174,7 +121,6 @@ internal fun BudgetScreenContent(
                                         modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
-                            }
 
 
                             if (isPhp) {
@@ -297,6 +243,64 @@ internal fun BudgetScreenContent(
             }
         }
     }
+
+    if (incomeEditing) {
+        PlannedIncomeDialog(
+            initial = incomeDraft,
+            currency = if (usingGross) "PHP" else state.currency,
+            usingGross = usingGross,
+            saving = BudgetViewModel.INCOME_KEY in savingKeys,
+            onSave = { draft, amount ->
+                incomeDraft = draft
+                val toSave = if (usingGross && amount > 0) computeNetPay(amount).netPay else amount
+                onSetIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
+            },
+            onDismiss = { incomeEditing = false },
+        )
+    }
+}
+
+/** Planned income in a basic dialog of its one field; it stays open, spinning, until the save finishes. */
+@Composable
+private fun PlannedIncomeDialog(
+    initial: String,
+    currency: String,
+    usingGross: Boolean,
+    saving: Boolean,
+    onSave: (String, Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var draft by remember { mutableStateOf(initial) }
+    var saveStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(saving) {
+        if (saving) saveStarted = true else if (saveStarted) onDismiss()
+    }
+    val amount = if (draft.isBlank()) 0L else parseMoney(draft)
+
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text(stringResource(R.string.planned_income_label)) },
+        text = {
+            DenseOutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                placeholder = if (usingGross) stringResource(R.string.placeholder_gross_income) else stringResource(R.string.placeholder_amount_decimal),
+                prefix = currencySymbol(currency),
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !saving,
+                onClear = { draft = "" },
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = !saving && amount != null && amount >= 0,
+                onClick = { amount?.let { onSave(draft, it) } },
+            ) {
+                if (saving) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable
@@ -313,19 +317,6 @@ private fun BudgetRow(
     val over = entry.planned > 0 && entry.remaining < 0
 
     var editing by remember { mutableStateOf(false) }
-    var mode by remember { mutableStateOf(if (entry.plannedPercent != null) "percent" else "amount") }
-    var draft by remember { mutableStateOf("") }
-    // A fresh form each time the row is opened, so an earlier attempt's errors do not greet the next one.
-    val form = remember(editing) { FormValidation() }
-    val amountPlaceholder = stringResource(R.string.placeholder_amount_decimal)
-    val percentPlaceholder = stringResource(R.string.placeholder_percent_zero)
-
-    // setBudgetAmount/Percent is fire-and-forget, so this row stays open (showing the spinner)
-    // until saving actually finishes rather than collapsing the instant Save is tapped.
-    var saveStarted by remember { mutableStateOf(false) }
-    LaunchedEffect(saving) {
-        if (saving) saveStarted = true else if (saveStarted) { editing = false; saveStarted = false }
-    }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -337,74 +328,8 @@ private fun BudgetRow(
                 )
             }
 
-            if (editing) {
-                Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    val modes = listOf("amount" to currency, "percent" to "%")
-                    ConnectedButtonGroup(
-                        options = modes,
-                        selected = modes.first { it.first == mode },
-                        onSelect = { (value, _) -> if (mode != value) { mode = value; draft = "" } },
-                        label = { it.second },
-                        enabled = !saving,
-                    )
-                    // Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative.
-                    val plannedAmount = if (mode == "amount") parseMoney(draft) else null
-                    val plannedProblem = when {
-                        draft.isBlank() -> null
-                        mode == "percent" -> if (parsePercent(draft) == null) stringResource(R.string.percent_range_hint) else null
-                        plannedAmount == null -> stringResource(R.string.error_budget_number)
-                        plannedAmount < 0 -> stringResource(R.string.error_budget_negative)
-                        else -> null
-                    }
-                    val plannedField = form.field("planned", plannedProblem)
-                    DenseOutlinedTextField(
-                        value = draft,
-                        onValueChange = { draft = it },
-                        placeholder = if (mode == "percent") percentPlaceholder else amountPlaceholder,
-                        // An empty string rather than null keeps the prefix slot always present, so
-                        // M3's focus/empty-driven fade animation doesn't get stuck after the slot is
-                        // added and removed across mode switches (it should only ever be added once).
-                        prefix = if (mode == "amount") currencySymbol(currency) else "",
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        enabled = !saving,
-                        field = plannedField,
-                    )
-                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            enabled = !saving,
-                            modifier = Modifier.weight(1f),
-                            onClick = { editing = false },
-                        ) {
-                            Text(stringResource(R.string.action_cancel))
-                        }
-                        Button(
-                            enabled = !saving && form.valid(plannedField),
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                if (draft.isBlank()) {
-                                    onSetAmount(entry.categoryId, 0)
-                                } else if (mode == "percent") {
-                                    parsePercent(draft)?.let { onSetPercent(entry.categoryId, it) }
-                                } else {
-                                    plannedAmount?.let { onSetAmount(entry.categoryId, it) }
-                                }
-                            },
-                        ) {
-                            if (saving) {
-                                MutationLoadingIndicator()
-                            } else {
-                                Text(stringResource(R.string.action_save))
-                            }
-                        }
-                    }
-                }
-            } else {
-                TextButton(
-                    onClick = {
-                        mode = if (entry.plannedPercent != null) "percent" else "amount"
-                        draft = if (entry.plannedPercent != null) entry.plannedPercent.toString() else if (entry.planned > 0) toDecimalString(entry.planned) else ""
-                        editing = true
-                    },
+            TextButton(
+                    onClick = { editing = true },
                     contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
@@ -417,7 +342,6 @@ private fun BudgetRow(
                         style = MaterialTheme.typography.headlineMedium,
                     )
                 }
-            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
@@ -439,6 +363,91 @@ private fun BudgetRow(
 
         }
     }
+
+    if (editing) {
+        BudgetDialog(entry, currency, saving, onSetAmount, onSetPercent, onDismiss = { editing = false })
+    }
+}
+
+/** A category's plan in a basic dialog: the amount-or-share switch over its one field. */
+@Composable
+private fun BudgetDialog(
+    entry: CategoryBreakdown,
+    currency: String,
+    saving: Boolean,
+    onSetAmount: (String, Long) -> Unit,
+    onSetPercent: (String, Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var mode by remember { mutableStateOf(if (entry.plannedPercent != null) "percent" else "amount") }
+    var draft by remember {
+        mutableStateOf(if (entry.plannedPercent != null) entry.plannedPercent.toString() else if (entry.planned > 0) toDecimalString(entry.planned) else "")
+    }
+    val form = remember { FormValidation() }
+
+    // setBudgetAmount/Percent is fire-and-forget, so the dialog stays open (showing the spinner)
+    // until saving actually finishes rather than closing the instant Save is tapped.
+    var saveStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(saving) {
+        if (saving) saveStarted = true else if (saveStarted) onDismiss()
+    }
+
+    // Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative.
+    val plannedAmount = if (mode == "amount") parseMoney(draft) else null
+    val plannedProblem = when {
+        draft.isBlank() -> null
+        mode == "percent" -> if (parsePercent(draft) == null) stringResource(R.string.percent_range_hint) else null
+        plannedAmount == null -> stringResource(R.string.error_budget_number)
+        plannedAmount < 0 -> stringResource(R.string.error_budget_negative)
+        else -> null
+    }
+    val plannedField = form.field("planned", plannedProblem)
+
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text(entry.name) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val modes = listOf("amount" to currency, "percent" to "%")
+                ConnectedButtonGroup(
+                    options = modes,
+                    selected = modes.first { it.first == mode },
+                    onSelect = { (value, _) -> if (mode != value) { mode = value; draft = "" } },
+                    label = { it.second },
+                    enabled = !saving,
+                )
+                DenseOutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    placeholder = if (mode == "percent") stringResource(R.string.placeholder_percent_zero) else stringResource(R.string.placeholder_amount_decimal),
+                    // An empty string rather than null keeps the prefix slot always present, so
+                    // M3's focus/empty-driven fade animation doesn't get stuck after the slot is
+                    // added and removed across mode switches (it should only ever be added once).
+                    prefix = if (mode == "amount") currencySymbol(currency) else "",
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !saving,
+                    field = plannedField,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !saving && form.valid(plannedField),
+                onClick = {
+                    if (draft.isBlank()) {
+                        onSetAmount(entry.categoryId, 0)
+                    } else if (mode == "percent") {
+                        parsePercent(draft)?.let { onSetPercent(entry.categoryId, it) }
+                    } else {
+                        plannedAmount?.let { onSetAmount(entry.categoryId, it) }
+                    }
+                },
+            ) {
+                if (saving) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable

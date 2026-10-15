@@ -4,6 +4,7 @@ import { budgetStatus, STATUS } from '@/lib/palette';
 import { displayMoney } from '@/lib/privacy';
 import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
+import AlertDialog from '@/components/AlertDialog.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import DenseField from '@/components/DenseField.vue';
 import { reducedMotion, useFrameClock } from '@/lib/frameClock';
@@ -171,40 +172,7 @@ const track = computed(() => {
 			</span>
 		</header>
 
-		<form v-if="editing" class="flex flex-col gap-2 pt-2" novalidate @submit.prevent="commit" @input="validation.onInput">
-			<ConnectedButtonGroup
-				:model-value="mode"
-				:label="t('budget.budgetAs')"
-				:options="[
-					{ value: 'amount', label: currency },
-					{ value: 'percent', label: '%' },
-				]"
-				:disabled="saving"
-				@update:model-value="selectMode"
-			/>
-
-			<!-- Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative. -->
-			<DenseField
-				:id="fieldId"
-				v-model="draft"
-				class="type-body-large"
-				:label="t('common.planned')"
-				inputmode="decimal"
-				:placeholder="mode === 'percent' ? '0' : '0.00'"
-				:prefix="mode === 'amount' ? currencySymbol(currency) : undefined"
-				:disabled="saving"
-				:error="fieldError(fieldId)"
-				@blur="touch(fieldId)"
-				@keydown.esc="editing = false"
-			/>
-
-			<div class="flex gap-2">
-				<button type="button" class="btn-outlined flex-1" :disabled="saving" @click="editing = false">{{ t('common.cancel') }}</button>
-				<button type="submit" class="btn-primary flex-1" :disabled="saving || !validation.isValid.value">{{ t('common.save') }}</button>
-			</div>
-		</form>
-
-		<button v-else type="button" class="btn-text type-headline-medium mt-1 min-h-11 px-0 py-1" @click="start">{{ plannedLabel }}</button>
+		<button type="button" class="btn-text type-headline-medium mt-1 min-h-11 px-0 py-1" @click="start">{{ plannedLabel }}</button>
 
 		<!-- The state in words, then the share spent as a ring: status never rests on colour alone. -->
 		<div class="flex items-center gap-3 pt-2.5">
@@ -225,5 +193,41 @@ const track = computed(() => {
 				<span class="type-label-small relative">{{ percent }}%</span>
 			</div>
 		</div>
+
+		<AlertDialog :open="editing" :title="entry.name" role="dialog" @close="editing = false">
+			<form :id="`${fieldId}-form`" class="flex flex-col gap-3 sm:w-96" novalidate @submit.prevent="commit" @input="validation.onInput">
+				<ConnectedButtonGroup
+					:model-value="mode"
+					:label="t('budget.budgetAs')"
+					:options="[
+						{ value: 'amount', label: currency },
+						{ value: 'percent', label: '%' },
+					]"
+					:disabled="saving"
+					@update:model-value="selectMode"
+				/>
+
+				<!-- Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative. -->
+				<DenseField
+					:id="fieldId"
+					v-model="draft"
+					class="type-body-large"
+					:label="t('common.planned')"
+					inputmode="decimal"
+					:placeholder="mode === 'percent' ? '0' : '0.00'"
+					:prefix="mode === 'amount' ? currencySymbol(currency) : undefined"
+					:disabled="saving"
+					:error="fieldError(fieldId)"
+					@blur="touch(fieldId)"
+				/>
+			</form>
+
+			<template #actions>
+				<button type="button" class="btn-text" :disabled="saving" @click="editing = false">{{ t('common.cancel') }}</button>
+				<button type="submit" :form="`${fieldId}-form`" class="btn-primary" :disabled="saving || !validation.isValid.value">
+					{{ t('common.save') }}
+				</button>
+			</template>
+		</AlertDialog>
 	</article>
 </template>

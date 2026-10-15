@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AlertDialog from '@/components/AlertDialog.vue';
 import BudgetCard from '@/components/BudgetCard.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import DenseField from '@/components/DenseField.vue';
@@ -164,34 +165,11 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 
-		<!-- Planned income: what a percentage-based budget is a share of. Pressing the figure edits it in place. -->
+		<!-- Planned income: what a percentage-based budget is a share of. Pressing the figure edits it in a dialog. -->
 		<section class="card flex flex-col items-center p-5">
 			<h2 class="type-label-medium pt-3 uppercase">{{ t('budget.plannedIncome') }}</h2>
 
-			<!-- Drawn straight on the card, as a category's budget is edited on its own. -->
-			<form v-if="editingIncome" class="mt-3 w-full" novalidate @submit.prevent="commitIncome">
-				<DenseField
-					id="planned-income"
-					v-model="incomeDraft"
-					class="type-headline-small"
-					:label="t('budget.plannedIncome')"
-					inputmode="decimal"
-					autofocus
-					clearable
-					:placeholder="usingGross ? t('budget.grossPlaceholder') : '0.00'"
-					:prefix="currencySymbol(usingGross ? 'PHP' : currency)"
-					:disabled="savingIncome"
-					@keydown.esc="cancelEditingIncome"
-				/>
-				<div class="flex gap-2 pt-2">
-					<button type="button" class="btn-text flex-1" :disabled="savingIncome" @click="cancelEditingIncome">
-						{{ t('common.cancel') }}
-					</button>
-					<button type="submit" class="btn-primary flex-1" :disabled="savingIncome">{{ t('common.save') }}</button>
-				</div>
-			</form>
-
-			<button v-else type="button" class="btn-text type-headline-medium min-h-13 w-full" @click="startEditingIncome">
+			<button type="button" class="btn-text type-headline-medium min-h-13 w-full" @click="startEditingIncome">
 				{{ incomeLabel }}
 			</button>
 
@@ -244,5 +222,27 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			<h2 class="type-title-small">{{ t('common.cashflow') }}</h2>
 			<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
 		</template>
+
+		<AlertDialog :open="editingIncome" :title="t('budget.plannedIncome')" role="dialog" @close="cancelEditingIncome">
+			<form id="planned-income-form" class="sm:w-96" novalidate @submit.prevent="commitIncome">
+				<DenseField
+					id="planned-income"
+					v-model="incomeDraft"
+					class="type-headline-small"
+					:label="t('budget.plannedIncome')"
+					inputmode="decimal"
+					autofocus
+					clearable
+					:placeholder="usingGross ? t('budget.grossPlaceholder') : '0.00'"
+					:prefix="currencySymbol(usingGross ? 'PHP' : currency)"
+					:disabled="savingIncome"
+				/>
+			</form>
+
+			<template #actions>
+				<button type="button" class="btn-text" :disabled="savingIncome" @click="cancelEditingIncome">{{ t('common.cancel') }}</button>
+				<button type="submit" form="planned-income-form" class="btn-primary" :disabled="savingIncome">{{ t('common.save') }}</button>
+			</template>
+		</AlertDialog>
 	</div>
 </template>

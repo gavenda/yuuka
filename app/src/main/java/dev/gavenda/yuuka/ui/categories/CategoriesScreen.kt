@@ -70,8 +70,8 @@ internal fun CategoriesScreenContent(
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
-    // A family shows its subcategories once opened; every family starts closed.
-    val expandedFamilies = rememberSaveable { mutableStateListOf<String>() }
+    // One family shows its subcategories at a time; opening another closes it, and every family starts closed.
+    var expandedFamily by rememberSaveable { mutableStateOf<String?>(null) }
 
     val categoryRestoredMessage = stringResource(R.string.category_restored)
     val categoryArchivedMessage = stringResource(R.string.category_archived)
@@ -130,7 +130,7 @@ internal fun CategoriesScreenContent(
                                 }
                             }
                             section.families.forEachIndexed { familyIndex, family ->
-                                val familyExpanded = family.parent.id in expandedFamilies
+                                val familyExpanded = expandedFamily == family.parent.id
                                 val lastFamily = familyIndex == section.families.lastIndex
                                 val archiveKey = "archive:${family.parent.id}"
                                 val deleteKey = "delete:${family.parent.id}"
@@ -148,7 +148,7 @@ internal fun CategoriesScreenContent(
                                         deleting = busy.isBusy(deleteKey),
                                         onClick = {
                                             if (family.children.isNotEmpty()) {
-                                                if (familyExpanded) expandedFamilies.remove(family.parent.id) else expandedFamilies.add(family.parent.id)
+                                                expandedFamily = if (familyExpanded) null else family.parent.id
                                             }
                                         },
                                         onEdit = { editing = family.parent },
@@ -305,17 +305,38 @@ private fun CategoryRow(
         },
     ) {
         ListItem(
-            modifier = Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp),
+            // A subcategory stands as tall as the parent above it, which carries a count beneath its name.
+            modifier = Modifier.fillMaxWidth().then(if (indent) Modifier.heightIn(min = 72.dp) else Modifier),
             onClick = onClick,
             shapes = groupedListItemShapes(position),
-            colors = ListItemDefaults.colors(containerColor = groupedItemColor),
+            // An open family, parent and subcategories alike, is told apart by its colour rather than by indenting.
+            colors = if (expanded || indent) {
+                ListItemDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    leadingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    trailingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    supportingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            } else {
+                ListItemDefaults.colors(containerColor = groupedItemColor)
+            },
             leadingContent = {
+                // In an open family the dot sits on a disc of the row's resting colour, so a colour near the container's own stays visible.
                 Box(
                     modifier = Modifier
-                        .size(if (indent) 10.dp else 12.dp)
+                        .size(20.dp)
                         .clip(CircleShape)
-                        .background(harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant)),
-                )
+                        .background(if (expanded || indent) groupedItemColor else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant)),
+                    )
+                }
             },
             supportingContent = if (subCount > 0) {
                 { Text(pluralStringResource(R.plurals.subcategories_count, subCount, subCount)) }
@@ -344,7 +365,7 @@ private fun CategoryRow(
             content = {
                 Text(
                     if (category.archived) stringResource(R.string.name_archived, category.name) else category.name,
-                    style = if (indent) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             },
         )

@@ -131,9 +131,8 @@ function selectKind(kind: CategoryKind): void {
 function press(category: Category, children: number): void {
 	if (!children) return openEdit(category);
 
-	const next = new Set(expanded.value);
-	if (!next.delete(category.id)) next.add(category.id);
-	expanded.value = next;
+	// One family is open at a time; opening another closes it.
+	expanded.value = expanded.value.has(category.id) ? new Set() : new Set([category.id]);
 }
 
 async function save(): Promise<void> {
@@ -204,7 +203,13 @@ onMounted(() => ledger.load());
 						</template>
 
 						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
-						<div class="group-row state-layer flex items-center pr-4" :class="family.children.length ? 'min-h-[72px]' : 'min-h-[60px]'">
+						<div
+							class="group-row state-layer flex items-center pr-4"
+							:class="[
+								family.children.length ? 'min-h-[72px]' : 'min-h-[60px]',
+								expanded.has(family.parent.id) ? 'bg-primary-container text-on-primary-container' : '',
+							]"
+						>
 							<button
 								type="button"
 								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
@@ -212,15 +217,21 @@ onMounted(() => ledger.load());
 								@click="press(family.parent, family.children.length)"
 							>
 								<span
-									class="size-3 shrink-0 rounded-full"
-									:style="{ backgroundColor: harmonised(family.parent.color) }"
+									class="flex size-5 shrink-0 items-center justify-center rounded-full"
+									:class="expanded.has(family.parent.id) ? 'bg-surface-container' : ''"
 									aria-hidden="true"
-								/>
+								>
+									<span class="size-3 rounded-full" :style="{ backgroundColor: harmonised(family.parent.color) }" />
+								</span>
 								<span class="min-w-0 flex-1">
 									<span class="type-body-large block truncate">{{
 										family.parent.archived ? t('common.archivedName', { name: family.parent.name }) : family.parent.name
 									}}</span>
-									<span v-if="family.children.length" class="type-body-medium block text-on-surface-variant">
+									<span
+										v-if="family.children.length"
+										class="type-body-medium block"
+										:class="expanded.has(family.parent.id) ? 'text-on-primary-container' : 'text-on-surface-variant'"
+									>
 										{{ t('categories.subcategories', family.children.length) }}
 									</span>
 								</span>
@@ -244,7 +255,7 @@ onMounted(() => ledger.load());
 						</div>
 					</SwipeReveal>
 
-					<!-- Its subcategories, set in a step. Pressing one edits it. -->
+					<!-- Its subcategories, in primary container with their parent. Pressing one edits it. -->
 					<template v-if="expanded.has(family.parent.id)">
 						<SwipeReveal v-for="child in family.children" :key="child.id">
 							<template #actions>
@@ -259,11 +270,13 @@ onMounted(() => ledger.load());
 
 							<button
 								type="button"
-								class="group-row state-layer focus-ring flex min-h-14 cursor-pointer items-center gap-3 pr-4 pl-8"
+								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-primary-container pr-4 pl-4 text-on-primary-container"
 								@click="openEdit(child)"
 							>
-								<span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(child.color) }" aria-hidden="true" />
-								<span class="type-body-medium min-w-0 flex-1 truncate">{{
+								<span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-container" aria-hidden="true">
+									<span class="size-3 rounded-full" :style="{ backgroundColor: harmonised(child.color) }" />
+								</span>
+								<span class="type-body-large min-w-0 flex-1 truncate">{{
 									child.archived ? t('common.archivedName', { name: child.name }) : child.name
 								}}</span>
 							</button>

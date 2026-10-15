@@ -330,7 +330,8 @@ buttons at the foot. A new form goes through it rather than a surface of its own
 destination, category and the accounts that round up — is Material's basic dialog (`SelectionDialog`,
 `ui/common/SelectionDialog.kt` on Android; `SelectionDialog.vue` on the web): the title, the rows, and Cancel,
 or Done where each press is written as it is made and the dialog stays open for the next. Adjusting a balance
-is a basic dialog of its two fields, and an account type — which is only its name — is added or renamed in one of
+is a basic dialog of its two fields, Budget's planned income and a category's plan are each one of theirs,
+opened by pressing the figure, and an account type — which is only its name — is added or renamed in one of
 its single field, opened from the Account types screen by its leading action or by pressing a type. The transaction filters open nothing at all: pressing the account, tag or
 category button slides a row of that filter's chips down under the filter bar (`FilterChipRow` in both apps),
 which scrolls sideways and applies a change at once; pressing the button again puts the row away.
