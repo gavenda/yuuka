@@ -1,5 +1,5 @@
 import { api, isNetworkError } from '@/lib/api';
-import { dropCacheFamily, readCache, snapshotKey, writeCache } from '@/lib/cache';
+import { dropSummaries, readSummary, writeSummary } from '@/lib/cache';
 import { currentMonth } from '@/lib/dates';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -8,16 +8,6 @@ import { t } from '@/i18n';
 
 /** How many months' summaries the local copy holds. */
 const KEEP_MONTHS = 6;
-
-const cacheKey = (month: string) => snapshotKey('summary', { month });
-
-const isSummaryFor =
-	(month: string) =>
-	(data: unknown): data is Summary =>
-		typeof data === 'object' &&
-		data !== null &&
-		(data as Partial<Summary>).month === month &&
-		Array.isArray((data as Partial<Summary>).categories);
 
 /**
  * Owns the selected month and the summary computed for it. A month seen before is shown from the
@@ -56,6 +46,19 @@ export const useBudgetStore = defineStore('budget', () => {
 
 	const overspent = computed(() => expenseBreakdown.value.reduce((total, entry) => total + Math.min(0, entry.remaining), 0));
 
+	/** Bumped whenever the summary on screen is replaced, so a copy still being read cannot land on top of it. */
+	let revision = 0;
+
+	/** Shows the local copy of [requested], if there is one and nothing has replaced the summary since it was asked for. */
+	async function showCopy(requested: string): Promise<void> {
+		const asked = revision;
+		const cached = await readSummary(requested);
+		if (!cached || revision !== asked) return;
+
+		revision++;
+		summary.value = cached;
+	}
+
 	/**
 	 * Resolves whether the summary is now known to match the API's. It is false when the API could
 	 * not be reached and the local copy (or nothing) is what is on screen.
@@ -65,20 +68,22 @@ export const useBudgetStore = defineStore('budget', () => {
 		if (summary.value?.month === month.value && freshFor === month.value && !force) return true;
 
 		const requested = month.value;
-		const cached = summary.value?.month === requested ? null : readCache(cacheKey(requested), isSummaryFor(requested));
-		if (cached) summary.value = cached;
-
 		loading.value = true;
 		error.value = null;
+		// Read beside the request rather than before it: the copy only fills the wait for the answer.
+		const copy = summary.value?.month === requested ? null : showCopy(requested);
 
 		try {
 			const fresh = await api.summary(requested);
+			revision++;
 			summary.value = fresh;
 			freshFor = requested;
-			writeCache(cacheKey(requested), fresh, KEEP_MONTHS);
+			void writeSummary(fresh, KEEP_MONTHS);
 			return true;
 		} catch (caught) {
-			// Out of reach with this month's figures on screen: keep showing them.
+			// Out of reach with this month's figures on screen: keep showing them. A copy still on its
+			// way counts — offline, the request can fail before the copy is read.
+			await copy;
 			const showingLocalCopy = summary.value?.month === requested;
 			if (!(showingLocalCopy && isNetworkError(caught))) {
 				error.value = caught instanceof Error ? caught.message : t('common.errors.loadSummary');
@@ -100,7 +105,7 @@ export const useBudgetStore = defineStore('budget', () => {
 	 * knows.
 	 */
 	async function refresh(): Promise<void> {
-		if (await load(true)) dropCacheFamily('summary', cacheKey(month.value));
+		if (await load(true)) void dropSummaries(month.value);
 	}
 
 	async function setBudget(categoryId: string, value: { amount: number } | { percent: number }): Promise<void> {
@@ -114,6 +119,7 @@ export const useBudgetStore = defineStore('budget', () => {
 	}
 
 	function reset(): void {
+		revision++;
 		summary.value = null;
 		freshFor = null;
 		month.value = currentMonth();

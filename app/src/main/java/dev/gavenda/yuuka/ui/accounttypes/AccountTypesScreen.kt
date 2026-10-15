@@ -83,17 +83,8 @@ internal fun AccountTypesScreenContent(
             modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             // Rows of the block sit a hair apart, the way a settings group is drawn.
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
         ) {
-            item {
-                Text(
-                    stringResource(R.string.account_types_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 12.dp),
-                )
-            }
-
             // One row per type, its accounts counted at the end, drawn as one connected block.
             itemsIndexed(visible, key = { _, type -> type.id }) { index, type ->
                 val archiveKey = "type-archive:${type.id}"
@@ -125,8 +116,9 @@ internal fun AccountTypesScreenContent(
                     },
                 ) {
                     ListItem(
-                        modifier = Modifier.fillMaxWidth().clip(groupedItemShape(positionInGroup(index, visible.lastIndex))),
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = { renaming = type },
+                        shapes = groupedListItemShapes(positionInGroup(index, visible.lastIndex)),
                         colors = ListItemDefaults.colors(containerColor = groupedItemColor),
                         content = { Text(if (type.archived) stringResource(R.string.name_archived, type.name) else type.name) },
                         trailingContent = {

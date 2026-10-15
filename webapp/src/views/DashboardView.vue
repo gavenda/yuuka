@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CategoryBars from '@/components/CategoryBars.vue';
-import MonthSwitcher from '@/components/MonthSwitcher.vue';
+import MonthAction from '@/components/MonthAction.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
 import { useBudgetStore } from '@/stores/budget';
@@ -45,7 +45,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 
 <template>
 	<div class="flex flex-col gap-4 p-4">
-		<MonthSwitcher v-model="month" />
+		<MonthAction v-model="month" />
 
 		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 

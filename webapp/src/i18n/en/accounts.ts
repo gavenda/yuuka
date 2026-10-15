@@ -2,6 +2,8 @@ export default {
 	emptyTitle: 'Nothing to count yet',
 	emptyShort: 'No accounts yet',
 	emptyDescription: "Add an account and I'll keep it balanced to the last coin.",
+	search: 'Search accounts',
+	searchPlaceholder: 'Search name, type or currency',
 	newAccount: 'New account',
 	editAccount: 'Edit account',
 	added: 'Account added',
@@ -35,7 +37,6 @@ export default {
 	deleteEverything: 'Yes, delete everything',
 	payeeTooLong: 'Use {max} characters or fewer.',
 	types: {
-		description: 'Your own labels. Rename one and every account using it follows along.',
 		unused: 'Not in use',
 		accountCount: '{count} account | {count} accounts',
 		inUse: '{name} is in use and cannot be deleted',

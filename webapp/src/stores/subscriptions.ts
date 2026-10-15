@@ -1,13 +1,9 @@
 import { api, isNetworkError } from '@/lib/api';
-import { readCache, writeCache } from '@/lib/cache';
+import { readSubscriptions, replaceSubscriptions } from '@/lib/cache';
 import type { Subscription } from '@/types';
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { t } from '@/i18n';
-
-const CACHE_KEY = 'subscriptions';
-
-const isSubscriptionList = (data: unknown): data is Subscription[] => Array.isArray(data);
 
 /**
  * Subscriptions are only read on their own page, so this is a plain list with a
@@ -23,39 +19,55 @@ export const useSubscriptionStore = defineStore('subscriptions', () => {
 	/** Whether the API has answered since this page opened; a copy shown from the browser does not count. */
 	let synced = false;
 
-	async function load(force = false): Promise<void> {
-		if (synced && !force) return;
+	/** Bumped whenever the list on screen is replaced, so a copy still being read cannot land on top of it. */
+	let revision = 0;
+
+	/** Shows the local copy, if there is one and nothing has replaced the list since it was asked for. */
+	async function showCopy(): Promise<void> {
+		const asked = revision;
+		const cached = await readSubscriptions();
+		if (!cached || revision !== asked) return;
+
+		revision++;
+		subscriptions.value = cached;
+		loaded.value = true;
+	}
+
+	/** Resolves whether the API answered; a failure is said in `error` rather than thrown. */
+	async function load(force = false): Promise<boolean> {
+		if (synced && !force) return true;
 		loading.value = true;
 		error.value = null;
-
-		if (!loaded.value) {
-			const cached = readCache(CACHE_KEY, isSubscriptionList);
-			if (cached) {
-				subscriptions.value = cached;
-				loaded.value = true;
-			}
-		}
+		// Read beside the request rather than before it: the copy only fills the wait for the answer.
+		const copy = loaded.value ? null : showCopy();
 
 		try {
-			subscriptions.value = (await api.listSubscriptions()).subscriptions;
+			const fresh = (await api.listSubscriptions()).subscriptions;
+			revision++;
+			subscriptions.value = fresh;
 			loaded.value = true;
 			synced = true;
-			writeCache(CACHE_KEY, subscriptions.value);
+			void replaceSubscriptions(fresh);
+			return true;
 		} catch (caught) {
-			// Out of reach with a copy on screen: keep showing it.
+			// Out of reach with a copy on screen: keep showing it. A copy still on its way counts —
+			// offline, the request can fail before the copy is read.
+			await copy;
 			if (!(loaded.value && isNetworkError(caught))) {
 				error.value = caught instanceof Error ? caught.message : t('common.errors.loadSubscriptions');
 			}
+			return false;
 		} finally {
 			loading.value = false;
 		}
 	}
 
-	function refresh(): Promise<void> {
+	function refresh(): Promise<boolean> {
 		return load(true);
 	}
 
 	function reset(): void {
+		revision++;
 		subscriptions.value = [];
 		loaded.value = false;
 		synced = false;

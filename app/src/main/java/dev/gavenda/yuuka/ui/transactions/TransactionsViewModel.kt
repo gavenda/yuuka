@@ -35,6 +35,8 @@ data class TransactionsUiState(
     val total: Int = 0,
     val loadedCount: Int = PAGE_SIZE,
     val status: ScreenStatus = ScreenStatus.Idle,
+    /** Why the next page could not be had. It is the foot of the list's to say, since the rows above it are still good. */
+    val moreError: String? = null,
     val deletingId: String? = null,
 ) {
     val hasMore: Boolean get() = loadedCount < total
@@ -169,11 +171,14 @@ class TransactionsViewModel(
         val f = currentFilters()
         filterKey.value = f
         limit.value = f.rowLimit(PAGE_SIZE)
-        _uiState.update { it.copy(loadedCount = PAGE_SIZE) }
+        // A page of the filters this replaces must not land on the list they make.
+        nextPageJob?.cancel()
+        _uiState.update { it.copy(loadedCount = PAGE_SIZE, moreError = null) }
         refreshFirstPage(f)
     }
 
     private var firstPageJob: Job? = null
+    private var nextPageJob: Job? = null
 
     /**
      * What a sync asks for. Unlike [reload] it keeps the filters, how much is loaded and the status where they
@@ -188,7 +193,8 @@ class TransactionsViewModel(
                 val (total, count) = transactionRepository.resync(f, _uiState.value.loadedCount)
                 syncRepository.markTransactionsFresh()
                 limit.value = f.rowLimit(count)
-                _uiState.update { it.copy(total = total, loadedCount = count) }
+                // The API has answered, so a page that could not be had before is worth asking for again.
+                _uiState.update { it.copy(total = total, loadedCount = count, moreError = null) }
             } catch (_: ApiError) {
             }
         }
@@ -221,20 +227,27 @@ class TransactionsViewModel(
         }
     }
 
+    /**
+     * The next page, which the list asks for itself as its end comes within reach — there is nothing to press.
+     * A failure is kept apart from the screen's status ([TransactionsUiState.moreError]): the rows already shown
+     * stay, and the list stops asking until it is tried again, a sync lands or the filters change, so being
+     * offline costs one failed request rather than a loop of them.
+     */
     fun loadMore() {
-        if (_uiState.value.status == ScreenStatus.Loading) return
+        val current = _uiState.value
+        if (current.status == ScreenStatus.Loading || nextPageJob?.isActive == true || !current.hasMore) return
         val f = filterKey.value
-        val offset = _uiState.value.loadedCount
+        val offset = current.loadedCount
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(status = ScreenStatus.Loading) }
+        nextPageJob = viewModelScope.launch {
+            _uiState.update { it.copy(moreError = null) }
             try {
                 val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = offset)
                 val nextLoaded = offset + page.transactions.size
                 limit.value = f.rowLimit(nextLoaded)
-                _uiState.update { it.copy(total = page.total, loadedCount = nextLoaded, status = ScreenStatus.Idle) }
+                _uiState.update { it.copy(total = page.total, loadedCount = nextLoaded) }
             } catch (e: ApiError) {
-                _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not load more.")) }
+                _uiState.update { it.copy(moreError = e.message ?: "Could not load more.") }
             }
         }
     }

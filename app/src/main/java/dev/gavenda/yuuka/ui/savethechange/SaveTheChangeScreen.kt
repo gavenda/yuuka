@@ -27,7 +27,7 @@ import dev.gavenda.yuuka.ui.settings.ExpressiveButtonGroupSettingItem
 import dev.gavenda.yuuka.ui.settings.ExpressiveModalSelectionItem
 import dev.gavenda.yuuka.ui.settings.ExpressiveSwitchSettingItem
 import dev.gavenda.yuuka.ui.common.ItemPosition
-import dev.gavenda.yuuka.ui.common.groupedItemShape
+import dev.gavenda.yuuka.ui.common.GroupedItem
 import dev.gavenda.yuuka.ui.common.positionInGroup
 import dev.gavenda.yuuka.ui.settings.SettingsGroupContainer
 import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
@@ -289,17 +289,17 @@ private fun SelectionSettingRow(
     position: ItemPosition,
     onClick: () -> Unit,
 ) {
-    val shape = groupedItemShape(position)
-
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(shape).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painterResource(icon), contentDescription = null)
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(value, style = MaterialTheme.typography.bodyMedium)
+    GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(painterResource(icon), contentDescription = null)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(value, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }

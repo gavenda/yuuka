@@ -1,6 +1,6 @@
 import { setTokenProvider, setUnauthorizedHandler } from '@/lib/api';
 import { auth0, isConfigured } from '@/lib/auth0';
-import { clearCache } from '@/lib/cache';
+import { clearCache, warmCache } from '@/lib/cache';
 import { stopPush } from '@/lib/push';
 import { shouldReloadForStaleChunk } from '@/lib/staleChunk';
 import { registerServiceWorker } from '@/lib/pwa';
@@ -45,8 +45,10 @@ if (!isConfigured) {
 	// `watch(isAuthenticated, …)` do the one redirect that actually sticks.
 	//
 	// The local copy goes with it: it holds the books of a session that is over.
+	// Whose books they were stays recorded, which is what lets the guard tell the
+	// same person signing in again from someone else.
 	setUnauthorizedHandler(() => {
-		clearCache();
+		void clearCache();
 		// The unsent work deliberately stays. A rejected token is the same
 		// person, who will sign in again and still wants what they entered
 		// saved; the router guard discards the queue if it turns out to be
@@ -54,6 +56,10 @@ if (!isConfigured) {
 		void stopPush();
 		void auth0.logout({ openUrl: false });
 	});
+
+	// Read the local copy into memory while the session is being restored, rather
+	// than after: the router guard waits for both before the first view mounts.
+	void warmCache();
 
 	// Router before Auth0: the plugin uses it to navigate after a login callback.
 	createApp(App).use(createPinia()).use(i18n).use(router).use(auth0).mount('#app');

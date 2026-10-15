@@ -183,15 +183,15 @@ onMounted(() => ledger.load());
 			:description="t('categories.emptyDescription')"
 		/>
 
-		<!-- A section is one block of rows under its heading, as the settings groups are drawn. -->
+		<!-- A section is one segmented list under its heading, as the settings groups are drawn. -->
 		<section v-for="section in sections" :key="section.key" class="flex flex-col gap-4">
 			<h2 class="settings-header">{{ section.title }} ({{ section.families.length }})</h2>
 
-			<div class="settings-group overflow-hidden">
-				<p v-if="!section.families.length" class="type-body-medium p-5">No {{ section.title.toLowerCase() }} categories yet.</p>
+			<div class="group-rows">
+				<p v-if="!section.families.length" class="group-row type-body-medium p-5">No {{ section.title.toLowerCase() }} categories yet.</p>
 
 				<template v-for="family in section.families" :key="family.parent.id">
-					<!-- A parent's row. The row paints the group's own colour, which is what keeps the swipe's actions hidden behind it. -->
+					<!-- A parent's row. The row paints itself, which is what keeps the swipe's actions hidden behind it. -->
 					<SwipeReveal>
 						<template #actions>
 							<ActionIcon icon="edit" :label="t('common.rename', { name: family.parent.name })" @click="openEdit(family.parent)" />
@@ -204,10 +204,7 @@ onMounted(() => ledger.load());
 						</template>
 
 						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
-						<div
-							class="state-layer flex items-center bg-surface-container pr-4"
-							:class="family.children.length ? 'min-h-[72px]' : 'min-h-[60px]'"
-						>
+						<div class="group-row state-layer flex items-center pr-4" :class="family.children.length ? 'min-h-[72px]' : 'min-h-[60px]'">
 							<button
 								type="button"
 								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
@@ -262,7 +259,7 @@ onMounted(() => ledger.load());
 
 							<button
 								type="button"
-								class="state-layer focus-ring flex min-h-14 w-full cursor-pointer items-center gap-3 bg-surface-container pr-4 pl-8 text-left"
+								class="group-row state-layer focus-ring flex min-h-14 cursor-pointer items-center gap-3 pr-4 pl-8"
 								@click="openEdit(child)"
 							>
 								<span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(child.color) }" aria-hidden="true" />

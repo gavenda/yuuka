@@ -32,7 +32,7 @@ import java.time.format.TextStyle
  * month one, so this is a year header with previous/next arrows over a 3 × 4 grid of month
  * names, styled after the date picker's own year grid. Tapping a month picks it at once.
  *
- * [month] and the result are `YYYY-MM`, the same shape the API and [MonthSwitcher] use.
+ * [month] and the result are `YYYY-MM`, the same shape the API and [MonthTopBar] use.
  */
 @Composable
 fun MonthPickerDialog(

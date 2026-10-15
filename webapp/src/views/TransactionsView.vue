@@ -6,7 +6,8 @@ import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FilterChipRow from '@/components/FilterChipRow.vue';
 import MoneyText from '@/components/MoneyText.vue';
-import MonthSwitcher from '@/components/MonthSwitcher.vue';
+import MonthAction from '@/components/MonthAction.vue';
+import SearchField from '@/components/SearchField.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
@@ -17,17 +18,16 @@ import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
 import { useHarmonised } from '@/lib/harmonise';
+import { useInView } from '@/lib/inView';
 import {
 	ACCOUNT_BALANCE_WALLET,
 	ACCOUNT_BALANCE_WALLET_FILL,
 	ARROW_DROP_DOWN,
 	ARROW_RIGHT_ALT,
-	CLOSE,
 	DELETE,
 	EDIT_NOTE,
 	FILTER_LIST,
 	FILTER_LIST_FILL,
-	SEARCH,
 	SELL,
 	SELL_FILL,
 } from '@/lib/icons';
@@ -139,6 +139,19 @@ watch(filters, (next) => {
 // Together, so the list's saved copy is not held back by the ledger's round trip.
 onMounted(() => Promise.all([ledger.load(), store.load(filters.value)]));
 
+/** The foot of the list for as long as there is more of it to load. */
+const listEnd = ref<HTMLElement | null>(null);
+/** A screen ahead of the fold, so the next page is usually there before the end is. */
+const endInReach = useInView(listEnd, '0px 0px 100% 0px');
+
+// The list is an endless one: the next page is asked for as the end comes within reach, so there is nothing
+// to press for it. It is asked for again when a page lands with the end still in reach, and once a load that
+// was in the way has finished. A page that could not be had is not asked for again from here, which would
+// only repeat the failure for as long as the end stayed in reach — the foot of the list says so and offers to.
+watch([endInReach, () => store.hasMore, () => store.loading, () => store.loadingMore, () => store.moreError], () => {
+	if (endInReach.value && !store.moreError) void store.loadMore();
+});
+
 function openCreate(): void {
 	editing.value = null;
 	editingTransferToAccountId.value = null;
@@ -208,22 +221,30 @@ async function remove(): Promise<void> {
 
 <template>
 	<div class="pb-24">
-		<!-- What stays put while the list scrolls: the month, the search, and one row of filters, each opening
-		     a row of chips under it. The account button is only as wide as its label; the tag and category icons
-		     (each with a count of what is on) sit at the end. -->
-		<div class="px-4 pt-4"><MonthSwitcher v-model="month" /></div>
+		<MonthAction v-model="month" />
 
+		<!-- A phone's bar has the search in it, as the app bar with search does on Android. A window with a rail
+		     has no bar, so there the search leads the strip below instead: one field in each place, and only
+		     one of them ever on show. -->
+		<Teleport defer to="#bar-search">
+			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('transactions.search')" :placeholder="t('transactions.search')" />
+		</Teleport>
+
+		<!-- What stays put while the list scrolls: the search, where there is no bar for it, and one row of
+		     filters, each opening a row of chips under it. The account button is only as wide as its label; the
+		     tag and category icons (each with a count of what is on) sit at the end. -->
 		<TopBar>
-			<label class="search-field">
-				<AppIcon :icon="SEARCH" />
-				<input v-model="search" type="search" :aria-label="t('transactions.search')" :placeholder="t('transactions.searchPlaceholder')" />
-				<button v-if="search" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @click="search = ''">
-					<AppIcon :icon="CLOSE" />
-				</button>
-			</label>
+			<SearchField
+				v-model="search"
+				class="mb-4 max-sm:hidden"
+				:label="t('transactions.search')"
+				:placeholder="t('transactions.searchPlaceholder')"
+			/>
 
-			<div class="mt-4 -mb-2 flex h-12 items-center">
-				<div class="flex min-w-0 flex-1">
+			<!-- On a phone the row stands in line with the bar above it: the account button's icon under the
+			     bar's mark, and the tag and category icons under its last two buttons. -->
+			<div class="-mb-2 flex h-12 items-center">
+				<div class="flex min-w-0 flex-1 max-sm:-ml-3">
 					<button
 						type="button"
 						class="btn-text min-w-0 gap-0"
@@ -239,7 +260,7 @@ async function remove(): Promise<void> {
 
 				<button
 					type="button"
-					class="btn-icon relative m-1"
+					class="btn-icon relative ml-1 sm:m-1"
 					:aria-label="t('transactions.filterByTag')"
 					:aria-expanded="openFilter === 'tags'"
 					aria-controls="filter-chips"
@@ -251,7 +272,7 @@ async function remove(): Promise<void> {
 
 				<button
 					type="button"
-					class="btn-icon relative m-1"
+					class="btn-icon relative ml-1 sm:m-1"
 					:aria-label="t('transactions.filterByCategory')"
 					:aria-expanded="openFilter === 'categories'"
 					aria-controls="filter-chips"
@@ -382,10 +403,14 @@ async function remove(): Promise<void> {
 				</ul>
 			</section>
 
-			<div v-if="store.hasMore" class="p-4">
-				<button type="button" class="btn-text w-full" :disabled="store.loading" @click="store.loadMore()">
-					{{ store.loading ? t('common.fetching') : t('transactions.loadMore', { shown: store.transactions.length, total: store.total }) }}
-				</button>
+			<!-- More of the list than is on show. Reaching this has already asked for the next page, so it only
+			     says one is on its way — or, when it could not be had, why, with a way to ask again. -->
+			<div v-if="store.hasMore" ref="listEnd" class="flex min-h-18 flex-col items-center justify-center p-4 text-center">
+				<template v-if="store.moreError">
+					<p class="type-body-medium text-error" role="alert">{{ store.moreError }}</p>
+					<button type="button" class="btn-text" @click="store.loadMore()">{{ t('common.tryAgain') }}</button>
+				</template>
+				<p v-else class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
 			</div>
 			<!-- The end of the list, and only once there is no more of it to load: Yuuka, asleep over closed
 			     books, saying so, so the last row is not mistaken for a page that stopped short. -->

@@ -4,9 +4,10 @@
  * This is the one thing in the browser that is **not** a cache. Everything in
  * `cache.ts` can be thrown away and refetched; an entry here is a change the
  * user made that exists nowhere else yet, so losing it loses their work. That
- * is why it is in IndexedDB rather than beside the cache in `localStorage`:
- * the cache drops its oldest entries when the quota is tight, and the queue
- * must never be what gets dropped.
+ * is why it is a database of its own (`yuuka-outbox`) rather than a store
+ * beside the cache's (`yuuka-cache`): the cache is cleared, trimmed and, when
+ * its layout changes, dropped wholesale, and none of that may ever reach the
+ * queue — the same reason Android keeps it out of Room's cache database.
  *
  * Two properties the rest of the app depends on:
  *
@@ -19,7 +20,9 @@
  *   cheaper than a lost change.
  *
  * The queue holds one person's unsent work, so it is emptied when someone else
- * signs in — the same rule the cache follows, for the same reason.
+ * signs in — the same rule the cache follows, for the same reason, decided by
+ * the same owner marker (`adoptCacheFor`). A session that merely expired keeps
+ * it: that marker outlives the cache being cleared.
  */
 
 import type { ChangeSlice } from './slices';

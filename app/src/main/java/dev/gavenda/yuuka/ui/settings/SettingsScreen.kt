@@ -45,11 +45,10 @@ import dev.gavenda.yuuka.ui.common.SelectionDialog
 import dev.gavenda.yuuka.ui.common.SpeechBubble
 import dev.gavenda.yuuka.ui.common.YuukaMood
 import dev.gavenda.yuuka.ui.common.YuukaPortrait
-import dev.gavenda.yuuka.ui.common.groupedItemColor
-import dev.gavenda.yuuka.ui.common.groupedItemShape
+import dev.gavenda.yuuka.ui.common.GroupedItem
+import dev.gavenda.yuuka.ui.common.SegmentedGap
 import dev.gavenda.yuuka.ui.common.pillTextFieldColors
 import dev.gavenda.yuuka.ui.common.positionInGroup
-import dev.gavenda.yuuka.ui.theme.ShapeXl
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -148,11 +147,7 @@ internal fun SettingsScreenContent(
                 // Section 1: Currency
                 SettingsGroupHeader(title = "Currency")
                 SettingsGroupContainer {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
-                        .clickable { isCurrencySheetOpen = true }
-                            .padding(horizontal = 20.dp, vertical = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
+                    SettingItemRow(position = ItemPosition.Single, onClick = { isCurrencySheetOpen = true }) {
                         Icon(painterResource(R.drawable.attach_money_48px),
                             contentDescription = null,
                         )
@@ -239,11 +234,7 @@ internal fun SettingsScreenContent(
                 // Section 4: Accounts. A list to manage rather than a value to pick, so it is a screen of its own.
                 SettingsGroupHeader(title = "Accounts")
                 SettingsGroupContainer {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
-                            .clickable(onClick = onOpenAccountTypes).padding(horizontal = 20.dp, vertical = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    SettingItemRow(position = ItemPosition.Single, onClick = onOpenAccountTypes) {
                         Icon(painterResource(R.drawable.account_tree_48px), contentDescription = null)
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -256,10 +247,7 @@ internal fun SettingsScreenContent(
                 // Section 5: Transactions
                 SettingsGroupHeader(title = "Transactions")
                 SettingsGroupContainer {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clip(ShapeXl)
-                        .clickable { isAccountSheetOpen = true }.padding(horizontal = 20.dp, vertical = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
+                    SettingItemRow(position = ItemPosition.Single, onClick = { isAccountSheetOpen = true }) {
                         Icon(painterResource(R.drawable.supervisor_account_48px),
                             contentDescription = null,
                         )
@@ -388,11 +376,8 @@ fun SettingsGroupHeader(title: String) {
 
 @Composable
 fun SettingsGroupContainer(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().background(
-                color = groupedItemColor, shape = ShapeXl
-            ), content = content
-    )
+    // A segmented list: each row paints itself in its place in the group (`GroupedItem`), a gap apart.
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(SegmentedGap), content = content)
 }
 
 @Composable
@@ -472,15 +457,13 @@ private fun RowScope.SettingIconAndText(@DrawableRes icon: Int, title: String, s
 private fun SettingItemRow(
     position: ItemPosition, onClick: () -> Unit, enabled: Boolean = true, content: @Composable RowScope.() -> Unit
 ) {
-    val shape = groupedItemShape(position)
-
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(shape)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content
-    )
+    GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = if (enabled) onClick else null) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
+    }
 }
 
 @Composable

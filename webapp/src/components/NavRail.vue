@@ -2,9 +2,11 @@
 import CatPattern from '@/components/CatPattern.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import RailItem from '@/components/RailItem.vue';
+import { formatMonth } from '@/lib/dates';
 import { currentFab, type FabAction, type FabEntry } from '@/lib/fab';
 import {
 	ATTACH_MONEY,
+	CALENDAR_MONTH,
 	EVENT_REPEAT,
 	EVENT_REPEAT_FILL,
 	LOGOUT,
@@ -17,6 +19,7 @@ import {
 	SETTINGS_FILL,
 	type IconPath,
 } from '@/lib/icons';
+import { currentMonthAction } from '@/lib/monthAction';
 import { useAmountVisibility } from '@/lib/privacy';
 import { railPushesContent, useRail } from '@/lib/rail';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
@@ -151,6 +154,9 @@ const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
 
 /** Not on a screen that shows no amount, where the hide-amounts switch has nothing to mask. */
 const showsAmounts = computed(() => route.meta.amountFree !== true);
+
+/** The month on show, which labels the month button once the rail is open; null on a screen that looks at none. */
+const month = computed(() => (currentMonthAction.value ? formatMonth(currentMonthAction.value.month) : null));
 
 /**
  * Set up once and then left alone, so they live behind the menu rather than in the row of daily
@@ -351,6 +357,23 @@ onBeforeUnmount(() => {
 						:aria-pressed="amountsHidden"
 						:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						@click="toggleAmounts"
+					/>
+
+					<!-- On a screen that is looking at a month, the button that opens its month picker (`MonthAction`),
+					     which a phone keeps in the bar after the switch above. -->
+					<RailItem
+						v-if="currentMonthAction && month"
+						variant="action"
+						:label="month"
+						:icon="CALENDAR_MONTH"
+						:expanded="expanded"
+						aria-haspopup="dialog"
+						:aria-label="t('common.months.choose', { month })"
+						:title="t('common.months.choose', { month })"
+						@click="
+							afterChoice();
+							currentMonthAction.open();
+						"
 					/>
 
 					<div class="rail-collapse" :data-open="expanded && !!account.name" :inert="!expanded">

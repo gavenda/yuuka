@@ -5,16 +5,7 @@ import SelectionDialog from '@/components/SelectionDialog.vue';
 import SelectionItem from '@/components/SelectionItem.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
-import {
-	ACCOUNT_BALANCE_WALLET_FILL,
-	ACCOUNT_CIRCLE,
-	BLOCK,
-	CALCULATE,
-	CATEGORY_FILL,
-	ERROR,
-	SAVINGS_FILL,
-	WALLET,
-} from '@/lib/icons';
+import { ACCOUNT_BALANCE_WALLET_FILL, ACCOUNT_CIRCLE, BLOCK, CALCULATE, CATEGORY_FILL, ERROR, SAVINGS_FILL, WALLET } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';

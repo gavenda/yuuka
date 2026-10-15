@@ -81,12 +81,17 @@ internal fun BudgetScreenContent(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
+        topBar = { MonthTopBar(
+                month = state.month,
+                onMonthChange = onMonthChange,
+                scrollBehavior = scrollBehavior,
+                title = stringResource(R.string.destination_budget),
+            ) },
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                // The month switcher used to stand between the bar and the first card; its padding goes here instead.
+                // Nothing stands between the bar and the first card, so the list pads its own top.
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {

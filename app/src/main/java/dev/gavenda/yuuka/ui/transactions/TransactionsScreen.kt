@@ -10,13 +10,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +43,9 @@ import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
 import dev.gavenda.yuuka.data.model.Payee
 import androidx.compose.ui.tooling.preview.Preview
+
+/** How many items short of a list's end its next page is asked for, so it is usually there before the end is. */
+private const val LOAD_AHEAD = 10
 
 @Composable
 fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsViewModel = koinViewModel()) {
@@ -119,14 +122,39 @@ internal fun TransactionsScreenContent(
     }
 
     // Scrolling down gives the list the bar's height back; the first scroll up returns it.
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
+
+    val openEdit = { row: TransactionRow ->
+        when (row) {
+            is TransactionRow.Transfer -> onOpenEdit(row.leg, row.toAccountId)
+            is TransactionRow.Single -> onOpenEdit(row.transaction, null)
+        }
+    }
+    val askDelete = { row: TransactionRow ->
+        pendingDelete = when (row) {
+            is TransactionRow.Transfer -> row.leg
+            is TransactionRow.Single -> row.transaction
+        }
+    }
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
         modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { MonthTopBar(month = state.month, onMonthChange = onMonthChange, scrollBehavior = scrollBehavior) },
-        
+        topBar = {
+            MonthSearchTopBar(
+                month = state.month,
+                onMonthChange = onMonthChange,
+                search = searchFieldState,
+                searchHint = stringResource(R.string.search_payee_notes),
+                scrollBehavior = scrollBehavior,
+            ) {
+                // With a snackbar host of its own, since the view is a window over the one the shell's is in.
+                WithSnackbarOverlay {
+                    TransactionResults(state = state, onOpen = openEdit, onLoadMore = onLoadMore, modifier = Modifier.fillMaxSize())
+                }
+            }
+        },
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_transaction),
@@ -135,22 +163,16 @@ internal fun TransactionsScreenContent(
             )
         },
     ) { padding ->
-        val error = (state.status as? ScreenStatus.Error)?.message
-        val grouped = remember(state.rows) { groupByDate(state.rows) }
-
         Column(
             modifier = Modifier.padding(padding).fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SearchField(
-                state = searchFieldState,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-
             // One child of the spaced column, so the chips' row takes no gap of its own while it is shut.
             Column {
+                // Under the bar and in line with it: the account button's icon stands under the drawer button's, and
+                // the tag and category icons under the bar's two actions.
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = barAlignedEdgePadding),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // The button is only as wide as its label; the box takes the rest of the row, which pushes the icons to the end.
@@ -180,100 +202,15 @@ internal fun TransactionsScreenContent(
                 FilterChipRow(openChips)
             }
 
-            LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(bottom = 96.dp)) {
-                if (error != null) {
-                    item { Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
-                }
-
-                if (state.rows.isEmpty() && state.status != ScreenStatus.Loading) {
-                    item {
-                        EmptyState(
-                            stringResource(R.string.transactions_empty_title),
-                            YuukaMood.Uneasy,
-                            modifier = Modifier.fillParentMaxHeight().padding(16.dp),
-                            description = stringResource(R.string.transactions_empty_description),
-                        )
-                    }
-                } else {
-                    grouped.forEach { (date, rows) ->
-                        item {
-                            // A day's heading, drawn like the account groups': the date in primary, its
-                            // net at the end, inset past the rows it names.
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    formatLongDate(date),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                                MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.titleMedium)
-                            }
-                        }
-                        itemsIndexed(rows, key = { _, row ->
-                            when (row) {
-                                is TransactionRow.Transfer -> row.id
-                                is TransactionRow.Single -> row.transaction.id
-                            }
-                        }) { index, row ->
-                            TransactionRowItem(
-                                row = row,
-                                position = positionInGroup(index, rows.lastIndex),
-                                currency = state.currency,
-                                onClick = {
-                                    when (row) {
-                                        is TransactionRow.Transfer -> onOpenEdit(row.leg, row.toAccountId)
-                                        is TransactionRow.Single -> onOpenEdit(row.transaction, null)
-                                    }
-                                },
-                                onDelete = {
-                                    pendingDelete = when (row) {
-                                        is TransactionRow.Transfer -> row.leg
-                                        is TransactionRow.Single -> row.transaction
-                                    }
-                                },
-                            )
-                        }
-                    }
-
-                    if (state.hasMore) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                                TextButton(onClick = onLoadMore, modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        if (state.status == ScreenStatus.Loading) {
-                                            stringResource(R.string.loading_ellipsis)
-                                        } else {
-                                            stringResource(R.string.load_more, state.loadedCount, state.total)
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        // The end of the list, and only once there is no more of it to load: Yuuka, asleep
-                        // over closed books, saying so, so the last row is not mistaken for a page that
-                        // stopped short.
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-                                verticalAlignment = Alignment.Bottom,
-                            ) {
-                                YuukaPortrait(YuukaMood.Asleep, width = 96.dp)
-                                // As tall as the badge she is in, so the tail is level with her face.
-                                Box(
-                                    modifier = Modifier.weight(1f, fill = false).heightIn(min = 96.dp),
-                                    contentAlignment = Alignment.CenterStart,
-                                ) {
-                                    SpeechBubble(stringResource(R.string.transactions_end))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            TransactionList(
+                state = state,
+                // Room for the last row to clear the button that floats over the list.
+                contentPadding = PaddingValues(bottom = 96.dp),
+                onOpen = openEdit,
+                onDelete = askDelete,
+                onLoadMore = onLoadMore,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
         }
     }
 
@@ -327,6 +264,244 @@ internal fun TransactionsScreenContent(
     }
 }
 
+/**
+ * The page's list: the transactions on show under their days, with what stands in for them when there are
+ * none and what follows the last.
+ */
+@Composable
+private fun TransactionList(
+    state: TransactionsUiState,
+    contentPadding: PaddingValues,
+    onOpen: (TransactionRow) -> Unit,
+    onDelete: (TransactionRow) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val error = (state.status as? ScreenStatus.Error)?.message
+    val grouped = remember(state.rows) { groupByDate(state.rows) }
+    val listState = rememberLazyListState()
+    LoadMoreAtEnd(listState, state, onLoadMore)
+
+    LazyColumn(modifier = modifier, state = listState, contentPadding = contentPadding) {
+        if (error != null) {
+            item { Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+        }
+
+        if (state.rows.isEmpty() && state.status != ScreenStatus.Loading) {
+            item {
+                EmptyState(
+                    stringResource(R.string.transactions_empty_title),
+                    YuukaMood.Uneasy,
+                    modifier = Modifier.fillParentMaxHeight().padding(16.dp),
+                    description = stringResource(R.string.transactions_empty_description),
+                )
+            }
+        } else {
+            grouped.forEach { (date, rows) ->
+                item {
+                    // A day's heading, drawn like the account groups': the date in primary, its
+                    // net at the end, inset past the rows it names.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            formatLongDate(date),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        MoneyText(dailyAccrued(rows), tone = MoneyTone.SIGNED, currency = state.currency, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                itemsIndexed(rows, key = { _, row -> row.key }) { index, row ->
+                    TransactionRowItem(
+                        row = row,
+                        position = positionInGroup(index, rows.lastIndex),
+                        currency = state.currency,
+                        onClick = { onOpen(row) },
+                        onDelete = { onDelete(row) },
+                    )
+                }
+            }
+
+            if (state.hasMore) {
+                item { NextPageFooter(state.moreError, onRetry = onLoadMore) }
+            } else {
+                // The end of the list, and only once there is no more of it to load: Yuuka, asleep
+                // over closed books, saying so, so the last row is not mistaken for a page that
+                // stopped short.
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        YuukaPortrait(YuukaMood.Asleep, width = 96.dp)
+                        // As tall as the badge she is in, so the tail is level with her face.
+                        Box(
+                            modifier = Modifier.weight(1f, fill = false).heightIn(min = 96.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            SpeechBubble(stringResource(R.string.transactions_end))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * What the search view lists under its field: the transactions on show as Material's plain list items — the
+ * day over what it was, where it was and what is noted on it beneath, the amount at the end — with none of the
+ * page's days, grouped shapes or swipes. Pressing one opens it. The view is a dialog, so Yuuka is not drawn in
+ * it: nothing matching is said in plain text, and the last item is simply the last.
+ */
+@Composable
+private fun TransactionResults(
+    state: TransactionsUiState,
+    onOpen: (TransactionRow) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val error = (state.status as? ScreenStatus.Error)?.message
+    val listState = rememberLazyListState()
+    LoadMoreAtEnd(listState, state, onLoadMore)
+
+    LazyColumn(modifier = modifier, state = listState) {
+        if (error != null) {
+            item { Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+        }
+
+        if (state.rows.isEmpty() && state.status != ScreenStatus.Loading) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(stringResource(R.string.transactions_empty_title), style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.transactions_empty_description), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                }
+            }
+        } else {
+            items(state.rows, key = { it.key }) { row ->
+                TransactionResultItem(row = row, currency = state.currency, onClick = { onOpen(row) })
+            }
+
+            if (state.hasMore) {
+                item { NextPageFooter(state.moreError, onRetry = onLoadMore) }
+            }
+        }
+    }
+}
+
+/** One transaction as Material's own list item, on the search view's colour rather than a container of its own. */
+@Composable
+private fun TransactionResultItem(row: TransactionRow, currency: String, onClick: () -> Unit) {
+    val transaction = when (row) {
+        is TransactionRow.Transfer -> row.leg
+        is TransactionRow.Single -> row.transaction
+    }
+    val where = when (row) {
+        is TransactionRow.Transfer -> stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
+        is TransactionRow.Single -> transaction.accountName.orEmpty()
+    }
+    val notes = when (row) {
+        is TransactionRow.Transfer -> row.notes
+        is TransactionRow.Single -> transaction.notes
+    }.trim()
+    val tags = when (row) {
+        is TransactionRow.Transfer -> row.tags
+        is TransactionRow.Single -> transaction.tags
+    }
+    // A search also matches notes and tag names, so both are on the item for a match to be seen in.
+    val supporting = listOf(where, notes, tags.joinToString { it.name }).filter { it.isNotEmpty() }.joinToString(" · ")
+
+    ListItem(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        overlineContent = { Text(formatLongDate(transaction.occurredOn)) },
+        supportingContent = if (supporting.isNotEmpty()) ({ Text(supporting) }) else null,
+        trailingContent = {
+            when (row) {
+                is TransactionRow.Transfer -> MoneyText(row.amount, tone = MoneyTone.TRANSFER, currency = currency, style = MaterialTheme.typography.bodyLarge)
+                is TransactionRow.Single -> MoneyText(transaction.amount, tone = MoneyTone.SIGNED_ALERT, currency = currency, style = MaterialTheme.typography.bodyLarge)
+            }
+        },
+        content = { Text(rowTitle(row)) },
+    )
+}
+
+/** What names a row in either list: its payee, or failing that what it was filed under. */
+@Composable
+private fun rowTitle(row: TransactionRow): String = when (row) {
+    is TransactionRow.Transfer -> {
+        val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
+        if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
+    }
+
+    is TransactionRow.Single -> row.transaction.payee.ifBlank { row.transaction.categoryName ?: stringResource(R.string.category_uncategorized) }
+}
+
+private val TransactionRow.key: String
+    get() = when (this) {
+        is TransactionRow.Transfer -> id
+        is TransactionRow.Single -> transaction.id
+    }
+
+/**
+ * Makes either list an endless one: the next page is asked for as the end comes within [LOAD_AHEAD] items of
+ * showing, so there is nothing to press for it. It is asked for again when a page lands with the end still in
+ * reach, and once a load that was in the way has finished. A page that could not be had is not asked for again
+ * from here, which would only repeat the failure for as long as the end stayed in reach — the foot of the list
+ * says so and offers to ([NextPageFooter]).
+ */
+@Composable
+private fun LoadMoreAtEnd(listState: LazyListState, state: TransactionsUiState, onLoadMore: () -> Unit) {
+    val endInReach by remember(listState) {
+        derivedStateOf {
+            val layout = listState.layoutInfo
+            val lastShown = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastShown >= layout.totalItemsCount - 1 - LOAD_AHEAD
+        }
+    }
+
+    LaunchedEffect(endInReach, state.hasMore, state.loadedCount, state.status, state.moreError) {
+        if (endInReach && state.hasMore && state.moreError == null) onLoadMore()
+    }
+}
+
+/**
+ * The foot of either list for as long as there is more of it to load. Reaching it has already asked for the next
+ * page, so it only says one is on its way — or, when it could not be had, why, with a way to ask again.
+ */
+@Composable
+private fun NextPageFooter(error: String?, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (error != null) {
+            Text(
+                error,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
+        } else {
+            Text(
+                stringResource(R.string.loading_ellipsis),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 private fun groupByDate(rows: List<TransactionRow>): List<Pair<String, List<TransactionRow>>> {
     val groups = LinkedHashMap<String, MutableList<TransactionRow>>()
     for (row in rows) {
@@ -362,26 +537,19 @@ private fun TransactionRowItem(
     }
 
     SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = SegmentedGap / 2),
         actions = { ActionIconButton(ActionIcon.DELETE, stringResource(R.string.action_delete), onDelete, danger = true) },
     ) {
         // One of the day's rows rather than a card of its own: round where the day starts and ends,
         // near-square where it meets the row beside it, as the account groups are drawn.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
-            shape = groupedItemShape(position),
-            color = groupedItemColor,
-        ) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick) {
           Column {
             // The headline, what is under it and the figures at the end sit in a plain row of two columns;
             // the card, the tap target and the notes row below stay outside it.
             when (row) {
                 is TransactionRow.Transfer -> {
-                    val accountFlow = stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
-                    val title = if (row.payee.isBlank() || row.payee == accountFlow) stringResource(R.string.category_kind_transfer) else row.payee
                     TransactionSummary(
-                        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
+                        title = { Text(rowTitle(row), style = MaterialTheme.typography.titleMedium) },
                         supporting = {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 AccountFlow(row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
@@ -408,12 +576,7 @@ private fun TransactionRowItem(
                 is TransactionRow.Single -> {
                     val transaction = row.transaction
                     TransactionSummary(
-                        title = {
-                            Text(
-                                transaction.payee.ifBlank { transaction.categoryName ?: stringResource(R.string.category_uncategorized) },
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                        },
+                        title = { Text(rowTitle(row), style = MaterialTheme.typography.titleMedium) },
                         supporting = {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
@@ -512,28 +675,6 @@ private fun TagChip(name: String, colorHex: String) {
             Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
-}
-
-/** Filters the list as it is typed. A plain text field drawn as a search bar — nothing here expands or takes the screen over. */
-@Composable
-private fun SearchField(state: TextFieldState, modifier: Modifier = Modifier) {
-    TextField(
-        state = state,
-        modifier = modifier,
-        lineLimits = TextFieldLineLimits.SingleLine,
-        shape = CircleShape,
-        colors = pillTextFieldColors(),
-        textStyle = MaterialTheme.typography.bodyLarge,
-        placeholder = { Text(stringResource(R.string.search_payee_notes)) },
-        leadingIcon = { Icon(painterResource(R.drawable.search_48px), contentDescription = null) },
-        trailingIcon = {
-            if (state.text.isNotEmpty()) {
-                IconButton(onClick = { state.clearText() }) {
-                    Icon(painterResource(R.drawable.close_48px), contentDescription = stringResource(R.string.cd_clear))
-                }
-            }
-        },
-    )
 }
 
 /** A transaction's headline and what is under it at the start, its figures at the end, top-aligned with each other. */

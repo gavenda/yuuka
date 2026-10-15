@@ -9,7 +9,7 @@ import { ref } from 'vue';
 const isAuthenticated = ref(false);
 const isLoading = ref(false);
 const user = ref<{ sub: string } | undefined>(undefined);
-const adoptCacheFor = vi.fn();
+const adoptCacheFor = vi.fn(async () => false);
 
 vi.mock('@/lib/cache', () => ({ adoptCacheFor }));
 

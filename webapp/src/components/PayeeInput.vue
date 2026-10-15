@@ -2,8 +2,9 @@
 import AppIcon from '@/components/AppIcon.vue';
 import FieldSupport from '@/components/FieldSupport.vue';
 import { api } from '@/lib/api';
+import { readPayees, replacePayees } from '@/lib/cache';
 import { ERROR } from '@/lib/icons';
-import { isExhausted, rankPayees } from '@/lib/payees';
+import { isExhausted, PAYEE_LIMIT, rankPayees } from '@/lib/payees';
 import { supportId } from '@/lib/validation';
 import type { Payee } from '@/types';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -19,7 +20,8 @@ const emit = defineEmits<{ 'update:modelValue': [string]; select: [Payee]; blur:
 /**
  * The whole history is fetched once when the form opens and filtered here.
  * A personal ledger has tens or hundreds of payees, not thousands, so matching
- * locally is instant and avoids a request per keystroke.
+ * locally is instant and avoids a request per keystroke. It is kept in the
+ * local copy's `payees` store too, which a full sync replaces.
  */
 const all = ref<Payee[]>([]);
 const open = ref(false);
@@ -31,11 +33,16 @@ const matches = computed(() => rankPayees(all.value, props.modelValue));
 const showList = computed(() => open.value && matches.value.length > 0 && !isExhausted(matches.value, props.modelValue));
 
 async function load(): Promise<void> {
+	// What the local copy remembers first, so suggestions work offline, then what the API has now.
+	const remembered = await readPayees();
+	if (remembered) all.value = remembered;
+
 	try {
-		all.value = (await api.listPayees(undefined, 50)).payees;
+		const fresh = (await api.listPayees(undefined, PAYEE_LIMIT)).payees;
+		all.value = fresh;
+		void replacePayees(fresh);
 	} catch {
 		// Suggestions are a convenience; typing still works without them.
-		all.value = [];
 	}
 }
 

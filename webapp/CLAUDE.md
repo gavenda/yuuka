@@ -84,16 +84,70 @@ the adaptive foreground over `#9EBCD8` (the brand's secondary seed) that
 `yuuka.png` is, and `pwa-maskable-512.png` is the whole 648px canvas, since
 Android's safe zone is stricter than a maskable icon's.
 
-**The local copy is a cache, and losing it costs nothing.** `lib/cache.ts` keeps
-it in `localStorage` under `yuuka.cache.*`, and every function there is
-best-effort and never throws — blocked storage, a full quota or a corrupt entry
-all read as "nothing saved", and the store loads as it always did. A full quota
-drops the oldest entries first. Entries carry a version (`VERSION`); bump it when
-a stored shape changes and older ones read as missing.
+**The local copy is a cache, and losing it costs nothing.** It is the web's Room
+database: IndexedDB `yuuka-cache`, laid out as `YuukaDatabase` is, a store per
+table — `accounts`, `account_types`, `categories`, `tags`, `transaction_tags`
+(keyed `[transactionId, tagId]`, indexed by `tagId`), `transactions` (indexed by
+`accountId`, `categoryId`, `month` and `transferId`), `budgets` (by
+`queriedMonth` and `categoryId`), `income_plans` (keyed by `queriedMonth`),
+`summaries` (keyed by `month`), `payees`, `subscriptions`, and the single-row
+`settings` and `round_up_rule`. One store Room has no twin for:
+`transaction_pages`, the first pages this browser has seen per filter set, with
+the API's total — Android filters a page out of its table on the device, while
+the web asks the API for each filter set's page, so it keeps which ones it can
+answer for and bounds them. `lib/cacheDb.ts` is the database (the layout, the
+in-memory mirror, the owner, the lifecycle) and `lib/cache.ts` its DAOs; nothing
+else touches the first. Everything there is best-effort and never throws or
+rejects — a browser that refuses IndexedDB, a failed write or a row a reader
+cannot use all read as "nothing saved", and the store loads as it always did.
+`VERSION` is the database's version: bump it when a store, an index or a row's
+shape changes, and the upgrade drops every store, as Room's destructive
+migration does, so nothing written under another version is ever read. What the
+`localStorage` copy left under `yuuka.cache.*` is removed on first open, all but
+the owner marker.
 
-Each store follows the same shape: on `load`, show the copy if there is one, ask
-the API, replace what is on screen with the answer and write it back. Three rules
-keep that honest:
+Reads are asynchronous, but every store is read into memory, row by row, once
+per page (`warmCache`, started in `main.ts` while the session is restored), and
+answered from there, with the same lookups the stores' indexes give. A read
+resolves within the task that asked, so a screen paints from it before a frame
+is drawn without it, and the router guard's `adoptCacheFor` waits for that
+before the first view mounts. A write is a list of operations — put, delete,
+clear, delete or patch where a field matches, trim to the newest — applied to
+memory at once and to IndexedDB in one transaction behind it, where the
+cascading ones walk the stores' own indexes. Reads hand back fresh objects,
+sorted as the API sorts each list, so nothing a screen does reaches the copy.
+
+Two shapes of write, as on Android. **A replace is a sync**: a list the API
+answered is the whole truth for it, so the rows it no longer returns go
+(`replaceLedger`, `replaceSubscriptions`, `writeTransactionPage` for the slice a
+first page covers). **A save is one row**: the API layer (`saved()` in
+`api.ts`) writes what each mutation answered — the queue's provisional row, or
+the server's — with the cascades the server applies: a transfer's legs go
+together, a deleted category leaves its transactions and subscriptions
+uncategorised and takes its budgets, a deleted tag only comes off, a deleted
+account takes its transactions, the other legs of its transfers and its
+subscriptions. The stores do not read those rows back while they are on show
+(they refetch after a write, as before), so a row saved offline is painted from
+the copy the next time the page loads, not by the screen that saved it.
+
+A transaction page is read from rows, not stored whole: a filter set seen before
+is answered by the rows the copy holds that it matches — month, dates, accounts,
+categories (`none` included), tags, and a search over payee, notes and tag names,
+as `GET /transactions` filters — newest first, the way the API sorts. A row
+saved since shows in its place; a filter set never seen has no copy. Writing a
+first page deletes every row the filter set matches down to the page's last row
+that the answer no longer holds, and rows only a dropped filter set held go with
+it.
+
+Each store follows the same shape: on `load`, read the copy and ask the API at the
+same time, show the copy if it comes first, replace what is on screen with the
+answer and write it back. Four rules keep that honest:
+
+- **A copy never lands on something newer.** Each store keeps a `revision` that
+  every assignment from the API, a newer request (another filter set) and
+  `reset()` bump; a copy is shown only if the revision is still the one it was
+  asked under. A failed request waits for a copy still being read before deciding
+  whether there was anything on screen — offline, `fetch` can fail first.
 
 - **Only an unreachable API is forgiven.** A failure with `ApiError.status === 0`
   (`isNetworkError`; `request()` turns a failed `fetch` into it) leaves the copy
@@ -104,12 +158,17 @@ keep that honest:
   answered (`synced` in `ledger`/`subscriptions`, `freshFor` in `budget`)
   separately from having something to show, so a copy shown offline is fetched
   again next time rather than treated as loaded.
-- **Snapshots are bounded and dropped after writes.** Summaries are kept per month
-  and transaction pages per filter set — first page only, never what "load more"
-  appended — each family capped by `writeCache`'s `keep`. `budget.refresh()` and
-  `transactions.refresh()` are what every write already calls, and once the API
-  has answered they drop the other snapshots: a write can move figures in a month
-  or filter the person is not looking at, and only the API knows.
+- **What is held per month and per page is bounded, and dropped after writes.**
+  Summaries are kept for the newest six months and first pages for the newest
+  eight filter sets — first page only, never what scrolling on appended.
+  `budget.refresh()` and `transactions.refresh()` are what every write already
+  calls, and once the API has answered they drop the other months and filter
+  sets: a write can move figures the person is not looking at, and only the API
+  knows. A full sync (`lib/sync.ts`) replaces accounts, types, categories, tags,
+  settings, the round-up rule, subscriptions and payees, and only once all of
+  them have been had discards transactions, budgets, income plans and summaries;
+  a slice refresh discards just what the slices it names held. The payee field
+  paints from the `payees` store and replaces it with what the API has.
 
 **Writes are queued, and never wait for the network.** Every mutation goes
 through `queued()` in `lib/queue.ts`, which writes the call to an outbox and
@@ -120,13 +179,14 @@ which side built it, which is why making the app offline-first did not mean
 touching eight stores. The rules the whole thing rests on are in the root
 CLAUDE.md; what is specific here:
 
-- **The outbox is IndexedDB, not `localStorage`.** `lib/cache.ts` drops its
-  oldest entries under quota pressure, which is correct for a cache and
-  catastrophic for unsent work. `lib/outbox.ts` is therefore separate, keyed by
-  an auto-incrementing sequence that is also the order operations are sent in,
-  and every accessor degrades to "no queue" rather than throwing — a browser
-  that refuses IndexedDB falls back to sending the write immediately, which is
-  how the app behaved before there was a queue.
+- **The outbox is a database of its own.** The cache is cleared, trimmed and
+  dropped wholesale when its layout changes, which is correct for a cache and
+  catastrophic for unsent work. `lib/outbox.ts` is therefore `yuuka-outbox`,
+  never a store inside `yuuka-cache`, keyed by an auto-incrementing sequence
+  that is also the order operations are sent in, and every accessor degrades to
+  "no queue" rather than throwing — a browser that refuses IndexedDB falls back
+  to sending the write immediately, which is how the app behaved before there
+  was a queue.
 - **`lib/http.ts` exists so the queue can use `request()`.** It holds the
   transport — `ApiError`, the token provider, the one `fetch` — apart from
   `api.ts`, which imports the queue, which would otherwise import `api.ts` back.
@@ -162,11 +222,16 @@ instead of repeating it. It shows nothing; a message arriving with a tab open
 goes to `onMessage` and refreshes the named slices, and one arriving with no tab
 open is deliberately dropped, since there is no screen to bring up to date.
 
-The copy holds one person's books, so it is bound to them. The router guard calls
-`adoptCacheFor(sub)` once the session has settled, which clears it when a
-different person (or nobody identifiable) has signed in, and `signOut` and the
-401 handler in `main.ts` clear it outright. Payee suggestions are not kept: they
-are typing-driven, and saving needs the API anyway.
+The copy holds one person's books, so it is bound to them. Whose they are is a
+marker in `localStorage` (`yuuka.cache.owner`), not in the database: it also
+decides whether the outbox goes, so it must outlive the cache's database, and a
+tab still running an older build reads it there. Every row is stamped with the
+owner it was written for and only read back for that owner. The router guard
+awaits `adoptCacheFor(sub)` once the session has settled, which moves the marker
+and clears every store when a different person (or nobody identifiable) has
+signed in, and answers true so the guard discards the queue too. `signOut` and the 401
+handler in `main.ts` clear the copy outright but keep the marker, so the same
+person signing in again after an expired session keeps their unsent work.
 
 ## Money helpers
 
@@ -438,11 +503,13 @@ classes, not one-offs:
   `state-layer` for the hover, focus and pressed wash.
 - Surfaces: `card` (Material's filled card), `card-secondary` and `card-tertiary` (the same on a tinted
   container), `menu` and `menu-item`, `chip` (a filter chip when it is a button), `badge`.
-- Grouped rows (`GroupedItems.kt`): a `.group-rows` of `.group-row`s lies a hair apart, round at the
-  group's ends and near-square between, under a `.group-header` — accounts under their type,
-  transactions under their day, tags, subscriptions. `settings-header`, `settings-group` and
-  `settings-row` are the one rounded block of rows the settings screens and Categories use, and
-  `selection-list` / `SelectionItem` the list to pick one of in a dialog.
+- Grouped rows (`GroupedItems.kt`) are Material's segmented list: a `.group-rows` of `.group-row`s lies
+  2px apart, `rounded-lg` at the group's ends and `rounded-xs` between, rounding off while pressed or
+  hovered, under a `.group-header` — accounts under their type, transactions under their day, categories
+  under their section, tags, subscriptions. Unlike the spec, a row is `surface-container` on the
+  ordinary `surface` page. `settings-header`, `settings-group` and `settings-row`
+  are the same list for the settings screens, and `selection-list` / `SelectionItem` the list to pick one
+  of in a dialog.
 - Fields are outlined text fields: `.field` wraps a `.input` followed by its `.label`, which rests in the
   field while it is empty and rises into the border's notch — cut out in the colour of whatever the field
   sits on (`--surface-under`) — once it has focus or a value. `TextField` is that with its error and
@@ -450,14 +517,16 @@ classes, not one-offs:
   `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus
   on its field), `PickerField` a date or time that opens the browser's own picker, `DenseField` the short
   unlabelled one for a row beside a button, and `ColourField` the palette swatches with a wheel
-  (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in.
+  (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in, and
+  `SearchField` that with its clear button.
 
 A few more components carry markup a class can't: `ConnectedButtonGroup` (Material's connected button
 group: choose one of a few, each button coloured by its place in the row — primary, secondary, tertiary —
 which `.connected-group` does, not the caller; an option may lead its label with an icon, or with `iconOnly`
 be the icon alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
 `EmptyState` leads with — see [BRANDING.md](../BRANDING.md)), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
-sideways when the window is too narrow for it), `MonthSwitcher` (with its month picker), `SwipeReveal`
+sideways when the window is too narrow for it), `MonthAction` (a month-scoped screen's month picker, whose
+button the shell draws), `SwipeReveal`
 and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
 filled set Android uses, extracted from Material's own SVGs rather than redrawn.
 
@@ -475,17 +544,33 @@ closes the one on top, the page stops scrolling, focus moves in. The transaction
 while shut), scrolls sideways and applies each change at once.
 
 **A row's actions are behind a swipe.** As on Android, a list row shows no buttons: dragging it left —
-with a finger, or a mouse held down on it — reveals its `ActionIcon`s (`SwipeReveal`), and pressing the
+with a finger, or a mouse held down on it — reveals its `ActionIcon`s — filled icon buttons, error-coloured for one that destroys (`SwipeReveal`), and pressing the
 row is its main action, usually editing it. The actions follow the row in the tab order and the row opens
 when one takes focus, so a keyboard reaches them without a drag. A row a parent category shares with its
 subcategories opens and closes them instead; its edit is behind the swipe.
 
+**The transaction list pages itself**, as the root CLAUDE.md describes. The foot of the list is watched by
+`useInView` (`lib/inView.ts`): an `IntersectionObserver` a screen ahead of the fold, with the viewport as its
+root because it is the window that scrolls. The observer only reports a change, so `TransactionsView` asks the
+store's `loadMore()` from a watcher over it and the store's own state — which is what asks again when a page
+lands without pushing the foot out of reach. `loadingMore` and `moreError` are kept apart from `loading` and
+`error`: `error` takes the list's place, while a further page that fails leaves the rows on show and is said
+under them, and the watcher does not ask again while it is set. A further page that is answered after the list
+was replaced is dropped by the store's `revision`, as a late copy is.
+
 **The page is the window beside the rail, edge to edge.** There is no maximum width: a screen fills what
 the rail leaves, 16px in from each side, as it does on a tablet. What a screen pins while its list scrolls
 — on Transactions the search and the filter row — goes in a `TopBar`, which teleports
-it into the shell's sticky strip (`#top-bar` in `App.vue`) above the unsent-changes banner. The month
-switcher is not one of them: it is ordinary page content at the top of Dashboard, Transactions and Budget
-(on Android, a row beneath the app bar), never inside the bar.
+it into the shell's sticky strip (`#top-bar` in `App.vue`) above the unsent-changes banner. On a phone the
+search is not in that strip but in the bar, as Android's app bar with search has it: Transactions teleports
+a second `SearchField` into the bar's `#bar-search` (the space a bottom-bar destination leaves where a title
+would be), bound to the same query, and `sm:hidden` / `max-sm:hidden` leave one of the two on show. A browser
+has no search view to open, so the bar's field is typed in where it stands and has the whole bar while it
+is: the mark and the actions are hidden for as long as the focus is inside `#bar-search`. The month is
+not page content either: Dashboard, Transactions and Budget each place a `MonthAction`, which registers
+the screen's month in `lib/monthAction.ts` (as `FabButton` does its action) and holds the picker, and the
+shell draws the button that opens it straight after the hide-amounts switch — in the phone's bar
+(`App.vue`) and at the rail's foot (`NavRail`), as `MonthTopBar` does on Android.
 
 **Settings and Save the Change are screens with no Save**, as on Android (`/settings` and
 `/save-the-change`, reached from the drawer's "More" group or, on a phone, the avatar menu). Every choice
@@ -502,7 +587,8 @@ plain mark, never a control — the menu button, the screen's FAB, and Dashboard
 (`dailyLinks` in `App.vue`, the same three as the phone's bar) with their labels beneath. The menu button
 opens it into a drawer whose "More" group holds Budget, Categories, Tags, Subscriptions, Save the Change,
 Settings and Sign out, with the signed-in account in a card at the foot; phones keep those in the avatar
-menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount. Open,
+menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount; under
+it, on a screen that is looking at a month, is the month button, labelled with that month once open. Open,
 the rail is as wide as its content needs, between Material's 220 and 360: `NavRail` measures it and writes
 `--rail-open`, which is also how far the page (`.shell`) moves aside. It sits beside the page from `lg` and
 floats over a scrim below that, and the choice is remembered (`src/lib/rail.ts`), though a narrow window
@@ -539,11 +625,18 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-603 tests: 395 against the API in `test/`, 208 over the browser helpers as
+660 tests: 395 against the API in `test/`, 265 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a
-spec an in-memory `localStorage` to install — Node's own needs a backing file.
+spec an in-memory `localStorage` to install — Node's own needs a backing file — and
+`src/testing/indexedDb.ts` an empty IndexedDB from `fake-indexeddb` (happy-dom has none), or one
+that refuses to open, and `src/testing/fixtures.ts` whole rows in the API's shapes for the typed tables.
+`lib/cache.spec.ts` pins the Room layout, the upgrade, slices, bounds and cascades, reloading the module
+(`vi.resetModules`) to stand for a page load over what the database already holds; `lib/sync.spec.ts` pins
+what a full sync and a slice refresh do to the copy, and `lib/saves.spec.ts` that a save writes its row.
+`views/TransactionsView.spec.ts` mounts the screen over a stand-in `IntersectionObserver` (happy-dom's never
+calls back) and pins that the list pages itself: one request per page, and one for a page that fails.
 
 The server suite runs in `workerd` against a migrated D1 database and mounts the
 same Hono app the Worker ships, `server/index.ts` being its `main`, so routing is

@@ -1,35 +1,9 @@
 import { api, isNetworkError } from '@/lib/api';
-import { readCache, writeCache } from '@/lib/cache';
+import { readLedger, replaceAccounts, replaceCategories, replaceLedger, replaceTags } from '@/lib/cache';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Account, AccountType, Category, RoundUpRule, Settings, Tag } from '@/types';
-
-const CACHE_KEY = 'ledger';
-
-/** Everything the store holds, as kept in the browser's local copy. */
-interface LedgerSnapshot {
-	accounts: Account[];
-	accountTypes: AccountType[];
-	categories: Category[];
-	tags: Tag[];
-	settings: Settings;
-	roundUpRule: RoundUpRule;
-}
-
-function isLedgerSnapshot(data: unknown): data is LedgerSnapshot {
-	const snapshot = data as Partial<LedgerSnapshot> | null;
-	return (
-		Array.isArray(snapshot?.accounts) &&
-		Array.isArray(snapshot.accountTypes) &&
-		Array.isArray(snapshot.categories) &&
-		Array.isArray(snapshot.tags) &&
-		typeof snapshot.settings === 'object' &&
-		snapshot.settings !== null &&
-		typeof snapshot.roundUpRule === 'object' &&
-		snapshot.roundUpRule !== null
-	);
-}
 
 /**
  * Accounts and categories change rarely but are needed by nearly every view, so
@@ -37,7 +11,9 @@ function isLedgerSnapshot(data: unknown): data is LedgerSnapshot {
  *
  * The first `load` paints from the browser's local copy, then replaces it with
  * what the API says: the API is the source of truth, and the copy is only what
- * was last seen. Every refresh that succeeds rewrites the copy.
+ * was last seen. Every refresh that succeeds replaces the rows it fetched in the
+ * copy; settings and the round-up rule are saved there by the API layer as they
+ * change.
  */
 export const useLedgerStore = defineStore('ledger', () => {
 	const accounts = ref<Account[]>([]);
@@ -98,38 +74,34 @@ export const useLedgerStore = defineStore('ledger', () => {
 
 	const netWorth = computed(() => activeAccounts.value.reduce((total, account) => total + account.balance, 0));
 
-	/** Shows the local copy, if there is one. */
-	function hydrate(): void {
-		const snapshot = readCache(CACHE_KEY, isLedgerSnapshot);
-		if (!snapshot) return;
+	/** Bumped whenever what is on screen is replaced, so a copy still being read cannot land on top of it. */
+	let revision = 0;
 
-		accounts.value = snapshot.accounts;
-		accountTypes.value = snapshot.accountTypes;
-		categories.value = snapshot.categories;
-		tags.value = snapshot.tags;
-		settings.value = snapshot.settings;
-		roundUpRule.value = snapshot.roundUpRule;
+	/** Shows the local copy, if there is one and nothing has replaced what is on screen since it was asked for. */
+	async function hydrate(): Promise<void> {
+		const asked = revision;
+		const copy = await readLedger();
+		if (!copy || revision !== asked) return;
+
+		revision++;
+		accounts.value = copy.accounts;
+		accountTypes.value = copy.accountTypes;
+		categories.value = copy.categories;
+		tags.value = copy.tags;
+		settings.value = copy.settings;
+		roundUpRule.value = copy.roundUpRule;
 		loaded.value = true;
 	}
 
-	/** Rewrites the local copy from what is on screen. Every assignment from the API ends here. */
-	function persist(): void {
-		if (!loaded.value || !settings.value || !roundUpRule.value) return;
-
-		writeCache(CACHE_KEY, {
-			accounts: accounts.value,
-			accountTypes: accountTypes.value,
-			categories: categories.value,
-			tags: tags.value,
-			settings: settings.value,
-			roundUpRule: roundUpRule.value,
-		} satisfies LedgerSnapshot);
-	}
-
-	async function load(force = false): Promise<void> {
-		if (!loaded.value) hydrate();
-		if (synced && !force) return;
+	/**
+	 * Resolves whether the API answered. An unreachable one with a copy on screen resolves false
+	 * rather than throwing; anything else that went wrong throws.
+	 */
+	async function load(force = false): Promise<boolean> {
+		if (synced && !force) return true;
 		loading.value = true;
+		// Read beside the request rather than before it: the copy only fills the wait for the answer.
+		const copy = loaded.value ? null : hydrate();
 
 		try {
 			const [accountsResponse, typesResponse, categoriesResponse, tagsResponse, settingsResponse, roundUpResponse] = await Promise.all([
@@ -140,6 +112,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 				api.settings(),
 				api.getRoundUpRule(),
 			]);
+			revision++;
 			accounts.value = accountsResponse.accounts;
 			accountTypes.value = typesResponse.accountTypes;
 			categories.value = categoriesResponse.categories;
@@ -148,10 +121,21 @@ export const useLedgerStore = defineStore('ledger', () => {
 			roundUpRule.value = roundUpResponse.roundUpRule;
 			loaded.value = true;
 			synced = true;
-			persist();
+			void replaceLedger({
+				accounts: accountsResponse.accounts,
+				accountTypes: typesResponse.accountTypes,
+				categories: categoriesResponse.categories,
+				tags: tagsResponse.tags,
+				settings: settingsResponse.settings,
+				roundUpRule: roundUpResponse.roundUpRule,
+			});
+			return true;
 		} catch (caught) {
-			// Out of reach with a copy on screen: keep showing it. A later load tries again.
+			// Out of reach with a copy on screen: keep showing it. A later load tries again. A copy
+			// still on its way counts — offline, the request can fail before the copy is read.
+			await copy;
 			if (!loaded.value || !isNetworkError(caught)) throw caught;
+			return false;
 		} finally {
 			loading.value = false;
 		}
@@ -160,34 +144,43 @@ export const useLedgerStore = defineStore('ledger', () => {
 	async function refreshAccounts(): Promise<void> {
 		// Types come along: renaming one changes what every account displays.
 		const [accountsResponse, typesResponse] = await Promise.all([api.listAccounts(true), api.listAccountTypes(true)]);
+		revision++;
 		accounts.value = accountsResponse.accounts;
 		accountTypes.value = typesResponse.accountTypes;
-		persist();
+		void replaceAccounts(accountsResponse.accounts, typesResponse.accountTypes);
 	}
 
 	async function refreshCategories(): Promise<void> {
-		categories.value = (await api.listCategories(true)).categories;
-		persist();
+		const fresh = (await api.listCategories(true)).categories;
+		revision++;
+		categories.value = fresh;
+		void replaceCategories(fresh);
 	}
 
 	async function refreshTags(): Promise<void> {
-		tags.value = (await api.listTags()).tags;
-		persist();
+		const fresh = (await api.listTags()).tags;
+		revision++;
+		tags.value = fresh;
+		void replaceTags(fresh);
 	}
 
+	// The API layer saves the row each of these answers with, as it does for every save.
 	async function updateSettings(input: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
-		settings.value = (await api.updateSettings(input)).settings;
-		persist();
+		const saved = (await api.updateSettings(input)).settings;
+		revision++;
+		settings.value = saved;
 	}
 
 	async function updateRoundUpRule(
 		input: Partial<Pick<RoundUpRule, 'enabled' | 'roundTo' | 'destinationAccountId' | 'categoryId'>>,
 	): Promise<void> {
-		roundUpRule.value = (await api.updateRoundUpRule(input)).roundUpRule;
-		persist();
+		const saved = (await api.updateRoundUpRule(input)).roundUpRule;
+		revision++;
+		roundUpRule.value = saved;
 	}
 
 	function reset(): void {
+		revision++;
 		settings.value = null;
 		roundUpRule.value = null;
 		accounts.value = [];

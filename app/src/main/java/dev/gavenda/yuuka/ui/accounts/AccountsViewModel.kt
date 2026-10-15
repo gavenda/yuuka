@@ -19,13 +19,32 @@ data class AccountsUiState(
     val displayCurrency: String = DEFAULT_CURRENCY,
     val netWorth: Long = 0,
     val showArchived: Boolean = false,
+    val searchText: String = "",
 ) {
     val archivedCount: Int get() = accounts.count { it.archived }
+
+    /**
+     * What the search view lists: every account until something is typed, then those whose name, type or currency
+     * holds the text. Archived ones follow the same toggle as the grouped list.
+     */
+    val matches: List<Account>
+        get() {
+            val query = searchText.trim()
+            return accounts.filter {
+                (showArchived || !it.archived) &&
+                    (
+                        query.isEmpty() ||
+                            it.name.contains(query, ignoreCase = true) ||
+                            it.typeName?.contains(query, ignoreCase = true) == true ||
+                            it.currency.contains(query, ignoreCase = true)
+                        )
+            }
+        }
 
     /** Accounts listed under their type, in the order the types are sorted in — mirrors `AccountsView.vue`'s `groups`. */
     val groups: List<AccountGroup>
         get() {
-            val visible = accounts.filter { showArchived || !it.archived }
+            val visible = matches
             val byType = visible.groupBy { it.typeId }.toMutableMap()
             val result = mutableListOf<AccountGroup>()
 
@@ -51,24 +70,31 @@ class AccountsViewModel(
     private val transactionRepository: TransactionRepository,
 ) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
+    private val searchText = MutableStateFlow("")
 
     val uiState: StateFlow<AccountsUiState> = combine(
         ledgerRepository.accounts,
         ledgerRepository.accountTypes,
         ledgerRepository.settings,
         showArchived,
-    ) { accounts, types, settings, archived ->
+        searchText,
+    ) { accounts, types, settings, archived, search ->
         AccountsUiState(
             accounts = accounts,
             accountTypes = types,
             displayCurrency = settings?.displayCurrency ?: DEFAULT_CURRENCY,
             netWorth = accounts.filter { !it.archived }.sumOf { it.balance },
             showArchived = archived,
+            searchText = search,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountsUiState())
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshAccounts() } }
+    }
+
+    fun setSearchText(text: String) {
+        searchText.value = text
     }
 
     fun toggleShowArchived() {

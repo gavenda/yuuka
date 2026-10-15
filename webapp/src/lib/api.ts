@@ -14,6 +14,7 @@ import type {
 	TransactionPage,
 } from '@/types';
 
+import * as local from './cache';
 import { request } from './http';
 import { newId } from './ids';
 import {
@@ -53,6 +54,19 @@ function settingsNow(): Settings {
 	);
 }
 
+/**
+ * Hands back [answer] once what it saved is in the local copy as well. A save is written there before
+ * the server has seen it, as Android writes the provisional row into Room, so the next page load
+ * paints it even offline; the server's rows replace it when the slices it touched are refetched. The
+ * copy is best-effort, so this never fails the save, and the save never waits on the disk.
+ */
+function saved<T>(answer: Promise<T>, keep: (value: T) => Promise<void>): Promise<T> {
+	return answer.then((value) => {
+		void keep(value);
+		return value;
+	});
+}
+
 function queryString(filters: Record<string, string | number | undefined>): string {
 	const params = new URLSearchParams();
 	for (const [key, value] of Object.entries(filters)) {
@@ -80,18 +94,22 @@ export const api = {
 	me: () => request<{ subject: string; issuer: string | null; expiresAt: number | null; permissions: string[] }>('/auth/me'),
 
 	listPayees: (search?: string, limit = 20) => request<{ payees: Payee[] }>(`/payees${queryString({ search, limit })}`),
-	forgetPayee: (id: string) => queued<void>({ method: 'DELETE', path: `/api/payees/${id}`, optimistic: undefined }),
+	forgetPayee: (id: string) =>
+		saved(queued<void>({ method: 'DELETE', path: `/api/payees/${id}`, optimistic: undefined }), () => local.deletePayee(id)),
 
 	settings: () => request<{ settings: Settings }>('/settings'),
 	updateSettings: (input: Partial<Settings>) => {
 		const current = settingsNow();
-		return queued({
-			method: 'PATCH',
-			path: '/api/settings',
-			body: input,
-			entity: 'settings',
-			optimistic: { settings: patched(current, input) },
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: '/api/settings',
+				body: input,
+				entity: 'settings',
+				optimistic: { settings: patched(current, input) },
+			}),
+			(answer) => local.saveSettings(answer.settings),
+		);
 	},
 
 	getRoundUpRule: () => request<{ roundUpRule: RoundUpRule }>('/round-up'),
@@ -104,52 +122,66 @@ export const api = {
 			createdAt: null,
 			updatedAt: null,
 		};
-		return queued({
-			method: 'PATCH',
-			path: '/api/round-up',
-			body: input,
-			entity: 'roundUpRule',
-			optimistic: { roundUpRule: patched(current, input) },
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: '/api/round-up',
+				body: input,
+				entity: 'roundUpRule',
+				optimistic: { roundUpRule: patched(current, input) },
+			}),
+			(answer) => local.saveRoundUpRule(answer.roundUpRule),
+		);
 	},
 
 	listAccountTypes: (includeArchived = false) =>
 		request<{ accountTypes: AccountType[] }>(`/account-types${queryString({ includeArchived: String(includeArchived) })}`),
 	createAccountType: (input: Partial<AccountType>) => {
 		const payload = { ...input, id: newId('accountType') };
-		return queued({
-			method: 'POST',
-			path: '/api/account-types',
-			body: payload,
-			optimistic: { accountType: provisionalAccountType({ id: payload.id, name: payload.name ?? '', sortOrder: payload.sortOrder }) },
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/account-types',
+				body: payload,
+				optimistic: { accountType: provisionalAccountType({ id: payload.id, name: payload.name ?? '', sortOrder: payload.sortOrder }) },
+			}),
+			(answer) => local.saveAccountType(answer.accountType),
+		);
 	},
 	updateAccountType: (id: string, input: Partial<AccountType>) => {
 		const current = ledgerView().accountTypes.find((type) => type.id === id);
-		return queued({
-			method: 'PATCH',
-			path: `/api/account-types/${id}`,
-			body: input,
-			entity: 'accountType',
-			id,
-			optimistic: { accountType: patched(current ?? provisionalAccountType({ id, name: input.name ?? '' }), input) },
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/account-types/${id}`,
+				body: input,
+				entity: 'accountType',
+				id,
+				optimistic: { accountType: patched(current ?? provisionalAccountType({ id, name: input.name ?? '' }), input) },
+			}),
+			(answer) => local.saveAccountType(answer.accountType),
+		);
 	},
 	deleteAccountType: (id: string) =>
-		queued<void>({ method: 'DELETE', path: `/api/account-types/${id}`, entity: 'accountType', id, optimistic: undefined }),
+		saved(queued<void>({ method: 'DELETE', path: `/api/account-types/${id}`, entity: 'accountType', id, optimistic: undefined }), () =>
+			local.deleteAccountType(id),
+		),
 
 	listAccounts: (includeArchived = false) =>
 		request<{ accounts: Account[] }>(`/accounts${queryString({ includeArchived: String(includeArchived) })}`),
 	createAccount: (input: Partial<Account>) => {
 		const payload = { ...input, id: newId('account') };
-		return queued({
-			method: 'POST',
-			path: '/api/accounts',
-			body: payload,
-			optimistic: {
-				account: provisionalAccount(ledgerView(), { ...payload, name: payload.name ?? '', typeId: payload.typeId ?? '' }),
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/accounts',
+				body: payload,
+				optimistic: {
+					account: provisionalAccount(ledgerView(), { ...payload, name: payload.name ?? '', typeId: payload.typeId ?? '' }),
+				},
+			}),
+			(answer) => local.saveAccount(answer.account),
+		);
 	},
 	updateAccount: (id: string, input: Partial<Account>) => {
 		const ledger = ledgerView();
@@ -157,19 +189,22 @@ export const api = {
 		// Changing the type changes the label beside the account, so the name is
 		// resolved here rather than left showing the old one until the refresh.
 		const typeName = input.typeId ? (ledger.accountTypes.find((type) => type.id === input.typeId)?.name ?? null) : undefined;
-		return queued({
-			method: 'PATCH',
-			path: `/api/accounts/${id}`,
-			body: input,
-			entity: 'account',
-			id,
-			optimistic: {
-				account: patched(current ?? provisionalAccount(ledger, { id, name: input.name ?? '', typeId: input.typeId ?? '' }), {
-					...input,
-					...(typeName === undefined ? {} : { typeName }),
-				}),
-			},
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/accounts/${id}`,
+				body: input,
+				entity: 'account',
+				id,
+				optimistic: {
+					account: patched(current ?? provisionalAccount(ledger, { id, name: input.name ?? '', typeId: input.typeId ?? '' }), {
+						...input,
+						...(typeName === undefined ? {} : { typeName }),
+					}),
+				},
+			}),
+			(answer) => local.saveAccount(answer.account),
+		);
 	},
 	/**
 	 * Deleting an account takes its transactions with it, which is why the API
@@ -178,85 +213,106 @@ export const api = {
 	 * still asked here — only the request that follows it is queued.
 	 */
 	deleteAccount: (id: string, includeTransactions = false) =>
-		includeTransactions
-			? queued<void>({
-					method: 'DELETE',
-					path: `/api/accounts/${id}${queryString({ includeTransactions: 'true' })}`,
-					entity: 'account',
-					id,
-					optimistic: undefined,
-				})
-			: request<void>(`/accounts/${id}`, { method: 'DELETE' }),
+		saved(
+			includeTransactions
+				? queued<void>({
+						method: 'DELETE',
+						path: `/api/accounts/${id}${queryString({ includeTransactions: 'true' })}`,
+						entity: 'account',
+						id,
+						optimistic: undefined,
+					})
+				: request<void>(`/accounts/${id}`, { method: 'DELETE' }),
+			() => local.deleteAccount(id),
+		),
 	adjustAccount: (id: string, input: { balance: number; occurredOn: string; payee?: string; notes?: string }) => {
 		const payload = { ...input, id: newId('transaction') };
-		return queued({
-			method: 'POST',
-			path: `/api/accounts/${id}/adjust`,
-			body: payload,
-			optimistic: {
-				transaction: provisionalAdjustment(ledgerView(), id, {
-					id: payload.id,
-					balance: input.balance,
-					occurredOn: input.occurredOn,
-					payee: input.payee ?? '',
-					notes: input.notes ?? '',
-				}),
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: `/api/accounts/${id}/adjust`,
+				body: payload,
+				optimistic: {
+					transaction: provisionalAdjustment(ledgerView(), id, {
+						id: payload.id,
+						balance: input.balance,
+						occurredOn: input.occurredOn,
+						payee: input.payee ?? '',
+						notes: input.notes ?? '',
+					}),
+				},
+			}),
+			(answer) => local.saveTransactions([answer.transaction]),
+		);
 	},
 
 	listCategories: (includeArchived = false) =>
 		request<{ categories: Category[] }>(`/categories${queryString({ includeArchived: String(includeArchived) })}`),
 	createCategory: (input: Partial<Category>) => {
 		const payload = { ...input, id: newId('category') };
-		return queued({
-			method: 'POST',
-			path: '/api/categories',
-			body: payload,
-			optimistic: {
-				category: provisionalCategory(ledgerView(), { ...payload, name: payload.name ?? '', kind: payload.kind ?? 'expense' }),
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/categories',
+				body: payload,
+				optimistic: {
+					category: provisionalCategory(ledgerView(), { ...payload, name: payload.name ?? '', kind: payload.kind ?? 'expense' }),
+				},
+			}),
+			(answer) => local.saveCategory(answer.category),
+		);
 	},
 	updateCategory: (id: string, input: Partial<Category>) => {
 		const ledger = ledgerView();
 		const current = ledger.categories.find((category) => category.id === id);
-		return queued({
-			method: 'PATCH',
-			path: `/api/categories/${id}`,
-			body: input,
-			entity: 'category',
-			id,
-			optimistic: {
-				category: patched(current ?? provisionalCategory(ledger, { id, name: input.name ?? '', kind: input.kind ?? 'expense' }), input),
-			},
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/categories/${id}`,
+				body: input,
+				entity: 'category',
+				id,
+				optimistic: {
+					category: patched(current ?? provisionalCategory(ledger, { id, name: input.name ?? '', kind: input.kind ?? 'expense' }), input),
+				},
+			}),
+			(answer) => local.saveCategory(answer.category),
+		);
 	},
 	deleteCategory: (id: string) =>
-		queued<void>({ method: 'DELETE', path: `/api/categories/${id}`, entity: 'category', id, optimistic: undefined }),
+		saved(queued<void>({ method: 'DELETE', path: `/api/categories/${id}`, entity: 'category', id, optimistic: undefined }), () =>
+			local.deleteCategory(id),
+		),
 
 	listTags: () => request<{ tags: Tag[] }>('/tags'),
 	createTag: (input: Partial<Tag>) => {
 		const payload = { ...input, id: newId('tag') };
-		return queued({
-			method: 'POST',
-			path: '/api/tags',
-			body: payload,
-			optimistic: { tag: provisionalTag({ id: payload.id, name: payload.name ?? '', color: payload.color }) },
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/tags',
+				body: payload,
+				optimistic: { tag: provisionalTag({ id: payload.id, name: payload.name ?? '', color: payload.color }) },
+			}),
+			(answer) => local.saveTag(answer.tag),
+		);
 	},
 	updateTag: (id: string, input: Partial<Tag>) => {
 		const current = ledgerView().tags.find((tag) => tag.id === id);
-		return queued({
-			method: 'PATCH',
-			path: `/api/tags/${id}`,
-			body: input,
-			entity: 'tag',
-			id,
-			optimistic: { tag: patched(current ?? provisionalTag({ id, name: input.name ?? '' }), input) },
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/tags/${id}`,
+				body: input,
+				entity: 'tag',
+				id,
+				optimistic: { tag: patched(current ?? provisionalTag({ id, name: input.name ?? '' }), input) },
+			}),
+			(answer) => local.saveTag(answer.tag),
+		);
 	},
-	deleteTag: (id: string) => queued<void>({ method: 'DELETE', path: `/api/tags/${id}`, entity: 'tag', id, optimistic: undefined }),
+	deleteTag: (id: string) =>
+		saved(queued<void>({ method: 'DELETE', path: `/api/tags/${id}`, entity: 'tag', id, optimistic: undefined }), () => local.deleteTag(id)),
 
 	listTransactions: (filters: TransactionFilters = {}) =>
 		request<TransactionPage>(`/transactions${queryString(filters as Record<string, string | number | undefined>)}`),
@@ -282,16 +338,20 @@ export const api = {
 		const roundUpIds = { transferId: newId('transfer'), fromId: newId('transaction'), toId: newId('transaction') };
 		const roundUp = provisionalRoundUp(ledger, draft, roundUpIds);
 
-		return queued({
-			method: 'POST',
-			path: '/api/transactions',
-			body: { ...input, id: draft.id, roundUpIds },
-			optimistic: {
-				transaction: provisionalTransaction(ledger, draft),
-				// The destination leg is what the interface surfaces as feedback.
-				roundUp: roundUp?.destination ?? null,
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/transactions',
+				body: { ...input, id: draft.id, roundUpIds },
+				optimistic: {
+					transaction: provisionalTransaction(ledger, draft),
+					// The destination leg is what the interface surfaces as feedback.
+					roundUp: roundUp?.destination ?? null,
+				},
+			}),
+			// Both legs of the round-up: the source leg was drawn here, and the server adopts its name.
+			(answer) => local.saveTransactions([answer.transaction, ...(answer.roundUp && roundUp ? [roundUp.source, answer.roundUp] : [])]),
+		);
 	},
 	updateTransaction: (id: string, input: Record<string, unknown>) => {
 		const ledger = ledgerView();
@@ -309,39 +369,47 @@ export const api = {
 			transferId: current?.transferId ?? null,
 		};
 
-		return queued({
-			method: 'PATCH',
-			path: `/api/transactions/${id}`,
-			body: input,
-			entity: 'transaction',
-			id,
-			optimistic: { transaction: provisionalTransaction(ledger, merged) },
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/transactions/${id}`,
+				body: input,
+				entity: 'transaction',
+				id,
+				optimistic: { transaction: provisionalTransaction(ledger, merged) },
+			}),
+			(answer) => local.saveTransactions([answer.transaction]),
+		);
 	},
 	deleteTransaction: (id: string) =>
-		queued<void>({ method: 'DELETE', path: `/api/transactions/${id}`, entity: 'transaction', id, optimistic: undefined }),
+		saved(queued<void>({ method: 'DELETE', path: `/api/transactions/${id}`, entity: 'transaction', id, optimistic: undefined }), () =>
+			local.deleteTransaction(id),
+		),
 	createTransfer: (input: Record<string, unknown>) => {
 		const ids = { transferId: newId('transfer'), fromId: newId('transaction'), toId: newId('transaction') };
 
-		return queued({
-			method: 'POST',
-			path: '/api/transactions/transfer',
-			body: { ...input, ids },
-			optimistic: {
-				transferId: ids.transferId,
-				transactions: provisionalTransfer(ledgerView(), {
-					ids,
-					fromAccountId: String(input.fromAccountId ?? ''),
-					toAccountId: String(input.toAccountId ?? ''),
-					categoryId: (input.categoryId as string | null) ?? null,
-					amount: Number(input.amount ?? 0),
-					occurredOn: String(input.occurredOn ?? ''),
-					payee: String(input.payee ?? ''),
-					notes: String(input.notes ?? ''),
-					tagIds: input.tagIds as string[] | undefined,
-				}),
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/transactions/transfer',
+				body: { ...input, ids },
+				optimistic: {
+					transferId: ids.transferId,
+					transactions: provisionalTransfer(ledgerView(), {
+						ids,
+						fromAccountId: String(input.fromAccountId ?? ''),
+						toAccountId: String(input.toAccountId ?? ''),
+						categoryId: (input.categoryId as string | null) ?? null,
+						amount: Number(input.amount ?? 0),
+						occurredOn: String(input.occurredOn ?? ''),
+						payee: String(input.payee ?? ''),
+						notes: String(input.notes ?? ''),
+						tagIds: input.tagIds as string[] | undefined,
+					}),
+				},
+			}),
+			(answer) => local.saveTransactions(answer.transactions),
+		);
 	},
 	updateTransfer: (transferId: string, input: Record<string, unknown>) => {
 		const ledger = ledgerView();
@@ -353,77 +421,88 @@ export const api = {
 			toId: legs[1]?.id ?? newId('transaction'),
 		};
 
-		return queued({
-			method: 'PATCH',
-			path: `/api/transactions/transfer/${transferId}`,
-			body: input,
-			entity: 'transfer',
-			id: transferId,
-			optimistic: {
-				transferId,
-				transactions: provisionalTransfer(ledger, {
-					ids,
-					fromAccountId: String(input.fromAccountId ?? ''),
-					toAccountId: String(input.toAccountId ?? ''),
-					categoryId: (input.categoryId as string | null) ?? null,
-					amount: Number(input.amount ?? 0),
-					occurredOn: String(input.occurredOn ?? ''),
-					payee: String(input.payee ?? ''),
-					notes: String(input.notes ?? ''),
-					tagIds: input.tagIds as string[] | undefined,
-				}),
-			},
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/transactions/transfer/${transferId}`,
+				body: input,
+				entity: 'transfer',
+				id: transferId,
+				optimistic: {
+					transferId,
+					transactions: provisionalTransfer(ledger, {
+						ids,
+						fromAccountId: String(input.fromAccountId ?? ''),
+						toAccountId: String(input.toAccountId ?? ''),
+						categoryId: (input.categoryId as string | null) ?? null,
+						amount: Number(input.amount ?? 0),
+						occurredOn: String(input.occurredOn ?? ''),
+						payee: String(input.payee ?? ''),
+						notes: String(input.notes ?? ''),
+						tagIds: input.tagIds as string[] | undefined,
+					}),
+				},
+			}),
+			(answer) => local.saveTransactions(answer.transactions),
+		);
 	},
 
 	listSubscriptions: () => request<{ subscriptions: Subscription[] }>('/subscriptions'),
 	createSubscription: (input: Record<string, unknown>) => {
 		const id = newId('subscription');
-		return queued({
-			method: 'POST',
-			path: '/api/subscriptions',
-			body: { ...input, id },
-			optimistic: {
-				subscription: provisionalSubscription(ledgerView(), {
-					id,
-					accountId: String(input.accountId ?? ''),
-					categoryId: (input.categoryId as string | null) ?? null,
-					amount: Number(input.amount ?? 0),
-					payee: String(input.payee ?? ''),
-					notes: String(input.notes ?? ''),
-					startOn: String(input.startOn ?? ''),
-				}),
-			},
-		});
+		return saved(
+			queued({
+				method: 'POST',
+				path: '/api/subscriptions',
+				body: { ...input, id },
+				optimistic: {
+					subscription: provisionalSubscription(ledgerView(), {
+						id,
+						accountId: String(input.accountId ?? ''),
+						categoryId: (input.categoryId as string | null) ?? null,
+						amount: Number(input.amount ?? 0),
+						payee: String(input.payee ?? ''),
+						notes: String(input.notes ?? ''),
+						startOn: String(input.startOn ?? ''),
+					}),
+				},
+			}),
+			(answer) => local.saveSubscription(answer.subscription),
+		);
 	},
 	updateSubscription: (id: string, input: Record<string, unknown>) => {
 		const ledger = ledgerView();
 		const current = ledger.subscription(id);
-		return queued({
-			method: 'PATCH',
-			path: `/api/subscriptions/${id}`,
-			body: input,
-			entity: 'subscription',
-			id,
-			optimistic: {
-				subscription: patched(
-					current ??
-						provisionalSubscription(ledger, {
-							id,
-							accountId: String(input.accountId ?? ''),
-							categoryId: null,
-							amount: 0,
-							payee: '',
-							notes: '',
-							startOn: String(input.startOn ?? ''),
-						}),
-					input as Partial<Subscription>,
-				),
-			},
-		});
+		return saved(
+			queued({
+				method: 'PATCH',
+				path: `/api/subscriptions/${id}`,
+				body: input,
+				entity: 'subscription',
+				id,
+				optimistic: {
+					subscription: patched(
+						current ??
+							provisionalSubscription(ledger, {
+								id,
+								accountId: String(input.accountId ?? ''),
+								categoryId: null,
+								amount: 0,
+								payee: '',
+								notes: '',
+								startOn: String(input.startOn ?? ''),
+							}),
+						input as Partial<Subscription>,
+					),
+				},
+			}),
+			(answer) => local.saveSubscription(answer.subscription),
+		);
 	},
 	deleteSubscription: (id: string) =>
-		queued<void>({ method: 'DELETE', path: `/api/subscriptions/${id}`, entity: 'subscription', id, optimistic: undefined }),
+		saved(queued<void>({ method: 'DELETE', path: `/api/subscriptions/${id}`, entity: 'subscription', id, optimistic: undefined }), () =>
+			local.deleteSubscription(id),
+		),
 
 	listBudgets: (month: string) => request<{ budgets: Budget[] }>(`/budgets${queryString({ month })}`),
 	/**
@@ -434,42 +513,51 @@ export const api = {
 	setBudget: (input: { categoryId: string; month: string; amount: number } | { categoryId: string; month: string; percent: number }) => {
 		const id = newId('budget');
 		const isPercent = 'percent' in input;
-		return queued({
-			method: 'PUT',
-			path: '/api/budgets',
-			body: { ...input, id },
-			optimistic: {
-				budget: {
-					id,
-					categoryId: input.categoryId,
-					month: input.month,
-					amount: isPercent ? 0 : input.amount,
-					percent: isPercent ? input.percent : null,
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
-				} as Budget,
-			},
-		});
+		return saved(
+			queued({
+				method: 'PUT',
+				path: '/api/budgets',
+				body: { ...input, id },
+				optimistic: {
+					budget: {
+						id,
+						categoryId: input.categoryId,
+						month: input.month,
+						amount: isPercent ? 0 : input.amount,
+						percent: isPercent ? input.percent : null,
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					} as Budget,
+				},
+			}),
+			(answer) => local.saveBudget(answer.budget, input.month),
+		);
 	},
-	deleteBudget: (id: string) => queued<void>({ method: 'DELETE', path: `/api/budgets/${id}`, entity: 'budget', id, optimistic: undefined }),
+	deleteBudget: (id: string) =>
+		saved(queued<void>({ method: 'DELETE', path: `/api/budgets/${id}`, entity: 'budget', id, optimistic: undefined }), () =>
+			local.deleteBudget(id),
+		),
 
 	getIncomePlan: (month: string) => request<{ incomePlan: IncomePlan }>(`/income-plan${queryString({ month })}`),
 	setIncomePlan: (input: { month: string; amount: number; mode?: 'gross' | 'fixed'; grossAmount?: number }) =>
-		queued({
-			method: 'PUT',
-			path: '/api/income-plan',
-			body: input,
-			optimistic: {
-				incomePlan: {
-					month: input.month,
-					amount: input.amount,
-					mode: input.mode ?? 'fixed',
-					grossAmount: input.grossAmount ?? null,
-					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString(),
-				} as IncomePlan,
-			},
-		}),
+		saved(
+			queued({
+				method: 'PUT',
+				path: '/api/income-plan',
+				body: input,
+				optimistic: {
+					incomePlan: {
+						month: input.month,
+						amount: input.amount,
+						mode: input.mode ?? 'fixed',
+						grossAmount: input.grossAmount ?? null,
+						createdAt: new Date().toISOString(),
+						updatedAt: new Date().toISOString(),
+					} as IncomePlan,
+				},
+			}),
+			(answer) => local.saveIncomePlan(answer.incomePlan, input.month),
+		),
 
 	summary: (month: string) => request<Summary>(`/summary${queryString({ month })}`),
 };

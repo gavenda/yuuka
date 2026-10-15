@@ -10,6 +10,7 @@ export default {
 	back: 'Back',
 	reload: 'Reload',
 	tryNow: 'Try now',
+	tryAgain: 'Try again',
 	fetching: 'Calculating…',
 	// A confirmation's buttons answer its question, so each reads on its own.
 	yesDelete: 'Yes, delete it',
@@ -52,9 +53,7 @@ export default {
 	showAmounts: 'Show amounts',
 	hideAmounts: 'Hide amounts',
 	months: {
-		previous: 'Previous month',
-		next: 'Next month',
-		choose: 'Choose month',
+		choose: 'Choose month, showing {month}',
 		previousYear: 'Previous year',
 		nextYear: 'Next year',
 	},

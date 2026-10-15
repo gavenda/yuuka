@@ -1,5 +1,5 @@
 import { api, isNetworkError } from '@/lib/api';
-import { dropCacheFamily, readCache, snapshotKey, writeCache } from '@/lib/cache';
+import { dropTransactionPages, readTransactionPage, writeTransactionPage } from '@/lib/cache';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Transaction, TransactionFilters } from '@/types';
@@ -10,30 +10,20 @@ const PAGE_SIZE = 50;
 /** How many filter sets' first pages the local copy holds. */
 const KEEP_SNAPSHOTS = 8;
 
-/** The first page of one filter set, as kept in the browser's local copy. */
-interface PageSnapshot {
-	transactions: Transaction[];
-	total: number;
-}
-
-const isPageSnapshot = (data: unknown): data is PageSnapshot =>
-	typeof data === 'object' &&
-	data !== null &&
-	Array.isArray((data as PageSnapshot).transactions) &&
-	typeof (data as PageSnapshot).total === 'number';
-
-const cacheKey = (filters: TransactionFilters) => snapshotKey('transactions', filters as Record<string, string | number | undefined>);
-
 /**
  * The list on screen. A filter set seen before opens on the browser's local copy of its first
- * page while the API is asked for the current one; further pages are only ever fetched.
+ * page — its rows, as the copy holds them now — while the API is asked for the current one;
+ * further pages are only ever fetched, one at a time, as the end of the list comes within reach.
  */
 export const useTransactionStore = defineStore('transactions', () => {
 	const transactions = ref<Transaction[]>([]);
 	const total = ref(0);
-	const offset = ref(0);
 	const loading = ref(false);
+	/** Whether the next page is on its way: the list being added to, where [loading] is it being replaced. */
+	const loadingMore = ref(false);
 	const error = ref<string | null>(null);
+	/** Why the next page could not be had. It is the foot of the list's to say, since the rows above it are still good. */
+	const moreError = ref<string | null>(null);
 	/** Whether a list has been shown yet, so a full sync knows whether there is anything to refresh. */
 	const loaded = ref(false);
 	const filters = ref<TransactionFilters>({});
@@ -54,24 +44,50 @@ export const useTransactionStore = defineStore('transactions', () => {
 		return [...groups.entries()];
 	});
 
-	/** Keeps what is on screen as the local copy of this filter set's first page. */
-	function persist(): void {
-		writeCache(cacheKey(filters.value), { transactions: transactions.value, total: total.value } satisfies PageSnapshot, KEEP_SNAPSHOTS);
+	/**
+	 * Bumped whenever the list on screen is replaced, or another filter set is asked for, so a copy
+	 * still being read cannot land on top of either.
+	 */
+	let revision = 0;
+
+	/** Replaces the rows a filter set's first page covers in the local copy with what the API answered for it. */
+	function persist(requested: TransactionFilters, page: { transactions: Transaction[]; total: number }): void {
+		void writeTransactionPage(requested, page.transactions, page.total, KEEP_SNAPSHOTS);
 	}
 
-	/** [keepOnNetworkError] is set when the list on screen is already the local copy, which an unreachable API leaves as it is. */
-	async function fetchPage(append: boolean, keepOnNetworkError = false): Promise<void> {
+	/** Shows the local copy of [next]'s first page, unless something has replaced the list since it was asked for; whether it did. */
+	async function showCopy(next: TransactionFilters): Promise<boolean> {
+		const asked = revision;
+		const cached = await readTransactionPage(next, PAGE_SIZE);
+		if (!cached || revision !== asked) return false;
+
+		revision++;
+		transactions.value = cached.transactions;
+		total.value = cached.total;
+		loaded.value = true;
+		return true;
+	}
+
+	/**
+	 * [copy] settles on whether the list on screen is this filter set's local copy, which an
+	 * unreachable API leaves as it is. It is waited for only on a failure: offline, the request can
+	 * fail before the copy is read.
+	 */
+	async function fetchFirstPage(copy: Promise<boolean>): Promise<void> {
 		loading.value = true;
 		error.value = null;
+		moreError.value = null;
 
 		try {
-			const page = await api.listTransactions({ ...filters.value, limit: PAGE_SIZE, offset: offset.value });
-			transactions.value = append ? [...transactions.value, ...page.transactions] : page.transactions;
+			const requested = filters.value;
+			const page = await api.listTransactions({ ...requested, limit: PAGE_SIZE, offset: 0 });
+			revision++;
+			transactions.value = page.transactions;
 			total.value = page.total;
 			loaded.value = true;
-			if (!append) persist();
+			persist(requested, page);
 		} catch (caught) {
-			if (!(keepOnNetworkError && isNetworkError(caught))) {
+			if (!((await copy) && isNetworkError(caught))) {
 				error.value = caught instanceof Error ? caught.message : t('common.errors.loadTransactions');
 			}
 		} finally {
@@ -81,22 +97,39 @@ export const useTransactionStore = defineStore('transactions', () => {
 
 	async function load(next: TransactionFilters = filters.value): Promise<void> {
 		filters.value = next;
-		offset.value = 0;
+		// Neither a copy nor a further page of the filter set this one replaces may land once it is asked for.
+		revision++;
 
-		const cached = readCache(cacheKey(next), isPageSnapshot);
-		if (cached) {
-			transactions.value = cached.transactions;
-			total.value = cached.total;
-			loaded.value = true;
-		}
-
-		await fetchPage(false, cached !== null);
+		// Read beside the request rather than before it: the copy only fills the wait for the answer.
+		await fetchFirstPage(showCopy(next));
 	}
 
+	/**
+	 * Adds the next page, which the list asks for itself as its end comes within reach — there is
+	 * nothing to press. A failure is kept apart from the screen's ([moreError]): the rows already
+	 * shown stay, and the list stops asking until it is tried again or replaced, so being offline
+	 * costs one failed request rather than a loop of them.
+	 */
 	async function loadMore(): Promise<void> {
-		if (loading.value || !hasMore.value) return;
-		offset.value = transactions.value.length;
-		await fetchPage(true);
+		if (loading.value || loadingMore.value || !hasMore.value) return;
+
+		const asked = revision;
+		loadingMore.value = true;
+		moreError.value = null;
+
+		try {
+			const page = await api.listTransactions({ ...filters.value, limit: PAGE_SIZE, offset: transactions.value.length });
+			// The list this page carries on from has been replaced while it was on its way.
+			if (revision !== asked) return;
+
+			revision++;
+			transactions.value = [...transactions.value, ...page.transactions];
+			total.value = page.total;
+		} catch (caught) {
+			if (revision === asked) moreError.value = caught instanceof Error ? caught.message : t('common.errors.loadTransactions');
+		} finally {
+			loadingMore.value = false;
+		}
 	}
 
 	/**
@@ -108,26 +141,45 @@ export const useTransactionStore = defineStore('transactions', () => {
 		loading.value = true;
 
 		try {
-			const page = await api.listTransactions({ ...filters.value, limit: Math.min(200, loadedCount), offset: 0 });
+			const requested = filters.value;
+			const page = await api.listTransactions({ ...requested, limit: Math.min(200, loadedCount), offset: 0 });
+			revision++;
 			transactions.value = page.transactions;
 			total.value = page.total;
-			offset.value = 0;
 			loaded.value = true;
-			persist();
+			// The API has answered, so a page that could not be had before is worth asking for again.
+			moreError.value = null;
+			persist(requested, page);
 			// A write has landed, and it may have moved other filter sets' pages too.
-			dropCacheFamily('transactions', cacheKey(filters.value));
+			void dropTransactionPages(requested);
 		} finally {
 			loading.value = false;
 		}
 	}
 
 	function reset(): void {
+		revision++;
 		transactions.value = [];
 		total.value = 0;
-		offset.value = 0;
+		moreError.value = null;
 		filters.value = {};
 		loaded.value = false;
 	}
 
-	return { transactions, total, loading, error, loaded, filters, hasMore, byDate, load, loadMore, refresh, reset };
+	return {
+		transactions,
+		total,
+		loading,
+		loadingMore,
+		error,
+		moreError,
+		loaded,
+		filters,
+		hasMore,
+		byDate,
+		load,
+		loadMore,
+		refresh,
+		reset,
+	};
 });

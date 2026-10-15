@@ -55,12 +55,14 @@ import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.BuildConfig
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.auth.IdTokenClaims
+import dev.gavenda.yuuka.domain.formatMonth
 import dev.gavenda.yuuka.ui.common.CatFade
 import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.FabEntry
 import dev.gavenda.yuuka.ui.common.catPattern
 import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.RailFabHost
+import dev.gavenda.yuuka.ui.common.RailMonthHost
 import dev.gavenda.yuuka.ui.common.UserAvatar
 import dev.gavenda.yuuka.ui.theme.ShapeXl
 
@@ -75,7 +77,8 @@ private val RAIL_PRINT_WIDTH = 220.dp
  * The navigation rail of a wide window, mirroring `NavRail.vue`: slim it shows the daily destinations
  * and the hide-amounts switch under a menu button; open, the same items gain their labels and a "More"
  * group (Budget, Categories, Tags, Subscriptions, Save the Change, Settings, Sign out) and the signed-in
- * account appear.
+ * account appear. A month-scoped screen's month button follows the hide-amounts switch, as it does in a
+ * phone's bar.
  *
  * [docked] decides how it opens. Docked, it is a plain rail that pushes the page aside; otherwise it
  * is a modal rail that floats over the page behind a scrim, and closes again once a choice is made —
@@ -92,6 +95,7 @@ fun YuukaNavRail(
     claims: IdTokenClaims?,
     amountsHidden: Boolean,
     fabHost: RailFabHost,
+    monthHost: RailMonthHost,
     onExpandedChange: (Boolean) -> Unit,
     onNavigate: (String) -> Unit,
     onNavigateDetail: (String) -> Unit,
@@ -258,6 +262,24 @@ fun YuukaNavRail(
                     )
                 }
 
+                // On a month-scoped screen, the button that opens its month picker, which a phone keeps in the bar
+                // after the switch above. Open, it is labelled with the month on show.
+                monthHost.entry?.let { entry ->
+                    val month = formatMonth(entry.month)
+                    RailItem(
+                        label = month,
+                        icon = R.drawable.calendar_month_48px,
+                        selected = false,
+                        expanded = expanded,
+                        onClick = {
+                            afterChoice()
+                            entry.onPick()
+                        },
+                        labelWhenSlim = false,
+                        slimDescription = stringResource(R.string.cd_pick_month, month),
+                    )
+                }
+
                 // Only in the open rail, which grows out of nothing rather than appearing.
                 AnimatedVisibility(
                     visible = expanded && claims != null,
@@ -366,12 +388,14 @@ private fun RailItem(
     onClick: () -> Unit,
     /** A slim rail labels its items under the icon; an action too wordy for that goes bare, its label said only to accessibility. */
     labelWhenSlim: Boolean = true,
+    /** What a bare item says of itself, where its label alone would not say what pressing it does. */
+    slimDescription: String = label,
 ) {
     val labelled = expanded || labelWhenSlim
     WideNavigationRailItem(
         selected = selected,
         onClick = onClick,
-        icon = { Icon(painterResource(icon), contentDescription = if (labelled) null else label) },
+        icon = { Icon(painterResource(icon), contentDescription = if (labelled) null else slimDescription) },
         label = if (labelled) ({ Text(label) }) else null,
         railExpanded = expanded,
     )

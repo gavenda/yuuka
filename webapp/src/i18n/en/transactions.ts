@@ -11,7 +11,6 @@ export default {
 	filterByTag: 'Filter by tag',
 	emptyTitle: 'I checked twice. Nothing.',
 	emptyDescription: "Nothing matches these filters. Widen the search, or add the transaction that's missing.",
-	loadMore: 'Show more ({shown} of {total})',
 	end: "That's every last one, all accounted for.",
 	roundUpSaved: '{amount} saved to {account}',
 	roundUpFallback: 'your account',

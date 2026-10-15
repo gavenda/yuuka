@@ -1,13 +1,11 @@
 /**
  * A `Storage` of our own, for specs to install over the global: the runtime's `localStorage` is not
- * a dependable stand-in (Node ships one of its own that needs a backing file), and the quota and
+ * a dependable stand-in (Node ships one of its own that needs a backing file), and the full-quota and
  * blocked-storage cases need a store that can be told to fail.
  */
 export class MemoryStorage implements Storage {
 	private items = new Map<string, string>();
-	/** How many of the next `setItem` calls throw, as a full quota would. */
-	failNext = 0;
-	/** Whether every `setItem` throws, however many times it is retried. */
+	/** Whether every `setItem` throws, as a full quota does. */
 	full = false;
 
 	get length(): number {
@@ -26,7 +24,7 @@ export class MemoryStorage implements Storage {
 		this.items.delete(key);
 	}
 	setItem(key: string, value: string): void {
-		if (this.full || this.failNext-- > 0) throw new DOMException('full', 'QuotaExceededError');
+		if (this.full) throw new DOMException('full', 'QuotaExceededError');
 		this.items.set(key, value);
 	}
 }

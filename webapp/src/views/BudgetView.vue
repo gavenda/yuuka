@@ -4,7 +4,7 @@ import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import DenseField from '@/components/DenseField.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MoneyText from '@/components/MoneyText.vue';
-import MonthSwitcher from '@/components/MonthSwitcher.vue';
+import MonthAction from '@/components/MonthAction.vue';
 import StatCarousel, { type StatItem } from '@/components/StatCarousel.vue';
 import { currencySymbol, parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
@@ -160,7 +160,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 <template>
 	<div class="flex flex-col gap-4 p-4">
-		<MonthSwitcher v-model="month" />
+		<MonthAction v-model="month" />
 
 		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 

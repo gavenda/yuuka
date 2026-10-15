@@ -19,14 +19,24 @@ const routes: RouteRecordRaw[] = [
 		meta: { titleKey: 'nav.transactions' },
 	},
 	{ path: '/budget', name: 'budget', component: () => import('@/views/BudgetView.vue'), meta: { titleKey: 'nav.budget' } },
-	{ path: '/accounts', name: 'accounts', component: () => import('@/views/AccountsView.vue'), meta: { titleKey: 'nav.accounts' } },
+	{
+		path: '/accounts',
+		name: 'accounts',
+		component: () => import('@/views/AccountsView.vue'),
+		meta: { titleKey: 'nav.accounts' },
+	},
 	{
 		path: '/categories',
 		name: 'categories',
 		component: () => import('@/views/CategoriesView.vue'),
 		meta: { titleKey: 'nav.categories', amountFree: true },
 	},
-	{ path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue'), meta: { titleKey: 'nav.tags', amountFree: true } },
+	{
+		path: '/tags',
+		name: 'tags',
+		component: () => import('@/views/TagsView.vue'),
+		meta: { titleKey: 'nav.tags', amountFree: true },
+	},
 	{
 		path: '/subscriptions',
 		name: 'subscriptions',
@@ -66,11 +76,12 @@ router.beforeEach(async (to) => {
 	// before that settles would bounce an arriving or reloading user to sign-in.
 	await whenAuthReady();
 
-	// The local copy belongs to one person. Settle whose it is before any view reads it.
+	// The local copy belongs to one person. Settle whose it is before any view reads it —
+	// which also waits for it to be read into memory, so the view paints from it at once.
 	// The unsent queue belongs to the same person, so a change of owner takes it
 	// too: replaying one person's spending into another's books would be worse
 	// than losing it.
-	if (auth0.isAuthenticated.value && adoptCacheFor(auth0.user.value?.sub)) await discardQueue();
+	if (auth0.isAuthenticated.value && (await adoptCacheFor(auth0.user.value?.sub))) await discardQueue();
 
 	if (!to.meta.public && !auth0.isAuthenticated.value) {
 		return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };

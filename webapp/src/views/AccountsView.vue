@@ -12,7 +12,9 @@ import MoneyText from '@/components/MoneyText.vue';
 import SelectField from '@/components/SelectField.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
+import SearchField from '@/components/SearchField.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
+import TopBar from '@/components/TopBar.vue';
 import { api, ApiError } from '@/lib/api';
 import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
@@ -88,7 +90,16 @@ const adjustDifference = computed(() => {
 });
 
 const typeChoices = computed(() => namedOptions(ledger.activeAccountTypes));
-const visible = computed(() => ledger.accounts.filter((account) => showArchived.value || !account.archived));
+const search = ref('');
+
+/** What the search matches: a name, a type or a currency, whatever the case. */
+const matchesSearch = (account: Account): boolean => {
+	const query = search.value.trim().toLowerCase();
+	if (!query) return true;
+	return [account.name, account.typeName ?? '', account.currency].some((field) => field.toLowerCase().includes(query));
+};
+
+const visible = computed(() => ledger.accounts.filter((account) => (showArchived.value || !account.archived) && matchesSearch(account)));
 const archivedCount = computed(() => ledger.accounts.filter((account) => account.archived).length);
 
 interface AccountGroup {
@@ -264,6 +275,14 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="px-4 pt-4 pb-24">
+		<!-- A phone's bar has the search in it; a window with a rail has no bar, so there it leads the page. -->
+		<Teleport defer to="#bar-search">
+			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('accounts.search')" :placeholder="t('transactions.search')" />
+		</Teleport>
+		<TopBar>
+			<SearchField v-model="search" class="max-sm:hidden" :label="t('accounts.search')" :placeholder="t('accounts.searchPlaceholder')" />
+		</TopBar>
+
 		<EmptyState
 			v-if="!groups.length"
 			fill

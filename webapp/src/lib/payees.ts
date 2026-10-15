@@ -1,5 +1,8 @@
 import type { Payee } from '@/types';
 
+/** How many remembered payees the payee field offers from, and the local copy keeps: the API's most. */
+export const PAYEE_LIMIT = 50;
+
 /**
  * Picks the suggestions to offer for what has been typed so far.
  *

@@ -101,8 +101,6 @@ onMounted(() => ledger.load());
 
 <template>
 	<div class="flex flex-col gap-4 px-4 pt-4 pb-24">
-		<p class="type-body-medium px-2 text-on-surface-variant">{{ t('accounts.types.description') }}</p>
-
 		<!-- One row per type, its accounts counted at the end, drawn as one connected block. -->
 		<ul v-if="visible.length" class="group-rows">
 			<li v-for="type in visible" :key="type.id">

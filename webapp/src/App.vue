@@ -13,6 +13,7 @@ import {
 	ACCOUNT_BALANCE_WALLET_FILL,
 	ARROW_BACK,
 	ATTACH_MONEY,
+	CALENDAR_MONTH,
 	CATEGORY,
 	CATEGORY_FILL,
 	DASHBOARD,
@@ -25,6 +26,8 @@ import {
 	SELL,
 	SELL_FILL,
 } from '@/lib/icons';
+import { formatMonth } from '@/lib/dates';
+import { currentMonthAction } from '@/lib/monthAction';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
@@ -51,6 +54,10 @@ const subscriptions = useSubscriptionStore();
 const router = useRouter();
 const route = useRoute();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
+/** An icon cannot say which month is on show, so the button's name does. */
+const monthActionLabel = computed(() =>
+	currentMonthAction.value ? t('common.months.choose', { month: formatMonth(currentMonthAction.value.month) }) : '',
+);
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
 
@@ -113,11 +120,6 @@ const isTabDestination = computed(() => ['dashboard', 'transactions', 'accounts'
 const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
 
-/** The phone's bar sits on the page's background until content scrolls beneath it, then lifts a tonal step. */
-const scrolled = ref(false);
-function onScroll(): void {
-	scrolled.value = window.scrollY > 0;
-}
 const appVersion = __APP_VERSION__;
 
 /** Auth0 fills whichever of these the connection provides. */
@@ -142,7 +144,8 @@ async function signOut(): Promise<void> {
 	budget.reset();
 	transactions.reset();
 	subscriptions.reset();
-	clearCache();
+	// Waited for: the page is about to unload, and an unfinished clear would go with it.
+	await clearCache();
 	// Unsent changes go with the session that made them, and this install stops
 	// being worth waking.
 	await discardQueue();
@@ -219,12 +222,10 @@ watch(
 onMounted(() => {
 	document.addEventListener('click', onClickOutsideUserMenu);
 	window.addEventListener('online', onBackOnline);
-	window.addEventListener('scroll', onScroll, { passive: true });
 });
 onBeforeUnmount(() => {
 	document.removeEventListener('click', onClickOutsideUserMenu);
 	window.removeEventListener('online', onBackOnline);
-	window.removeEventListener('scroll', onScroll);
 });
 </script>
 
@@ -246,25 +247,30 @@ onBeforeUnmount(() => {
 		     screen would just repeat it; the heading below keeps the page titled for assistive tech. -->
 		<h1 v-if="shellShown" class="sr-only" :class="{ 'max-sm:hidden': !isTabDestination }">{{ pageTitle }}</h1>
 
-		<header
-			v-if="shellShown"
-			class="sticky top-0 z-30 transition-colors sm:hidden"
-			:class="scrolled ? 'bg-surface-container' : 'bg-background'"
-		>
-			<div class="flex h-16 items-center gap-2 px-4">
+		<!-- One colour wherever the page is: the bar does not lift a tonal step when content scrolls beneath it. -->
+		<header v-if="shellShown" class="sticky top-0 z-30 bg-background sm:hidden">
+			<!-- While a search in the bar is being typed in it has the whole bar, as Material's search view takes
+			     the screen on Android: the mark and the actions step aside until the field is left. -->
+			<div class="group flex h-16 items-center gap-2 px-4">
 				<!-- A screen opened from another leads back to it, where the others lead home. -->
 				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 text-on-surface" :aria-label="t('common.back')">
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
-				<RouterLink v-else to="/" class="focus-ring shrink-0 rounded-full" :aria-label="t('nav.dashboard')">
+				<RouterLink
+					v-else
+					to="/"
+					class="focus-ring shrink-0 rounded-full group-has-[#bar-search:focus-within]:hidden"
+					:aria-label="t('nav.dashboard')"
+				>
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
 				</RouterLink>
 
-				<!-- The three bottom-bar destinations carry no title: the bar below already names them. -->
+				<!-- The three bottom-bar destinations carry no title: the bar below already names them. What one
+				     of them keeps in the bar instead — Transactions, its search — is teleported into the space. -->
 				<h1 v-if="!isTabDestination" class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ pageTitle }}</h1>
-				<div v-else class="flex-1" />
+				<div id="bar-search" :class="isTabDestination ? 'min-w-0 flex-1' : 'hidden'" />
 
-				<div class="flex shrink-0 items-center">
+				<div class="flex shrink-0 items-center group-has-[#bar-search:focus-within]:hidden">
 					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
 					<button
 						v-if="route.meta.amountFree !== true"
@@ -276,6 +282,19 @@ onBeforeUnmount(() => {
 						@click="toggleAmounts"
 					>
 						<AppIcon :icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
+					</button>
+
+					<!-- Only on a screen that is looking at a month (`MonthAction`): opens its month picker. -->
+					<button
+						v-if="currentMonthAction"
+						type="button"
+						class="btn-icon"
+						aria-haspopup="dialog"
+						:aria-label="monthActionLabel"
+						:title="monthActionLabel"
+						@click="currentMonthAction.open()"
+					>
+						<AppIcon :icon="CALENDAR_MONTH" />
 					</button>
 
 					<div ref="userMenuRoot" class="relative ml-1" @keydown="onKeydownUserMenu">

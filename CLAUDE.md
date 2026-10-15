@@ -259,12 +259,57 @@ below it, and the open/closed choice is remembered locally — but a narrow wind
 with it floating. The rail marks the current destination, so a wide window has no top bar; it also carries the
 screen's leading action as its FAB, under the menu button (an icon while slim, extended when open).
 Settings and Save the Change lend it none: neither screen has a Save, because a choice made
-on either is written the moment it is made (see above). The hide-amounts switch and the account sit at the
-foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material 3
+on either is written the moment it is made (see above). The hide-amounts switch, a month-scoped screen's month
+button (below) and the account sit at the foot of the rail. On Android this is `ui/NavRail.kt` (`YuukaNavRail`, a Material 3
 `WideNavigationRail`, or its modal variant when floating) hosted by `YuukaApp`; a screen's leading
 action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
 action to the rail, so a new screen never places its own. The web side is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
+
+- **The month is changed from an icon button after the hide-amounts switch**: Dashboard, Transactions and
+Budget each look at one month, and the button that changes it — a calendar — goes wherever the hide-amounts
+switch is, straight after it: in the phone's app bar, and under it at the rail's foot in a window with a rail,
+where the open rail labels it with the month on show. Pressing it opens the month picker, a year over its
+twelve months with the current one outlined. It is never page content, so there is no switcher card and no
+previous/next arrows; the button's accessible name says which month is showing, since an icon cannot. On
+Android this is `MonthTopBar` (`ui/common/ScreenTopBar.kt`), which hands the month to the rail
+(`RegisterRailMonth`, `ui/common/RailMonth.kt`) when there is no bar; on the web a view places a
+`MonthAction` and the shell draws the button (`lib/monthAction.ts`).
+
+- **Transactions keeps its search in the app bar**: On a phone the bar is Material's app bar with search — the
+drawer button, the search bar, then the hide-amounts switch and the month button. A window with a rail has no
+bar, so there Material's search bar stands on its own at the top of the page. Neither is typed in where it
+stands: pressing it opens the full-screen search view, where the query is typed and what matches is listed
+under the field as Material's plain list items — the day, what it was, where it was and what is noted on it,
+the amount at the end — with none of the page's days, grouped shapes or swipes; pressing one opens it. Back,
+or the keyboard's search key, returns to the screen with the bar still holding the query and a button to
+clear it. The view is a dialog, so Yuuka is not drawn in it: nothing matching is said in plain text. The
+filter row under the bar stands in line with it — its buttons the bar's own distance from the edges, so the
+account button's icon is under the bar's first and the tag and category icons under its last two — and keeps
+to the page's margin where there is no bar (`barAlignedEdgePadding`). On Android this is `MonthSearchTopBar`
+(`ui/common/ScreenTopBar.kt`, over Material's `AppBarWithSearch`, `SearchBar` and
+`ExpandedFullScreenSearchBar`), and the results are `TransactionResults` in `TransactionsScreen.kt`. A browser
+has no search view, so on the web the search is a `SearchField` typed in where it stands: in a phone's bar,
+where it has the whole bar while it is typed in — the mark and the actions step aside until it is left — and
+from the rail's breakpoint up at the head of the screen's `TopBar`.
+
+- **The transaction list pages itself**: A month's transactions come fifty at a time, and nothing is pressed
+for the next fifty: it is asked for as the end of the list comes within reach — a few rows ahead of it, so it is
+usually there before the end is — and again when a page lands with the end still in reach. For as long as there
+is more to come the foot of the list says "Calculating…"; once there is not, Yuuka is asleep under the last
+row. A page that could not be had leaves the rows above it alone and is said at the foot instead, with "Try
+again", and it is not asked for again until that is pressed, a sync lands or the list is replaced by another
+month or filter — so being offline costs one failed request, not one for as long as the end stays in reach. A
+page still on its way when the month or a filter changes is dropped rather than added to the list that
+replaced its own. The search view's results page the same way. On Android this is `LoadMoreAtEnd` and
+`NextPageFooter` in `TransactionsScreen.kt` over `TransactionsViewModel.loadMore`; on the web `useInView`
+(`lib/inView.ts`) watches the foot of the list in `TransactionsView.vue` for the store's `loadMore`.
+
+- **An app bar keeps one colour**: Material lifts a bar a tonal step once content has scrolled beneath it;
+here a bar stays on the colour it rests on wherever the page is, and so does the search field in it. On
+Android a bar with a scroll behaviour takes `steadyTopAppBarColors()` (`ui/common/ScreenTopBar.kt`), and the
+app bar with search leaves both of its scrolled colours unspecified; the web's phone bar is always
+`bg-background`. A new bar does the same rather than taking Material's default.
 
 - **The web app is the Android app as a tablet draws it**: From the rail's breakpoint up, a screen in the
 browser is its Compose screen in a window with a rail: the same layout, the same colour roles (the scheme
@@ -291,7 +336,7 @@ category button slides a row of that filter's chips down under the filter bar (`
 which scrolls sideways and applies a change at once; pressing the button again puts the row away.
 
 - **A row's actions are behind a swipe**: A list row shows no buttons of its own: pressing it is its main
-action, and what else can be done to it — delete, archive, adjust, pause — is revealed by dragging the row
+action, and what else can be done to it — delete, archive, adjust, pause — is revealed, as filled icon buttons (error-coloured when it destroys), by dragging the row
 left (`SwipeToRevealActions` on Android, `SwipeReveal.vue` on the web, where a held mouse drags as a finger
 does and the keyboard reaches the actions by Tab). Deleting what would take history with it, or cannot be
 undone from the list, asks first in a dialog; taking a label or a category off does not.
@@ -400,11 +445,15 @@ and in `FormValidation` (`ui/common/FormValidation.kt`, with `YuukaTextField` an
 locally can be thrown away and refetched; a queued change exists nowhere else.
 On Android it therefore lives in its own Room database (`OutboxDatabase`),
 because the cache database falls back to a destructive migration and a queue
-must not; in the browser it is in IndexedDB rather than beside the cache in
-`localStorage`, which drops its oldest entries under quota pressure. It is
+must not; in the browser the cache is an IndexedDB database (`yuuka-cache`) laid
+out as the Room one is — a store per table, keyed and indexed the same way, read
+and written row by row — that is cleared, trimmed and dropped on a layout change
+in the same way, and the queue is a second database of its own (`yuuka-outbox`)
+that none of that reaches. It is
 discarded when the user signs out, and when a different person signs in — but
 **not** when a token merely expires, because that is the same person, who will
-sign in again and still wants their work.
+sign in again and still wants their work. That is why clearing the cache on an
+expired session keeps the record of whose it was.
 
 - **The other device is told, not left to find out**: A write pushes a data-only
 Firebase Cloud Messaging message naming which slices of the ledger moved
@@ -425,7 +474,8 @@ succeeded discards the cached transactions, budgets, income plans and summaries,
 so the screens on show load theirs again. A failed sync (offline, expired
 session) leaves the last-seen ledger untouched rather than empty. A slice
 refresh — what a push or a landed batch asks for — is the same mechanism aimed
-at less of the ledger.
+at less of the ledger. Both apps do this to the same tables (`SyncRepository` on
+Android, `lib/sync.ts` on the web).
 
 ## Provisioning
 

@@ -247,7 +247,7 @@ private fun SubscriptionRow(
         if (subscription.enabled) " · " + stringResource(R.string.subscription_next, formatLongDate(subscription.nextRunOn)) else ""
 
     SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = SegmentedGap / 2),
         actions = {
             ActionIconButton(
                 if (subscription.enabled) ActionIcon.PAUSE else ActionIcon.RESUME,
@@ -260,12 +260,7 @@ private fun SubscriptionRow(
     ) {
         // One of the list's rows, drawn by hand: the surface takes the tap and the group's shape, and the
         // headline with what is under it and the amount at the end are a plain row.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onEdit,
-            shape = groupedItemShape(position),
-            color = groupedItemColor,
-        ) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

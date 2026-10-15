@@ -25,7 +25,7 @@
     <string name="action_yes_delete">Yes, delete it</string>
     <string name="action_no_go_back">No, go back</string>
     <string name="action_add">Add</string>
-    <string name="action_today">Today</string>
+    <string name="action_try_again">Try again</string>
     <string name="action_log_in">Log in</string>
     <string name="action_sign_out">Sign out</string>
     <string name="sign_out_confirm_title">Sign out?</string>
@@ -72,9 +72,7 @@
     <string name="cd_back">Back</string>
     <string name="cd_show_amounts">Show amounts</string>
     <string name="cd_hide_amounts">Hide amounts</string>
-    <string name="cd_previous_month">Previous month</string>
-    <string name="cd_next_month">Next month</string>
-    <string name="cd_pick_month">Choose month</string>
+    <string name="cd_pick_month">Choose month, showing %1$s</string>
     <string name="cd_previous_year">Previous year</string>
     <string name="cd_next_year">Next year</string>
     <string name="cd_account">Account</string>
@@ -214,7 +212,6 @@
     <string name="error_choose_type">Choose a type.</string>
     <string name="error_logo_url">Use a full http or https link, such as https://example.com/logo.png.</string>
     <string name="account_types_title">Account types</string>
-    <string name="account_types_description">Your own labels. Rename one and every account using it follows along.</string>
     <string name="account_types_summary">Customize your accounts types</string>
     <string name="new_account_type">New type</string>
     <string name="new_account_type_title">New account type</string>
@@ -320,6 +317,8 @@
     <!-- Transactions screen -->
     <string name="new_transaction">New transaction</string>
     <string name="edit_transaction">Edit transaction</string>
+    <string name="search">Search</string>
+    <string name="search_accounts">Search name, type or currency</string>
     <string name="search_payee_notes">Search payee, notes or tag</string>
     <string name="all_accounts">All accounts</string>
     <string name="all_categories">All categories</string>
@@ -331,7 +330,6 @@
     <string name="transactions_empty_title">I checked twice. Nothing.</string>
     <string name="transactions_empty_description">Nothing matches these filters. Widen the search, or add the transaction that\'s missing.</string>
     <string name="loading_ellipsis">Calculating…</string>
-    <string name="load_more">Show more (%1$d of %2$d)</string>
     <string name="transaction_form_line">Every coin goes in the book, and I count it twice.</string>
     <string name="categories_form_line">Name it, and I\'ll file every coin under it.</string>
     <string name="tags_form_line">Tags don\'t change my sums. They only help you find things.</string>

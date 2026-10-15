@@ -51,7 +51,7 @@ internal fun DashboardScreenContent(
         Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                // The month switcher used to stand between the bar and the first card; its padding goes here instead.
+                // Nothing stands between the bar and the first card, so the list pads its own top.
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {

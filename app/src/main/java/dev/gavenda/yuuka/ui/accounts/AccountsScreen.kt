@@ -3,11 +3,15 @@ package dev.gavenda.yuuka.ui.accounts
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,6 +38,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         state = state,
         modifier = modifier,
         onToggleShowArchived = viewModel::toggleShowArchived,
+        onSearchTextChange = viewModel::setSearchText,
         onCreateAccount = viewModel::createAccount,
         onUpdateAccount = viewModel::updateAccount,
         onSetArchived = viewModel::setArchived,
@@ -48,6 +53,7 @@ internal fun AccountsScreenContent(
     state: AccountsUiState,
     modifier: Modifier = Modifier,
     onToggleShowArchived: () -> Unit = {},
+    onSearchTextChange: (String) -> Unit = {},
     onCreateAccount: suspend (name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onUpdateAccount: suspend (id: String, name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
     onSetArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
@@ -72,13 +78,42 @@ internal fun AccountsScreenContent(
     val couldNotDeleteAccountMessage = stringResource(R.string.could_not_delete_account)
     val deleteAccountTransactionsConfirmTemplate = stringResource(R.string.delete_account_transactions_confirm)
 
+    // The field owns the text; what is typed is handed to the view model, which does the filtering.
+    val searchFieldState = rememberTextFieldState(state.searchText)
+    LaunchedEffect(searchFieldState) {
+        snapshotFlow { searchFieldState.text.toString() }.collectLatest { onSearchTextChange(it) }
+    }
+    val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
+
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
-        modifier = modifier,
-        // Bottom-bar destinations carry no title: the bar below already says where this is.
-        topBar = { ScreenTopBar(title = "") },
-        
+        modifier = modifier.appBarScroll(scrollBehavior),
+        // Bottom-bar destinations carry no title: the bar below already says where this is. Not month-scoped, so no month button.
+        topBar = {
+            MonthSearchTopBar(
+                month = null,
+                onMonthChange = {},
+                search = searchFieldState,
+                searchHint = stringResource(R.string.search_accounts),
+                scrollBehavior = scrollBehavior,
+            ) {
+                WithSnackbarOverlay {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(state.matches, key = { it.id }) { account ->
+                            ListItem(
+                                onClick = { editing = account },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                content = { Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name) },
+                                supportingContent = account.typeName?.let { { Text(it) } },
+                                trailingContent = { MoneyText(account.balance, tone = MoneyTone.SIGNED_ALERT, currency = account.currency, style = MaterialTheme.typography.bodyLarge) },
+                            )
+                        }
+                    }
+                }
+            }
+        },
         floatingActionButton = {
             ScreenFab(
                 label = stringResource(R.string.new_account),
@@ -88,11 +123,13 @@ internal fun AccountsScreenContent(
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxWidth(),
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
+            // The gap under the bar is the column's own, not content that scrolls away: the bar comes back over
+            // the list as it scrolls up, and the rows must not touch it.
+            modifier = Modifier.padding(padding).padding(top = 8.dp).fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
             // The rows of a type are a hair apart, the way a settings group is drawn; the space between
             // one type and the next comes from the header's own padding.
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
         ) {
             if (state.groups.isEmpty()) {
                 item { EmptyState(stringResource(R.string.accounts_empty_title), YuukaMood.Attentive, modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.accounts_empty_description)) }
@@ -261,12 +298,7 @@ private fun AccountCard(
         // One of a type's rows rather than a card of its own: square where it meets its neighbours,
         // round on the group's outer edges, the same block the settings groups are drawn as. The surface
         // takes the tap and the shape; what is in it is a plain row of a column and the logo.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onEdit,
-            shape = groupedItemShape(position),
-            color = groupedItemColor,
-        ) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

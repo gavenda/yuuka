@@ -341,30 +341,55 @@
 	}
 
 	/*
-	 * A grouped row (`GroupedItems.kt`): rows of one group lie a hair apart, round on the group's outer
-	 * edges and all but square where they meet, so the block reads as one block of separate pieces rather
-	 * than a card with dividers. Put each row in a child of a `.group-rows`; the first and last take the
-	 * outer corners by themselves. A step up from the page, a step below the dialogs that open over it.
+	 * A grouped row (`GroupedItems.kt`), as Material's segmented list draws it: rows of one group lie 2px
+	 * apart, large corners on the group's outer edges and extra-small where they meet, so the block reads as
+	 * one block of separate pieces rather than a card with dividers. Put each row in a child of a
+	 * `.group-rows`; the first and last take the outer corners by themselves. A row is a step up from the
+	 * page, a step below the dialogs that open over it, and one that can be pressed rounds off while it is:
+	 * every corner large while pressed or focused, medium while hovered. A settings group
+	 * (`SettingsGroupContainer`) is the same list with `.settings-row`s for rows.
 	 */
-	.group-rows {
-		@apply flex flex-col gap-1;
+	.group-rows,
+	.settings-group {
+		@apply flex flex-col gap-0.5;
+	}
+
+	.group-row,
+	.settings-row {
+		--surface-under: var(--color-surface-container);
+		@apply w-full rounded-xs bg-surface-container text-left text-on-surface;
+		transition: border-radius 200ms var(--ease-standard);
 	}
 
 	.group-row {
-		--surface-under: var(--color-surface-container);
-		@apply block w-full rounded-xs bg-surface-container text-left text-on-surface;
+		@apply block;
 	}
 
 	.group-rows > :first-child,
-	.group-rows > :first-child .group-row {
-		border-top-left-radius: var(--radius-xl);
-		border-top-right-radius: var(--radius-xl);
+	.group-rows > :first-child .group-row,
+	.settings-group > .settings-row:first-child {
+		border-top-left-radius: var(--radius-lg);
+		border-top-right-radius: var(--radius-lg);
 	}
 
 	.group-rows > :last-child,
-	.group-rows > :last-child .group-row {
-		border-bottom-left-radius: var(--radius-xl);
-		border-bottom-right-radius: var(--radius-xl);
+	.group-rows > :last-child .group-row,
+	.settings-group > .settings-row:last-child {
+		border-bottom-left-radius: var(--radius-lg);
+		border-bottom-right-radius: var(--radius-lg);
+	}
+
+	.group-rows .group-row.state-layer:hover,
+	.settings-group > .settings-row.state-layer:hover {
+		border-radius: var(--radius-md);
+	}
+
+	.group-rows .group-row.state-layer:active,
+	.group-rows .group-row.state-layer:focus-visible,
+	.group-rows .group-row.state-layer:has(:focus-visible),
+	.settings-group > .settings-row.state-layer:active,
+	.settings-group > .settings-row.state-layer:focus-visible {
+		border-radius: var(--radius-lg);
 	}
 
 	/* A group's heading: its name and, at the end, what the group comes to; inset past the rows it names. */
@@ -372,21 +397,17 @@
 		@apply type-title-medium flex items-center justify-between gap-4 px-2 pt-3 pb-2 text-on-surface;
 	}
 
-	/* A settings group (`SettingsGroupContainer`): one rounded block of rows with a primary heading above it. */
+	/* A settings group's heading, in the accent colour. */
 	.settings-header {
 		@apply type-title-medium pb-2 pl-2 text-primary;
 	}
 
-	.settings-group {
-		--surface-under: var(--color-surface-container);
-		@apply rounded-xl bg-surface-container text-on-surface;
-	}
-
 	.settings-row {
-		@apply flex w-full items-center gap-4 rounded-xl p-5 text-left;
+		@apply flex items-center gap-4 p-5;
 	}
 
-	button.settings-row {
+	button.settings-row,
+	a.settings-row {
 		@apply state-layer focus-ring cursor-pointer;
 	}
 
@@ -560,6 +581,15 @@
 
 	.btn-icon-sm {
 		@apply btn-icon size-8;
+	}
+
+	/* A filled icon button (`FilledIconButton`): primary, or error for one that destroys something. */
+	.btn-icon-filled {
+		@apply btn-icon bg-primary text-on-primary disabled:bg-on-surface/10;
+	}
+
+	.btn-icon-filled-danger {
+		@apply btn-icon bg-error text-on-error disabled:bg-on-surface/10;
 	}
 
 	/* An extended FAB: the one primary action a screen leads with. */

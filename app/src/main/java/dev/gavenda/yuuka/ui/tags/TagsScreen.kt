@@ -94,7 +94,7 @@ internal fun TagsScreenContent(
             modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
             // Rows of the block sit a hair apart, the way a settings group is drawn.
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
         ) {
             if (state.tags.isEmpty()) {
                 item { EmptyState(stringResource(R.string.tags_empty_title), YuukaMood.Pleased, modifier = Modifier.fillParentMaxHeight(), description = stringResource(R.string.tags_empty_description)) }
@@ -106,7 +106,7 @@ internal fun TagsScreenContent(
                             onValueChange = onSearchChange,
                             label = { Text(stringResource(R.string.search_tags)) },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                         )
                     }
                 }
@@ -169,8 +169,9 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: 
         },
     ) {
         ListItem(
-            modifier = Modifier.fillMaxWidth().clip(groupedItemShape(position)),
+            modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
+            shapes = groupedListItemShapes(position),
             colors = ListItemDefaults.colors(containerColor = groupedItemColor),
             leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },

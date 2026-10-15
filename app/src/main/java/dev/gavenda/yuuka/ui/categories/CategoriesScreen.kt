@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import dev.gavenda.yuuka.ui.theme.ShapeXl
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -117,24 +116,32 @@ internal fun CategoriesScreenContent(
                 item(key = "section:${section.key}") {
                     // The settings screen spaces a heading from its card by 16dp on top of the heading's own padding.
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Drawn as the settings screen draws its groups: the heading in the accent colour, then one card
-                        // holding every row of the section.
+                        // Drawn as the settings screen draws its groups: the heading in the accent colour, then the
+                        // section's rows as one segmented list.
                         SettingsGroupHeader(title = "${section.title} (${section.families.size})")
-                        Box(modifier = Modifier.clip(ShapeXl)) {
-                            SettingsGroupContainer {
-                                if (section.families.isEmpty()) {
+                        SettingsGroupContainer {
+                            if (section.families.isEmpty()) {
+                                GroupedItem(position = ItemPosition.Single, modifier = Modifier.fillMaxWidth()) {
                                     Text(
                                         stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(20.dp),
                                     )
                                 }
-                                section.families.forEach { family ->
-                                    val familyExpanded = family.parent.id in expandedFamilies
-                                    val archiveKey = "archive:${family.parent.id}"
-                                    val deleteKey = "delete:${family.parent.id}"
+                            }
+                            section.families.forEachIndexed { familyIndex, family ->
+                                val familyExpanded = family.parent.id in expandedFamilies
+                                val lastFamily = familyIndex == section.families.lastIndex
+                                val archiveKey = "archive:${family.parent.id}"
+                                val deleteKey = "delete:${family.parent.id}"
+                                Column {
                                     CategoryRow(
                                         family.parent,
+                                        // The list runs on through a family's open subcategories, so its parent ends it only while they are shut.
+                                        position = positionInGroup(
+                                            first = familyIndex == 0,
+                                            last = lastFamily && !(familyExpanded && family.children.isNotEmpty()),
+                                        ),
                                         subCount = family.children.size,
                                         expanded = familyExpanded,
                                         archiving = busy.isBusy(archiveKey),
@@ -164,12 +171,19 @@ internal fun CategoriesScreenContent(
                                         onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
                                     )
                                     AnimatedVisibility(visible = familyExpanded) {
-                                        Column {
-                                            family.children.forEach { child ->
+                                        Column(
+                                            modifier = Modifier.padding(top = SegmentedGap),
+                                            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
+                                        ) {
+                                            family.children.forEachIndexed { childIndex, child ->
                                                 val childArchiveKey = "archive:${child.id}"
                                                 val childDeleteKey = "delete:${child.id}"
                                                 CategoryRow(
                                                     child,
+                                                    position = positionInGroup(
+                                                        first = false,
+                                                        last = lastFamily && childIndex == family.children.lastIndex,
+                                                    ),
                                                     indent = true,
                                                     archiving = busy.isBusy(childArchiveKey),
                                                     deleting = busy.isBusy(childDeleteKey),
@@ -254,6 +268,7 @@ internal fun CategoriesScreenContent(
 @Composable
 private fun CategoryRow(
     category: Category,
+    position: ItemPosition,
     onClick: () -> Unit,
     subCount: Int = 0,
     expanded: Boolean = false,
@@ -292,6 +307,7 @@ private fun CategoryRow(
         ListItem(
             modifier = Modifier.fillMaxWidth().padding(start = if (indent) 16.dp else 0.dp),
             onClick = onClick,
+            shapes = groupedListItemShapes(position),
             colors = ListItemDefaults.colors(containerColor = groupedItemColor),
             leadingContent = {
                 Box(
