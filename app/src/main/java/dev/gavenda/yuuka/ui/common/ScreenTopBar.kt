@@ -304,8 +304,9 @@ private fun ClearSearchButton(state: TextFieldState) {
 }
 
 /**
- * The app bar of a screen reached from the drawer rather than a tab (Settings, Save the Change): back
- * where the drawer button would be.
+ * The app bar of a detail screen (Settings, and Account types opened from it): back where the drawer
+ * button would be. Save the Change is reached from the drawer too but keeps the drawer button, through
+ * [ScreenTopBar] with no actions.
  *
  * They show no amounts either, so the bar has no hide-amounts switch.
  *
