@@ -9,13 +9,32 @@ import { t } from '@/i18n';
 
 /**
  * A horizontal ranked bar per category (`CategoryBarList` in `BarCharts.kt`), each carrying its own value
- * label — colour never carries the figure alone. A bar is Material's linear progress indicator: the
+ * label — colour never carries the figure alone. Given `changes`, a row that moved says by how much under its bar. A bar is Material's linear progress indicator: the
  * category's colour as far as its share of the largest, then a gap, then the rest of the track.
  */
-const props = withDefaults(defineProps<{ title: string; entries: CategoryBreakdown[]; currency?: string; limit?: number }>(), {
-	currency: DEFAULT_CURRENCY,
-	limit: 8,
-});
+const props = withDefaults(
+	defineProps<{
+		title: string;
+		entries: CategoryBreakdown[];
+		currency?: string;
+		limit?: number;
+		/** How far each category moved from another month (`categoryChanges`), said under a row's bar in words. */
+		changes?: Map<string, number> | null;
+		/** The month `changes` are against, by name. */
+		comparedTo?: string | null;
+	}>(),
+	{ currency: DEFAULT_CURRENCY, limit: 8, changes: null, comparedTo: null },
+);
+
+/** A row's change in words, or null when it did not move or there is nothing to compare with. */
+function changeLine(categoryId: string): string | null {
+	const change = props.changes?.get(categoryId);
+	if (!change || !props.comparedTo) return null;
+	return t(change > 0 ? 'dashboard.moreThan' : 'dashboard.lessThan', {
+		amount: displayMoney(Math.abs(change), props.currency),
+		month: props.comparedTo,
+	});
+}
 
 const harmonised = useHarmonised();
 
@@ -49,6 +68,10 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 					/>
 					<div v-if="fraction(row.actual) < 1" class="h-full min-w-0 flex-1 rounded-full bg-secondary-container" />
 				</div>
+
+				<p v-if="changeLine(row.categoryId)" class="type-body-small tabular mt-0.5 text-right text-on-surface-variant">
+					{{ changeLine(row.categoryId) }}
+				</p>
 			</li>
 		</ul>
 	</section>

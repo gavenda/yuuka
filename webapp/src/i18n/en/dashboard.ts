@@ -24,6 +24,8 @@ export default {
 	nothingOverspent: 'Every budget within its limit.',
 	whereMoneyWent: 'Where the money went',
 	whereMoneyCameFrom: 'Where the money came from',
+	moreThan: '{amount} more than {month}',
+	lessThan: '{amount} less than {month}',
 	nothingRecorded: 'Nothing recorded this month.',
 	chart: {
 		title: 'Spending by day',

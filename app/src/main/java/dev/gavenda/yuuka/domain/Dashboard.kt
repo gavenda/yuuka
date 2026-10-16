@@ -4,6 +4,8 @@ import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.CategoryKind
 import java.time.YearMonth
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -62,3 +64,15 @@ fun accountGroups(accounts: List<Account>): List<Pair<String, List<Account>>> =
 
 /** Whether the accounts in use hold more than one currency — when net worth, which adds them as they stand, is not one currency's figure. */
 fun mixedCurrencies(accounts: List<Account>): Boolean = accounts.filter { !it.archived }.map { it.currency.uppercase() }.distinct().size > 1
+
+/**
+ * How far each category in [current] moved from [previous] (another month's breakdown), keyed by category: a
+ * positive change is more than before. A category the other month never had moved from nothing.
+ */
+fun categoryChanges(current: List<CategoryBreakdown>, previous: List<CategoryBreakdown>): Map<String, Long> {
+    val before = previous.associate { it.categoryId to it.actual }
+    return current.associate { it.categoryId to it.actual - (before[it.categoryId] ?: 0) }
+}
+
+/** `2026-09` -> `September`: the month alone, for a comparison whose year goes without saying. */
+fun monthName(month: String): String = YearMonth.parse(month).month.getDisplayName(TextStyle.FULL, Locale.getDefault())

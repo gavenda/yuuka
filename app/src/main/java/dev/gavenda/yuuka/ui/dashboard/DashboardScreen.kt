@@ -172,7 +172,13 @@ internal fun DashboardScreenContent(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         } else {
-                            CategoryBarList(entries, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
+                            CategoryBarList(
+                                entries,
+                                modifier = Modifier.padding(top = 12.dp),
+                                currency = state.currency,
+                                changes = state.previous?.let { categoryChanges(state.summary?.categories.orEmpty(), it.categories) },
+                                comparedTo = state.previous?.let { monthName(it.month) },
+                            )
                         }
                     }
                 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Summary
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
+import dev.gavenda.yuuka.domain.addMonths
 import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
@@ -17,6 +18,8 @@ data class DashboardUiState(
     val month: String = currentMonth(),
     val currency: String = DEFAULT_CURRENCY,
     val summary: Summary? = null,
+    /** The month before's summary, which "Where the money went" is compared with; null until it is known. */
+    val previous: Summary? = null,
     val status: ScreenStatus = ScreenStatus.Idle,
 )
 
@@ -33,12 +36,14 @@ class DashboardViewModel(
         month,
         ledgerRepository.settings,
         month.flatMapLatest { budgetRepository.observeSummary(it) },
+        month.flatMapLatest { budgetRepository.observeSummary(addMonths(it, -1)) },
         status,
-    ) { currentMonthValue, settings, summary, currentStatus ->
+    ) { currentMonthValue, settings, summary, previous, currentStatus ->
         DashboardUiState(
             month = currentMonthValue,
             currency = settings?.displayCurrency ?: DEFAULT_CURRENCY,
             summary = summary,
+            previous = previous,
             status = currentStatus,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
@@ -56,6 +61,8 @@ class DashboardViewModel(
 
     fun refresh() {
         val target = month.value
+        // Only a comparison: without it the bars stand alone, so a failure here is not the screen's error.
+        viewModelScope.launch { runCatching { budgetRepository.refreshSummary(addMonths(target, -1)) } }
         viewModelScope.launch {
             status.value = ScreenStatus.Loading
             try {

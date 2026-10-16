@@ -335,9 +335,18 @@ private class ChartMetrics(density: Density, private val count: Int, private val
 /**
  * A horizontal ranked bar per category, each carrying its own value label —
  * colour never carries the figure alone. Mirrors `CategoryBars.vue`.
+ *
+ * Given [changes] (by category, from `categoryChanges`) and the month they are against, a row that moved says
+ * by how much under its bar, in words rather than an arrow or a colour.
  */
 @Composable
-fun CategoryBarList(entries: List<RankableEntry>, modifier: Modifier = Modifier, currency: String = DEFAULT_CURRENCY) {
+fun CategoryBarList(
+    entries: List<RankableEntry>,
+    modifier: Modifier = Modifier,
+    currency: String = DEFAULT_CURRENCY,
+    changes: Map<String, Long>? = null,
+    comparedTo: String? = null,
+) {
     val visibility = koinInject<AmountVisibility>()
     val total = entries.sumOf { it.actual }
     val max = entries.maxOfOrNull { it.actual } ?: 0L
@@ -366,6 +375,19 @@ fun CategoryBarList(entries: List<RankableEntry>, modifier: Modifier = Modifier,
                     color = color,
                     drawStopIndicator = {},
                 )
+                val change = changes?.get(entry.categoryId)
+                if (change != null && change != 0L && comparedTo != null) {
+                    Text(
+                        stringResource(
+                            if (change > 0) R.string.dashboard_more_than else R.string.dashboard_less_than,
+                            visibility.displayMoney(kotlin.math.abs(change), currency),
+                            comparedTo,
+                        ),
+                        modifier = Modifier.padding(top = 2.dp).align(Alignment.End),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

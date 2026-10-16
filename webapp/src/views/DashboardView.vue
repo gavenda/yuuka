@@ -6,10 +6,19 @@ import OverBudgetCard from '@/components/OverBudgetCard.vue';
 import PlanCard from '@/components/PlanCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
-import { accountGroups, budgetPace, incomeProgress, mixedCurrencies, overBudget, savingsRate } from '@/lib/dashboard';
+import {
+	accountGroups,
+	budgetPace,
+	categoryChanges,
+	incomeProgress,
+	mixedCurrencies,
+	monthName,
+	overBudget,
+	savingsRate,
+} from '@/lib/dashboard';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { t } from '@/i18n';
 
 const budget = useBudgetStore();
@@ -70,6 +79,16 @@ const manySources = computed(() => budget.incomeBreakdown.filter((entry) => entr
 const groups = computed(() => accountGroups(budget.summary?.accounts ?? []));
 const mixed = computed(() => mixedCurrencies(budget.summary?.accounts ?? []));
 
+/** "Where the money went" against the month before, once that month is known. */
+const changes = computed(() => (budget.previous ? categoryChanges(budget.summary?.categories ?? [], budget.previous.categories) : null));
+const comparedTo = computed(() => (budget.previous ? monthName(budget.previous.month) : null));
+
+watch(
+	() => budget.month,
+	() => void budget.loadPrevious(),
+	{ immediate: true },
+);
+
 onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 </script>
 
@@ -95,7 +114,13 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 
 		<SpendChart :month="budget.month" :days="budget.summary?.dailySpend ?? []" :currency="currency" />
 
-		<CategoryBars :title="t('dashboard.whereMoneyWent')" :entries="budget.expenseBreakdown" :currency="currency" />
+		<CategoryBars
+			:title="t('dashboard.whereMoneyWent')"
+			:entries="budget.expenseBreakdown"
+			:currency="currency"
+			:changes="changes"
+			:compared-to="comparedTo"
+		/>
 
 		<CategoryBars v-if="manySources" :title="t('dashboard.whereMoneyCameFrom')" :entries="budget.incomeBreakdown" :currency="currency" />
 

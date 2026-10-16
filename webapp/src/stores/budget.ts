@@ -1,6 +1,6 @@
 import { api, isNetworkError } from '@/lib/api';
 import { dropSummaries, readSummary, writeSummary } from '@/lib/cache';
-import { currentMonth } from '@/lib/dates';
+import { addMonths, currentMonth } from '@/lib/dates';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import type { Summary } from '@/types';
@@ -45,6 +45,31 @@ export const useBudgetStore = defineStore('budget', () => {
 	const unspent = computed(() => expenseBreakdown.value.reduce((total, entry) => total + Math.max(0, entry.remaining), 0));
 
 	const overspent = computed(() => expenseBreakdown.value.reduce((total, entry) => total + Math.min(0, entry.remaining), 0));
+
+	/**
+	 * The month before's summary, which the dashboard compares "Where the money went" with. Only the dashboard
+	 * asks for it, through `loadPrevious`; it is null until it is known for the month on show.
+	 */
+	const previous = ref<Summary | null>(null);
+
+	/** Fills `previous` for the month on show, from the local copy and then the API. Without it the bars stand alone, so a failure is not reported. */
+	async function loadPrevious(): Promise<void> {
+		const requested = addMonths(month.value, -1);
+		const stillWanted = () => addMonths(month.value, -1) === requested;
+		if (previous.value?.month !== requested) previous.value = null;
+
+		const copy = await readSummary(requested);
+		if (copy && stillWanted() && !previous.value) previous.value = copy;
+
+		try {
+			const fresh = await api.summary(requested);
+			if (!stillWanted()) return;
+			previous.value = fresh;
+			void writeSummary(fresh, KEEP_MONTHS);
+		} catch {
+			// Only a comparison: whatever copy there was stays.
+		}
+	}
 
 	/** Bumped whenever the summary on screen is replaced, so a copy still being read cannot land on top of it. */
 	let revision = 0;
@@ -121,6 +146,7 @@ export const useBudgetStore = defineStore('budget', () => {
 	function reset(): void {
 		revision++;
 		summary.value = null;
+		previous.value = null;
 		freshFor = null;
 		month.value = currentMonth();
 	}
@@ -128,6 +154,7 @@ export const useBudgetStore = defineStore('budget', () => {
 	return {
 		month,
 		summary,
+		previous,
 		loading,
 		error,
 		expenseBreakdown,
@@ -139,6 +166,7 @@ export const useBudgetStore = defineStore('budget', () => {
 		unspent,
 		overspent,
 		load,
+		loadPrevious,
 		setMonth,
 		refresh,
 		setBudget,

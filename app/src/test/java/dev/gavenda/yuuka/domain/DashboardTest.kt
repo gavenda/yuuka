@@ -76,6 +76,15 @@ class DashboardTest {
         assertEquals(false, mixedCurrencies(listOf(account("a", currency = "PHP"), account("b", currency = "USD", archived = true))))
     }
 
+    @Test
+    fun categoryChangesAreHowFarEachCategoryMovedFromTheOtherMonth() {
+        val changes = categoryChanges(
+            listOf(entry("food", 0, 1200), entry("fun", 0, 300), entry("new", 0, 50)),
+            listOf(entry("food", 0, 1000), entry("fun", 0, 500), entry("gone", 0, 999)),
+        )
+        assertEquals(mapOf("food" to 200L, "fun" to -200L, "new" to 50L), changes)
+    }
+
     private fun account(id: String, type: String = "Checking", balance: Long = 0, currency: String = "PHP", archived: Boolean = false) =
         Account(id = id, name = id, typeId = type, typeName = type, currency = currency, startingBalance = 0, balance = balance, archived = archived)
 

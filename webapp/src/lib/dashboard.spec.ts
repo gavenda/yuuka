@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoryBreakdown } from '@/types';
 import { account } from '@/testing/fixtures';
-import { accountGroups, budgetPace, incomeProgress, mixedCurrencies, overBudget, paceHealth, savingsRate } from './dashboard';
+import {
+	accountGroups,
+	budgetPace,
+	categoryChanges,
+	incomeProgress,
+	mixedCurrencies,
+	overBudget,
+	paceHealth,
+	savingsRate,
+} from './dashboard';
 
 const entry = (categoryId: string, extra: Partial<CategoryBreakdown>): CategoryBreakdown => ({
 	categoryId,
@@ -106,5 +115,16 @@ describe('mixedCurrencies', () => {
 		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'php' })])).toBe(false);
 		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'USD' })])).toBe(true);
 		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'USD', archived: true })])).toBe(false);
+	});
+});
+
+describe('categoryChanges', () => {
+	it('is how far each category moved from the other month, from nothing for one it never had', () => {
+		const changes = categoryChanges(
+			[entry('food', { actual: 1200 }), entry('fun', { actual: 300 }), entry('new', { actual: 50 })],
+			[entry('food', { actual: 1000 }), entry('fun', { actual: 500 }), entry('gone', { actual: 999 })],
+		);
+
+		expect(Object.fromEntries(changes)).toEqual({ food: 200, fun: -200, new: 50 });
 	});
 });

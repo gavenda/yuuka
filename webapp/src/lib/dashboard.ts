@@ -76,3 +76,18 @@ export function accountGroups(accounts: Account[]): { type: string; accounts: Ac
 export function mixedCurrencies(accounts: Account[]): boolean {
 	return new Set(accounts.filter((account) => !account.archived).map((account) => account.currency.toUpperCase())).size > 1;
 }
+
+/**
+ * How far each category in `current` moved from `previous` (another month's breakdown), keyed by category: a
+ * positive change is more than before. A category the other month never had moved from nothing.
+ */
+export function categoryChanges(current: CategoryBreakdown[], previous: CategoryBreakdown[]): Map<string, number> {
+	const before = new Map(previous.map((entry) => [entry.categoryId, entry.actual]));
+	return new Map(current.map((entry) => [entry.categoryId, entry.actual - (before.get(entry.categoryId) ?? 0)]));
+}
+
+/** `2026-09` -> `September`: the month alone, for a comparison whose year goes without saying. */
+export function monthName(month: string): string {
+	const [year, monthIndex] = month.split('-').map(Number);
+	return new Intl.DateTimeFormat(undefined, { month: 'long' }).format(new Date(year, monthIndex - 1, 1));
+}

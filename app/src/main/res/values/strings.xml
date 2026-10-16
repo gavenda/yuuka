@@ -127,6 +127,8 @@
     <string name="dashboard_no_spending">Not a coin spent yet. Keep it up.</string>
     <string name="dashboard_where_money_went">Where the money went</string>
     <string name="dashboard_where_money_came_from">Where the money came from</string>
+    <string name="dashboard_more_than">%1$s more than %2$s</string>
+    <string name="dashboard_less_than">%1$s less than %2$s</string>
     <string name="dashboard_nothing_recorded_month">Nothing recorded this month.</string>
     <plurals name="subcategories_count">
         <item quantity="one">%d subcategory</item>
