@@ -534,7 +534,13 @@ filled set Android uses, extracted from Material's own SVGs rather than redrawn.
 full-screen dialog on a phone (close, the title, Save in the bar) and an ordinary dialog of the same
 content beside a rail, with Cancel and Save at the foot. It is a real `<form>`; bind `saveEnabled` to the
 form's validation, and pass `dirty` so that closing a form that no longer holds what it opened with asks
-before discarding. Every form goes through it. `AlertDialog` is Material's basic dialog, for a question
+before discarding. Every form goes through it. Where the page is 796px wide (a 360px list beside a 436px slot)
+it teleports into the shell's `#form-pane` instead, as Android's supporting pane, and is not a modal: it
+registers itself in `lib/formPane.ts` (which widens the pane), takes the focus and gives it back, and answers
+Escape only when no dialog stands over it. `paneRoom` is measured on the page by `App.vue`, not the
+viewport. A view opens its forms through `whenDiscardable`, which asks before replacing a form with changes; it
+marks the row being edited with `aria-current` (painted `secondary-container`), and closes the form when that
+row goes. `beside` false keeps a dialog a dialog (the display currency). `AlertDialog` is Material's basic dialog, for a question
 that wants an answer (there is no `confirm()` anywhere), the month picker and adjusting a balance. It is an
 `alertdialog` unless given `role="dialog"`, which anything that is not a question passes. `SelectionDialog`
 is that with a `.selection-list` in it and one button at the foot, for what is picked from a short list: the
@@ -635,7 +641,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-660 tests: 395 against the API in `test/`, 265 over the browser helpers as
+666 tests: 395 against the API in `test/`, 271 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

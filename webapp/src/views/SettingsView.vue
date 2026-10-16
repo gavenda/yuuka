@@ -275,6 +275,7 @@ onMounted(() => ledger.load());
 			:title="t('settings.displayCurrency')"
 			:save-enabled="pickedCurrency !== ledger.displayCurrency"
 			:dirty="pickedCurrency !== ledger.displayCurrency"
+			:beside="false"
 			@close="currencyDialogOpen = false"
 			@save="saveCurrency"
 		>

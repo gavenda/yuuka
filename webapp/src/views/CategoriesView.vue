@@ -9,6 +9,7 @@ import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
+import { whenDiscardable } from '@/lib/formPane';
 import { api, ApiError } from '@/lib/api';
 import { useHarmonised } from '@/lib/harmonise';
 import { ADD, EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
@@ -18,7 +19,7 @@ import { colorProblem, nameProblem, useFormValidation } from '@/lib/validation';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Category, CategoryKind } from '@/types';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
@@ -112,14 +113,26 @@ function open(values: typeof form): void {
 }
 
 function openCreate(kind: CategoryKind = 'expense', parentId = ''): void {
-	editing.value = null;
-	open({ name: '', kind, color: colourFor(kind), parentId });
+	whenDiscardable(() => {
+		editing.value = null;
+		open({ name: '', kind, color: colourFor(kind), parentId });
+	});
 }
 
 function openEdit(category: Category): void {
-	editing.value = category;
-	open({ name: category.name, kind: category.kind, color: category.color, parentId: category.parentId ?? '' });
+	whenDiscardable(() => {
+		editing.value = category;
+		open({ name: category.name, kind: category.kind, color: category.color, parentId: category.parentId ?? '' });
+	});
 }
+
+// A form standing beside the list closes with the row it was editing, wherever that was deleted.
+watch(
+	() => ledger.categories,
+	(rows) => {
+		if (dialogOpen.value && editing.value && !rows.some((row) => row.id === editing.value?.id)) dialogOpen.value = false;
+	},
+);
 
 /** A new top-level category can still change section; the next free colour follows it there. */
 function selectKind(kind: CategoryKind): void {
@@ -214,6 +227,7 @@ onMounted(() => ledger.load());
 								type="button"
 								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
 								:aria-expanded="family.children.length ? expanded.has(family.parent.id) : undefined"
+								:aria-current="dialogOpen && editing?.id === family.parent.id ? 'true' : undefined"
 								@click="press(family.parent, family.children.length)"
 							>
 								<span
@@ -271,6 +285,7 @@ onMounted(() => ledger.load());
 							<button
 								type="button"
 								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-primary-container pr-4 pl-4 text-on-primary-container"
+								:aria-current="dialogOpen && editing?.id === child.id ? 'true' : undefined"
 								@click="openEdit(child)"
 							>
 								<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-container" aria-hidden="true">

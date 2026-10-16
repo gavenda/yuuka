@@ -159,6 +159,12 @@ watch(
 	{ immediate: true },
 );
 
+// Beside a supporting pane the list stays usable, so another row can be opened while the form is: it starts
+// over on that one.
+watch([() => props.transaction, () => props.transferToAccountId], () => {
+	if (props.open) seed();
+});
+
 // Switching mode invalidates a category belonging to another set.
 watch(
 	() => form.mode,

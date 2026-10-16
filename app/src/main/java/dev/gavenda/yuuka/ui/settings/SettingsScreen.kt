@@ -280,6 +280,8 @@ internal fun SettingsScreenContent(
                 closeCurrencySheet()
             },
             saveEnabled = pickedCurrency != currencyDraft,
+            // Settings may already have Account types beside it, so this stays a dialog wherever it opens.
+            beside = false,
             dirty = pickedCurrency != currencyDraft,
             scrollable = false,
         ) {

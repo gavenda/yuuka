@@ -26,6 +26,7 @@ import dev.gavenda.yuuka.domain.isCurrencyCode
 import dev.gavenda.yuuka.domain.isHttpUrl
 import dev.gavenda.yuuka.domain.parseMoney
 import dev.gavenda.yuuka.domain.toDecimalString
+import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,6 +65,10 @@ internal fun AccountsScreenContent(
     var creating by remember { mutableStateOf(false) }
     var adjusting by remember { mutableStateOf<Account?>(null) }
     var pendingDelete by remember { mutableStateOf<Account?>(null) }
+    // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
+    val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the row it was editing, wherever that was deleted.
+    LaunchedEffect(state.accounts) { if (editing?.let { open -> state.accounts.none { it.id == open.id } } == true) editing = null }
     var deleteError by remember { mutableStateOf<String?>(null) }
 
     val accountRestoredMessage = stringResource(R.string.account_restored)
@@ -97,7 +102,7 @@ internal fun AccountsScreenContent(
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(state.matches, key = { it.id }) { account ->
                             ListItem(
-                                onClick = { editing = account },
+                                onClick = { switchForm { creating = false; editing = account } },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                 content = { Text(if (account.archived) stringResource(R.string.name_archived, account.name) else account.name) },
@@ -113,7 +118,7 @@ internal fun AccountsScreenContent(
             ScreenFab(
                 label = stringResource(R.string.new_account),
                 icon = R.drawable.add_48px,
-                onClick = { creating = true },
+                onClick = { switchForm { editing = null; creating = true } },
             )
         },
     ) { padding ->
@@ -148,7 +153,9 @@ internal fun AccountsScreenContent(
                             account = account,
                             position = positionInGroup(index, group.accounts.lastIndex),
                             archiving = busy.isBusy(archiveKey),
-                            onEdit = { editing = account },
+                            // The account whose form stands beside the list.
+                            selected = account.id == editing?.id,
+                            onEdit = { switchForm { creating = false; editing = account } },
                             onAdjust = { adjusting = account },
                             onToggleArchive = {
                                 busy.run(
@@ -178,7 +185,7 @@ internal fun AccountsScreenContent(
         }
     }
 
-    if (creating || editing != null) {
+    if (creating || editing != null) key(editing?.id) {
         val formKey = "account-form"
         val submitting = busy.isBusy(formKey)
         AccountFormContent(
@@ -250,6 +257,7 @@ private fun AccountCard(
     account: Account,
     position: ItemPosition,
     archiving: Boolean,
+    selected: Boolean,
     onEdit: () -> Unit,
     onAdjust: () -> Unit,
     onToggleArchive: () -> Unit,
@@ -271,7 +279,7 @@ private fun AccountCard(
         // One of a type's rows rather than a card of its own: square where it meets its neighbours,
         // round on the group's outer edges, the same block the settings groups are drawn as. The surface
         // takes the tap and the shape; what is in it is a plain row of a column and the logo.
-        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit, selected = selected) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

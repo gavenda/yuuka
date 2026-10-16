@@ -21,11 +21,12 @@ import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { useEditDialog } from '@/lib/editDialog';
+import { whenDiscardable } from '@/lib/formPane';
 import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
@@ -149,26 +150,38 @@ const groups = computed<AccountGroup[]>(() => {
 });
 
 function openCreate(): void {
-	show(null, {
-		name: '',
-		typeId: ledger.activeAccountTypes[0]?.id ?? '',
-		currency: ledger.accounts[0]?.currency ?? ledger.displayCurrency,
-		startingBalance: '0.00',
-		logoUrl: '',
-		logoInvertDark: false,
+	whenDiscardable(() => {
+		show(null, {
+			name: '',
+			typeId: ledger.activeAccountTypes[0]?.id ?? '',
+			currency: ledger.accounts[0]?.currency ?? ledger.displayCurrency,
+			startingBalance: '0.00',
+			logoUrl: '',
+			logoInvertDark: false,
+		});
 	});
 }
 
 function openEdit(account: Account): void {
-	show(account, {
-		name: account.name,
-		typeId: account.typeId,
-		currency: account.currency,
-		startingBalance: toDecimalString(account.startingBalance),
-		logoUrl: account.logoUrl ?? '',
-		logoInvertDark: account.logoInvertDark,
+	whenDiscardable(() => {
+		show(account, {
+			name: account.name,
+			typeId: account.typeId,
+			currency: account.currency,
+			startingBalance: toDecimalString(account.startingBalance),
+			logoUrl: account.logoUrl ?? '',
+			logoInvertDark: account.logoInvertDark,
+		});
 	});
 }
+
+// A form standing beside the list closes with the row it was editing, wherever that was deleted.
+watch(
+	() => ledger.accounts,
+	(rows) => {
+		if (dialogOpen.value && editing.value && !rows.some((row) => row.id === editing.value?.id)) dialogOpen.value = false;
+	},
+);
 
 async function save(): Promise<void> {
 	error.value = null;
@@ -299,7 +312,12 @@ onMounted(() => ledger.load());
 						</template>
 
 						<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
-						<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(account)">
+						<button
+							type="button"
+							class="group-row state-layer focus-ring cursor-pointer"
+							:aria-current="dialogOpen && editing?.id === account.id ? 'true' : undefined"
+							@click="openEdit(account)"
+						>
 							<span class="flex items-center gap-4 px-4 py-3">
 								<span class="flex min-w-0 flex-1 flex-col gap-1">
 									<span class="type-title-medium truncate">{{

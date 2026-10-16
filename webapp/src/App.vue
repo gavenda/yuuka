@@ -8,7 +8,8 @@ import SnackbarHost from '@/components/SnackbarHost.vue';
 import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { clearCache } from '@/lib/cache';
 import AppIcon from '@/components/AppIcon.vue';
-import { ARROW_BACK, ATTACH_MONEY, CALENDAR_MONTH, MONEY_OFF } from '@/lib/icons';
+import { ARROW_BACK, ATTACH_MONEY, CALENDAR_MONTH, DELETE, MONEY_OFF } from '@/lib/icons';
+import { FORM_PANE_MIN_PAGE, paneOpen, paneRoom, pendingSwitch } from '@/lib/formPane';
 import { formatMonth } from '@/lib/dates';
 import { dailyLinks, moreLinks } from '@/lib/nav';
 import { currentMonthAction } from '@/lib/monthAction';
@@ -81,6 +82,30 @@ watch(
 
 /** The page makes room for the rail (`.shell` in style.css): a slim one always, an open one only where it fits beside the page. */
 const { expanded: railExpanded } = useRail();
+
+// Whether the page beside the rail has room for a form's supporting pane with the screen still usable beside
+// it. The page, not the window: an open rail beside it takes its share.
+const page = ref<HTMLElement | null>(null);
+let pageObserver: ResizeObserver | null = null;
+watch(page, (element) => {
+	pageObserver?.disconnect();
+	pageObserver = null;
+	if (!element || typeof ResizeObserver === 'undefined') {
+		paneRoom.value = false;
+		return;
+	}
+	pageObserver = new ResizeObserver(([entry]) => {
+		paneRoom.value = entry.contentRect.width >= FORM_PANE_MIN_PAGE && window.matchMedia('(min-width: 40rem)').matches;
+	});
+	pageObserver.observe(element);
+});
+onBeforeUnmount(() => pageObserver?.disconnect());
+
+function switchForms(): void {
+	const action = pendingSwitch.value;
+	pendingSwitch.value = null;
+	action?.();
+}
 const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
@@ -362,57 +387,66 @@ onBeforeUnmount(() => {
 			</div>
 		</div>
 
-		<main v-else :class="showShell ? 'max-sm:pb-20' : ''">
-			<!-- What stays put while the page scrolls beneath it, as a screen's top bar does on Android: a
+		<main v-else ref="page" class="flex" :class="showShell ? 'max-sm:pb-20' : ''">
+			<div class="min-w-0 flex-1">
+				<!-- What stays put while the page scrolls beneath it, as a screen's top bar does on Android: a
 			     screen teleports its own bar here (`TopBar`), and what has not reached the server yet is said
 			     beneath it, whichever screen is showing. -->
-			<div v-if="showShell" class="sticky top-16 z-20 bg-background sm:top-0">
-				<div id="top-bar" />
+				<div v-if="showShell" class="sticky top-16 z-20 bg-background sm:top-0">
+					<div id="top-bar" />
 
-				<!-- Changes are saved here first and sent after, so being offline is no longer a reason a
+					<!-- Changes are saved here first and sent after, so being offline is no longer a reason a
 				     save can fail — but it is still worth saying that what is on screen has not reached the
 				     server yet, and how much of it. The count is the queue's, not a guess. Worth noticing,
 				     but neither a failure nor an action: tertiary, not error or primary. -->
-				<div class="slide-down" :data-open="bannerOpen" :inert="!bannerOpen">
-					<div>
-						<p
-							role="status"
-							class="type-label-large flex flex-col items-center gap-1 bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
-						>
-							<!-- The cat print's mark, small, over the line. -->
-							<AppIcon :icon="CAT" :size="16" />
-							<span>
-								<template v-if="banner.sent">{{ t('common.unsent.sent') }}</template>
-								<template v-else-if="banner.unsent">
-									<template v-if="banner.syncing">{{ t('common.unsent.syncing', banner.count) }}</template>
-									<template v-else>
-										{{ t('common.unsent.waiting', banner.count) }}
-										<button v-if="banner.online" type="button" class="ml-1 underline underline-offset-2" @click="flush()">
-											{{ t('common.tryNow') }}
-										</button>
+					<div class="slide-down" :data-open="bannerOpen" :inert="!bannerOpen">
+						<div>
+							<p
+								role="status"
+								class="type-label-large flex flex-col items-center gap-1 bg-tertiary-container px-4 py-2 text-center text-on-tertiary-container"
+							>
+								<!-- The cat print's mark, small, over the line. -->
+								<AppIcon :icon="CAT" :size="16" />
+								<span>
+									<template v-if="banner.sent">{{ t('common.unsent.sent') }}</template>
+									<template v-else-if="banner.unsent">
+										<template v-if="banner.syncing">{{ t('common.unsent.syncing', banner.count) }}</template>
+										<template v-else>
+											{{ t('common.unsent.waiting', banner.count) }}
+											<button v-if="banner.online" type="button" class="ml-1 underline underline-offset-2" @click="flush()">
+												{{ t('common.tryNow') }}
+											</button>
+										</template>
 									</template>
-								</template>
-								<template v-else>{{ t('common.unsent.offline') }}</template>
-							</span>
-						</p>
+									<template v-else>{{ t('common.unsent.offline') }}</template>
+								</span>
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- A screen opened from a list (`meta.parent`'s view, given as the route's `list` view) stands beside
+			     it once the page has room for both — a 360px list, a detail at least as wide, and 24px between —
+			     as Android's `ListDetailSceneStrategy` does. Narrower, the list is put away and the detail has it all. -->
+				<div class="@container">
+					<div :class="{ '@min-[744px]:grid @min-[744px]:grid-cols-[360px_minmax(0,1fr)] @min-[744px]:gap-6': hasListPane }">
+						<RouterView v-slot="{ Component }" name="list">
+							<div v-if="Component" class="hidden @min-[744px]:block"><component :is="Component" /></div>
+						</RouterView>
+						<RouterView v-slot="{ Component }">
+							<Transition name="fade-through" mode="out-in">
+								<component :is="Component" />
+							</Transition>
+						</RouterView>
 					</div>
 				</div>
 			</div>
 
-			<!-- A screen opened from a list (`meta.parent`'s view, given as the route's `list` view) stands beside
-			     it once the page has room for both — a 360px list, a detail at least as wide, and 24px between —
-			     as Android's `ListDetailSceneStrategy` does. Narrower, the list is put away and the detail has it all. -->
-			<div class="@container">
-				<div :class="{ '@min-[744px]:grid @min-[744px]:grid-cols-[360px_minmax(0,1fr)] @min-[744px]:gap-6': hasListPane }">
-					<RouterView v-slot="{ Component }" name="list">
-						<div v-if="Component" class="hidden @min-[744px]:block"><component :is="Component" /></div>
-					</RouterView>
-					<RouterView v-slot="{ Component }">
-						<Transition name="fade-through" mode="out-in">
-							<component :is="Component" />
-						</Transition>
-					</RouterView>
-				</div>
+			<!-- A form opened where the page has room stands here, at the page's end, as Material's supporting
+			     pane (`FormDialog`, `lib/formPane.ts`) rather than covering the screen that opened it. The page
+			     gives up its width as the pane comes in and takes it back as the pane goes. -->
+			<div v-if="showShell" class="form-pane" :data-open="paneOpen">
+				<div id="form-pane" class="form-pane-inner" />
 			</div>
 		</main>
 
@@ -431,6 +465,15 @@ onBeforeUnmount(() => {
 				:icon-selected="link.iconSelected"
 			/>
 		</nav>
+
+		<!-- Opening another form while the one in the pane holds changes asks first, as closing it would. -->
+		<AlertDialog :open="pendingSwitch !== null" :title="t('form.discardTitle')" :icon="DELETE" @close="pendingSwitch = null">
+			{{ t('form.discardBody') }}
+			<template #actions>
+				<button type="button" class="btn-text" @click="pendingSwitch = null">{{ t('common.noKeepEditing') }}</button>
+				<button type="button" class="btn-danger" @click="switchForms">{{ t('common.yesDiscard') }}</button>
+			</template>
+		</AlertDialog>
 
 		<!-- Only a sign-out that loses work is a destructive one, so only that takes the error colour. -->
 		<AlertDialog :open="confirmingSignOut" :title="t('nav.signOutTitle')" :danger="hasUnsentChanges" @close="confirmingSignOut = false">

@@ -21,6 +21,7 @@ import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.PayeeKind
 import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.domain.*
+import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -53,6 +54,10 @@ internal fun SubscriptionsScreenContent(
     var creating by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Subscription?>(null) }
     var pendingDelete by remember { mutableStateOf<Subscription?>(null) }
+    // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
+    val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the row it was editing, wherever that was deleted.
+    LaunchedEffect(state.subscriptions) { if (editing?.let { open -> state.subscriptions.none { it.id == open.id } } == true) editing = null }
 
     val activeAccounts = remember(state.accounts) { state.accounts.filter { !it.archived } }
     val accountsById = remember(state.accounts) { state.accounts.associateBy { it.id } }
@@ -76,7 +81,7 @@ internal fun SubscriptionsScreenContent(
                 ScreenFab(
                     label = stringResource(R.string.new_subscription),
                     icon = R.drawable.add_48px,
-                    onClick = { creating = true },
+                    onClick = { switchForm { editing = null; creating = true } },
                 )
             }
         },
@@ -131,7 +136,9 @@ internal fun SubscriptionsScreenContent(
                     position = positionInGroup(index, state.subscriptions.lastIndex),
                     currency = accountsById[subscription.accountId]?.currency ?: DEFAULT_CURRENCY,
                     toggling = busy.isBusy(toggleKey),
-                    onEdit = { editing = subscription },
+                    // The subscription whose form stands beside the list.
+                    selected = subscription.id == editing?.id,
+                    onEdit = { switchForm { creating = false; editing = subscription } },
                     onToggle = {
                         busy.run(toggleKey, snackbarHostState, successMessage = if (subscription.enabled) pausedMessage else resumedMessage) {
                             onSetEnabled(subscription.id, !subscription.enabled)
@@ -143,7 +150,7 @@ internal fun SubscriptionsScreenContent(
         }
     }
 
-    if (creating || editing != null) {
+    if (creating || editing != null) key(editing?.id) {
         val formKey = "subscription-form"
         val submitting = busy.isBusy(formKey)
         val target = editing
@@ -192,6 +199,7 @@ private fun SubscriptionRow(
     position: ItemPosition,
     currency: String,
     toggling: Boolean,
+    selected: Boolean,
     onEdit: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
@@ -214,7 +222,7 @@ private fun SubscriptionRow(
     ) {
         // One of the list's rows, drawn by hand: the surface takes the tap and the group's shape, and the
         // headline with what is under it and the amount at the end are a plain row.
-        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onEdit, selected = selected) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

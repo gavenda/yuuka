@@ -2,6 +2,11 @@ package dev.gavenda.yuuka.ui.common
 
 import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -75,6 +80,11 @@ import dev.gavenda.yuuka.R
  * The content is laid out as a form's column, scrolling under the bar; pass [scrollable] false for content
  * that scrolls itself, such as a lazy list.
  *
+ * Where the page beside a rail has room for it (see [FullScreenDialogHostState.paneRoom]) it is neither: it is
+ * Material's supporting pane, standing at the page's end with the screen that opened it still usable beside it,
+ * and with the full-screen dialog's bar, since it is as tall as the page. [beside] false keeps a dialog a dialog
+ * even then — the display currency, which Settings opens while it may already have Account types beside it.
+ *
  * On a phone it slides up over the screen and back down off it. A screen shows a form by composing this and
  * closes it by no longer doing so, which leaves nothing here to play the way out — so the dialog is drawn by
  * [FullScreenDialogHost] at the root of the app, which keeps it for as long as the slide down takes. This
@@ -89,9 +99,10 @@ fun FullScreenDialog(
     submitting: Boolean = false,
     dirty: Boolean = false,
     scrollable: Boolean = true,
+    beside: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val spec = FullScreenDialogSpec(title, onDismiss, onSave, saveEnabled, submitting, dirty, scrollable, content)
+    val spec = FullScreenDialogSpec(title, onDismiss, onSave, saveEnabled, submitting, dirty, scrollable, beside, content)
     val host = LocalFullScreenDialogHost.current
     if (host == null) {
         // No host above (a preview): drawn here, and gone the moment it is no longer composed.
@@ -117,6 +128,7 @@ internal class FullScreenDialogSpec(
     val submitting: Boolean,
     val dirty: Boolean,
     val scrollable: Boolean,
+    val beside: Boolean,
     val content: @Composable ColumnScope.() -> Unit,
 )
 
@@ -125,11 +137,51 @@ class FullScreenDialogEntry internal constructor(spec: FullScreenDialogSpec, loc
     internal var spec by mutableStateOf(spec)
     internal var locals by mutableStateOf(locals)
     internal var leaving by mutableStateOf(false)
+
+    /** Standing in the supporting pane, closing it has asked whether to discard its changes. */
+    internal var confirmingDiscard by mutableStateOf(false)
+
+    /** Close as the pane's close button would: asking first if it holds changes, and not while it is saving. */
+    internal fun requestClose() {
+        if (spec.submitting || leaving) return
+        if (spec.dirty) confirmingDiscard = true else spec.onDismiss()
+    }
 }
 
-/** The dialogs that are open, or still on their way out. */
+/** The dialogs that are open, or still on their way out, and whether the page has room to stand one beside it. */
 class FullScreenDialogHostState {
     internal val entries = mutableStateListOf<FullScreenDialogEntry>()
+
+    /** Set by the shell: the page is wide enough to keep its screen usable beside a supporting pane. */
+    var paneRoom by mutableStateOf(false)
+
+    /** Another form asked for while the one in the pane holds changes, waiting on the answer to discarding them. */
+    internal var pendingSwitch by mutableStateOf<(() -> Unit)?>(null)
+
+    internal fun inPane(entry: FullScreenDialogEntry) = paneRoom && entry.spec.beside
+
+    /** Whether a form is standing in the supporting pane (not counting one on its way out). */
+    val paneOpen: Boolean get() = entries.any { !it.leaving && inPane(it) }
+
+    /**
+     * Runs [action] — opening another form — straight away, unless the form in the pane holds changes: the
+     * screen beside a pane can still be pressed, so opening a row there would otherwise throw them away. Then
+     * it asks first, as closing the form would, and runs [action] on "Yes, discard them".
+     */
+    fun whenDiscardable(action: () -> Unit) {
+        val open = entries.lastOrNull { !it.leaving && inPane(it) }
+        if (open != null && open.spec.dirty) pendingSwitch = action else action()
+    }
+}
+
+/**
+ * What a screen opens a form through: it runs at once, unless the form standing in the supporting pane holds
+ * changes, which are asked about first ([FullScreenDialogHostState.whenDiscardable]).
+ */
+@Composable
+fun rememberFormSwitch(): (() -> Unit) -> Unit {
+    val host = LocalFullScreenDialogHost.current
+    return remember(host) { { action -> host?.whenDiscardable(action) ?: action() } }
 }
 
 val LocalFullScreenDialogHost = staticCompositionLocalOf<FullScreenDialogHostState?> { null }
@@ -137,7 +189,8 @@ val LocalFullScreenDialogHost = staticCompositionLocalOf<FullScreenDialogHostSta
 /** Draws every [FullScreenDialog] the screens below have asked for; one sits at the root of the app. */
 @Composable
 fun FullScreenDialogHost(state: FullScreenDialogHostState) {
-    state.entries.forEach { entry ->
+    // One the page has room to stand beside it is drawn by [FullScreenDialogPane] instead.
+    state.entries.filterNot { state.inPane(it) }.forEach { entry ->
         key(entry) {
             // The dialog is composed here, not where it was asked for, so it is handed that place's locals.
             CompositionLocalProvider(entry.locals) {
@@ -291,21 +344,122 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
     }
 
     if (confirmingDiscard && !leaving) {
-        AlertDialog(
-            onDismissRequest = { confirmingDiscard = false },
-            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
-            iconContentColor = MaterialTheme.colorScheme.error,
-            title = { Text(stringResource(R.string.discard_changes_title)) },
-            text = { Text(stringResource(R.string.discard_changes_body)) },
-            confirmButton = {
-                Button(
-                    onClick = { confirmingDiscard = false; onDismiss() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
-                ) { Text(stringResource(R.string.action_discard)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmingDiscard = false }) { Text(stringResource(R.string.action_keep_editing)) }
-            },
+        DiscardChangesDialog(onDiscard = { confirmingDiscard = false; onDismiss() }, onKeepEditing = { confirmingDiscard = false })
+    }
+}
+
+/**
+ * The supporting pane a form stands in where the page has room for one: the page's end, beside the screen that
+ * opened it. The shell sizes it and decides when it shows ([FullScreenDialogHostState.paneOpen]); this draws
+ * the form in it, with a full-screen dialog's bar since it is as tall as the page. Opening another form fades
+ * the one before it out rather than sliding the pane away and back.
+ */
+@Composable
+fun FullScreenDialogPane(state: FullScreenDialogHostState, modifier: Modifier = Modifier) {
+    // Back closes the form standing in the pane before it leaves the screen beside it. The newest handler
+    // takes back, and the nav display registers its own afresh as it moves, so this one is composed only
+    // while a form stands here — registered as it opens, it is the newest.
+    val open = state.entries.lastOrNull { !it.leaving && state.inPane(it) }
+    if (open != null) key(open) { BackHandler { open.requestClose() } }
+    Box(modifier) {
+        state.entries.filter { state.inPane(it) }.forEach { entry ->
+            key(entry) {
+                CompositionLocalProvider(entry.locals) {
+                    FormPane(entry = entry, onGone = { state.entries -= entry })
+                }
+            }
+        }
+    }
+    state.pendingSwitch?.let { action ->
+        DiscardChangesDialog(
+            onDiscard = { state.pendingSwitch = null; action() },
+            onKeepEditing = { state.pendingSwitch = null },
         )
     }
+}
+
+@Composable
+private fun FormPane(entry: FullScreenDialogEntry, onGone: () -> Unit) {
+    val spec = entry.spec
+    val leaving = entry.leaving
+    val onSave = spec.onSave
+    val submitting = spec.submitting
+    val close = entry::requestClose
+
+    val visible = remember { MutableTransitionState(false) }
+    visible.targetState = !leaving
+    if (leaving) {
+        val focusManager = LocalFocusManager.current
+        LaunchedEffect(Unit) { focusManager.clearFocus() }
+        if (visible.isIdle && !visible.currentState) LaunchedEffect(Unit) { onGone() }
+    }
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column {
+                TopAppBar(
+                    title = { Text(spec.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        IconButton(onClick = close, enabled = !submitting) {
+                            Icon(painterResource(R.drawable.close_48px), contentDescription = stringResource(R.string.action_close))
+                        }
+                    },
+                    actions = {
+                        if (onSave != null) {
+                            // Off the pane's rounded edge, which a phone's bar has no need to keep from.
+                            Button(onClick = onSave, enabled = spec.saveEnabled && !submitting, modifier = Modifier.padding(end = 8.dp)) {
+                                if (submitting) MutationLoadingIndicator() else Text(stringResource(R.string.action_save))
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .imePadding()
+                        .then(if (spec.scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    content = spec.content,
+                )
+            }
+        }
+    }
+
+    if (entry.confirmingDiscard && !leaving) {
+        DiscardChangesDialog(
+            onDiscard = { entry.confirmingDiscard = false; spec.onDismiss() },
+            onKeepEditing = { entry.confirmingDiscard = false },
+        )
+    }
+}
+
+/** "Discard your changes?", asked before a form holding changes is closed or replaced by another. */
+@Composable
+private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onKeepEditing,
+        icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
+        iconContentColor = MaterialTheme.colorScheme.error,
+        title = { Text(stringResource(R.string.discard_changes_title)) },
+        text = { Text(stringResource(R.string.discard_changes_body)) },
+        confirmButton = {
+            Button(
+                onClick = onDiscard,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
+            ) { Text(stringResource(R.string.action_discard)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepEditing) { Text(stringResource(R.string.action_keep_editing)) }
+        },
+    )
 }

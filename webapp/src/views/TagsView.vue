@@ -7,6 +7,7 @@ import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
+import { whenDiscardable } from '@/lib/formPane';
 import { api, ApiError } from '@/lib/api';
 import { formatCount } from '@/lib/count';
 import { useHarmonised } from '@/lib/harmonise';
@@ -16,7 +17,7 @@ import { useEditDialog } from '@/lib/editDialog';
 import { colorProblem, nameProblem, sameName, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Tag } from '@/types';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
@@ -44,12 +45,24 @@ const visible = computed(() => {
 });
 
 function openCreate(): void {
-	show(null, { name: '', color: nextColor(ledger.tags.length) });
+	whenDiscardable(() => {
+		show(null, { name: '', color: nextColor(ledger.tags.length) });
+	});
 }
 
 function openEdit(tag: Tag): void {
-	show(tag, { name: tag.name, color: tag.color });
+	whenDiscardable(() => {
+		show(tag, { name: tag.name, color: tag.color });
+	});
 }
+
+// A form standing beside the list closes with the row it was editing, wherever that was deleted.
+watch(
+	() => ledger.tags,
+	(rows) => {
+		if (dialogOpen.value && editing.value && !rows.some((row) => row.id === editing.value?.id)) dialogOpen.value = false;
+	},
+);
 
 async function save(): Promise<void> {
 	error.value = null;
@@ -120,7 +133,12 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 							<ActionIcon icon="delete" :label="t('common.delete', { name: tag.name })" danger @click="remove(tag)" />
 						</template>
 
-						<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(tag)">
+						<button
+							type="button"
+							class="group-row state-layer focus-ring cursor-pointer"
+							:aria-current="dialogOpen && editing?.id === tag.id ? 'true' : undefined"
+							@click="openEdit(tag)"
+						>
 							<span class="flex min-h-14 items-center gap-3 px-4">
 								<span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
 								<span class="type-body-medium min-w-0 flex-1 truncate">{{ tag.name }}</span>

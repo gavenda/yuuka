@@ -13,6 +13,7 @@ import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
 import SpeechBubble from '@/components/SpeechBubble.vue';
 import YuukaPortrait from '@/components/YuukaPortrait.vue';
+import { whenDiscardable } from '@/lib/formPane';
 import { api } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
@@ -153,16 +154,20 @@ watch([endInReach, () => store.hasMore, () => store.loading, () => store.loading
 });
 
 function openCreate(): void {
-	editing.value = null;
-	editingTransferToAccountId.value = null;
-	dialogOpen.value = true;
+	whenDiscardable(() => {
+		editing.value = null;
+		editingTransferToAccountId.value = null;
+		dialogOpen.value = true;
+	});
 }
 
 /** A transfer edit seeds the form with the outflow leg plus the inflow's account, so both sides stay linked. */
 function openEdit(transaction: Transaction, transferToAccountId: string | null = null): void {
-	editing.value = transaction;
-	editingTransferToAccountId.value = transferToAccountId;
-	dialogOpen.value = true;
+	whenDiscardable(() => {
+		editing.value = transaction;
+		editingTransferToAccountId.value = transferToAccountId;
+		dialogOpen.value = true;
+	});
 }
 
 async function remove(): Promise<void> {
@@ -170,6 +175,11 @@ async function remove(): Promise<void> {
 	if (!target) return;
 
 	pendingDelete.value = null;
+	// A form standing beside the list closes with what it was editing — either side of a transfer.
+	const open = editing.value;
+	if (dialogOpen.value && open && (open.id === target.id || (target.transferId && open.transferId === target.transferId))) {
+		dialogOpen.value = false;
+	}
 	await api.deleteTransaction(target.id);
 	showSnackbar(target.transferId ? t('transactions.transferDeleted') : t('transactions.transactionDeleted'));
 	await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
@@ -294,6 +304,9 @@ async function remove(): Promise<void> {
 							<button
 								type="button"
 								class="group-row state-layer focus-ring cursor-pointer"
+								:aria-current="
+									dialogOpen && editing?.id === (row.kind === 'transfer' ? row.leg.id : row.transaction.id) ? 'true' : undefined
+								"
 								@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
 							>
 								<!-- The headline and what is under it at the start, its figures at the end, top-aligned with each other. -->

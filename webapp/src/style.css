@@ -1098,3 +1098,46 @@
 		padding-left: var(--rail-open);
 	}
 }
+
+/*
+ * A form's supporting pane (`FormDialog`, `lib/formPane.ts`): at the page's end, held while the page scrolls,
+ * and as wide as Material's supporting pane plus its gap and margin only while a form stands in it. Laid out
+ * at that width throughout and clipped, so only how much of it shows moves, as Android's does.
+ */
+.form-pane {
+	position: sticky;
+	top: 0;
+	flex: none;
+	width: 0;
+	height: 100dvh;
+	overflow: hidden;
+	transition: width 400ms var(--ease-emphasized-decelerate);
+}
+
+.form-pane[data-open='true'] {
+	width: 436px;
+}
+
+.form-pane-inner {
+	position: relative;
+	width: 412px;
+	height: calc(100% - 32px);
+	margin: 16px 16px 16px 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.form-pane {
+		transition: none;
+	}
+}
+
+/*
+ * The row whose form stands in the supporting pane beside its list, painted as Material marks a list's selected
+ * item. Outside the layers, so it holds over a row's own container colour (a subcategory's primary container).
+ */
+.group-row[aria-current='true'],
+.group-row:has([aria-current='true']) {
+	--surface-under: var(--color-secondary-container);
+	background-color: var(--color-secondary-container);
+	color: var(--color-on-secondary-container);
+}

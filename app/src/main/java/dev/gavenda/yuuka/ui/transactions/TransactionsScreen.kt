@@ -33,6 +33,7 @@ import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatTime
+import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
@@ -92,10 +93,14 @@ internal fun TransactionsScreenContent(
     var formError by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
 
+    // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
+    val switchForm = rememberFormSwitch()
     val openForm = { editing: Transaction?, transferToAccountId: String? ->
-        onRefreshPayees()
-        formError = null
-        form = FormTarget(editing, transferToAccountId)
+        switchForm {
+            onRefreshPayees()
+            formError = null
+            form = FormTarget(editing, transferToAccountId)
+        }
     }
 
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
@@ -164,6 +169,7 @@ internal fun TransactionsScreenContent(
             state = state,
             // Room for the last row to clear the button that floats over the list.
             contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
+            openId = form?.editing?.id,
             onOpen = openEdit,
             onDelete = askDelete,
             onLoadMore = onLoadMore,
@@ -205,7 +211,7 @@ internal fun TransactionsScreenContent(
         }
     }
 
-    form?.let { target ->
+    form?.let { target -> key(target.editing?.id) {
         TransactionForm(
             editing = target.editing,
             transferToAccountId = target.transferToAccountId,
@@ -231,7 +237,7 @@ internal fun TransactionsScreenContent(
             },
             onCancel = { form = null },
         )
-    }
+    } }
 
     val toDelete = pendingDelete
     if (toDelete != null) {
@@ -248,7 +254,12 @@ internal fun TransactionsScreenContent(
                     deleteKey,
                     snackbarHostState,
                     successMessage = if (isTransfer) transferDeletedMessage else transactionDeletedMessage,
-                    onSuccess = { pendingDelete = null },
+                    onSuccess = {
+                        pendingDelete = null
+                        // A form standing beside the list closes with what it was editing — either side of a transfer.
+                        val open = form?.editing
+                        if (open != null && (open.id == toDelete.id || (isTransfer && open.transferId == toDelete.transferId))) form = null
+                    },
                 ) { onDelete(toDelete) }
             },
             onDismiss = { pendingDelete = null },
@@ -264,6 +275,8 @@ internal fun TransactionsScreenContent(
 private fun TransactionList(
     state: TransactionsUiState,
     contentPadding: PaddingValues,
+    /** The transaction whose form stands beside the list, which its row is marked as. */
+    openId: String?,
     onOpen: (TransactionRow) -> Unit,
     onDelete: (TransactionRow) -> Unit,
     onLoadMore: () -> Unit,
@@ -313,6 +326,7 @@ private fun TransactionList(
                         row = row,
                         position = positionInGroup(index, rows.lastIndex),
                         currency = state.currency,
+                        selected = openId != null && row.transaction.id == openId,
                         onClick = { onOpen(row) },
                         onDelete = { onDelete(row) },
                     )
@@ -512,6 +526,7 @@ private fun TransactionRowItem(
     row: TransactionRow,
     position: ItemPosition,
     currency: String,
+    selected: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -531,7 +546,7 @@ private fun TransactionRowItem(
     ) {
         // One of the day's rows rather than a card of its own: round where the day starts and ends,
         // near-square where it meets the row beside it, as the account groups are drawn.
-        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick, selected = selected) {
           Column {
             // The headline, what is under it and the figures at the end sit in a plain row of two columns;
             // the card, the tap target and the notes row below stay outside it.

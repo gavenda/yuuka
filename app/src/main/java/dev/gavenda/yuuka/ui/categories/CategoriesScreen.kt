@@ -20,6 +20,7 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.domain.isHexColour
+import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import org.koin.compose.viewmodel.koinViewModel
@@ -57,6 +58,10 @@ internal fun CategoriesScreenContent(
     var creatingIn by remember { mutableStateOf<CategorySection?>(null) }
     var creatingParentId by remember { mutableStateOf<String?>(null) }
     var editing by remember { mutableStateOf<Category?>(null) }
+    // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
+    val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the row it was editing, wherever that was deleted.
+    LaunchedEffect(state.categories) { if (editing?.let { open -> state.categories.none { it.id == open.id } } == true) editing = null }
     // One family shows its subcategories at a time; opening another closes it, and every family starts closed.
     var expandedFamily by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -77,7 +82,7 @@ internal fun CategoriesScreenContent(
             ScreenFab(
                 label = stringResource(R.string.new_category),
                 icon = R.drawable.add_48px,
-                onClick = { creatingIn = state.sections.first(); creatingParentId = null },
+                onClick = { switchForm { editing = null; creatingIn = state.sections.first(); creatingParentId = null } },
             )
         },
     ) { padding ->
@@ -141,12 +146,13 @@ internal fun CategoriesScreenContent(
                             expanded = familyExpanded,
                             archiving = busy.isBusy(archiveKey),
                             deleting = busy.isBusy(deleteKey),
+                            selected = family.parent.id == editing?.id,
                             onClick = {
                                 if (family.children.isNotEmpty()) {
                                     expandedFamily = if (familyExpanded) null else family.parent.id
                                 }
                             },
-                            onEdit = { editing = family.parent },
+                            onEdit = { switchForm { creatingIn = null; editing = family.parent } },
                             onArchive = {
                                 busy.run(
                                     archiveKey,
@@ -163,7 +169,7 @@ internal fun CategoriesScreenContent(
                                     onDeleteCategory(family.parent.id)
                                 }
                             },
-                            onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
+                            onAddSub = { switchForm { editing = null; creatingIn = section; creatingParentId = family.parent.id } },
                         )
                     }
                     // An open family's subcategories are rows of the list too; they come and go with the item animation.
@@ -181,8 +187,9 @@ internal fun CategoriesScreenContent(
                                 indent = true,
                                 archiving = busy.isBusy(childArchiveKey),
                                 deleting = busy.isBusy(childDeleteKey),
-                                onClick = { editing = child },
-                                onEdit = { editing = child },
+                                selected = child.id == editing?.id,
+                                onClick = { switchForm { creatingIn = null; editing = child } },
+                                onEdit = { switchForm { creatingIn = null; editing = child } },
                                 onArchive = {
                                     busy.run(
                                         childArchiveKey,
@@ -221,7 +228,7 @@ internal fun CategoriesScreenContent(
     }
 
     val section = creatingIn
-    if (section != null || editing != null) {
+    if (section != null || editing != null) key(editing?.id, section, creatingParentId) {
         val formKey = "category-form"
         val submitting = busy.isBusy(formKey)
         CategoryFormContent(
@@ -267,6 +274,7 @@ private fun CategoryRow(
     indent: Boolean = false,
     archiving: Boolean = false,
     deleting: Boolean = false,
+    selected: Boolean = false,
     onEdit: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
@@ -303,7 +311,10 @@ private fun CategoryRow(
             onClick = onClick,
             shapes = groupedListItemShapes(position),
             // An open family, parent and subcategories alike, is told apart by its colour rather than by indenting.
-            colors = if (expanded || indent) {
+            colors = if (selected) {
+                // The category whose form stands beside the list, marked over its family's colour.
+                groupedListItemColors(selected = true)
+            } else if (expanded || indent) {
                 ListItemDefaults.colors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,

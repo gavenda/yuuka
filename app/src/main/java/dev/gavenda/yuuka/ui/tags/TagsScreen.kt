@@ -18,6 +18,7 @@ import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.domain.sameName
 import dev.gavenda.yuuka.domain.formatCount
+import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
 import dev.gavenda.yuuka.domain.nextColor
@@ -56,6 +57,10 @@ internal fun TagsScreenContent(
     // `creating` opens the sheet, `editing` fills it.
     var creating by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Tag?>(null) }
+    // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
+    val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the row it was editing, wherever that was deleted.
+    LaunchedEffect(state.tags) { if (editing?.let { open -> state.tags.none { it.id == open.id } } == true) editing = null }
 
     val tagAddedMessage = stringResource(R.string.tag_added)
     val tagUpdatedMessage = stringResource(R.string.tag_updated)
@@ -72,7 +77,7 @@ internal fun TagsScreenContent(
             ScreenFab(
                 label = stringResource(R.string.new_tag),
                 icon = R.drawable.add_48px,
-                onClick = { creating = true },
+                onClick = { switchForm { editing = null; creating = true } },
             )
         },
     ) { padding ->
@@ -112,7 +117,9 @@ internal fun TagsScreenContent(
                             // Tags are one list rather than groups of a few, so the whole list is the block.
                             position = positionInGroup(index, state.visible.lastIndex),
                             deleting = busy.isBusy(deleteKey),
-                            onEdit = { editing = tag },
+                            // The tag whose form stands beside the list.
+                            selected = tag.id == editing?.id,
+                            onEdit = { switchForm { creating = false; editing = tag } },
                             onDelete = { busy.run(deleteKey, snackbarHostState, successMessage = tagDeletedMessage) { onDeleteTag(tag.id) } },
                         )
                     }
@@ -121,7 +128,7 @@ internal fun TagsScreenContent(
         }
     }
 
-    if (creating || editing != null) {
+    if (creating || editing != null) key(editing?.id) {
         val formKey = "tag-form"
         val submitting = busy.isBusy(formKey)
         TagForm(
@@ -147,7 +154,7 @@ internal fun TagsScreenContent(
 
 /** One row per tag — its colour leading, its count at the end — drawn as one of a connected block. */
 @Composable
-private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, selected: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
@@ -158,7 +165,7 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: 
             modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
             shapes = groupedListItemShapes(position),
-            colors = ListItemDefaults.colors(containerColor = groupedItemColor),
+            colors = groupedListItemColors(selected),
             leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
             trailingContent = {

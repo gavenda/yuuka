@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import dev.gavenda.yuuka.ui.common.CatIcon
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -30,7 +31,15 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.util.lerp
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
+import androidx.compose.material3.adaptive.layout.rememberPaneExpansionState
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.getValue
@@ -64,6 +73,7 @@ import dev.gavenda.yuuka.ui.common.AppBarShell
 import dev.gavenda.yuuka.ui.common.YuukaMood
 import dev.gavenda.yuuka.ui.common.YuukaPortrait
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHost
+import dev.gavenda.yuuka.ui.common.FullScreenDialogPane
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHostState
 import dev.gavenda.yuuka.ui.common.LocalAppBarShell
 import dev.gavenda.yuuka.ui.common.LocalFullScreenDialogHost
@@ -282,24 +292,72 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 },
             ) { padding ->
                 // Two panes are judged by the page, not the window: an open rail docked beside it can leave
-                // an Expanded window too little room for a second one.
+                // an Expanded window too little room for a second one. Until a detail is opened the list
+                // stretches across the whole page, which leaves the scaffold's empty detail no width, and
+                // opening one draws the list in to its own width: the scene stays the same throughout, so
+                // the page is never slid away and back for what is only a second pane arriving.
+                val detailOpen = currentRoute in DETAIL_ROUTES
+                // 0 is the list at its own width beside a detail, 1 the list across the whole page.
+                val listSpread = remember { Animatable(if (detailOpen) 0f else 1f) }
+                val spreadSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+                LaunchedEffect(detailOpen) { listSpread.animateTo(if (detailOpen) 0f else 1f, spreadSpec) }
+                val paneExpansionState = rememberPaneExpansionState()
+                // A form opened where the page has room stands beside the screen as Material's supporting
+                // pane rather than covering it (FullScreenDialogPane); the screen gives up its width as the
+                // pane comes in, and takes it back as the pane goes.
+                val formPaneShare = remember { Animatable(0f) }
+                val formPaneOpen = dialogHost.paneOpen
+                LaunchedEffect(formPaneOpen) { formPaneShare.animateTo(if (formPaneOpen) 1f else 0f, spreadSpec) }
                 BoxWithConstraints(modifier = Modifier.padding(padding)) {
-                    val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(
-                        directive = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(
-                            maxHorizontalPartitions = if (maxWidth >= TWO_PANE_MIN_WIDTH) 2 else 1,
-                            horizontalPartitionSpacerSize = PANE_SPACER,
-                            defaultPanePreferredWidth = LIST_PANE_WIDTH,
-                        ),
-                    )
-                    NavDisplay(
-                        entries = navigationState.toEntries(entryProvider),
-                        onBack = navigator::goBack,
-                        sceneStrategies = listOf(listDetailStrategy),
-                        transitionSpec = { tabSlide(fallback = 1) },
-                        popTransitionSpec = { tabSlide(fallback = -1) },
-                        // The predictive back preview follows the same swipe as a completed pop.
-                        predictivePopTransitionSpec = { tabSlide(fallback = -1) },
-                    )
+                    val formPaneRoom = maxWidth >= FORM_PANE_MIN_WIDTH
+                    SideEffect { dialogHost.paneRoom = formPaneRoom }
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            val besideWidth = with(LocalDensity.current) { LIST_PANE_WIDTH.roundToPx() }
+                            val pageWidth = constraints.maxWidth
+                            LaunchedEffect(paneExpansionState, besideWidth, pageWidth) {
+                                snapshotFlow { listSpread.value }.collect { spread ->
+                                    paneExpansionState.setFirstPaneWidth(lerp(besideWidth, pageWidth, spread))
+                                }
+                            }
+                            val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(
+                                // One back is one screen: the scaffold reads the same with or without a detail
+                                // (the list's empty one is still a pane), so popping until it changes would leave
+                                // Settings along with Account types.
+                                backNavigationBehavior = BackNavigationBehavior.PopLatest,
+                                directive = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(
+                                    maxHorizontalPartitions = if (maxWidth >= TWO_PANE_MIN_WIDTH) 2 else 1,
+                                    horizontalPartitionSpacerSize = PANE_SPACER,
+                                    defaultPanePreferredWidth = LIST_PANE_WIDTH,
+                                ),
+                                paneExpansionState = paneExpansionState,
+                            )
+                            NavDisplay(
+                                entries = navigationState.toEntries(entryProvider),
+                                onBack = navigator::goBack,
+                                sceneStrategies = listOf(listDetailStrategy),
+                                transitionSpec = { tabSlide(fallback = 1) },
+                                popTransitionSpec = { tabSlide(fallback = -1) },
+                                // The predictive back preview follows the same swipe as a completed pop.
+                                predictivePopTransitionSpec = { tabSlide(fallback = -1) },
+                            )
+                        }
+                        FullScreenDialogPane(
+                            state = dialogHost,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .clipToBounds()
+                                // Measured at its own width throughout; only how much of it shows moves.
+                                .layout { measurable, constraints ->
+                                    val slot = FORM_PANE_SLOT.roundToPx()
+                                    val placeable = measurable.measure(Constraints.fixed(slot, constraints.maxHeight))
+                                    // The spatial spring overshoots past closed; a width cannot.
+                                    val shown = (slot * formPaneShare.value).roundToInt().coerceIn(0, slot)
+                                    layout(shown, placeable.height) { placeable.place(0, 0) }
+                                }
+                                .padding(start = FORM_PANE_GAP, top = FORM_PANE_MARGIN, end = FORM_PANE_MARGIN, bottom = FORM_PANE_MARGIN),
+                        )
+                    }
                 }
             }
         }
@@ -432,6 +490,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 screens()
             }
         }
+        // Without a rail there is no page for a pane to stand beside.
+        if (!useRail) SideEffect { dialogHost.paneRoom = false }
         FullScreenDialogHost(dialogHost)
 
         if (confirmingSignOut) {
@@ -474,6 +534,18 @@ private val PANE_SPACER = 24.dp
 
 /** Room for a list pane and a detail pane at least as wide as it, with the gap between them. */
 private val TWO_PANE_MIN_WIDTH = LIST_PANE_WIDTH * 2 + PANE_SPACER
+
+/** A form's supporting pane: Material's width for one, the gap from the page beside it, and its own margin. */
+private val FORM_PANE_WIDTH = 412.dp
+private val FORM_PANE_GAP = 8.dp
+private val FORM_PANE_MARGIN = 16.dp
+private val FORM_PANE_SLOT = FORM_PANE_GAP + FORM_PANE_WIDTH + FORM_PANE_MARGIN
+
+/** Room for a form's pane with the screen beside it still a list's width. */
+private val FORM_PANE_MIN_WIDTH = LIST_PANE_WIDTH + FORM_PANE_SLOT
+
+/** The destinations entered as a `detailPane()`: only with one of these on top does its list make room for it. */
+private val DETAIL_ROUTES: Set<NavKey> = setOf(Route.AccountTypes)
 
 /** Where a destination sits in the bottom bar, so a switch between two tabs slides the way the bar reads. */
 private data object TabOrder : NavMetadataKey<Int>

@@ -274,7 +274,7 @@ Settings instead of over it; narrower, it covers Settings as any screen opened f
 judged by the page and not the window, so an open rail docked beside an Expanded window can take the second
 pane away. There is no placeholder: Settings alone fills the page until something is opened from it. On
 Android this is Material 3 Adaptive's `ListDetailSceneStrategy` in `YuukaApp`'s `NavDisplay`, the entries
-marked `listPane()` and `detailPane()`; on the web a route names its list as a second, `list` view, which
+marked `listPane()` and `detailPane()` and the detail named in `DETAIL_ROUTES`: until one of those is opened the list is stretched across the page (the scaffold's `PaneExpansionState`), and opening it draws the list in beside it within the same scene rather than sliding a new one in; on the web a route names its list as a second, `list` view, which
 `App.vue` draws beside it under a container query. A new list-detail pair is marked the same way in both.
 
 - **The month is changed from an icon button after the hide-amounts switch**: Dashboard, Transactions and
@@ -338,7 +338,18 @@ and the display-currency list open as Material 3 full-screen dialogs
 drawer button would be, the title, and Save as the bar's one action, bound to the same `form.valid(...)` a save
 button always was. Closing a form that no longer holds what it opened with asks before discarding. Material
 keeps that shape for a phone, so a window with a rail gets an ordinary dialog of the same content with its
-buttons at the foot. A new form goes through it rather than a surface of its own.
+buttons at the foot. Where the page beside the rail has room for a list's width and a 412dp / 412px pane
+(796 in all), the form is neither: it is Material's supporting pane, standing at the page's end with the
+screen that opened it still usable beside it — the page gives up its width as the pane comes in — and keeps
+the full-screen dialog's bar, since it is as tall as the page. The row it is editing is marked as Material
+marks a list's selected item (`secondaryContainer`). Pressing another row, or the leading action, opens that
+form in its place, asking first if the one there holds changes; back or Escape closes it before leaving the
+screen; and deleting the row it is editing closes it. The display currency stays a dialog wherever it opens
+(`beside = false`), since Settings may already have Account types beside it. On Android the shell sizes the
+pane (`FullScreenDialogPane`, beside `NavDisplay` in `YuukaApp`) and a screen opens a form through
+`rememberFormSwitch`, keyed on what it edits; on the web `App.vue` holds `#form-pane`, `FormDialog` teleports
+into it, and a view opens a form through `whenDiscardable` (`lib/formPane.ts`). A new form goes through it
+rather than a surface of its own.
 
 - **There are no bottom sheets**: What is picked from a short list — the default account, and Save the Change's
 destination, category and the accounts that round up — is Material's basic dialog (`SelectionDialog`,

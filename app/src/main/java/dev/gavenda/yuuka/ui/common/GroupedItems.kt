@@ -1,12 +1,15 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -98,25 +101,48 @@ val groupedItemColor: Color
     @Composable get() = MaterialTheme.colorScheme.surfaceContainer
 
 /**
+ * [ListItem][androidx.compose.material3.ListItem] colours for a grouped row: [groupedItemColor], or Material's
+ * selected item's while it is [selected] — the row whose form stands in the supporting pane beside its list.
+ */
+@Composable
+fun groupedListItemColors(selected: Boolean = false): ListItemColors = if (selected) {
+    ListItemDefaults.colors(
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        leadingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        trailingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        supportingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    )
+} else {
+    ListItemDefaults.colors(containerColor = groupedItemColor)
+}
+
+/**
  * One row of a segmented list drawn by hand: [groupedItemColor] in its [position]'s shape, which rounds off
- * while pressed. With an [onClick] the whole row takes the tap.
+ * while pressed. With an [onClick] the whole row takes the tap. [selected] paints it as Material marks a list's
+ * selected item, for the row whose form stands in the supporting pane beside it.
  */
 @Composable
 fun GroupedItem(
     position: ItemPosition,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    selected: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val target = if (selected) MaterialTheme.colorScheme.secondaryContainer else groupedItemColor
+    val color by animateColorAsState(target, MaterialTheme.motionScheme.defaultEffectsSpec())
+    val contentColor = MaterialTheme.colorScheme.contentColorFor(target)
     if (onClick == null) {
-        Surface(modifier = modifier, shape = groupedItemShape(position), color = groupedItemColor, content = content)
+        Surface(modifier = modifier, shape = groupedItemShape(position), color = color, contentColor = contentColor, content = content)
     } else {
         val interactionSource = remember { MutableInteractionSource() }
         Surface(
             onClick = onClick,
             modifier = modifier,
             shape = animatedGroupedItemShape(position, interactionSource),
-            color = groupedItemColor,
+            color = color,
+            contentColor = contentColor,
             interactionSource = interactionSource,
             content = content,
         )

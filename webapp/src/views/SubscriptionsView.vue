@@ -21,12 +21,13 @@ import { parseMoney, toDecimalString } from '@/lib/money';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { useEditDialog } from '@/lib/editDialog';
+import { whenDiscardable } from '@/lib/formPane';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import type { Payee, Subscription } from '@/types';
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 type Direction = 'expense' | 'income';
@@ -107,34 +108,46 @@ onMounted(async () => {
 });
 
 function openCreate(): void {
-	const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
-	// Tomorrow, not today: today's run has already happened by the time anyone is here to set one up.
-	initialStartOn = nextDay(earliest);
+	whenDiscardable(() => {
+		const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
+		// Tomorrow, not today: today's run has already happened by the time anyone is here to set one up.
+		initialStartOn = nextDay(earliest);
 
-	show(null, {
-		direction: 'expense',
-		payee: '',
-		amount: '',
-		accountId: preferred?.id ?? ledger.activeAccounts[0]?.id ?? '',
-		categoryId: '',
-		startOn: initialStartOn,
-		notes: '',
+		show(null, {
+			direction: 'expense',
+			payee: '',
+			amount: '',
+			accountId: preferred?.id ?? ledger.activeAccounts[0]?.id ?? '',
+			categoryId: '',
+			startOn: initialStartOn,
+			notes: '',
+		});
 	});
 }
 
 function openEdit(subscription: Subscription): void {
-	initialStartOn = subscription.nextRunOn;
+	whenDiscardable(() => {
+		initialStartOn = subscription.nextRunOn;
 
-	show(subscription, {
-		direction: subscription.amount >= 0 ? 'income' : 'expense',
-		payee: subscription.payee,
-		amount: toDecimalString(Math.abs(subscription.amount)),
-		accountId: subscription.accountId,
-		categoryId: subscription.categoryId ?? '',
-		startOn: subscription.nextRunOn,
-		notes: subscription.notes,
+		show(subscription, {
+			direction: subscription.amount >= 0 ? 'income' : 'expense',
+			payee: subscription.payee,
+			amount: toDecimalString(Math.abs(subscription.amount)),
+			accountId: subscription.accountId,
+			categoryId: subscription.categoryId ?? '',
+			startOn: subscription.nextRunOn,
+			notes: subscription.notes,
+		});
 	});
 }
+
+// A form standing beside the list closes with the row it was editing, wherever that was deleted.
+watch(
+	() => store.subscriptions,
+	(rows) => {
+		if (dialogOpen.value && editing.value && !rows.some((row) => row.id === editing.value?.id)) dialogOpen.value = false;
+	},
+);
 
 async function setDirection(direction: Direction): Promise<void> {
 	form.direction = direction;
@@ -252,7 +265,12 @@ function scheduleOf(subscription: Subscription): string {
 					</template>
 
 					<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
-					<button type="button" class="group-row state-layer focus-ring cursor-pointer" @click="openEdit(subscription)">
+					<button
+						type="button"
+						class="group-row state-layer focus-ring cursor-pointer"
+						:aria-current="dialogOpen && editing?.id === subscription.id ? 'true' : undefined"
+						@click="openEdit(subscription)"
+					>
 						<span class="flex gap-4 px-4 py-3">
 							<span class="flex min-w-0 flex-1 flex-col gap-1">
 								<span class="flex items-center gap-2">
