@@ -17,7 +17,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.res.painterResource
-import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.togetherWith
@@ -29,9 +28,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.NavMetadataKey
@@ -96,6 +98,8 @@ import dev.gavenda.yuuka.sync.Outbox
  * - On a wider window a navigation rail takes over both (see [YuukaNavRail]). It marks the current
  *   destination, so there is no top app bar, and it carries the screen's leading action as its FAB
  *   (`ScreenFab`) — including Save on Settings and Save the Change.
+ * - Where the page beside the rail has room for two panes, Settings and Account types stand side by side
+ *   (Material 3 Adaptive's [ListDetailSceneStrategy]); anywhere narrower one covers the other.
  *
  * The shell draws no app bar of its own: a screen knows its own title and its own actions, so each one
  * puts a `ScreenTopBar` (or a `DetailTopBar`) in its own Scaffold. What those bars share — the drawer
@@ -104,7 +108,7 @@ import dev.gavenda.yuuka.sync.Outbox
  */
 @OptIn(
     ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalMaterial3WindowSizeClassApi::class,
+    ExperimentalMaterial3AdaptiveApi::class,
 )
 @Composable
 fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
@@ -153,10 +157,10 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     // Navigation follows the window's width class rather than a width of our own. Compact, a phone held
     // upright, keeps the bottom bar and drawer; anything wider has room for a rail, and Expanded has room
     // for it to stay open beside the page instead of floating over it.
-    val activity = LocalActivity.current
-    val widthClass = activity?.let { calculateWindowSizeClass(it).widthSizeClass }
-    val useRail = widthClass != null && widthClass != WindowWidthSizeClass.Compact
-    val railDocked = widthClass == WindowWidthSizeClass.Expanded
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
+    val sizeClass = windowAdaptiveInfo.windowSizeClass
+    val useRail = sizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+    val railDocked = sizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)
 
     val fabSlot = remember { RailSlot<FabEntry>() }
     val monthSlot = remember { RailSlot<MonthEntry>() }
@@ -183,8 +187,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         entry<Route.Categories> { CategoriesScreen() }
         entry<Route.Tags> { TagsScreen() }
         entry<Route.Subscriptions> { SubscriptionsScreen() }
-        entry<Route.Settings> { SettingsScreen(onOpenAccountTypes = { navigator.navigate(Route.AccountTypes) }) }
-        entry<Route.AccountTypes> { AccountTypesScreen() }
+        // Settings and the Account types it opens are a list and its detail: side by side where the page
+        // has room for both (see TWO_PANE_MIN_WIDTH), one over the other where it has not.
+        entry<Route.Settings>(metadata = ListDetailSceneStrategy.listPane()) {
+            SettingsScreen(onOpenAccountTypes = { navigator.navigate(Route.AccountTypes) })
+        }
+        entry<Route.AccountTypes>(metadata = ListDetailSceneStrategy.detailPane()) { AccountTypesScreen() }
         entry<Route.SaveTheChange> { SaveTheChangeScreen() }
     }
 
@@ -273,15 +281,26 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     }
                 },
             ) { padding ->
-                NavDisplay(
-                    entries = navigationState.toEntries(entryProvider),
-                    onBack = navigator::goBack,
-                    modifier = Modifier.padding(padding),
-                    transitionSpec = { tabSlide(fallback = 1) },
-                    popTransitionSpec = { tabSlide(fallback = -1) },
-                    // The predictive back preview follows the same swipe as a completed pop.
-                    predictivePopTransitionSpec = { tabSlide(fallback = -1) },
-                )
+                // Two panes are judged by the page, not the window: an open rail docked beside it can leave
+                // an Expanded window too little room for a second one.
+                BoxWithConstraints(modifier = Modifier.padding(padding)) {
+                    val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>(
+                        directive = calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(
+                            maxHorizontalPartitions = if (maxWidth >= TWO_PANE_MIN_WIDTH) 2 else 1,
+                            horizontalPartitionSpacerSize = PANE_SPACER,
+                            defaultPanePreferredWidth = LIST_PANE_WIDTH,
+                        ),
+                    )
+                    NavDisplay(
+                        entries = navigationState.toEntries(entryProvider),
+                        onBack = navigator::goBack,
+                        sceneStrategies = listOf(listDetailStrategy),
+                        transitionSpec = { tabSlide(fallback = 1) },
+                        popTransitionSpec = { tabSlide(fallback = -1) },
+                        // The predictive back preview follows the same swipe as a completed pop.
+                        predictivePopTransitionSpec = { tabSlide(fallback = -1) },
+                    )
+                }
             }
         }
     }
@@ -448,6 +467,13 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** The list pane's width beside its detail, and the gap between them: Material's defaults for an Expanded window. */
+private val LIST_PANE_WIDTH = 360.dp
+private val PANE_SPACER = 24.dp
+
+/** Room for a list pane and a detail pane at least as wide as it, with the gap between them. */
+private val TWO_PANE_MIN_WIDTH = LIST_PANE_WIDTH * 2 + PANE_SPACER
 
 /** Where a destination sits in the bottom bar, so a switch between two tabs slides the way the bar reads. */
 private data object TabOrder : NavMetadataKey<Int>

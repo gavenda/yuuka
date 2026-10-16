@@ -14,6 +14,8 @@ class Navigator(val state: NavigationState) {
             route == state.topLevelRoute -> stack?.subList(1, stack.size)?.clear()
             // Another top-level route: just switch to it, its history as it was left.
             stack != null -> state.topLevelRoute = route
+            // Already on show: with Settings and Account types side by side, the row that opened it is still there to press.
+            state.currentRoute == route -> Unit
             else -> state.backStacks[state.topLevelRoute]?.add(route)
         }
     }

@@ -619,6 +619,12 @@ render its own `<h1>`. Transient feedback goes through `showSnackbar()` (`src/li
 in `App.vue`), which shows one message at a time along the bottom of the page; a failure that belongs to a
 form is said in the form.
 
+A screen opened from a list may give that list as its route's `list` view (Account types gives Settings):
+`App.vue` then lays the two out as list and detail under a container query on the page — a 360px list, the
+detail beside it, 24px between — once the page is 744px wide, and keeps the list hidden below that, as
+Android's `ListDetailSceneStrategy` does. It reads the page, not the viewport, because an open rail beside it
+takes its share.
+
 **Colours are validated, not chosen by eye.** The eight category colours in
 `src/lib/palette.ts` are a fixed-order categorical palette checked against this
 app's own light and dark surfaces for lightness, chroma, colour-vision-deficiency

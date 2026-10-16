@@ -148,7 +148,8 @@ accounts hold it and points at archiving. The types are managed on a screen of
 their own, opened from a row in Settings (`/settings/account-types` on the web,
 `Route.AccountTypes` on Android) rather than from the Accounts screen: Settings
 stays the marked destination while it is on show, and its leading action is
-"New type".
+"New type". Settings is its list and it is the detail: where the page beside the
+rail has room for both (see Navigation), the two stand side by side.
 
 - **The payee is the first field, and it fills in the rest**: Saving a named
 transaction records what it was filed under — account, category, notes, and which
@@ -249,7 +250,7 @@ inverted the same way would come out wrong.
 ## Navigation
 
 - **Navigation follows the window, in both apps**: From 600dp / the `sm` breakpoint up (on Android, any
-window width class but Compact, from `calculateWindowSizeClass`) it is a
+window width class but Compact, from Material 3 Adaptive's `currentWindowAdaptiveInfoV2`) it is a
 rail that opens into a labelled drawer (a "More" group holding the destinations that are not
 daily ones, Save the Change, Settings and Sign out, plus the signed-in account); below that a
 phone keeps its bottom bar and avatar or hamburger menu. In both apps the rail lists the same
@@ -265,6 +266,16 @@ button (below) and the account sit at the foot of the rail. On Android this is `
 action goes through `ScreenFab` (`ui/common/RailFab.kt`), which draws the phone's FAB or hands the
 action to the rail, so a new screen never places its own. The web side is in
 [webapp/CLAUDE.md](webapp/CLAUDE.md).
+
+- **A screen opened from a list stands beside it where the page has room**: Settings and Account types are a
+list and its detail. Once the page beside the rail is at least 744dp / 744px wide — a 360 list, a detail at
+least as wide, and 24 between, Material's list-detail measures — opening Account types puts it beside
+Settings instead of over it; narrower, it covers Settings as any screen opened from another does. It is
+judged by the page and not the window, so an open rail docked beside an Expanded window can take the second
+pane away. There is no placeholder: Settings alone fills the page until something is opened from it. On
+Android this is Material 3 Adaptive's `ListDetailSceneStrategy` in `YuukaApp`'s `NavDisplay`, the entries
+marked `listPane()` and `detailPane()`; on the web a route names its list as a second, `list` view, which
+`App.vue` draws beside it under a container query. A new list-detail pair is marked the same way in both.
 
 - **The month is changed from an icon button after the hide-amounts switch**: Dashboard, Transactions and
 Budget each look at one month, and the button that changes it — a calendar — goes wherever the hide-amounts

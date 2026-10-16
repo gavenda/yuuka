@@ -52,7 +52,8 @@ const routes: RouteRecordRaw[] = [
 	{
 		path: '/settings/account-types',
 		name: 'account-types',
-		component: () => import('@/views/AccountTypesView.vue'),
+		// Settings is its list: where the page has room, `App.vue` shows it beside the types.
+		components: { default: () => import('@/views/AccountTypesView.vue'), list: () => import('@/views/SettingsView.vue') },
 		meta: { titleKey: 'nav.accountTypes', amountFree: true, parent: '/settings' },
 	},
 	{

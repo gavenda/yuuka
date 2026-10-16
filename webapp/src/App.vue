@@ -87,6 +87,8 @@ const shellShown = computed(() => showShell.value && !isLoading.value);
 const isTabDestination = computed(() => ['dashboard', 'transactions', 'accounts'].includes(route.name as string));
 const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
+/** Whether the screen on show names a list to stand beside (the router's `list` view). */
+const hasListPane = computed(() => route.matched.at(-1)?.components?.list !== undefined);
 /** A detail screen (Settings) leads back to wherever it was opened from, as Android's back button does. */
 const isDetail = computed(() => route.meta.detail === true);
 
@@ -397,11 +399,21 @@ onBeforeUnmount(() => {
 				</div>
 			</div>
 
-			<RouterView v-slot="{ Component }">
-				<Transition name="fade-through" mode="out-in">
-					<component :is="Component" />
-				</Transition>
-			</RouterView>
+			<!-- A screen opened from a list (`meta.parent`'s view, given as the route's `list` view) stands beside
+			     it once the page has room for both — a 360px list, a detail at least as wide, and 24px between —
+			     as Android's `ListDetailSceneStrategy` does. Narrower, the list is put away and the detail has it all. -->
+			<div class="@container">
+				<div :class="{ '@min-[744px]:grid @min-[744px]:grid-cols-[360px_minmax(0,1fr)] @min-[744px]:gap-6': hasListPane }">
+					<RouterView v-slot="{ Component }" name="list">
+						<div v-if="Component" class="hidden @min-[744px]:block"><component :is="Component" /></div>
+					</RouterView>
+					<RouterView v-slot="{ Component }">
+						<Transition name="fade-through" mode="out-in">
+							<component :is="Component" />
+						</Transition>
+					</RouterView>
+				</div>
+			</div>
 		</main>
 
 		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone. -->

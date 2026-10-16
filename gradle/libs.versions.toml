@@ -13,8 +13,11 @@ ksp = "2.3.12"
 composeBom = "2026.09.00"
 # Pinned above the BOM's 1.4.0 for the Material 3 Expressive APIs (still
 # @ExperimentalMaterial3ExpressiveApi). Free to move on its own: MaterialKolor is only its core,
-# which has no Material 3 dependency. The window-size-class artifact follows the same version.
+# which has no Material 3 dependency.
 material3 = "1.5.0-beta01"
+# Material 3 Adaptive: the window's size class, and the list-detail scene Navigation 3 shows Settings
+# and Account types side by side in once the window is Expanded.
+materialAdaptive = "1.4.0-alpha03"
 # View-system Material library, here only for Theme.Material3.DayNight (the window/splash theme).
 material = "1.14.0"
 auth0 = "4.1.0"
@@ -72,7 +75,9 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 coil-svg = { group = "io.coil-kt.coil3", name = "coil-svg", version.ref = "coil" }
-androidx-compose-material3-window-size-class1 = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3" }
+androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive", version.ref = "materialAdaptive" }
+androidx-compose-material3-adaptive-layout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout", version.ref = "materialAdaptive" }
+androidx-compose-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "materialAdaptive" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
