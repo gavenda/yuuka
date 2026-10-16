@@ -49,11 +49,13 @@ export function axisScale(max: number): AxisScale {
  */
 export function compactAmount(minor: number, locale?: string): string {
 	const format = new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 });
-	const major = minor / 100;
+	const major = Math.abs(minor) / 100;
+	// A minus sign, as a figure is written, for a net worth below zero.
+	const sign = minor < 0 ? '−' : '';
 
-	if (major >= 1_000_000) return `${format.format(major / 1_000_000)}M`;
-	if (major >= 1_000) return `${format.format(major / 1_000)}k`;
-	return format.format(major);
+	if (major >= 1_000_000) return `${sign}${format.format(major / 1_000_000)}M`;
+	if (major >= 1_000) return `${sign}${format.format(major / 1_000)}k`;
+	return `${sign}${format.format(major)}`;
 }
 
 /**
@@ -102,4 +104,39 @@ export function rankAndFold<T extends RankableEntry>(entries: T[], limit: number
 			actual: tail.reduce((sum, entry) => sum + entry.actual, 0),
 		},
 	];
+}
+
+/** A value axis from `bottom` to `top` in steps of `step`, all in minor units, with every labelled value between. */
+export interface AxisRange {
+	bottom: number;
+	top: number;
+	step: number;
+	ticks: number[];
+}
+
+/**
+ * An axis for a line that runs between `min` and `max`, which may be negative: round numbers just clearing both,
+ * about three intervals apart. Unlike a bar's axis it need not start at zero — a line is read by its shape, and a
+ * net worth far from zero would otherwise be drawn flat. Mirrors `axisRange` in `Charts.kt`.
+ */
+export function axisRange(min: number, max: number): AxisRange {
+	// A flat line still needs room above and below it.
+	const spread = max > min ? max - min : Math.max(Math.abs(max), 100);
+	const raw = spread / AXIS_INTERVALS;
+	const magnitude = 10 ** Math.floor(Math.log10(raw));
+	const step = Math.max(1, Math.floor(NICE_STEPS.map((factor) => factor * magnitude).find((candidate) => candidate >= raw) ?? raw));
+	let bottom = Math.floor(min / step) * step;
+	let top = Math.ceil(max / step) * step;
+	if (top === bottom) {
+		bottom -= step;
+		top += step;
+	}
+
+	return { bottom, top, step, ticks: Array.from({ length: Math.round((top - bottom) / step) + 1 }, (_, index) => bottom + index * step) };
+}
+
+/** `2026-09` -> `Sep`: a month as an axis names it. */
+export function shortMonth(month: string): string {
+	const [year, monthIndex] = month.split('-').map(Number);
+	return new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(year, monthIndex - 1, 1));
 }

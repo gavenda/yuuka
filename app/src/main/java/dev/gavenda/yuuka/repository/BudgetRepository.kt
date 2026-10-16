@@ -9,6 +9,7 @@ import dev.gavenda.yuuka.data.local.entity.BudgetEntity
 import dev.gavenda.yuuka.data.local.entity.IncomePlanEntity
 import dev.gavenda.yuuka.data.local.entity.SummaryEntity
 import dev.gavenda.yuuka.data.model.Summary
+import dev.gavenda.yuuka.data.model.Trend
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
 import dev.gavenda.yuuka.data.remote.apiJson
@@ -48,6 +49,23 @@ class BudgetRepository(
         summaryDao.upsert(SummaryEntity(month, apiJson.encodeToString(Summary.serializer(), summary), System.currentTimeMillis()))
         return summary
     }
+
+    /**
+     * The months up to [month], as the dashboard's trend charts read them. Kept in the summaries table under a key
+     * no month can have, since it is a derived aggregate like them and goes whenever they go — a full sync or a
+     * change to the summary slice — so it is refetched rather than left behind on stale figures.
+     */
+    fun observeTrend(month: String): Flow<Trend?> =
+        summaryDao.observe(trendKey(month)).map { entity -> entity?.let { apiJson.decodeFromString(Trend.serializer(), it.json) } }
+            .flowOn(Dispatchers.Default)
+
+    suspend fun refreshTrend(month: String): Trend {
+        val trend = apiCall { api.trend(month, TREND_MONTHS) }
+        summaryDao.upsert(SummaryEntity(trendKey(month), apiJson.encodeToString(Trend.serializer(), trend), System.currentTimeMillis()))
+        return trend
+    }
+
+    private fun trendKey(month: String) = "trend:$month"
 
     suspend fun setBudgetAmount(categoryId: String, month: String, amount: Long) = setBudget(categoryId, month, amount = amount, percent = null)
 
@@ -106,3 +124,6 @@ class BudgetRepository(
         outbox.enqueue("PUT", "/api/income-plan", body)
     }
 }
+
+/** How many months the dashboard's trend covers, ending at the month on show. Mirrors `TREND_MONTHS` in `stores/budget.ts`. */
+const val TREND_MONTHS = 12

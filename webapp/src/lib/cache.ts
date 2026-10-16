@@ -30,6 +30,7 @@ import type {
 	Tag,
 	Transaction,
 	TransactionFilters,
+	Trend,
 } from '@/types';
 import { read, write, type DatabaseView, type Op, type StoredRow, type TableName } from './cacheDb';
 
@@ -386,6 +387,24 @@ export function writeSummary(summary: Summary, keep: number): Promise<void> {
 }
 
 /** Forgets every month's summary but [except]'s. */
+/**
+ * The dashboard's trend up to `month`. It lives in the summaries store under a key no month can have, since it
+ * is a derived aggregate like them and goes whenever they go — so it is refetched rather than left on stale figures.
+ */
+export function readTrend(month: string): Promise<Trend | null> {
+	return read((db) => {
+		const row = db('summaries').get(`trend:${month}`);
+		return row ? structuredClone(row.summary as Trend) : null;
+	});
+}
+
+export function writeTrend(trend: Trend, keep: number): Promise<void> {
+	return write([
+		put('summaries', { month: `trend:${trend.month}`, summary: plain(trend), cachedAt: Date.now() }),
+		{ op: 'trim', table: 'summaries', field: 'cachedAt', keep },
+	]);
+}
+
 export const dropSummaries = (except?: string) => write([{ op: 'clear', table: 'summaries', except: except ? [except] : [] }]);
 
 /** A category carries one plan per month asked for, so setting it again replaces whatever was there. */

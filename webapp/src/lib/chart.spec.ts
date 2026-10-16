@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { axisScale, compactAmount, dailyAverage, monthSeries, rankAndFold, scallopPath } from './chart';
+import { axisRange, axisScale, compactAmount, dailyAverage, monthSeries, rankAndFold, scallopPath } from './chart';
 
 describe('monthSeries', () => {
 	it('fills every day of the month, zeroing the quiet ones', () => {
@@ -132,5 +132,21 @@ describe('scallopPath', () => {
 			expect(Math.hypot(x - 50, y - 50)).toBeLessThanOrEqual(10.01);
 			expect(Math.hypot(x - 50, y - 50)).toBeGreaterThan(8);
 		}
+	});
+});
+
+describe('axisRange', () => {
+	it('need not start at zero', () => {
+		expect(axisRange(10_000_000, 12_500_000)).toMatchObject({ bottom: 10_000_000, top: 13_000_000, step: 1_000_000 });
+		expect(axisRange(-50_000, 30_000).ticks).toEqual([-50_000, 0, 50_000]);
+	});
+
+	it('gives a flat line room above and below', () => {
+		expect(axisRange(500_000, 500_000)).toMatchObject({ bottom: 400_000, top: 600_000, step: 200_000 });
+		expect(axisRange(0, 0)).toMatchObject({ bottom: -50, top: 50, step: 50 });
+	});
+
+	it('keeps the sign of a compact amount below zero', () => {
+		expect(compactAmount(-1_500_000, 'en-US')).toBe('−15k');
 	});
 });

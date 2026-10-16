@@ -1,13 +1,16 @@
 import { api, isNetworkError } from '@/lib/api';
-import { dropSummaries, readSummary, writeSummary } from '@/lib/cache';
+import { dropSummaries, readSummary, readTrend, writeSummary, writeTrend } from '@/lib/cache';
 import { addMonths, currentMonth } from '@/lib/dates';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { Summary } from '@/types';
+import type { Summary, Trend } from '@/types';
 import { t } from '@/i18n';
 
-/** How many months' summaries the local copy holds. */
-const KEEP_MONTHS = 6;
+/** How many rows the local copy of summaries holds: six months, each with the trend that ends at it. */
+const KEEP_ROWS = 12;
+
+/** How many months the dashboard's trend covers, ending at the month on show. Mirrors `TREND_MONTHS` in `BudgetRepository.kt`. */
+export const TREND_MONTHS = 12;
 
 /**
  * Owns the selected month and the summary computed for it. A month seen before is shown from the
@@ -65,9 +68,30 @@ export const useBudgetStore = defineStore('budget', () => {
 			const fresh = await api.summary(requested);
 			if (!stillWanted()) return;
 			previous.value = fresh;
-			void writeSummary(fresh, KEEP_MONTHS);
+			void writeSummary(fresh, KEEP_ROWS);
 		} catch {
 			// Only a comparison: whatever copy there was stays.
+		}
+	}
+
+	/** The months up to the one on show, for the dashboard's trend charts; null until known. Only the dashboard asks, through `loadTrend`. */
+	const trend = ref<Trend | null>(null);
+
+	/** Fills `trend` for the month on show, from the local copy and then the API. A failure leaves whatever copy there was, unreported. */
+	async function loadTrend(): Promise<void> {
+		const requested = month.value;
+		if (trend.value?.month !== requested) trend.value = null;
+
+		const copy = await readTrend(requested);
+		if (copy && month.value === requested && !trend.value) trend.value = copy;
+
+		try {
+			const fresh = await api.trend(requested, TREND_MONTHS);
+			if (month.value !== requested) return;
+			trend.value = fresh;
+			void writeTrend(fresh, KEEP_ROWS);
+		} catch {
+			// Only a picture of the months behind this one: whatever copy there was stays.
 		}
 	}
 
@@ -103,7 +127,7 @@ export const useBudgetStore = defineStore('budget', () => {
 			revision++;
 			summary.value = fresh;
 			freshFor = requested;
-			void writeSummary(fresh, KEEP_MONTHS);
+			void writeSummary(fresh, KEEP_ROWS);
 			return true;
 		} catch (caught) {
 			// Out of reach with this month's figures on screen: keep showing them. A copy still on its
@@ -147,6 +171,7 @@ export const useBudgetStore = defineStore('budget', () => {
 		revision++;
 		summary.value = null;
 		previous.value = null;
+		trend.value = null;
 		freshFor = null;
 		month.value = currentMonth();
 	}
@@ -155,6 +180,7 @@ export const useBudgetStore = defineStore('budget', () => {
 		month,
 		summary,
 		previous,
+		trend,
 		loading,
 		error,
 		expenseBreakdown,
@@ -167,6 +193,7 @@ export const useBudgetStore = defineStore('budget', () => {
 		overspent,
 		load,
 		loadPrevious,
+		loadTrend,
 		setMonth,
 		refresh,
 		setBudget,

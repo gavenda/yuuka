@@ -76,14 +76,46 @@ private const val AXIS_INTERVALS = 3
  * The currency is left out: the chart says it once elsewhere.
  */
 fun compactAmount(minor: Long, locale: Locale = Locale.getDefault()): String {
-    val major = minor / 100.0
+    val major = kotlin.math.abs(minor) / 100.0
+    // A minus sign, as a figure is written, for a net worth below zero.
+    val sign = if (minor < 0) "−" else ""
     val format = NumberFormat.getNumberInstance(locale).apply {
         maximumFractionDigits = 1
         minimumFractionDigits = 0
     }
-    return when {
+    return sign + when {
         major >= 1_000_000 -> format.format(major / 1_000_000) + "M"
         major >= 1_000 -> format.format(major / 1_000) + "k"
         else -> format.format(major)
     }
 }
+
+/** A value axis from [bottom] to [top] in steps of [step], all in minor units. */
+data class AxisRange(val bottom: Long, val top: Long, val step: Long) {
+    /** Every labelled value, from [bottom] to [top]. */
+    val ticks: List<Long> get() = (0..((top - bottom) / step)).map { bottom + it * step }
+}
+
+/**
+ * An axis for a line that runs between [min] and [max], which may be negative: round numbers just clearing both,
+ * about three intervals apart. Unlike a bar's axis it need not start at zero — a line is read by its shape, and a
+ * net worth far from zero would otherwise be drawn flat. Mirrors `axisRange` in `src/lib/chart.ts`.
+ */
+fun axisRange(min: Long, max: Long): AxisRange {
+    // A flat line still needs room above and below it.
+    val spread = if (max > min) max - min else maxOf(kotlin.math.abs(max), 100L)
+    val raw = spread / AXIS_INTERVALS.toDouble()
+    val magnitude = 10.0.pow(floor(log10(raw)))
+    val step = (NICE_STEPS.map { it * magnitude }.first { it >= raw }).toLong().coerceAtLeast(1)
+    var bottom = Math.floorDiv(min, step) * step
+    var top = Math.floorDiv(max + step - 1, step) * step
+    if (top == bottom) {
+        bottom -= step
+        top += step
+    }
+    return AxisRange(bottom, top, step)
+}
+
+/** `2026-09` -> `Sep`: a month as an axis names it. */
+fun shortMonth(month: String, locale: Locale = Locale.getDefault()): String =
+    YearMonth.parse(month).month.getDisplayName(java.time.format.TextStyle.SHORT, locale)

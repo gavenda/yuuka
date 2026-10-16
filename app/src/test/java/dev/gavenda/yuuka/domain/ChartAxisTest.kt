@@ -52,4 +52,21 @@ class ChartAxisTest {
         assertEquals("1.5k", compactAmount(150_000, Locale.US))
         assertEquals("2.3M", compactAmount(230_000_000, Locale.US))
     }
+
+    @Test
+    fun `a line's axis need not start at zero`() {
+        assertEquals(AxisRange(10_000_000, 13_000_000, 1_000_000), axisRange(10_000_000, 12_500_000))
+        assertEquals(listOf(-50_000L, 0L, 50_000L), axisRange(-50_000, 30_000).ticks)
+    }
+
+    @Test
+    fun `a flat line still gets room above and below`() {
+        assertEquals(AxisRange(400_000, 600_000, 200_000), axisRange(500_000, 500_000))
+        assertEquals(AxisRange(-50, 50, 50), axisRange(0, 0))
+    }
+
+    @Test
+    fun `a compact amount below zero keeps its sign`() {
+        assertEquals("−15k", compactAmount(-1_500_000, Locale.US))
+    }
 }
