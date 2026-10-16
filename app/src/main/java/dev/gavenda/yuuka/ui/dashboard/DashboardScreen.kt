@@ -114,6 +114,14 @@ internal fun DashboardScreenContent(
                 )
             }
 
+            val pace = budgetPace(state.summary?.categories.orEmpty(), state.month)
+            val incomePercent = incomeProgress(state.summary?.income ?: 0, state.summary?.plannedIncome ?: 0)
+            if (pace != null || incomePercent != null) {
+                item {
+                    PlanCard(pace, state.summary?.income ?: 0, state.summary?.plannedIncome ?: 0, incomePercent, state.currency)
+                }
+            }
+
             val over = overBudget(state.summary?.categories.orEmpty())
             if (over.isNotEmpty()) {
                 item { OverBudgetCard(over, state.currency) }

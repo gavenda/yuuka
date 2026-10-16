@@ -4,15 +4,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.domain.AmountVisibility
+import dev.gavenda.yuuka.domain.BudgetHealth
+import dev.gavenda.yuuka.domain.BudgetPace
+import dev.gavenda.yuuka.domain.statusColor
 import dev.gavenda.yuuka.ui.common.harmonisedColor
 import org.koin.compose.koinInject
 
@@ -68,5 +74,79 @@ private fun OverrunBar(entry: CategoryBreakdown, modifier: Modifier = Modifier) 
                 .background(harmonisedColor(entry.color, MaterialTheme.colorScheme.primary), CircleShape),
         )
         Box(Modifier.weight(overrun.toFloat()).widthIn(min = 8.dp).fillMaxHeight().background(MaterialTheme.colorScheme.error, CircleShape))
+    }
+}
+
+/**
+ * How the month stands against its plans: the expense budget used, with a mark where the month has got to
+ * while it runs, and the income received against what was planned. Each is left out without a plan to be
+ * measured against, and the card with them. Mirrors `PlanCard.vue`.
+ */
+@Composable
+internal fun PlanCard(pace: BudgetPace?, income: Long, plannedIncome: Long, incomePercent: Int?, currency: String, modifier: Modifier = Modifier) {
+    val visibility = koinInject<AmountVisibility>()
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.dashboard_against_plan), style = MaterialTheme.typography.titleLarge)
+
+            if (pace != null) {
+                PlanMeter(
+                    label = stringResource(R.string.dashboard_budget_used),
+                    percent = pace.percent,
+                    color = statusColor(pace.health),
+                    marker = pace.day?.let { it.toFloat() / pace.days },
+                    lines = listOf(
+                        stringResource(R.string.dashboard_spent_of_planned, visibility.displayMoney(pace.spent, currency), visibility.displayMoney(pace.planned, currency)),
+                        when {
+                            pace.health == BudgetHealth.CRITICAL -> stringResource(R.string.dashboard_pace_past)
+                            pace.day == null -> stringResource(R.string.dashboard_pace_within)
+                            pace.health == BudgetHealth.WARNING -> stringResource(R.string.dashboard_pace_ahead, pace.day, pace.days)
+                            else -> stringResource(R.string.dashboard_pace_keeping, pace.day, pace.days)
+                        },
+                    ),
+                )
+            }
+
+            if (incomePercent != null) {
+                PlanMeter(
+                    label = stringResource(R.string.dashboard_income_received),
+                    percent = incomePercent,
+                    color = MaterialTheme.colorScheme.primary,
+                    lines = listOf(stringResource(R.string.dashboard_spent_of_planned, visibility.displayMoney(income, currency), visibility.displayMoney(plannedIncome, currency))),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One figure against its plan: the label and the share, Material's linear indicator filled as far as the share
+ * (full past 100), an optional [marker] standing across it at a fraction of the way, and the [lines] under it.
+ */
+@Composable
+private fun PlanMeter(label: String, percent: Int, color: Color, lines: List<String>, marker: Float? = null) {
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text("$percent%", style = MaterialTheme.typography.bodyMedium)
+        }
+        BoxWithConstraints(modifier = Modifier.padding(top = 6.dp).fillMaxWidth().height(16.dp), contentAlignment = Alignment.CenterStart) {
+            LinearProgressIndicator(
+                progress = { (percent / 100f).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = color,
+                drawStopIndicator = {},
+            )
+            if (marker != null) {
+                Box(
+                    Modifier.offset(x = (maxWidth - 2.dp) * marker.coerceIn(0f, 1f)).width(2.dp).fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.onSurface, CircleShape),
+                )
+            }
+        }
+        lines.forEach { line ->
+            Text(line, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

@@ -109,6 +109,13 @@
     <string name="dashboard_across_budgeted_categories">Across budgeted categories</string>
     <string name="dashboard_over_budget">Over budget</string>
     <string name="dashboard_spent_of_planned">%1$s of %2$s planned</string>
+    <string name="dashboard_against_plan">Against the plan</string>
+    <string name="dashboard_budget_used">Budget used</string>
+    <string name="dashboard_income_received">Income received</string>
+    <string name="dashboard_pace_keeping">Keeping pace: day %1$d of %2$d</string>
+    <string name="dashboard_pace_ahead">Ahead of pace: day %1$d of %2$d</string>
+    <string name="dashboard_pace_within">Within the plan</string>
+    <string name="dashboard_pace_past">Past the plan</string>
     <string name="dashboard_needs_attention">I\'ll need an explanation.</string>
     <string name="dashboard_nothing_overspent">Every budget within its limit.</string>
     <string name="chart_average_per_day">Daily average</string>

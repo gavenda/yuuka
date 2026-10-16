@@ -33,6 +33,28 @@ class DashboardTest {
         assertEquals(listOf("fun", "food"), list.map { it.categoryId })
     }
 
+    @Test
+    fun budgetPaceTotalsExpensesAndNamesTheDayOnlyWhileTheMonthRuns() {
+        val plan = listOf(entry("food", 6000, 3000), entry("rent", 4000, 4000), entry("salary", 9999, 9999, CategoryKind.income))
+        assertEquals(BudgetPace(7000, 10000, 70, 16, 31), budgetPace(plan, "2026-10", "2026-10-16"))
+        assertNull(budgetPace(plan, "2026-09", "2026-10-16")?.day)
+        assertNull(budgetPace(listOf(entry("food", 0, 3000)), "2026-10", "2026-10-16"))
+    }
+
+    @Test
+    fun budgetPaceHealthWarnsAheadOfTheMonthAndIsCriticalPastThePlan() {
+        assertEquals(BudgetHealth.WARNING, BudgetPace(7000, 10000, 70, 16, 31).health)
+        assertEquals(BudgetHealth.GOOD, BudgetPace(4000, 10000, 40, 16, 31).health)
+        assertEquals(BudgetHealth.GOOD, BudgetPace(7000, 10000, 70, null, 30).health)
+        assertEquals(BudgetHealth.CRITICAL, BudgetPace(10001, 10000, 100, null, 30).health)
+    }
+
+    @Test
+    fun incomeProgressIsUnclampedAndAbsentWithoutAPlan() {
+        assertEquals(120, incomeProgress(12000, 10000))
+        assertNull(incomeProgress(5000, 0))
+    }
+
     private fun entry(id: String, planned: Long, actual: Long, kind: CategoryKind = CategoryKind.expense) =
         CategoryBreakdown(categoryId = id, name = id, kind = kind, color = "#2a78d6", planned = planned, actual = actual, remaining = planned - actual)
 }

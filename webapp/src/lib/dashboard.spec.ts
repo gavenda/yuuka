@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoryBreakdown } from '@/types';
-import { overBudget, savingsRate } from './dashboard';
+import { budgetPace, incomeProgress, overBudget, paceHealth, savingsRate } from './dashboard';
 
 const entry = (categoryId: string, extra: Partial<CategoryBreakdown>): CategoryBreakdown => ({
 	categoryId,
@@ -46,5 +46,40 @@ describe('overBudget', () => {
 		]);
 
 		expect(list).toEqual([]);
+	});
+});
+
+describe('budgetPace', () => {
+	const plan = [
+		entry('food', { planned: 6000, actual: 3000 }),
+		entry('rent', { planned: 4000, actual: 4000 }),
+		entry('salary', { kind: 'income', planned: 9999, actual: 9999 }),
+	];
+
+	it('totals the expense categories as the Budget screen does', () => {
+		expect(budgetPace(plan, '2026-10', '2026-10-16')).toEqual({ spent: 7000, planned: 10000, percent: 70, day: 16, days: 31 });
+	});
+
+	it('names the day only while the month is under way', () => {
+		expect(budgetPace(plan, '2026-09', '2026-10-16')?.day).toBeNull();
+		expect(budgetPace(plan, '2026-11', '2026-10-16')?.day).toBeNull();
+	});
+
+	it('has nothing to say with nothing planned', () => {
+		expect(budgetPace([entry('food', { actual: 3000 })], '2026-10', '2026-10-16')).toBeNull();
+	});
+
+	it('is ahead of pace when more of the plan is gone than of the month, and critical past the plan', () => {
+		expect(paceHealth({ spent: 7000, planned: 10000, percent: 70, day: 16, days: 31 })).toBe('warning');
+		expect(paceHealth({ spent: 4000, planned: 10000, percent: 40, day: 16, days: 31 })).toBe('good');
+		expect(paceHealth({ spent: 7000, planned: 10000, percent: 70, day: null, days: 30 })).toBe('good');
+		expect(paceHealth({ spent: 10001, planned: 10000, percent: 100, day: null, days: 30 })).toBe('critical');
+	});
+});
+
+describe('incomeProgress', () => {
+	it('is unclamped, and absent without a plan', () => {
+		expect(incomeProgress(12000, 10000)).toBe(120);
+		expect(incomeProgress(5000, 0)).toBeNull();
 	});
 });

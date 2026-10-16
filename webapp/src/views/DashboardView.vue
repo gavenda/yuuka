@@ -2,9 +2,10 @@
 import CategoryBars from '@/components/CategoryBars.vue';
 import MonthAction from '@/components/MonthAction.vue';
 import OverBudgetCard from '@/components/OverBudgetCard.vue';
+import PlanCard from '@/components/PlanCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
-import { overBudget, savingsRate } from '@/lib/dashboard';
+import { budgetPace, incomeProgress, overBudget, savingsRate } from '@/lib/dashboard';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { computed, onMounted } from 'vue';
@@ -54,6 +55,10 @@ const progress = computed(() => {
 	];
 });
 
+/** The month against its plans; the card is left out when there is neither. */
+const pace = computed(() => budgetPace(budget.summary?.categories ?? [], budget.month));
+const incomePercent = computed(() => incomeProgress(budget.summary?.income ?? 0, budget.summary?.plannedIncome ?? 0));
+
 /** The categories behind the "Over budget" figure; the card is left out when there are none. */
 const over = computed(() => overBudget(budget.summary?.categories ?? []));
 
@@ -68,6 +73,15 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 
 		<StatCarousel :stats="standing" :currency="currency" tone="tertiary" />
 		<StatCarousel :stats="progress" :currency="currency" />
+
+		<PlanCard
+			v-if="pace || incomePercent !== null"
+			:pace="pace"
+			:income="budget.summary?.income ?? 0"
+			:planned-income="budget.summary?.plannedIncome ?? 0"
+			:income-percent="incomePercent"
+			:currency="currency"
+		/>
 
 		<OverBudgetCard v-if="over.length" :entries="over" :currency="currency" />
 
