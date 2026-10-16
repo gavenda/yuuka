@@ -125,7 +125,7 @@ internal fun AccountsScreenContent(
         LazyColumn(
             // The gap under the bar is the column's own, not content that scrolls away: the bar comes back over
             // the list as it scrolls up, and the rows must not touch it.
-            modifier = Modifier.padding(padding).padding(top = 8.dp).fillMaxWidth(),
+            modifier = Modifier.padding(padding).fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
             // The rows of a type are a hair apart, the way a settings group is drawn; the space between
             // one type and the next comes from the header's own padding.

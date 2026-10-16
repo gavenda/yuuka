@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,9 +25,14 @@ import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.AppBarWithSearch
@@ -246,31 +252,31 @@ fun MonthSearchTopBar(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
             )
         } else {
-            // The bar leaves with its scroll, status-bar inset and all, which would let the list scroll up under
-            // the status bar. So the inset is held here, on the bar's own colour, and the bar slides away beneath it.
-            Spacer(
-                Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .windowInsetsTopHeight(WindowInsets.systemBars),
-            )
-            AppBarWithSearch(
-                modifier = Modifier.clipToBounds(),
-                windowInsets = WindowInsets(0),
-                state = searchBarState,
-                inputField = inputField,
-                navigationIcon = { NavigationMenuButton() },
-                actions = {
-                    AmountVisibilityAction()
-                    if (month != null && pickMonth != null) MonthAction(month = month, onClick = pickMonth)
-                },
-                // One colour, as every bar here keeps: neither the bar nor the field in it lifts when the list scrolls beneath.
-                colors = SearchBarDefaults.appBarWithSearchColors(
-                    scrolledSearchBarContainerColor = Color.Unspecified,
-                    scrolledAppBarContainerColor = Color.Unspecified,
-                ),
-                scrollBehavior = scrollBehavior,
-            )
+            // Wrap in a Box that stays pinned behind the status bar
+            Box(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surface) // Keeps a solid color behind system icons
+                    .statusBarsPadding() // Ensures the app bar layout STARTS below the system bar
+                    .clipToBounds() // CRITICAL: Clips the search bar so it hides instead of overlapping system icons
+            ) {
+                AppBarWithSearch(
+                    state = searchBarState,
+                    windowInsets = WindowInsets.statusBars,
+                    inputField = inputField,
+                    navigationIcon = { NavigationMenuButton() },
+                    actions = {
+                        AmountVisibilityAction()
+                        if (month != null && pickMonth != null) MonthAction(month = month, onClick = pickMonth)
+                    },
+                    // One colour, as every bar here keeps: neither the bar nor the field in it lifts when the list scrolls beneath.
+                    colors = SearchBarDefaults.appBarWithSearchColors(
+                        scrolledSearchBarContainerColor = Color.Unspecified,
+                        scrolledAppBarContainerColor = Color.Unspecified,
+                    ),
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+
             UnsentChangesBanner(count = shell.unsentChanges, sending = shell.sending)
         }
         ExpandedFullScreenSearchBar(state = searchBarState, inputField = inputField, content = results)
