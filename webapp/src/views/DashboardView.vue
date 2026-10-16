@@ -49,7 +49,7 @@ const standing = computed(() => {
 		{ label: t('common.income'), amount: budget.summary?.income ?? 0 },
 		{ label: t('common.spent'), amount: budget.summary?.expenses ?? 0 },
 		// Only once something has been moved: most months of someone who never files a transfer would read zero.
-		...(cashflow > 0 ? [{ label: t('dashboard.setAside'), amount: cashflow, caption: t('dashboard.setAsideCaption') }] : []),
+		...(cashflow > 0 ? [{ label: t('dashboard.setAside'), amount: cashflow }] : []),
 		...(roundUps > 0 ? [{ label: t('dashboard.roundedUp'), amount: roundUps, caption: t('dashboard.roundedUpCaption') }] : []),
 	];
 });

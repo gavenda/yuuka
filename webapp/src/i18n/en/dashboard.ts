@@ -3,7 +3,6 @@ export default {
 	saved: 'Saved',
 	savedShare: 'Saved {percent}% of income',
 	setAside: 'Set aside',
-	setAsideCaption: 'Moved into savings and investments',
 	overspent: 'Overspent',
 	budgetRemaining: 'Budget remaining',
 	acrossBudgeted: 'Across budgeted categories',
