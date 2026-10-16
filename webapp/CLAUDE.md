@@ -604,7 +604,7 @@ add a `v-if` on `expanded` to the rail's layout, or that entry will pop instead 
 
 `FabButton` is the one action a screen leads with (`ScreenFab` on Android), registered in `src/lib/fab.ts`:
 a phone gets the floating button, and from `sm` up the rail shows it under its menu button, a square while
-slim and an extended FAB when open. With `actions` it opens a menu of them instead, for a screen whose leading action is really a few. It
+slim and an extended FAB when open. It
 has a slot of its own in the rail that opens from nothing, sliding the destinations down as the FAB pops
 in, and is one persistent button: between two pages that both have a FAB the slot stays open while the
 same button folds back to its square, takes the new label and unfolds again.

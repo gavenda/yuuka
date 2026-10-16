@@ -47,7 +47,7 @@ val SegmentedGap: Dp = 2.dp
  * extra-small where it meets the row next to it. Rows lie [SegmentedGap] apart, so the block reads as one
  * block of separate pieces rather than a single card with dividers.
  */
-fun groupedItemShape(position: ItemPosition, corner: Dp = Radius.lg, joint: Dp = Radius.xs): RoundedCornerShape = when (position) {
+private fun groupedItemShape(position: ItemPosition, corner: Dp = Radius.lg, joint: Dp = Radius.xs): RoundedCornerShape = when (position) {
     ItemPosition.Top -> RoundedCornerShape(topStart = corner, topEnd = corner, bottomStart = joint, bottomEnd = joint)
     ItemPosition.Middle -> RoundedCornerShape(joint)
     ItemPosition.Bottom -> RoundedCornerShape(topStart = joint, topEnd = joint, bottomStart = corner, bottomEnd = corner)

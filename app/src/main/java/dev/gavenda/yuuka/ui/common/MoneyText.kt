@@ -25,7 +25,7 @@ enum class MoneyTone { NEUTRAL, SIGNED, TRANSFER, SIGNED_ALERT }
  * a day above the average), so it never marks a direction.
  */
 @Composable
-fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
+private fun moneyColor(amount: Long, tone: MoneyTone): Color = when (tone) {
     MoneyTone.TRANSFER -> MaterialTheme.colorScheme.secondary
     MoneyTone.NEUTRAL -> LocalContentColor.current
     MoneyTone.SIGNED_ALERT -> when {

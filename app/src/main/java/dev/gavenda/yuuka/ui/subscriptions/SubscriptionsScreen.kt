@@ -76,7 +76,6 @@ internal fun SubscriptionsScreenContent(
     val pausedMessage = stringResource(R.string.subscription_paused)
     val resumedMessage = stringResource(R.string.subscription_resumed)
 
-    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.

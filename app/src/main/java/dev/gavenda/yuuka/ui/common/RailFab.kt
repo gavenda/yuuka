@@ -15,25 +15,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.annotation.DrawableRes
 
-/** One entry of a rail FAB's menu, for a screen whose leading action is really a few. */
-class FabAction(
-    val label: String,
-    val icon: @Composable () -> Unit,
-    val onClick: () -> Unit,
-)
-
-/**
- * A screen's leading action as the navigation rail draws it. [actions], when there are any, turn the
- * button into a menu: pressing it lists them instead of running [onClick]. [busy] swaps the icon for a
- * progress indicator, and a button that is not [enabled] is drawn muted and does nothing.
- */
+/** A screen's leading action as the navigation rail draws it. */
 class FabEntry(
     val label: String,
     @DrawableRes val icon: Int,
     val onClick: () -> Unit,
-    val enabled: Boolean = true,
-    val busy: Boolean = false,
-    val actions: List<FabAction> = emptyList(),
 )
 
 /**
@@ -68,36 +54,22 @@ val LocalRailFabHost = staticCompositionLocalOf<RailFabHost?> { null }
 
 /**
  * A screen's leading action. With a navigation rail it is handed to the rail and nothing is drawn here;
- * on a phone it is the floating button it always was — [phoneFab], an extended FAB unless the screen
- * brings its own (one whose button opens a menu of [actions]).
+ * on a phone it is the extended floating button it always was.
  */
 @Composable
-fun ScreenFab(
-    label: String,
-    @DrawableRes icon: Int,
-    onClick: () -> Unit,
-    actions: List<FabAction> = emptyList(),
-    phoneFab: @Composable () -> Unit = {
+fun ScreenFab(label: String, @DrawableRes icon: Int, onClick: () -> Unit) {
+    val host = LocalRailFabHost.current
+    if (host == null) {
         ExtendedFloatingActionButton(
             onClick = onClick,
             icon = { Icon(painterResource(icon), contentDescription = null) },
             text = { Text(label) },
         )
-    },
-) {
-    if (LocalRailFabHost.current == null) {
-        phoneFab()
     } else {
-        RegisterRailFab(FabEntry(label = label, icon = icon, onClick = onClick, actions = actions))
+        val entry = FabEntry(label = label, icon = icon, onClick = onClick)
+        val owner = remember { Any() }
+        // Every composition, so the rail's copy never holds a click handler from an earlier one.
+        SideEffect { host.show(owner, entry) }
+        DisposableEffect(owner) { onDispose { host.hide(owner) } }
     }
-}
-
-/** Puts [entry] in the rail for as long as this is composed. Does nothing where there is no rail. */
-@Composable
-fun RegisterRailFab(entry: FabEntry) {
-    val host = LocalRailFabHost.current ?: return
-    val owner = remember { Any() }
-    // Every composition, so the rail's copy never holds a click handler from an earlier one.
-    SideEffect { host.show(owner, entry) }
-    DisposableEffect(owner) { onDispose { host.hide(owner) } }
 }

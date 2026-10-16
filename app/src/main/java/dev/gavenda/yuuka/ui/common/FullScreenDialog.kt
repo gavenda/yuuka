@@ -109,7 +109,7 @@ fun FullScreenDialog(
 }
 
 /** Everything a full-screen dialog is given, as one value the host can hold on to. */
-private class FullScreenDialogSpec(
+internal class FullScreenDialogSpec(
     val title: String,
     val onDismiss: () -> Unit,
     val onSave: (() -> Unit)?,
@@ -121,7 +121,7 @@ private class FullScreenDialogSpec(
 )
 
 /** One dialog the host is drawing: what it last held, and whether the screen that opened it has let go of it. */
-class FullScreenDialogEntry internal constructor(spec: Any, locals: CompositionLocalContext) {
+class FullScreenDialogEntry internal constructor(spec: FullScreenDialogSpec, locals: CompositionLocalContext) {
     internal var spec by mutableStateOf(spec)
     internal var locals by mutableStateOf(locals)
     internal var leaving by mutableStateOf(false)
@@ -142,7 +142,7 @@ fun FullScreenDialogHost(state: FullScreenDialogHostState) {
             // The dialog is composed here, not where it was asked for, so it is handed that place's locals.
             CompositionLocalProvider(entry.locals) {
                 FullScreenDialogWindow(
-                    spec = entry.spec as FullScreenDialogSpec,
+                    spec = entry.spec,
                     leaving = entry.leaving,
                     onGone = { state.entries -= entry },
                 )

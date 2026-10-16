@@ -78,7 +78,6 @@ internal fun CategoriesScreenContent(
     val categoryUpdatedMessage = stringResource(R.string.category_updated)
     val categoryAddedMessage = stringResource(R.string.category_added)
 
-    // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.

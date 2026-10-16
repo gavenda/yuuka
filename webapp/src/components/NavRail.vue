@@ -3,7 +3,7 @@ import CatPattern from '@/components/CatPattern.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import RailItem from '@/components/RailItem.vue';
 import { formatMonth } from '@/lib/dates';
-import { currentFab, type FabAction, type FabEntry } from '@/lib/fab';
+import { currentFab, type FabEntry } from '@/lib/fab';
 import {
 	ATTACH_MONEY,
 	CALENDAR_MONTH,
@@ -67,13 +67,6 @@ const fabShown = ref(false);
 const fabFolded = ref(false);
 const fabExpanded = computed(() => expanded.value && !fabFolded.value);
 const slotEl = ref<HTMLElement | null>(null);
-const fabEl = ref<HTMLElement | null>(null);
-
-/**
- * A FAB with `actions` lists them in a menu instead of running. The rail clips what it holds, and a slim
- * one is narrower than the menu, so the menu is drawn over the page from where the button is.
- */
-const menuAt = ref<{ top: number; left: number } | null>(null);
 
 let fabTimer: ReturnType<typeof setTimeout> | undefined;
 let foldedAt = 0;
@@ -89,7 +82,6 @@ function foldFab(): void {
 async function presentFab(fab: FabEntry): Promise<void> {
 	clearTimeout(fabTimer);
 	const mine = ++fabGeneration;
-	menuAt.value = null;
 
 	if (fabOpen.value) {
 		foldFab();
@@ -119,7 +111,6 @@ async function presentFab(fab: FabEntry): Promise<void> {
 function dismissFab(): void {
 	clearTimeout(fabTimer);
 	fabGeneration++;
-	menuAt.value = null;
 	foldFab();
 
 	fabTimer = setTimeout(() => {
@@ -131,22 +122,7 @@ function dismissFab(): void {
 watch(currentFab, (fab) => (fab ? void presentFab(fab) : dismissFab()), { immediate: true });
 
 function pressFab(): void {
-	const fab = shownFab.value;
-	if (!fab || fab.disabled) return;
-
-	if (!fab.actions.length) {
-		fab.run();
-		afterChoice();
-		return;
-	}
-
-	const box = fabEl.value?.getBoundingClientRect();
-	menuAt.value = menuAt.value || !box ? null : { top: box.bottom, left: box.left };
-}
-
-function chooseAction(action: FabAction): void {
-	menuAt.value = null;
-	action.run();
+	shownFab.value?.run();
 	afterChoice();
 }
 
@@ -177,8 +153,7 @@ function afterChoice(): void {
 
 function onKeydown(event: KeyboardEvent): void {
 	if (event.key !== 'Escape') return;
-	if (menuAt.value) menuAt.value = null;
-	else if (expanded.value) collapse();
+	if (expanded.value) collapse();
 }
 
 /**
@@ -279,16 +254,11 @@ onBeforeUnmount(() => {
 					<div v-if="shownFab" class="rail-fab-box">
 						<span class="rail-fab-ghost" aria-hidden="true">{{ shownFab.label }}</span>
 						<button
-							ref="fabEl"
 							type="button"
-							class="fab rail-fab"
-							:class="shownFab.disabled ? '' : 'shadow-elevation-3'"
+							class="fab rail-fab shadow-elevation-3"
 							:data-expanded="fabExpanded"
 							:data-shown="fabShown"
-							:disabled="shownFab.disabled"
 							:aria-label="shownFab.label"
-							:aria-haspopup="shownFab.actions.length ? 'menu' : undefined"
-							:aria-expanded="shownFab.actions.length ? !!menuAt : undefined"
 							:title="shownFab.label"
 							@click="pressFab"
 						>
@@ -412,24 +382,4 @@ onBeforeUnmount(() => {
 			</div>
 		</div>
 	</nav>
-
-	<!-- The FAB's menu, when its screen's leading action is really a few. -->
-	<Teleport to="body">
-		<template v-if="menuAt && shownFab">
-			<div class="fixed inset-0 z-50" aria-hidden="true" @click="menuAt = null" />
-			<div role="menu" class="menu fixed z-50 min-w-28" :style="{ top: `${menuAt.top}px`, left: `${menuAt.left}px` }" @keydown="onKeydown">
-				<button
-					v-for="action in shownFab.actions"
-					:key="action.label"
-					type="button"
-					role="menuitem"
-					class="menu-item pr-4"
-					@click="chooseAction(action)"
-				>
-					<AppIcon :icon="action.icon" />
-					{{ action.label }}
-				</button>
-			</div>
-		</template>
-	</Teleport>
 </template>

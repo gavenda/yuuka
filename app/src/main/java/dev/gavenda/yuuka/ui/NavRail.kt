@@ -11,7 +11,6 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,10 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,9 +33,7 @@ import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +54,6 @@ import dev.gavenda.yuuka.ui.common.CatFade
 import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.FabEntry
 import dev.gavenda.yuuka.ui.common.catPattern
-import dev.gavenda.yuuka.ui.common.MutationLoadingIndicator
 import dev.gavenda.yuuka.ui.common.RailFabHost
 import dev.gavenda.yuuka.ui.common.RailMonthHost
 import dev.gavenda.yuuka.ui.common.UserAvatar
@@ -316,7 +309,7 @@ fun YuukaNavRail(
 /**
  * The screen's leading action, under the menu button as Material places it: an icon FAB while the rail is
  * slim, an extended one when open. Its slot opens when a screen brings a button and closes when the last
- * one goes, sliding the destinations with it. A button with [FabEntry.actions] lists them in a menu.
+ * one goes, sliding the destinations with it.
  */
 @Composable
 private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Unit) {
@@ -324,7 +317,6 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
     // The slot animates shut after the entry is gone, so remember what it last held to draw while it does.
     val lastShown = remember { arrayOfNulls<FabEntry>(1) }
     if (entry != null) lastShown[0] = entry
-    var menuOpen by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
         visible = entry != null,
@@ -332,50 +324,19 @@ private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Un
         exit = shrinkVertically() + fadeOut(),
     ) {
         val shown = lastShown[0] ?: return@AnimatedVisibility
-        val active = shown.enabled && !shown.busy
-
-        Box(modifier = Modifier.padding(start = 20.dp, top = 12.dp)) {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (active) {
-                        if (shown.actions.isEmpty()) {
-                            shown.onClick()
-                            afterRun()
-                        } else {
-                            menuOpen = true
-                        }
-                    }
-                },
-                expanded = railExpanded,
-                icon = {
-                    if (shown.busy) MutationLoadingIndicator(size = 24.dp) else Icon(
-                        painterResource(shown.icon),
-                        contentDescription = null
-                    )
-                },
-                text = { Text(shown.label) },
-                // A collapsed button shows only its icon, so the label has to be said some other way.
-                modifier = Modifier.semantics { contentDescription = shown.label },
-                elevation = if (shown.enabled) {
-                    FloatingActionButtonDefaults.elevation()
-                } else {
-                    FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
-                },
-            )
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                shown.actions.forEach { action ->
-                    DropdownMenuItem(
-                        text = { Text(action.label) },
-                        leadingIcon = action.icon,
-                        onClick = {
-                            menuOpen = false
-                            action.onClick()
-                            afterRun()
-                        },
-                    )
-                }
-            }
-        }
+        ExtendedFloatingActionButton(
+            onClick = {
+                shown.onClick()
+                afterRun()
+            },
+            expanded = railExpanded,
+            icon = { Icon(painterResource(shown.icon), contentDescription = null) },
+            text = { Text(shown.label) },
+            // A collapsed button shows only its icon, so the label has to be said some other way.
+            modifier = Modifier
+                .padding(start = 20.dp, top = 12.dp)
+                .semantics { contentDescription = shown.label },
+        )
     }
 }
 

@@ -83,8 +83,6 @@ function stopListening(): void {
 }
 
 onBeforeUnmount(stopListening);
-
-defineExpose({ close: () => settle(false) });
 </script>
 
 <template>
@@ -107,7 +105,7 @@ defineExpose({ close: () => settle(false) });
 			@focusin="settle(true)"
 			@focusout="!actionsEl?.contains($event.relatedTarget as Node | null) && settle(false)"
 		>
-			<slot name="actions" :close="() => settle(false)" />
+			<slot name="actions" />
 		</div>
 	</div>
 </template>

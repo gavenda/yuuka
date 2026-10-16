@@ -328,7 +328,7 @@ private fun steadyTopAppBarColors(): TopAppBarColors =
 
 /** Opens the phone's navigation drawer. */
 @Composable
-fun NavigationMenuButton() {
+private fun NavigationMenuButton() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onOpenNavigation) {
         Icon(painterResource(R.drawable.menu_48px), contentDescription = stringResource(R.string.cd_menu))
@@ -337,7 +337,7 @@ fun NavigationMenuButton() {
 
 /** Leaves a screen that was pushed on top of a tab. */
 @Composable
-fun BackButton() {
+private fun BackButton() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onBack) {
         Icon(painterResource(R.drawable.arrow_back_48px), contentDescription = stringResource(R.string.cd_back))
@@ -346,7 +346,7 @@ fun BackButton() {
 
 /** The "someone is looking over my shoulder" switch: masks every figure on screen at once. */
 @Composable
-fun AmountVisibilityAction() {
+private fun AmountVisibilityAction() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onToggleAmounts) {
         Icon(
