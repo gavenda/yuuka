@@ -139,32 +139,30 @@ internal fun SettingsScreenContent(
         
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-
-                // Section 1: Currency
-                SettingsGroupHeader(title = "Currency")
-                SettingsGroupContainer {
-                    SettingItemRow(position = ItemPosition.Single, onClick = { isCurrencySheetOpen = true }) {
-                        Icon(painterResource(R.drawable.attach_money_48px),
-                            contentDescription = null,
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Display currency", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                currencyDraft,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
+            // Section 1: Currency
+            SettingsGroupHeader(title = "Currency")
+            SettingsGroupContainer {
+                SettingItemRow(position = ItemPosition.Single, onClick = { isCurrencySheetOpen = true }) {
+                    Icon(painterResource(R.drawable.attach_money_48px),
+                        contentDescription = null,
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Display currency", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            Currency.getInstance(currencyDraft).getSymbol(LocalLocale.current.platformLocale),
-                            style = MaterialTheme.typography.headlineSmall,
+                            currencyDraft,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
+                    Text(
+                        Currency.getInstance(currencyDraft).getSymbol(LocalLocale.current.platformLocale),
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
                 }
+            }
 
 //
 //            Card(modifier = Modifier.fillMaxWidth()) {
@@ -174,98 +172,96 @@ internal fun SettingsScreenContent(
 //                }
 //            }
 
-                // Section 2: Appearance
-                SettingsGroupHeader(title = "Appearance")
-                SettingsGroupContainer {
-                    ExpressiveButtonGroupSettingItem(
-                        icon = R.drawable.palette_48px,
-                        title = "Display mode",
-                        subtitle = "Change how the application looks",
-                        options = ThemeMode.entries,
-                        selectedOption = themeMode,
-                        onOptionSelected = { themePreference.setThemeMode(it) },
-                        labelProvider = {
-                            stringResource(
-                                when (it) {
-                                    ThemeMode.system -> R.string.theme_system
-                                    ThemeMode.light -> R.string.theme_light
-                                    ThemeMode.dark -> R.string.theme_dark
-                                },
-                            )
-                        },
-                        // Following the system is the icon alone; light and dark say so beside theirs.
-                        optionIcon = {
+            // Section 2: Appearance
+            SettingsGroupHeader(title = "Appearance")
+            SettingsGroupContainer {
+                ExpressiveButtonGroupSettingItem(
+                    icon = R.drawable.palette_48px,
+                    title = "Display mode",
+                    subtitle = "Change how the application looks",
+                    options = ThemeMode.entries,
+                    selectedOption = themeMode,
+                    onOptionSelected = { themePreference.setThemeMode(it) },
+                    labelProvider = {
+                        stringResource(
                             when (it) {
-                                ThemeMode.system -> R.drawable.brightness_auto_48px
-                                ThemeMode.light -> R.drawable.light_mode_48px
-                                ThemeMode.dark -> R.drawable.dark_mode_48px
-                            }
-                        },
-                        iconOnly = setOf(ThemeMode.system),
-                        position = ItemPosition.Single
-                    )
-                }
-
-                // Section 3: Budgeting
-                SettingsGroupHeader(title = "Budgeting")
-                SettingsGroupContainer {
-                    ExpressiveButtonGroupSettingItem(
-                        icon = R.drawable.note_alt_48px,
-                        title = "Mode",
-                        subtitle = "Choose whether you budget monthly or not",
-                        options = BudgetMode.entries,
-                        selectedOption = budgetModeDraft,
-                        onOptionSelected = {
-                            budgetModeDraft = it
-                            persist(currencyDraft, it, defaultAccountDraft)
-                        },
-                        labelProvider = { stringResource(if (it == BudgetMode.fixed) R.string.label_fixed else R.string.budget_mode_monthly) },
-                        // A fixed plan holds for every month, ticked off once; a monthly one is set month by month.
-                        optionIcon = {
-                            when (it) {
-                                BudgetMode.fixed -> R.drawable.calendar_check_48px
-                                BudgetMode.monthly -> R.drawable.calendar_month_48px
-                            }
-                        },
-                        position = ItemPosition.Single
-                    )
-                }
-
-                // Section 4: Accounts. A list to manage rather than a value to pick, so it is a screen of its own.
-                SettingsGroupHeader(title = "Accounts")
-                SettingsGroupContainer {
-                    SettingItemRow(position = ItemPosition.Single, onClick = onOpenAccountTypes) {
-                        Icon(painterResource(R.drawable.account_tree_48px), contentDescription = null)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.account_types_title), style = MaterialTheme.typography.titleMedium)
-                            Text(stringResource(R.string.account_types_summary), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
-
-                // Section 5: Transactions
-                SettingsGroupHeader(title = "Transactions")
-                SettingsGroupContainer {
-                    SettingItemRow(position = ItemPosition.Single, onClick = { isAccountSheetOpen = true }) {
-                        Icon(painterResource(R.drawable.supervisor_account_48px),
-                            contentDescription = null,
+                                ThemeMode.system -> R.string.theme_system
+                                ThemeMode.light -> R.string.theme_light
+                                ThemeMode.dark -> R.string.theme_dark
+                            },
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.default_account), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                state.accounts.firstOrNull { it.id == defaultAccountDraft }?.name
-                                    ?: firstActiveAccountLabel,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                    },
+                    // Following the system is the icon alone; light and dark say so beside theirs.
+                    optionIcon = {
+                        when (it) {
+                            ThemeMode.system -> R.drawable.brightness_auto_48px
+                            ThemeMode.light -> R.drawable.light_mode_48px
+                            ThemeMode.dark -> R.drawable.dark_mode_48px
                         }
-                    }
-                }
-
-                About(birthday = remember { isYuukaBirthday() })
+                    },
+                    iconOnly = setOf(ThemeMode.system),
+                    position = ItemPosition.Single
+                )
             }
 
+            // Section 3: Budgeting
+            SettingsGroupHeader(title = "Budgeting")
+            SettingsGroupContainer {
+                ExpressiveButtonGroupSettingItem(
+                    icon = R.drawable.note_alt_48px,
+                    title = "Mode",
+                    subtitle = "Choose whether you budget monthly or not",
+                    options = BudgetMode.entries,
+                    selectedOption = budgetModeDraft,
+                    onOptionSelected = {
+                        budgetModeDraft = it
+                        persist(currencyDraft, it, defaultAccountDraft)
+                    },
+                    labelProvider = { stringResource(if (it == BudgetMode.fixed) R.string.label_fixed else R.string.budget_mode_monthly) },
+                    // A fixed plan holds for every month, ticked off once; a monthly one is set month by month.
+                    optionIcon = {
+                        when (it) {
+                            BudgetMode.fixed -> R.drawable.calendar_check_48px
+                            BudgetMode.monthly -> R.drawable.calendar_month_48px
+                        }
+                    },
+                    position = ItemPosition.Single
+                )
+            }
+
+            // Section 4: Accounts. A list to manage rather than a value to pick, so it is a screen of its own.
+            SettingsGroupHeader(title = "Accounts")
+            SettingsGroupContainer {
+                SettingItemRow(position = ItemPosition.Single, onClick = onOpenAccountTypes) {
+                    Icon(painterResource(R.drawable.account_tree_48px), contentDescription = null)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.account_types_title), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.account_types_summary), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+
+            // Section 5: Transactions
+            SettingsGroupHeader(title = "Transactions")
+            SettingsGroupContainer {
+                SettingItemRow(position = ItemPosition.Single, onClick = { isAccountSheetOpen = true }) {
+                    Icon(painterResource(R.drawable.supervisor_account_48px),
+                        contentDescription = null,
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.default_account), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            state.accounts.firstOrNull { it.id == defaultAccountDraft }?.name
+                                ?: firstActiveAccountLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+
+            About(birthday = remember { isYuukaBirthday() })
         }
     }
 

@@ -609,8 +609,9 @@ has a slot of its own in the rail that opens from nothing, sliding the destinati
 in, and is one persistent button: between two pages that both have a FAB the slot stays open while the
 same button folds back to its square, takes the new label and unfolds again.
 
-A phone also gets a top app bar naming the screen; from `sm` up there is none, since the rail already marks
-the current destination. Either way the heading comes from the route's `meta.title`, so a view does not
+A phone also gets a top app bar naming the screen, its title centred on the bar as Android's
+`CenterAlignedTopAppBar` has it (a three-column grid whose outer columns share what is left); from `sm` up
+there is none, since the rail already marks the current destination. Either way the heading comes from the route's `meta.title`, so a view does not
 render its own `<h1>`. Transient feedback goes through `showSnackbar()` (`src/lib/snackbar.ts`, hosted once
 in `App.vue`), which shows one message at a time along the bottom of the page; a failure that belongs to a
 form is said in the form.

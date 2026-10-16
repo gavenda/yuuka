@@ -30,6 +30,7 @@ import {
 	FILTER_LIST_FILL,
 	SELL,
 	SELL_FILL,
+	LABEL_FILL,
 } from '@/lib/icons';
 import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
 import { useBudgetStore } from '@/stores/budget';
@@ -371,12 +372,9 @@ async function remove(): Promise<void> {
 										</span>
 										<span v-if="card.category" class="type-body-small flex items-center gap-1.5">
 											{{ card.category.name }}
-											<span
-												v-if="card.category.color"
-												class="size-2 rounded-full"
-												:style="{ backgroundColor: harmonised(card.category.color) }"
-												aria-hidden="true"
-											/>
+											<span v-if="card.category.color" class="flex" :style="{ color: harmonised(card.category.color) }">
+												<AppIcon :icon="LABEL_FILL" :size="14" />
+											</span>
 										</span>
 									</span>
 								</span>
@@ -392,7 +390,7 @@ async function remove(): Promise<void> {
 
 									<span v-if="card.tags.length" class="flex max-w-[60%] shrink-0 flex-wrap justify-end gap-1.5">
 										<span v-for="tag in card.tags" :key="tag.id" class="chip">
-											<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
+											<span class="flex shrink-0" :style="{ color: harmonised(tag.color) }"><AppIcon :icon="LABEL_FILL" :size="14" /></span>
 											<span class="truncate">{{ tag.name }}</span>
 										</span>
 									</span>

@@ -121,84 +121,81 @@ internal fun SaveTheChangeScreenContent(
         
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
+            modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Section 1: Round-ups
+            SettingsGroupHeader(title = "Round-ups")
+            SettingsGroupContainer {
+                ExpressiveSwitchSettingItem(
+                    icon = R.drawable.savings_fill_48px,
+                    title = stringResource(R.string.save_the_change_enabled),
+                    subtitle = stringResource(R.string.save_the_change_description),
+                    checked = enabledDraft,
+                    onCheckedChange = {
+                        enabledDraft = it
+                        if (it) destinationField.touch()
+                        persist(it, roundToDraft, destinationDraft, categoryDraft)
+                    },
+                    position = ItemPosition.Top,
+                )
+                ExpressiveButtonGroupSettingItem(
+                    icon = R.drawable.calculate_48px,
+                    title = stringResource(R.string.round_to_label),
+                    subtitle = "How far each purchase is rounded up",
+                    options = listOf(1000L, 10000L),
+                    selectedOption = roundToDraft,
+                    onOptionSelected = {
+                        roundToDraft = it
+                        persist(enabledDraft, it, destinationDraft, categoryDraft)
+                    },
+                    labelProvider = { stringResource(if (it == 1000L) R.string.round_to_ten else R.string.round_to_hundred) },
+                    position = ItemPosition.Bottom,
+                )
+            }
 
-                // Section 1: Round-ups
-                SettingsGroupHeader(title = "Round-ups")
-                SettingsGroupContainer {
-                    ExpressiveSwitchSettingItem(
-                        icon = R.drawable.savings_fill_48px,
-                        title = stringResource(R.string.save_the_change_enabled),
-                        subtitle = stringResource(R.string.save_the_change_description),
-                        checked = enabledDraft,
-                        onCheckedChange = {
-                            enabledDraft = it
-                            if (it) destinationField.touch()
-                            persist(it, roundToDraft, destinationDraft, categoryDraft)
-                        },
-                        position = ItemPosition.Top,
-                    )
-                    ExpressiveButtonGroupSettingItem(
-                        icon = R.drawable.calculate_48px,
-                        title = stringResource(R.string.round_to_label),
-                        subtitle = "How far each purchase is rounded up",
-                        options = listOf(1000L, 10000L),
-                        selectedOption = roundToDraft,
-                        onOptionSelected = {
-                            roundToDraft = it
-                            persist(enabledDraft, it, destinationDraft, categoryDraft)
-                        },
-                        labelProvider = { stringResource(if (it == 1000L) R.string.round_to_ten else R.string.round_to_hundred) },
-                        position = ItemPosition.Bottom,
-                    )
-                }
+            // Section 2: Accounts — which ones round up, and the one the change lands in.
+            val sourceAccounts = state.accounts.filter { it.roundUpSource }
+            SettingsGroupHeader(title = "Accounts")
+            SettingsGroupContainer {
+                SelectionSettingRow(
+                    icon = R.drawable.wallet_48px,
+                    title = stringResource(R.string.round_up_purchases_account_label),
+                    // A couple of names read better than a count; a longer list would be a wall of text, so it is counted instead.
+                    value = when {
+                        sourceAccounts.isEmpty() -> stringResource(R.string.save_the_change_no_accounts)
+                        sourceAccounts.size <= 2 -> sourceAccounts.joinToString { it.name }
+                        else -> pluralStringResource(R.plurals.round_up_accounts_count, sourceAccounts.size, sourceAccounts.size)
+                    },
+                    position = ItemPosition.Top,
+                    onClick = { isSourceSheetOpen = true },
+                )
+                SelectionSettingRow(
+                    icon = R.drawable.account_balance_wallet_fill_48px,
+                    title = stringResource(R.string.destination_account),
+                    value = state.accounts.firstOrNull { it.id == destinationDraft }?.name ?: chooseAnAccountLabel,
+                    position = ItemPosition.Bottom,
+                    onClick = {
+                        destinationField.touch()
+                        isAccountSheetOpen = true
+                    },
+                )
+            }
+            FieldError(destinationField.error, modifier = Modifier.padding(horizontal = 8.dp))
 
-                // Section 2: Accounts — which ones round up, and the one the change lands in.
-                val sourceAccounts = state.accounts.filter { it.roundUpSource }
-                SettingsGroupHeader(title = "Accounts")
-                SettingsGroupContainer {
-                    SelectionSettingRow(
-                        icon = R.drawable.wallet_48px,
-                        title = stringResource(R.string.round_up_purchases_account_label),
-                        // A couple of names read better than a count; a longer list would be a wall of text, so it is counted instead.
-                        value = when {
-                            sourceAccounts.isEmpty() -> stringResource(R.string.save_the_change_no_accounts)
-                            sourceAccounts.size <= 2 -> sourceAccounts.joinToString { it.name }
-                            else -> pluralStringResource(R.plurals.round_up_accounts_count, sourceAccounts.size, sourceAccounts.size)
-                        },
-                        position = ItemPosition.Top,
-                        onClick = { isSourceSheetOpen = true },
-                    )
-                    SelectionSettingRow(
-                        icon = R.drawable.account_balance_wallet_fill_48px,
-                        title = stringResource(R.string.destination_account),
-                        value = state.accounts.firstOrNull { it.id == destinationDraft }?.name ?: chooseAnAccountLabel,
-                        position = ItemPosition.Bottom,
-                        onClick = {
-                            destinationField.touch()
-                            isAccountSheetOpen = true
-                        },
-                    )
-                }
-                FieldError(destinationField.error, modifier = Modifier.padding(horizontal = 8.dp))
-
-                // Section 3: Category
-                val selectedCategoryLabel =
-                    state.categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == categoryDraft }?.name
-                        ?: uncategorizedLabel
-                SettingsGroupHeader(title = "Category")
-                SettingsGroupContainer {
-                    SelectionSettingRow(
-                        icon = R.drawable.category_fill_48px,
-                        title = stringResource(R.string.label_cashflow_category),
-                        value = selectedCategoryLabel,
-                        position = ItemPosition.Single,
-                        onClick = { isCategorySheetOpen = true },
-                    )
-                }
+            // Section 3: Category
+            val selectedCategoryLabel =
+                state.categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == categoryDraft }?.name
+                    ?: uncategorizedLabel
+            SettingsGroupHeader(title = "Category")
+            SettingsGroupContainer {
+                SelectionSettingRow(
+                    icon = R.drawable.category_fill_48px,
+                    title = stringResource(R.string.label_cashflow_category),
+                    value = selectedCategoryLabel,
+                    position = ItemPosition.Single,
+                    onClick = { isCategorySheetOpen = true },
+                )
             }
         }
     }

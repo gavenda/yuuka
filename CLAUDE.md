@@ -309,7 +309,10 @@ replaced its own. The search view's results page the same way. On Android this i
 here a bar stays on the colour it rests on wherever the page is, and so does the search field in it. On
 Android a bar with a scroll behaviour takes `steadyTopAppBarColors()` (`ui/common/ScreenTopBar.kt`), and the
 app bar with search leaves both of its scrolled colours unspecified; the web's phone bar is always
-`bg-background`. A new bar does the same rather than taking Material's default.
+`bg-background`. A new bar does the same rather than taking Material's default. A screen's bar is also
+centre-aligned: Material's `CenterAlignedTopAppBar` on Android (`ScreenTopBar`, `MonthTopBar`, `DetailTopBar`),
+small and pinned, never the large collapsing one, and on the web the phone bar's title is centred on the
+bar. A form's bar is the exception: a full-screen dialog keeps Material's start-aligned title beside close.
 
 - **The web app is the Android app as a tablet draws it**: From the rail's breakpoint up, a screen in the
 browser is its Compose screen in a window with a rail: the same layout, the same colour roles (the scheme

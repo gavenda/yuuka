@@ -74,13 +74,12 @@ internal fun TagsScreenContent(
     val tagDeletedMessage = stringResource(R.string.tag_deleted)
 
     // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
-        modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { LargeScreenTopBar(stringResource(R.string.destination_tags), scrollBehavior, actions = {}) },
+        modifier = modifier,
+        topBar = { ScreenTopBar(stringResource(R.string.destination_tags), actions = {}) },
         
         floatingActionButton = {
             ScreenFab(

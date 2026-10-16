@@ -1,12 +1,12 @@
 package dev.gavenda.yuuka.ui.categories
 
 import androidx.compose.ui.res.painterResource
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -32,7 +32,6 @@ import dev.gavenda.yuuka.data.model.CategoryKind
 import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.ui.common.*
-import dev.gavenda.yuuka.ui.settings.SettingsGroupContainer
 import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.core.graphics.toColorInt
@@ -80,13 +79,12 @@ internal fun CategoriesScreenContent(
     val categoryAddedMessage = stringResource(R.string.category_added)
 
     // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
-        modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { LargeScreenTopBar(stringResource(R.string.destination_categories), scrollBehavior, actions = {}) },
+        modifier = modifier,
+        topBar = { ScreenTopBar(stringResource(R.string.destination_categories), actions = {}) },
         
         floatingActionButton = {
             ScreenFab(
@@ -100,7 +98,8 @@ internal fun CategoriesScreenContent(
             modifier = Modifier.padding(padding).fillMaxWidth(),
             // Sections sit apart the way the settings groups do: a heading, then one card of rows.
             contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            // Rows a hair apart, the way a settings group is drawn; the space between sections is the heading's own.
+            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
         ) {
             if (state.categories.isEmpty()) {
                 item {
@@ -112,113 +111,116 @@ internal fun CategoriesScreenContent(
                 }
             }
 
-            state.sections.forEach { section ->
+            state.sections.forEachIndexed { sectionIndex, section ->
+                // Drawn as the settings screen draws its groups: the heading in the accent colour, then the section's
+                // rows as one segmented list. Each row is an item of its own, so the list only composes what is on show.
                 item(key = "section:${section.key}") {
-                    // The settings screen spaces a heading from its card by 16dp on top of the heading's own padding.
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Drawn as the settings screen draws its groups: the heading in the accent colour, then the
-                        // section's rows as one segmented list.
+                    // The list spaces rows a hair apart; a section stands 16dp from the one above and from its heading.
+                    Box(
+                        modifier = Modifier.animateItem().padding(
+                            top = if (sectionIndex > 0 || state.categories.isEmpty()) SectionGap else 0.dp,
+                            bottom = SectionGap,
+                        ),
+                    ) {
                         SettingsGroupHeader(title = "${section.title} (${section.families.size})")
-                        SettingsGroupContainer {
-                            if (section.families.isEmpty()) {
-                                GroupedItem(position = ItemPosition.Single, modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(20.dp),
-                                    )
+                    }
+                }
+                if (section.families.isEmpty()) {
+                    item(key = "empty:${section.key}") {
+                        GroupedItem(position = ItemPosition.Single, modifier = Modifier.animateItem().fillMaxWidth()) {
+                            Text(
+                                stringResource(R.string.no_section_categories_yet, section.title.lowercase()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(20.dp),
+                            )
+                        }
+                    }
+                }
+                section.families.forEachIndexed { familyIndex, family ->
+                    val familyExpanded = expandedFamily == family.parent.id
+                    val lastFamily = familyIndex == section.families.lastIndex
+                    item(key = family.parent.id) {
+                        val archiveKey = "archive:${family.parent.id}"
+                        val deleteKey = "delete:${family.parent.id}"
+                        CategoryRow(
+                            family.parent,
+                            // The list runs on through a family's open subcategories, so its parent ends it only while they are shut.
+                            position = positionInGroup(
+                                first = familyIndex == 0,
+                                last = lastFamily && !(familyExpanded && family.children.isNotEmpty()),
+                            ),
+                            modifier = Modifier.animateItem(),
+                            subCount = family.children.size,
+                            expanded = familyExpanded,
+                            archiving = busy.isBusy(archiveKey),
+                            deleting = busy.isBusy(deleteKey),
+                            onClick = {
+                                if (family.children.isNotEmpty()) {
+                                    expandedFamily = if (familyExpanded) null else family.parent.id
                                 }
-                            }
-                            section.families.forEachIndexed { familyIndex, family ->
-                                val familyExpanded = expandedFamily == family.parent.id
-                                val lastFamily = familyIndex == section.families.lastIndex
-                                val archiveKey = "archive:${family.parent.id}"
-                                val deleteKey = "delete:${family.parent.id}"
-                                Column {
-                                    CategoryRow(
-                                        family.parent,
-                                        // The list runs on through a family's open subcategories, so its parent ends it only while they are shut.
-                                        position = positionInGroup(
-                                            first = familyIndex == 0,
-                                            last = lastFamily && !(familyExpanded && family.children.isNotEmpty()),
-                                        ),
-                                        subCount = family.children.size,
-                                        expanded = familyExpanded,
-                                        archiving = busy.isBusy(archiveKey),
-                                        deleting = busy.isBusy(deleteKey),
-                                        onClick = {
-                                            if (family.children.isNotEmpty()) {
-                                                expandedFamily = if (familyExpanded) null else family.parent.id
-                                            }
-                                        },
-                                        onEdit = { editing = family.parent },
-                                        onArchive = {
-                                            busy.run(
-                                                archiveKey,
-                                                snackbarHostState,
-                                                successMessage = if (family.parent.archived) categoryRestoredMessage else categoryArchivedMessage,
-                                            ) { onSetArchived(family.parent.id, !family.parent.archived) }
-                                        },
-                                        onDelete = {
-                                            busy.run(
-                                                deleteKey,
-                                                snackbarHostState,
-                                                successMessage = categoryDeletedMessage
-                                            ) {
-                                                onDeleteCategory(family.parent.id)
-                                            }
-                                        },
-                                        onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
-                                    )
-                                    AnimatedVisibility(visible = familyExpanded) {
-                                        Column(
-                                            modifier = Modifier.padding(top = SegmentedGap),
-                                            verticalArrangement = Arrangement.spacedBy(SegmentedGap),
-                                        ) {
-                                            family.children.forEachIndexed { childIndex, child ->
-                                                val childArchiveKey = "archive:${child.id}"
-                                                val childDeleteKey = "delete:${child.id}"
-                                                CategoryRow(
-                                                    child,
-                                                    position = positionInGroup(
-                                                        first = false,
-                                                        last = lastFamily && childIndex == family.children.lastIndex,
-                                                    ),
-                                                    indent = true,
-                                                    archiving = busy.isBusy(childArchiveKey),
-                                                    deleting = busy.isBusy(childDeleteKey),
-                                                    onClick = { editing = child },
-                                                    onEdit = { editing = child },
-                                                    onArchive = {
-                                                        busy.run(
-                                                            childArchiveKey,
-                                                            snackbarHostState,
-                                                            successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
-                                                        ) { onSetArchived(child.id, !child.archived) }
-                                                    },
-                                                    onDelete = {
-                                                        busy.run(
-                                                            childDeleteKey,
-                                                            snackbarHostState,
-                                                            successMessage = categoryDeletedMessage
-                                                        ) {
-                                                            onDeleteCategory(child.id)
-                                                        }
-                                                    },
-                                                )
-                                            }
-                                        }
+                            },
+                            onEdit = { editing = family.parent },
+                            onArchive = {
+                                busy.run(
+                                    archiveKey,
+                                    snackbarHostState,
+                                    successMessage = if (family.parent.archived) categoryRestoredMessage else categoryArchivedMessage,
+                                ) { onSetArchived(family.parent.id, !family.parent.archived) }
+                            },
+                            onDelete = {
+                                busy.run(
+                                    deleteKey,
+                                    snackbarHostState,
+                                    successMessage = categoryDeletedMessage
+                                ) {
+                                    onDeleteCategory(family.parent.id)
+                                }
+                            },
+                            onAddSub = { creatingIn = section; creatingParentId = family.parent.id },
+                        )
+                    }
+                    // An open family's subcategories are rows of the list too; they come and go with the item animation.
+                    if (familyExpanded) {
+                        itemsIndexed(family.children, key = { _, child -> child.id }) { childIndex, child ->
+                            val childArchiveKey = "archive:${child.id}"
+                            val childDeleteKey = "delete:${child.id}"
+                            CategoryRow(
+                                child,
+                                position = positionInGroup(
+                                    first = false,
+                                    last = lastFamily && childIndex == family.children.lastIndex,
+                                ),
+                                modifier = Modifier.animateItem(),
+                                indent = true,
+                                archiving = busy.isBusy(childArchiveKey),
+                                deleting = busy.isBusy(childDeleteKey),
+                                onClick = { editing = child },
+                                onEdit = { editing = child },
+                                onArchive = {
+                                    busy.run(
+                                        childArchiveKey,
+                                        snackbarHostState,
+                                        successMessage = if (child.archived) categoryRestoredMessage else categoryArchivedMessage,
+                                    ) { onSetArchived(child.id, !child.archived) }
+                                },
+                                onDelete = {
+                                    busy.run(
+                                        childDeleteKey,
+                                        snackbarHostState,
+                                        successMessage = categoryDeletedMessage
+                                    ) {
+                                        onDeleteCategory(child.id)
                                     }
-                                }
-                            }
+                                },
+                            )
                         }
                     }
                 }
             }
 
             if (state.archivedCount > 0) {
-                item {
-                    TextButton(onClick = onToggleShowArchived) {
+                item(key = "archived-toggle") {
+                    TextButton(onClick = onToggleShowArchived, modifier = Modifier.animateItem().padding(top = SectionGap)) {
                         Text(
                             stringResource(
                                 if (state.showArchived) R.string.archived_toggle_hide else R.string.archived_toggle_show,
@@ -265,6 +267,9 @@ internal fun CategoriesScreenContent(
  * swipe, beside archive and delete. A subcategory's tap edits it. The row paints the card's own colour, which is
  * what keeps the swipe's actions hidden behind it until it is dragged.
  */
+/** What a section stands apart by: from the one above, and from its own heading, on top of the list's hair gap. */
+private val SectionGap = 16.dp - SegmentedGap
+
 @Composable
 private fun CategoryRow(
     category: Category,
@@ -278,6 +283,7 @@ private fun CategoryRow(
     onEdit: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
     onAddSub: (() -> Unit)? = null,
 ) {
     val chevron by animateFloatAsState(
@@ -286,7 +292,7 @@ private fun CategoryRow(
         label = "family-chevron",
     )
     SwipeToRevealActions(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         actions = {
             ActionIconButton(ActionIcon.EDIT, stringResource(R.string.cd_rename_item, category.name), onEdit)
             ActionIconButton(
@@ -306,7 +312,7 @@ private fun CategoryRow(
     ) {
         ListItem(
             // A subcategory stands as tall as the parent above it, which carries a count beneath its name.
-            modifier = Modifier.fillMaxWidth().then(if (indent) Modifier.heightIn(min = 72.dp) else Modifier),
+            modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
             shapes = groupedListItemShapes(position),
             // An open family, parent and subcategories alike, is told apart by its colour rather than by indenting.
@@ -322,21 +328,12 @@ private fun CategoryRow(
                 ListItemDefaults.colors(containerColor = groupedItemColor)
             },
             leadingContent = {
-                // In an open family the dot sits on a disc of the row's resting colour, so a colour near the container's own stays visible.
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(if (expanded || indent) groupedItemColor else Color.Transparent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant)),
-                    )
-                }
+                Icon(
+                    painterResource(R.drawable.label_fill_48px),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant),
+                )
             },
             supportingContent = if (subCount > 0) {
                 { Text(pluralStringResource(R.plurals.subcategories_count, subCount, subCount)) }

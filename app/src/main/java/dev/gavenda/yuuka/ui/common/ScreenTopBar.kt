@@ -15,18 +15,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.AppBarWithSearch
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExpandedFullScreenSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
@@ -35,7 +42,6 @@ import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -104,50 +110,28 @@ fun Modifier.appBarScroll(scrollBehavior: SearchBarScrollBehavior): Modifier =
     if (LocalAppBarShell.current.useRail) this else this.nestedScroll(scrollBehavior.nestedScrollConnection)
 
 /**
- * A top-level destination's app bar: its title, the drawer button and the hide-amounts switch, with the
- * unsent-changes banner beneath.
+ * A top-level destination's app bar: the drawer button, its title centred on the bar and the hide-amounts
+ * switch, with the unsent-changes banner beneath.
  *
  * A wide window's rail already marks the current destination and carries both actions, so there is no
  * bar to draw there — only the banner, which belongs to no destination. Put this in the screen's own
  * `Scaffold(topBar = ...)`; it handles its own status-bar inset, so the screen's Scaffold takes none
- * (`contentWindowInsets = WindowInsets(0)`).
+ * (`contentWindowInsets = WindowInsets(0)`). The bar stays where it is and keeps one colour, so a screen
+ * needs no [scrollBehavior] for it; one that passes one hangs it on its Scaffold with [appBarScroll].
  */
 @Composable
 fun ScreenTopBar(
     title: String,
     navigationIcon: @Composable () -> Unit = { NavigationMenuButton() },
     actions: @Composable RowScope.() -> Unit = { AmountVisibilityAction() },
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val shell = LocalAppBarShell.current
     Column {
         if (!shell.useRail) {
-            TopAppBar(title = { Text(title) }, navigationIcon = navigationIcon, actions = actions)
-        }
-        UnsentChangesBanner(count = shell.unsentChanges, sending = shell.sending)
-    }
-}
-
-/**
- * A top-level destination's app bar in its large form (Accounts): the title starts a headline on its own
- * row and shrinks back into an ordinary bar as the page is scrolled, settling there once collapsed.
- *
- * Pair it with an `exitUntilCollapsed` behaviour — unlike the month bar's `enterAlways`, the collapsed
- * row stays put rather than leaving, so the drawer button and the hide-amounts switch are always
- * reachable. The screen must hang the behaviour's `nestedScrollConnection` on its own Scaffold.
- */
-@Composable
-fun LargeScreenTopBar(
-    title: String,
-    scrollBehavior: TopAppBarScrollBehavior,
-    actions: @Composable RowScope.() -> Unit = { AmountVisibilityAction() },
-) {
-    val shell = LocalAppBarShell.current
-    Column {
-        // A rail window has no bar at all — it already marks the destination and carries both actions.
-        if (!shell.useRail) {
-            LargeFlexibleTopAppBar(
-                title = { Text(title) },
-                navigationIcon = { NavigationMenuButton() },
+            CenterAlignedTopAppBar(
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = navigationIcon,
                 actions = actions,
                 colors = steadyTopAppBarColors(),
                 scrollBehavior = scrollBehavior,
@@ -158,8 +142,8 @@ fun LargeScreenTopBar(
 }
 
 /**
- * A month-scoped destination's app bar (Dashboard, Transactions, Budget): the drawer button, the
- * hide-amounts switch and, after it, the button that opens the month picker. [scrollBehavior] — an
+ * A month-scoped destination's app bar (Dashboard, Budget): the drawer button, the title centred on the bar,
+ * the hide-amounts switch and, after it, the button that opens the month picker. [scrollBehavior] — an
  * `enterAlways` one — takes the bar off the screen as the user scrolls down. The screen must hang that
  * behaviour's `nestedScrollConnection` on its own Scaffold.
  *
@@ -175,8 +159,8 @@ fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: 
         if (shell.useRail) {
             RegisterRailMonth(month = month, onPick = pickMonth)
         } else {
-            TopAppBar(
-                title = { if (title != null) Text(title) },
+            CenterAlignedTopAppBar(
+                title = { if (title != null) Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = { NavigationMenuButton() },
                 actions = {
                     AmountVisibilityAction()
@@ -262,7 +246,17 @@ fun MonthSearchTopBar(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
             )
         } else {
+            // The bar leaves with its scroll, status-bar inset and all, which would let the list scroll up under
+            // the status bar. So the inset is held here, on the bar's own colour, and the bar slides away beneath it.
+            Spacer(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .windowInsetsTopHeight(WindowInsets.systemBars),
+            )
             AppBarWithSearch(
+                modifier = Modifier.clipToBounds(),
+                windowInsets = WindowInsets(0),
                 state = searchBarState,
                 inputField = inputField,
                 navigationIcon = { NavigationMenuButton() },

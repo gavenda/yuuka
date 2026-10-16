@@ -88,157 +88,155 @@ internal fun BudgetScreenContent(
                 title = stringResource(R.string.destination_budget),
             ) },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxWidth()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                // Nothing stands between the bar and the first card, so the list pads its own top.
-                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                stringResource(R.string.planned_income_label).uppercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(top = 12.dp),
-                            )
+        LazyColumn(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            // Nothing stands between the bar and the first card, so the list pads its own top.
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            stringResource(R.string.planned_income_label).uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
 
-                            TextButton(
-                                    onClick = { incomeEditing = true },
+                        TextButton(
+                                onClick = { incomeEditing = true },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    if (usingGross) {
+                                        if (grossDraft > 0) visibility.displayMoney(grossDraft, "PHP") else stringResource(R.string.set_gross_income)
+                                    } else {
+                                        if (state.plannedIncome > 0) visibility.displayMoney(state.plannedIncome, state.currency) else stringResource(R.string.set_income)
+                                    },
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text(
-                                        if (usingGross) {
-                                            if (grossDraft > 0) visibility.displayMoney(grossDraft, "PHP") else stringResource(R.string.set_gross_income)
-                                        } else {
-                                            if (state.plannedIncome > 0) visibility.displayMoney(state.plannedIncome, state.currency) else stringResource(R.string.set_income)
-                                        },
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-
-
-                            if (isPhp) {
-                                ConnectedButtonGroup(
-                                    options = IncomePlanMode.entries,
-                                    selected = incomeMode,
-                                    onSelect = { incomeMode = it; incomeEditing = false },
-                                    label = { if (it == IncomePlanMode.gross) stringResource(R.string.income_mode_gross) else stringResource(R.string.label_fixed) },
-                                    modifier = Modifier.padding(top = 8.dp),
                                 )
                             }
 
-                            Text(
-                                if (usingGross) stringResource(R.string.gross_income_hint) else stringResource(R.string.net_income_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
 
-                            if (netPayBreakdown != null) {
-                                Text(stringResource(R.string.monthly_contributions), style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
-                                Column(modifier = Modifier.padding(top = 4.dp)) {
-                                    netPayBreakdown.contributions.forEach { contribution ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                        ) {
-                                            Text(contribution.label, style = MaterialTheme.typography.bodyMedium)
-                                            MoneyText(contribution.amount, currency = "PHP", style = MaterialTheme.typography.bodyMedium)
-                                        }
+                        if (isPhp) {
+                            ConnectedButtonGroup(
+                                options = IncomePlanMode.entries,
+                                selected = incomeMode,
+                                onSelect = { incomeMode = it; incomeEditing = false },
+                                label = { if (it == IncomePlanMode.gross) stringResource(R.string.income_mode_gross) else stringResource(R.string.label_fixed) },
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+
+                        Text(
+                            if (usingGross) stringResource(R.string.gross_income_hint) else stringResource(R.string.net_income_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+
+                        if (netPayBreakdown != null) {
+                            Text(stringResource(R.string.monthly_contributions), style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+                            Column(modifier = Modifier.padding(top = 4.dp)) {
+                                netPayBreakdown.contributions.forEach { contribution ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(contribution.label, style = MaterialTheme.typography.bodyMedium)
+                                        MoneyText(contribution.amount, currency = "PHP", style = MaterialTheme.typography.bodyMedium)
                                     }
                                 }
                             }
+                        }
 
-                            if (state.incomeBreakdown.isNotEmpty()) {
-                                Text(stringResource(R.string.category_kind_income), style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
-                                Column(modifier = Modifier.padding(top = 4.dp)) {
-                                    state.incomeBreakdown.forEach { entry ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                        ) {
-                                            Text(entry.name, style = MaterialTheme.typography.bodyMedium)
-                                            MoneyText(entry.actual, currency = state.currency, style = MaterialTheme.typography.bodyMedium)
-                                        }
+                        if (state.incomeBreakdown.isNotEmpty()) {
+                            Text(stringResource(R.string.category_kind_income), style = MaterialTheme.typography.labelMedium, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
+                            Column(modifier = Modifier.padding(top = 4.dp)) {
+                                state.incomeBreakdown.forEach { entry ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(entry.name, style = MaterialTheme.typography.bodyMedium)
+                                        MoneyText(entry.actual, currency = state.currency, style = MaterialTheme.typography.bodyMedium)
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                item {
-                    StatCarousel(
-                        buildList {
-                            add(StatItem(stringResource(R.string.label_planned), state.totalPlanned, state.currency, caption = stringResource(R.string.across_expense_categories), watermark = true))
+            item {
+                StatCarousel(
+                    buildList {
+                        add(StatItem(stringResource(R.string.label_planned), state.totalPlanned, state.currency, caption = stringResource(R.string.across_expense_categories), watermark = true))
+                        add(
+                            StatItem(
+                                stringResource(R.string.label_spent),
+                                state.totalActual,
+                                state.currency,
+                                caption = if (state.totalPlanned > 0) stringResource(R.string.percent_of_plan, percentOf(state.totalActual, state.totalPlanned)) else stringResource(R.string.no_plan_set),
+                            ),
+                        )
+                        if (netPayBreakdown != null) {
                             add(
                                 StatItem(
-                                    stringResource(R.string.label_spent),
-                                    state.totalActual,
-                                    state.currency,
-                                    caption = if (state.totalPlanned > 0) stringResource(R.string.percent_of_plan, percentOf(state.totalActual, state.totalPlanned)) else stringResource(R.string.no_plan_set),
+                                    stringResource(R.string.net_pay),
+                                    netPayBreakdown.netPay,
+                                    "PHP",
+                                    caption = stringResource(R.string.used_as_planned_income),
                                 ),
                             )
-                            if (netPayBreakdown != null) {
-                                add(
-                                    StatItem(
-                                        stringResource(R.string.net_pay),
-                                        netPayBreakdown.netPay,
-                                        "PHP",
-                                        caption = stringResource(R.string.used_as_planned_income),
+                        }
+                        if (state.plannedIncome > 0) {
+                            add(
+                                StatItem(
+                                    stringResource(R.string.allocated),
+                                    state.totalAllocated,
+                                    state.currency,
+                                    caption = stringResource(R.string.planned_across_categories),
+                                ),
+                            )
+                            add(
+                                StatItem(
+                                    stringResource(R.string.unallocated),
+                                    state.unallocatedIncome,
+                                    state.currency,
+                                    // Unclamped, unlike percentOf: over-allocating reads as a negative share.
+                                    caption = stringResource(
+                                        R.string.percent_of_income_unallocated,
+                                        (state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).roundToInt(),
                                     ),
-                                )
-                            }
-                            if (state.plannedIncome > 0) {
-                                add(
-                                    StatItem(
-                                        stringResource(R.string.allocated),
-                                        state.totalAllocated,
-                                        state.currency,
-                                        caption = stringResource(R.string.planned_across_categories),
-                                    ),
-                                )
-                                add(
-                                    StatItem(
-                                        stringResource(R.string.unallocated),
-                                        state.unallocatedIncome,
-                                        state.currency,
-                                        // Unclamped, unlike percentOf: over-allocating reads as a negative share.
-                                        caption = stringResource(
-                                            R.string.percent_of_income_unallocated,
-                                            (state.unallocatedIncome.toDouble() / state.plannedIncome.toDouble() * 100).roundToInt(),
-                                        ),
-                                        signed = true,
-                                    ),
-                                )
-                            }
-                        },
-                        tone = StatTone.Tertiary,
-                    )
-                }
+                                    signed = true,
+                                ),
+                            )
+                        }
+                    },
+                    tone = StatTone.Tertiary,
+                )
+            }
 
-                if (!state.hasAnyCategories) {
-                    item { EmptyState(stringResource(R.string.budget_empty_title), YuukaMood.Stern, description = stringResource(R.string.budget_empty_description)) }
-                }
+            if (!state.hasAnyCategories) {
+                item { EmptyState(stringResource(R.string.budget_empty_title), YuukaMood.Stern, description = stringResource(R.string.budget_empty_description)) }
+            }
 
-                if (state.expenseBreakdown.isNotEmpty()) {
-                    item { Text(stringResource(R.string.category_kind_expense), style = MaterialTheme.typography.titleSmall) }
-                    items(state.expenseBreakdown, key = { it.categoryId }) { entry ->
-                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
-                    }
+            if (state.expenseBreakdown.isNotEmpty()) {
+                item { Text(stringResource(R.string.category_kind_expense), style = MaterialTheme.typography.titleSmall) }
+                items(state.expenseBreakdown, key = { it.categoryId }) { entry ->
+                    BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
                 }
+            }
 
-                if (state.cashflowBreakdown.isNotEmpty()) {
-                    item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
-                    items(state.cashflowBreakdown, key = { it.categoryId }) { entry ->
-                        BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
-                    }
+            if (state.cashflowBreakdown.isNotEmpty()) {
+                item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
+                items(state.cashflowBreakdown, key = { it.categoryId }) { entry ->
+                    BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
                 }
             }
         }

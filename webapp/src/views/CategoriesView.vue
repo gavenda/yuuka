@@ -11,7 +11,7 @@ import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
 import { useHarmonised } from '@/lib/harmonise';
-import { ADD, EXPAND_MORE } from '@/lib/icons';
+import { ADD, EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
 import { colorProblem, nameProblem, useFormValidation } from '@/lib/validation';
@@ -217,11 +217,11 @@ onMounted(() => ledger.load());
 								@click="press(family.parent, family.children.length)"
 							>
 								<span
-									class="flex size-5 shrink-0 items-center justify-center rounded-full"
+									class="flex size-6 shrink-0 items-center justify-center rounded-full"
 									:class="expanded.has(family.parent.id) ? 'bg-surface-container' : ''"
 									aria-hidden="true"
 								>
-									<span class="size-3 rounded-full" :style="{ backgroundColor: harmonised(family.parent.color) }" />
+									<span class="flex" :style="{ color: harmonised(family.parent.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
 								</span>
 								<span class="min-w-0 flex-1">
 									<span class="type-body-large block truncate">{{
@@ -273,8 +273,8 @@ onMounted(() => ledger.load());
 								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-primary-container pr-4 pl-4 text-on-primary-container"
 								@click="openEdit(child)"
 							>
-								<span class="flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-container" aria-hidden="true">
-									<span class="size-3 rounded-full" :style="{ backgroundColor: harmonised(child.color) }" />
+								<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-container" aria-hidden="true">
+									<span class="flex" :style="{ color: harmonised(child.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
 								</span>
 								<span class="type-body-large min-w-0 flex-1 truncate">{{
 									child.archived ? t('common.archivedName', { name: child.name }) : child.name

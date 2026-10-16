@@ -77,13 +77,12 @@ internal fun SubscriptionsScreenContent(
     val resumedMessage = stringResource(R.string.subscription_resumed)
 
     // The headline shrinks into the ordinary bar as the list moves and stays there until it is scrolled back.
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         // The shell's own Scaffold already keeps the page clear of the system bars and the bottom bar.
         contentWindowInsets = WindowInsets(0),
-        modifier = modifier.appBarScroll(scrollBehavior),
-        topBar = { LargeScreenTopBar(stringResource(R.string.destination_subscriptions), scrollBehavior) },
+        modifier = modifier,
+        topBar = { ScreenTopBar(stringResource(R.string.destination_subscriptions)) },
         
         floatingActionButton = {
             // Nowhere to post to until there is an account.

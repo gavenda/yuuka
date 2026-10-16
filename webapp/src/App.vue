@@ -251,15 +251,21 @@ onBeforeUnmount(() => {
 		<header v-if="shellShown" class="sticky top-0 z-30 bg-background sm:hidden">
 			<!-- While a search in the bar is being typed in it has the whole bar, as Material's search view takes
 			     the screen on Android: the mark and the actions step aside until the field is left. -->
-			<div class="group flex h-16 items-center gap-2 px-4">
+			<!-- Centre-aligned, as `CenterAlignedTopAppBar` is on Android: three columns, the outer two sharing
+			     what is left, so the title stays on the bar's centre whatever stands either side of it. -->
+			<!-- A bottom-bar destination has no title to centre, and its search takes the middle instead. -->
+			<div
+				class="group grid h-16 items-center gap-2 px-4"
+				:class="isTabDestination ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[1fr_minmax(0,auto)_1fr]'"
+			>
 				<!-- A screen opened from another leads back to it, where the others lead home. -->
-				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 text-on-surface" :aria-label="t('common.back')">
+				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 justify-self-start text-on-surface" :aria-label="t('common.back')">
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
 				<RouterLink
 					v-else
 					to="/"
-					class="focus-ring shrink-0 rounded-full group-has-[#bar-search:focus-within]:hidden"
+					class="focus-ring shrink-0 justify-self-start rounded-full group-has-[#bar-search:focus-within]:hidden"
 					:aria-label="t('nav.dashboard')"
 				>
 					<img src="/yuuka.png" alt="" class="size-8 rounded-full object-cover" />
@@ -267,10 +273,11 @@ onBeforeUnmount(() => {
 
 				<!-- The three bottom-bar destinations carry no title: the bar below already names them. What one
 				     of them keeps in the bar instead — Transactions, its search — is teleported into the space. -->
-				<h1 v-if="!isTabDestination" class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ pageTitle }}</h1>
-				<div id="bar-search" :class="isTabDestination ? 'min-w-0 flex-1' : 'hidden'" />
+				<h1 v-if="!isTabDestination" class="type-title-large min-w-0 truncate text-center text-on-surface">{{ pageTitle }}</h1>
+				<!-- Typed in, the field takes the whole row as the mark and the actions step aside. -->
+				<div id="bar-search" :class="isTabDestination ? 'min-w-0 group-has-[#bar-search:focus-within]:col-span-3' : 'hidden'" />
 
-				<div class="flex shrink-0 items-center group-has-[#bar-search:focus-within]:hidden">
+				<div class="flex shrink-0 items-center justify-self-end group-has-[#bar-search:focus-within]:hidden">
 					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
 					<button
 						v-if="route.meta.amountFree !== true"

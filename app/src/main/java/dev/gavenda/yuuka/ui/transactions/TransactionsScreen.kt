@@ -163,12 +163,17 @@ internal fun TransactionsScreenContent(
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).fillMaxWidth().padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        TransactionList(
+            state = state,
+            // Room for the last row to clear the button that floats over the list.
+            contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
+            onOpen = openEdit,
+            onDelete = askDelete,
+            onLoadMore = onLoadMore,
+            modifier = Modifier.padding(padding).fillMaxSize(),
         ) {
-            // One child of the spaced column, so the chips' row takes no gap of its own while it is shut.
-            Column {
+            // The filters lead the list and scroll away with it, so the page is one list rather than a list under a header.
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 // Under the bar and in line with it: the account button's icon stands under the drawer button's, and
                 // the tag and category icons under the bar's two actions.
                 Row(
@@ -198,19 +203,8 @@ internal fun TransactionsScreenContent(
                         onClick = { toggleFilter(FilterKind.CATEGORIES) },
                     )
                 }
-
                 FilterChipRow(openChips)
             }
-
-            TransactionList(
-                state = state,
-                // Room for the last row to clear the button that floats over the list.
-                contentPadding = PaddingValues(bottom = 96.dp),
-                onOpen = openEdit,
-                onDelete = askDelete,
-                onLoadMore = onLoadMore,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-            )
         }
     }
 
@@ -276,6 +270,7 @@ private fun TransactionList(
     onDelete: (TransactionRow) -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
+    header: @Composable () -> Unit,
 ) {
     val error = (state.status as? ScreenStatus.Error)?.message
     val grouped = remember(state.rows) { groupByDate(state.rows) }
@@ -283,6 +278,8 @@ private fun TransactionList(
     LoadMoreAtEnd(listState, state, onLoadMore)
 
     LazyColumn(modifier = modifier, state = listState, contentPadding = contentPadding) {
+        item(key = "header", contentType = "header") { header() }
+
         if (error != null) {
             item { Text(error, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
         }
@@ -298,7 +295,7 @@ private fun TransactionList(
             }
         } else {
             grouped.forEach { (date, rows) ->
-                item {
+                item(key = "day:$date", contentType = "day") {
                     // A day's heading, drawn like the account groups': the date in primary, its
                     // net at the end, inset past the rows it names.
                     Row(
@@ -671,7 +668,7 @@ private fun TagChip(name: String, colorHex: String) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(harmonisedColor(colorHex, MaterialTheme.colorScheme.onSurfaceVariant)))
+            Icon(painterResource(R.drawable.label_fill_48px), contentDescription = null, modifier = Modifier.size(14.dp), tint = harmonisedColor(colorHex, MaterialTheme.colorScheme.onSurfaceVariant))
             Text(name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -701,7 +698,7 @@ private fun CategoryLabel(name: String, colorHex: String?) {
     val color = harmonisedColorOrNull(colorHex)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(name, style = MaterialTheme.typography.bodySmall)
-        if (color != null) Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        if (color != null) Icon(painterResource(R.drawable.label_fill_48px), contentDescription = null, modifier = Modifier.size(14.dp), tint = color)
     }
 }
 
