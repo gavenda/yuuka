@@ -8,6 +8,7 @@ export default {
 	budgetRemaining: 'Budget remaining',
 	acrossBudgeted: 'Across budgeted categories',
 	overBudget: 'Over budget',
+	spentOfPlanned: '{spent} of {planned} planned',
 	needsAttention: "I'll need an explanation.",
 	nothingOverspent: 'Every budget within its limit.',
 	whereMoneyWent: 'Where the money went',

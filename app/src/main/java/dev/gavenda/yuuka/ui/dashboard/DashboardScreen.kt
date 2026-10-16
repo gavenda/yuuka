@@ -114,6 +114,11 @@ internal fun DashboardScreenContent(
                 )
             }
 
+            val over = overBudget(state.summary?.categories.orEmpty())
+            if (over.isNotEmpty()) {
+                item { OverBudgetCard(over, state.currency) }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

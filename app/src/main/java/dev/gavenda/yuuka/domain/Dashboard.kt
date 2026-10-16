@@ -1,5 +1,7 @@
 package dev.gavenda.yuuka.domain
 
+import dev.gavenda.yuuka.data.model.CategoryBreakdown
+import dev.gavenda.yuuka.data.model.CategoryKind
 import kotlin.math.roundToInt
 
 /**
@@ -12,3 +14,7 @@ fun savingsRate(net: Long, income: Long): Int? {
     if (income <= 0) return null
     return (net.toDouble() / income.toDouble() * 100).roundToInt()
 }
+
+/** The expense categories spent past their plan, the furthest over first. An unplanned category has no plan to be over. */
+fun overBudget(categories: List<CategoryBreakdown>): List<CategoryBreakdown> =
+    categories.filter { it.kind == CategoryKind.expense && it.planned > 0 && it.remaining < 0 }.sortedBy { it.remaining }

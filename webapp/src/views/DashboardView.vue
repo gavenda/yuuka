@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import CategoryBars from '@/components/CategoryBars.vue';
 import MonthAction from '@/components/MonthAction.vue';
+import OverBudgetCard from '@/components/OverBudgetCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
-import { savingsRate } from '@/lib/dashboard';
+import { overBudget, savingsRate } from '@/lib/dashboard';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { computed, onMounted } from 'vue';
@@ -53,6 +54,9 @@ const progress = computed(() => {
 	];
 });
 
+/** The categories behind the "Over budget" figure; the card is left out when there are none. */
+const over = computed(() => overBudget(budget.summary?.categories ?? []));
+
 onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 </script>
 
@@ -64,6 +68,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 
 		<StatCarousel :stats="standing" :currency="currency" tone="tertiary" />
 		<StatCarousel :stats="progress" :currency="currency" />
+
+		<OverBudgetCard v-if="over.length" :entries="over" :currency="currency" />
 
 		<SpendChart :month="budget.month" :days="budget.summary?.dailySpend ?? []" :currency="currency" />
 
