@@ -268,7 +268,7 @@ private val SectionGap = 16.dp - SegmentedGap
 
 /**
  * One row of a section's card. Pressing it edits it; a parent with subcategories opens and closes them from the
- * filled tonal chevron button at its end. Archive and delete are on the swipe. The row paints the card's own colour,
+ * chevron icon button at its end. Archive and delete are on the swipe. The row paints the card's own colour,
  * which is what keeps the swipe's actions hidden behind it until it is dragged.
  */
 @Composable
@@ -296,6 +296,11 @@ private fun CategoryRow(
     SwipeToRevealActions(
         modifier = modifier.fillMaxWidth(),
         actions = {
+            if (onAddSub != null) ActionIconButton(
+                ActionIcon.ADD,
+                stringResource(R.string.cd_add_sub_to, category.name),
+                onAddSub,
+            )
             ActionIconButton(
                 if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
                 stringResource(R.string.cd_archive_item, category.name),
@@ -344,30 +349,18 @@ private fun CategoryRow(
             } else {
                 null
             },
-            trailingContent = if (onAddSub != null || subCount > 0) {
+            trailingContent = if (subCount > 0) {
                 {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (onAddSub != null) IconButton(onClick = onAddSub) {
-                            Icon(painterResource(R.drawable.add_48px), contentDescription = stringResource(R.string.add_sub))
-                        }
-                        if (subCount > 0) FilledTonalIconButton(
-                            onClick = onToggle,
-                            // Tertiary, so it stands out on an open family's secondary container.
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            ),
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.expand_more_48px),
-                                contentDescription = if (expanded) {
-                                    stringResource(R.string.cd_collapse_section, category.name)
-                                } else {
-                                    stringResource(R.string.cd_expand_section, category.name)
-                                },
-                                modifier = Modifier.graphicsLayer { rotationZ = chevron },
-                            )
-                        }
+                    IconButton(onClick = onToggle) {
+                        Icon(
+                            painterResource(R.drawable.expand_more_48px),
+                            contentDescription = if (expanded) {
+                                stringResource(R.string.cd_collapse_section, category.name)
+                            } else {
+                                stringResource(R.string.cd_expand_section, category.name)
+                            },
+                            modifier = Modifier.graphicsLayer { rotationZ = chevron },
+                        )
                     }
                 }
             } else {

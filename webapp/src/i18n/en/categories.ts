@@ -8,7 +8,6 @@ export default {
 	kindOf: 'Kind of category',
 	taken: 'A category with that name already exists here.',
 	nestedUnder: 'Nested under: {name}',
-	addSub: 'Add a subcategory',
 	addSubTo: 'Add a subcategory to {name}',
 	expand: 'Expand {name}',
 	collapse: 'Collapse {name}',

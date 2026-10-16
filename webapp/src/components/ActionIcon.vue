@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
-import { ARCHIVE, BALANCE, DELETE, EDIT, PAUSE, PLAY_ARROW, UNARCHIVE, type IconPath } from '@/lib/icons';
+import { ADD, ARCHIVE, BALANCE, DELETE, EDIT, PAUSE, PLAY_ARROW, UNARCHIVE, type IconPath } from '@/lib/icons';
 import { computed } from 'vue';
 
-export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete' | 'adjust' | 'pause' | 'resume';
+export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete' | 'adjust' | 'pause' | 'resume' | 'add';
 
 /** One of a row's actions behind its swipe (`ActionIconButton` on Android): a filled icon button, primary, or error when it destroys something. */
 const props = withDefaults(defineProps<{ icon: ActionIconName; label: string; danger?: boolean; disabled?: boolean }>(), {
@@ -19,6 +19,7 @@ const ICONS: Record<ActionIconName, IconPath> = {
 	adjust: BALANCE,
 	pause: PAUSE,
 	resume: PLAY_ARROW,
+	add: ADD,
 };
 
 const icon = computed(() => ICONS[props.icon]);

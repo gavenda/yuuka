@@ -207,7 +207,7 @@
     <string name="custom_colour_hex">Custom colour (hex)</string>
     <string name="placeholder_hex_sample">#64748b</string>
     <string name="hex_colour_hint">Enter a 6-digit hex colour, e.g. #64748b</string>
-    <string name="add_sub">+ Sub</string>
+    <string name="cd_add_sub_to">Add a subcategory to %1$s</string>
 
     <!-- Tags -->
     <string name="label_tags">Tags</string>

@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.MaterialTheme
 
-enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE, ADJUST, PAUSE, RESUME }
+enum class ActionIcon { EDIT, ARCHIVE, RESTORE, DELETE, ADJUST, PAUSE, RESUME, ADD }
 
 /**
  * One of a row's actions behind its swipe, mirroring `ActionIcon.vue`: a filled icon button, primary, or error
@@ -33,6 +33,7 @@ fun ActionIconButton(
         ActionIcon.ADJUST -> R.drawable.balance_48px
         ActionIcon.PAUSE -> R.drawable.pause_48px
         ActionIcon.RESUME -> R.drawable.play_arrow_48px
+        ActionIcon.ADD -> R.drawable.add_48px
     }
     val colors = if (danger) {
         IconButtonDefaults.filledIconButtonColors(

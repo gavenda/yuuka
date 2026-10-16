@@ -12,7 +12,7 @@ import TextField from '@/components/TextField.vue';
 import { paneRoom, whenDiscardable } from '@/lib/formPane';
 import { api, ApiError } from '@/lib/api';
 import { useHarmonised } from '@/lib/harmonise';
-import { ADD, EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
+import { EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
 import { colorProblem, nameProblem, useFormValidation } from '@/lib/validation';
@@ -212,6 +212,11 @@ onMounted(() => ledger.load());
 					<SwipeReveal>
 						<template #actions>
 							<ActionIcon
+								icon="add"
+								:label="t('categories.addSubTo', { name: family.parent.name })"
+								@click="openCreate(section.kind, family.parent.id)"
+							/>
+							<ActionIcon
 								:icon="family.parent.archived ? 'restore' : 'archive'"
 								:label="t(family.parent.archived ? 'common.restore' : 'common.archive', { name: family.parent.name })"
 								@click="toggleArchived(family.parent)"
@@ -255,18 +260,9 @@ onMounted(() => ledger.load());
 							</button>
 
 							<button
-								type="button"
-								class="btn-icon text-on-surface-variant"
-								:aria-label="t('categories.addSubTo', { name: family.parent.name })"
-								:title="t('categories.addSub')"
-								@click="openCreate(section.kind, family.parent.id)"
-							>
-								<AppIcon :icon="ADD" />
-							</button>
-							<button
 								v-if="family.children.length"
 								type="button"
-								class="btn-icon-tonal relative bg-tertiary-container text-on-tertiary-container"
+								class="btn-icon relative"
 								:aria-expanded="expanded.has(family.parent.id)"
 								:aria-label="t(expanded.has(family.parent.id) ? 'categories.collapse' : 'categories.expand', { name: family.parent.name })"
 								@click="toggle(family.parent)"
