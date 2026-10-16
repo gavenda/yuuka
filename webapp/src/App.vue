@@ -87,6 +87,14 @@ const shellShown = computed(() => showShell.value && !isLoading.value);
 const isTabDestination = computed(() => ['dashboard', 'transactions', 'accounts'].includes(route.name as string));
 const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
+/** A detail screen (Settings) leads back to wherever it was opened from, as Android's back button does. */
+const isDetail = computed(() => route.meta.detail === true);
+
+function goBack(): void {
+	// Vue Router records the entry before this one; a detail screen opened straight from its URL has none.
+	if (window.history.state?.back) router.back();
+	else void router.push('/');
+}
 
 const appVersion = __APP_VERSION__;
 
@@ -224,7 +232,7 @@ onBeforeUnmount(() => {
 				class="group grid h-16 items-center gap-2 px-4"
 				:class="isTabDestination ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[1fr_minmax(0,auto)_1fr]'"
 			>
-				<!-- A screen opened from another leads back to it, where the others lead home. -->
+				<!-- A screen opened from another leads back to it, and a detail screen back to where it was opened from; the others lead home. -->
 				<RouterLink
 					v-if="parentPath"
 					:to="parentPath"
@@ -233,6 +241,15 @@ onBeforeUnmount(() => {
 				>
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
+				<button
+					v-else-if="isDetail"
+					type="button"
+					class="btn-icon -ml-2 justify-self-start text-on-surface"
+					:aria-label="t('common.back')"
+					@click="goBack"
+				>
+					<AppIcon :icon="ARROW_BACK" />
+				</button>
 				<RouterLink
 					v-else
 					to="/"

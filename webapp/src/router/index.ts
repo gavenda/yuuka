@@ -47,7 +47,7 @@ const routes: RouteRecordRaw[] = [
 		path: '/settings',
 		name: 'settings',
 		component: () => import('@/views/SettingsView.vue'),
-		meta: { titleKey: 'nav.settings', amountFree: true },
+		meta: { titleKey: 'nav.settings', amountFree: true, detail: true },
 	},
 	{
 		path: '/settings/account-types',
