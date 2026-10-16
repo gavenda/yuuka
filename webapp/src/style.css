@@ -592,6 +592,11 @@
 		@apply btn-icon bg-error text-on-error disabled:bg-on-surface/10;
 	}
 
+	/* A filled tonal icon button (`FilledTonalIconButton`). */
+	.btn-icon-tonal {
+		@apply btn-icon bg-secondary-container text-on-secondary-container disabled:bg-on-surface/10;
+	}
+
 	/* An extended FAB: the one primary action a screen leads with. */
 	.fab {
 		@apply state-layer focus-ring type-label-large inline-flex h-14 cursor-pointer items-center gap-3 rounded-lg bg-primary-container pr-5 pl-4 text-on-primary-container shadow-elevation-3;
@@ -1132,12 +1137,14 @@
 }
 
 /*
- * The row whose form stands in the supporting pane beside its list, painted as Material marks a list's selected
- * item. Outside the layers, so it holds over a row's own container colour (a subcategory's primary container).
+ * The row whose form stands in the supporting pane beside its list, painted and shaped as Material marks a list's
+ * selected item: secondary container, every corner large. Outside the layers, so it holds over a row's own
+ * container colour (an open family's secondary container) and its place in the group's corners.
  */
 .group-row[aria-current='true'],
 .group-row:has([aria-current='true']) {
 	--surface-under: var(--color-secondary-container);
 	background-color: var(--color-secondary-container);
 	color: var(--color-on-secondary-container);
+	border-radius: var(--radius-lg);
 }

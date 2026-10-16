@@ -9,7 +9,7 @@ import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
-import { whenDiscardable } from '@/lib/formPane';
+import { paneRoom, whenDiscardable } from '@/lib/formPane';
 import { api, ApiError } from '@/lib/api';
 import { useHarmonised } from '@/lib/harmonise';
 import { ADD, EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
@@ -121,6 +121,14 @@ function openCreate(kind: CategoryKind = 'expense', parentId = ''): void {
 
 function openEdit(category: Category): void {
 	whenDiscardable(() => {
+		// Where the form stands beside the list, the family it is editing opens with it, so its subcategories are in sight,
+		// and editing a top-level category with none closes whichever family was open. A subcategory leaves its own open.
+		if (paneRoom.value && !category.parentId) {
+			const hasChildren = sections.value.some((section) =>
+				section.families.some((family) => family.parent.id === category.id && family.children.length),
+			);
+			expanded.value = hasChildren ? new Set([category.id]) : new Set();
+		}
 		editing.value = category;
 		open({ name: category.name, kind: category.kind, color: category.color, parentId: category.parentId ?? '' });
 	});
@@ -140,11 +148,8 @@ function selectKind(kind: CategoryKind): void {
 	form.color = colourFor(kind);
 }
 
-/** A parent with subcategories opens and closes them; any other row is edited by pressing it. */
-function press(category: Category, children: number): void {
-	if (!children) return openEdit(category);
-
-	// One family is open at a time; opening another closes it.
+/** A parent's subcategories open and close from the chevron button; pressing the row edits it. One family is open at a time. */
+function toggle(category: Category): void {
 	expanded.value = expanded.value.has(category.id) ? new Set() : new Set([category.id]);
 }
 
@@ -206,7 +211,6 @@ onMounted(() => ledger.load());
 					<!-- A parent's row. The row paints itself, which is what keeps the swipe's actions hidden behind it. -->
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon icon="edit" :label="t('common.rename', { name: family.parent.name })" @click="openEdit(family.parent)" />
 							<ActionIcon
 								:icon="family.parent.archived ? 'restore' : 'archive'"
 								:label="t(family.parent.archived ? 'common.restore' : 'common.archive', { name: family.parent.name })"
@@ -220,15 +224,14 @@ onMounted(() => ledger.load());
 							class="group-row state-layer flex items-center pr-4"
 							:class="[
 								family.children.length ? 'min-h-[72px]' : 'min-h-[60px]',
-								expanded.has(family.parent.id) ? 'bg-primary-container text-on-primary-container' : '',
+								expanded.has(family.parent.id) ? 'bg-secondary-container text-on-secondary-container' : '',
 							]"
 						>
 							<button
 								type="button"
 								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
-								:aria-expanded="family.children.length ? expanded.has(family.parent.id) : undefined"
 								:aria-current="dialogOpen && editing?.id === family.parent.id ? 'true' : undefined"
-								@click="press(family.parent, family.children.length)"
+								@click="openEdit(family.parent)"
 							>
 								<span
 									class="flex size-6 shrink-0 items-center justify-center rounded-full"
@@ -244,7 +247,7 @@ onMounted(() => ledger.load());
 									<span
 										v-if="family.children.length"
 										class="type-body-medium block"
-										:class="expanded.has(family.parent.id) ? 'text-on-primary-container' : 'text-on-surface-variant'"
+										:class="expanded.has(family.parent.id) ? 'text-on-secondary-container' : 'text-on-surface-variant'"
 									>
 										{{ t('categories.subcategories', family.children.length) }}
 									</span>
@@ -260,20 +263,27 @@ onMounted(() => ledger.load());
 							>
 								<AppIcon :icon="ADD" />
 							</button>
-							<AppIcon
+							<button
 								v-if="family.children.length"
-								:icon="EXPAND_MORE"
-								class="text-on-surface-variant transition-transform duration-300 ease-emphasized-decelerate"
-								:class="expanded.has(family.parent.id) ? 'rotate-180' : ''"
-							/>
+								type="button"
+								class="btn-icon-tonal relative bg-tertiary-container text-on-tertiary-container"
+								:aria-expanded="expanded.has(family.parent.id)"
+								:aria-label="t(expanded.has(family.parent.id) ? 'categories.collapse' : 'categories.expand', { name: family.parent.name })"
+								@click="toggle(family.parent)"
+							>
+								<AppIcon
+									:icon="EXPAND_MORE"
+									class="transition-transform duration-300 ease-emphasized-decelerate"
+									:class="expanded.has(family.parent.id) ? 'rotate-180' : ''"
+								/>
+							</button>
 						</div>
 					</SwipeReveal>
 
-					<!-- Its subcategories, in primary container with their parent. Pressing one edits it. -->
+					<!-- Its subcategories, in secondary container with their parent. Pressing one edits it. -->
 					<template v-if="expanded.has(family.parent.id)">
 						<SwipeReveal v-for="child in family.children" :key="child.id">
 							<template #actions>
-								<ActionIcon icon="edit" :label="t('common.rename', { name: child.name })" @click="openEdit(child)" />
 								<ActionIcon
 									:icon="child.archived ? 'restore' : 'archive'"
 									:label="t(child.archived ? 'common.restore' : 'common.archive', { name: child.name })"
@@ -284,7 +294,7 @@ onMounted(() => ledger.load());
 
 							<button
 								type="button"
-								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-primary-container pr-4 pl-4 text-on-primary-container"
+								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-secondary-container pr-4 pl-4 text-on-secondary-container"
 								:aria-current="dialogOpen && editing?.id === child.id ? 'true' : undefined"
 								@click="openEdit(child)"
 							>

@@ -342,7 +342,7 @@ buttons at the foot. Where the page beside the rail has room for a list's width 
 (796 in all), the form is neither: it is Material's supporting pane, standing at the page's end with the
 screen that opened it still usable beside it — the page gives up its width as the pane comes in — and keeps
 the full-screen dialog's bar, since it is as tall as the page. The row it is editing is marked as Material
-marks a list's selected item (`secondaryContainer`). Pressing another row, or the leading action, opens that
+marks a list's selected item (`secondaryContainer`, every corner large). Pressing another row, or the leading action, opens that
 form in its place, asking first if the one there holds changes; back or Escape closes it before leaving the
 screen; and deleting the row it is editing closes it. The display currency stays a dialog wherever it opens
 (`beside = false`), since Settings may already have Account types beside it. On Android the shell sizes the

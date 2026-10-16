@@ -164,7 +164,7 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, selected
         ListItem(
             modifier = Modifier.fillMaxWidth(),
             onClick = onEdit,
-            shapes = groupedListItemShapes(position),
+            shapes = groupedListItemShapes(position, selected),
             colors = groupedListItemColors(selected),
             leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },

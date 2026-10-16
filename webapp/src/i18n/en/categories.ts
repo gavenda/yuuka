@@ -10,6 +10,8 @@ export default {
 	nestedUnder: 'Nested under: {name}',
 	addSub: 'Add a subcategory',
 	addSubTo: 'Add a subcategory to {name}',
+	expand: 'Expand {name}',
+	collapse: 'Collapse {name}',
 	subcategories: '{count} subcategory | {count} subcategories',
 	added: 'Category added',
 	updated: 'Category updated',

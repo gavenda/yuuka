@@ -59,15 +59,19 @@ private fun groupedItemShape(position: ItemPosition, corner: Dp = Radius.lg, joi
 
 /**
  * [groupedItemShape] for a row drawn by hand, rounding off as Material's segmented list item does: every
- * corner large while pressed or focused, medium while hovered, back to its place in the group after.
+ * corner large while [selected], pressed or focused, medium while hovered, back to its place in the group after.
  */
 @Composable
-fun animatedGroupedItemShape(position: ItemPosition, interactionSource: MutableInteractionSource): Shape {
+fun animatedGroupedItemShape(
+    position: ItemPosition,
+    interactionSource: MutableInteractionSource,
+    selected: Boolean = false,
+): Shape {
     val pressed by interactionSource.collectIsPressedAsState()
     val focused by interactionSource.collectIsFocusedAsState()
     val hovered by interactionSource.collectIsHoveredAsState()
     val whole = when {
-        pressed || focused -> Radius.lg
+        selected || pressed || focused -> Radius.lg
         hovered -> Radius.md
         else -> null
     }
@@ -81,14 +85,19 @@ fun animatedGroupedItemShape(position: ItemPosition, interactionSource: MutableI
 
 /**
  * [groupedItemShape] for Material's own `ListItem`, which morphs between them itself. Material sizes a segmented
- * list by index and count; a three-row stand-in gives each position its corners.
+ * list by index and count; a three-row stand-in gives each position its corners. A [selected] row rests in
+ * Material's selected shape instead, every corner large: the clickable `ListItem` only morphs on interaction,
+ * so the selection is given to it as the shape it rests in.
  */
 @Composable
-fun groupedListItemShapes(position: ItemPosition): ListItemShapes = when (position) {
-    ItemPosition.Single -> ListItemDefaults.segmentedShapes(index = 0, count = 1)
-    ItemPosition.Top -> ListItemDefaults.segmentedShapes(index = 0, count = 3)
-    ItemPosition.Middle -> ListItemDefaults.segmentedShapes(index = 1, count = 3)
-    ItemPosition.Bottom -> ListItemDefaults.segmentedShapes(index = 2, count = 3)
+fun groupedListItemShapes(position: ItemPosition, selected: Boolean = false): ListItemShapes {
+    val shapes = when (position) {
+        ItemPosition.Single -> ListItemDefaults.segmentedShapes(index = 0, count = 1)
+        ItemPosition.Top -> ListItemDefaults.segmentedShapes(index = 0, count = 3)
+        ItemPosition.Middle -> ListItemDefaults.segmentedShapes(index = 1, count = 3)
+        ItemPosition.Bottom -> ListItemDefaults.segmentedShapes(index = 2, count = 3)
+    }
+    return if (selected) shapes.copy(shape = shapes.selectedShape) else shapes
 }
 
 /**
@@ -119,8 +128,8 @@ fun groupedListItemColors(selected: Boolean = false): ListItemColors = if (selec
 
 /**
  * One row of a segmented list drawn by hand: [groupedItemColor] in its [position]'s shape, which rounds off
- * while pressed. With an [onClick] the whole row takes the tap. [selected] paints it as Material marks a list's
- * selected item, for the row whose form stands in the supporting pane beside it.
+ * while pressed. With an [onClick] the whole row takes the tap. [selected] paints and shapes it as Material marks
+ * a list's selected item, for the row whose form stands in the supporting pane beside it.
  */
 @Composable
 fun GroupedItem(
@@ -134,13 +143,14 @@ fun GroupedItem(
     val color by animateColorAsState(target, MaterialTheme.motionScheme.defaultEffectsSpec())
     val contentColor = MaterialTheme.colorScheme.contentColorFor(target)
     if (onClick == null) {
-        Surface(modifier = modifier, shape = groupedItemShape(position), color = color, contentColor = contentColor, content = content)
+        val shape = if (selected) RoundedCornerShape(Radius.lg) else groupedItemShape(position)
+        Surface(modifier = modifier, shape = shape, color = color, contentColor = contentColor, content = content)
     } else {
         val interactionSource = remember { MutableInteractionSource() }
         Surface(
             onClick = onClick,
             modifier = modifier,
-            shape = animatedGroupedItemShape(position, interactionSource),
+            shape = animatedGroupedItemShape(position, interactionSource, selected),
             color = color,
             contentColor = contentColor,
             interactionSource = interactionSource,

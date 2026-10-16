@@ -557,8 +557,8 @@ while shut), scrolls sideways and applies each change at once.
 **A row's actions are behind a swipe.** As on Android, a list row shows no buttons: dragging it left —
 with a finger, or a mouse held down on it — reveals its `ActionIcon`s — filled icon buttons, error-coloured for one that destroys (`SwipeReveal`), and pressing the
 row is its main action, usually editing it. The actions follow the row in the tab order and the row opens
-when one takes focus, so a keyboard reaches them without a drag. A row a parent category shares with its
-subcategories opens and closes them instead; its edit is behind the swipe.
+when one takes focus, so a keyboard reaches them without a drag. A parent category's row is edited by pressing it
+too; its subcategories open and close from the filled tonal chevron button at its end.
 
 **The transaction list pages itself**, as the root CLAUDE.md describes. The foot of the list is watched by
 `useInView` (`lib/inView.ts`): an `IntersectionObserver` a screen ahead of the fold, with the viewport as its

@@ -60,6 +60,9 @@ internal fun CategoriesScreenContent(
     var editing by remember { mutableStateOf<Category?>(null) }
     // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
     val switchForm = rememberFormSwitch()
+    // Where the form stands beside the list, the family it is editing opens with it, so its subcategories are in sight,
+    // and editing a category with none closes whichever family was open.
+    val formHost = LocalFullScreenDialogHost.current
     // A form standing beside the list closes with the row it was editing, wherever that was deleted.
     LaunchedEffect(state.categories) { if (editing?.let { open -> state.categories.none { it.id == open.id } } == true) editing = null }
     // One family shows its subcategories at a time; opening another closes it, and every family starts closed.
@@ -148,11 +151,16 @@ internal fun CategoriesScreenContent(
                             deleting = busy.isBusy(deleteKey),
                             selected = family.parent.id == editing?.id,
                             onClick = {
-                                if (family.children.isNotEmpty()) {
-                                    expandedFamily = if (familyExpanded) null else family.parent.id
+                                switchForm {
+                                    creatingIn = null
+                                    editing = family.parent
+                                    if (formHost?.paneRoom == true) {
+                                        expandedFamily = family.parent.id.takeIf { family.children.isNotEmpty() }
+                                    }
                                 }
                             },
-                            onEdit = { switchForm { creatingIn = null; editing = family.parent } },
+                            // One family is open at a time; opening another closes it.
+                            onToggle = { expandedFamily = if (familyExpanded) null else family.parent.id },
                             onArchive = {
                                 busy.run(
                                     archiveKey,
@@ -189,7 +197,6 @@ internal fun CategoriesScreenContent(
                                 deleting = busy.isBusy(childDeleteKey),
                                 selected = child.id == editing?.id,
                                 onClick = { switchForm { creatingIn = null; editing = child } },
-                                onEdit = { switchForm { creatingIn = null; editing = child } },
                                 onArchive = {
                                     busy.run(
                                         childArchiveKey,
@@ -256,14 +263,14 @@ internal fun CategoriesScreenContent(
     }
 }
 
-/**
- * One row of a section's card. A parent with subcategories opens and closes them on tap; editing is on the
- * swipe, beside archive and delete. A subcategory's tap edits it. The row paints the card's own colour, which is
- * what keeps the swipe's actions hidden behind it until it is dragged.
- */
 /** What a section stands apart by: from the one above, and from its own heading, on top of the list's hair gap. */
 private val SectionGap = 16.dp - SegmentedGap
 
+/**
+ * One row of a section's card. Pressing it edits it; a parent with subcategories opens and closes them from the
+ * filled tonal chevron button at its end. Archive and delete are on the swipe. The row paints the card's own colour,
+ * which is what keeps the swipe's actions hidden behind it until it is dragged.
+ */
 @Composable
 private fun CategoryRow(
     category: Category,
@@ -275,11 +282,11 @@ private fun CategoryRow(
     archiving: Boolean = false,
     deleting: Boolean = false,
     selected: Boolean = false,
-    onEdit: () -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     onAddSub: (() -> Unit)? = null,
+    onToggle: () -> Unit = {},
 ) {
     val chevron by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -289,7 +296,6 @@ private fun CategoryRow(
     SwipeToRevealActions(
         modifier = modifier.fillMaxWidth(),
         actions = {
-            ActionIconButton(ActionIcon.EDIT, stringResource(R.string.cd_rename_item, category.name), onEdit)
             ActionIconButton(
                 if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
                 stringResource(R.string.cd_archive_item, category.name),
@@ -309,18 +315,18 @@ private fun CategoryRow(
             // A subcategory stands as tall as the parent above it, which carries a count beneath its name.
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
-            shapes = groupedListItemShapes(position),
+            shapes = groupedListItemShapes(position, selected),
             // An open family, parent and subcategories alike, is told apart by its colour rather than by indenting.
             colors = if (selected) {
                 // The category whose form stands beside the list, marked over its family's colour.
                 groupedListItemColors(selected = true)
             } else if (expanded || indent) {
                 ListItemDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    leadingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    trailingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    supportingContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    leadingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    trailingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    supportingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             } else {
                 ListItemDefaults.colors(containerColor = groupedItemColor)
@@ -344,14 +350,24 @@ private fun CategoryRow(
                         if (onAddSub != null) IconButton(onClick = onAddSub) {
                             Icon(painterResource(R.drawable.add_48px), contentDescription = stringResource(R.string.add_sub))
                         }
-                        if (subCount > 0) Icon(painterResource(R.drawable.expand_more_48px),
-                            contentDescription = if (expanded) {
-                                stringResource(R.string.cd_collapse_section, category.name)
-                            } else {
-                                stringResource(R.string.cd_expand_section, category.name)
-                            },
-                            modifier = Modifier.graphicsLayer { rotationZ = chevron },
-                        )
+                        if (subCount > 0) FilledTonalIconButton(
+                            onClick = onToggle,
+                            // Tertiary, so it stands out on an open family's secondary container.
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            ),
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.expand_more_48px),
+                                contentDescription = if (expanded) {
+                                    stringResource(R.string.cd_collapse_section, category.name)
+                                } else {
+                                    stringResource(R.string.cd_expand_section, category.name)
+                                },
+                                modifier = Modifier.graphicsLayer { rotationZ = chevron },
+                            )
+                        }
                     }
                 }
             } else {
