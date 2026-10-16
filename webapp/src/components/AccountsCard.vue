@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AccountLogo from '@/components/AccountLogo.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import type { Account } from '@/types';
 import { t } from '@/i18n';
@@ -20,7 +19,6 @@ defineProps<{ groups: { type: string; accounts: Account[] }[]; mixed: boolean }>
 			<h3 v-if="group.type" class="type-label-large mt-4 mb-1 text-on-surface-variant">{{ group.type }}</h3>
 			<ul>
 				<li v-for="account in group.accounts" :key="account.id" class="flex items-center gap-3 py-1.5">
-					<AccountLogo :name="account.name" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" :size="24" />
 					<span class="type-body-medium min-w-0 flex-1 truncate">{{ account.name }}</span>
 					<MoneyText :amount="account.balance" :currency="account.currency" tone="signed-alert" class="type-body-medium" />
 				</li>

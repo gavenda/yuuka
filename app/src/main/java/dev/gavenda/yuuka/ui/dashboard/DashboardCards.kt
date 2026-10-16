@@ -24,7 +24,6 @@ import dev.gavenda.yuuka.domain.BudgetHealth
 import dev.gavenda.yuuka.domain.BudgetPace
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.statusColor
-import dev.gavenda.yuuka.ui.common.AccountLogo
 import dev.gavenda.yuuka.ui.common.MoneyText
 import dev.gavenda.yuuka.ui.common.MoneyTone
 import dev.gavenda.yuuka.ui.common.harmonisedColor
@@ -185,7 +184,6 @@ internal fun AccountsCard(groups: List<Pair<String, List<Account>>>, mixed: Bool
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 24)
                         Text(account.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                         MoneyText(account.balance, currency = account.currency, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.bodyMedium)
                     }
