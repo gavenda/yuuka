@@ -64,6 +64,16 @@ data class AccountsUiState(
     }
 }
 
+/** What the account form hands back. Whether its purchases round up is not here: Save the Change owns that. */
+data class AccountSubmission(
+    val name: String,
+    val typeId: String,
+    val currency: String,
+    val startingBalance: Long,
+    val logoUrl: String,
+    val logoInvertDark: Boolean,
+)
+
 /** Mirrors `AccountsView.vue`. */
 class AccountsViewModel(
     private val ledgerRepository: LedgerRepository,
@@ -101,29 +111,17 @@ class AccountsViewModel(
         showArchived.value = !showArchived.value
     }
 
-    suspend fun createAccount(
-        name: String,
-        typeId: String,
-        currency: String,
-        startingBalance: Long,
-        logoUrl: String,
-        logoInvertDark: Boolean,
-    ) {
-        ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
-    }
-
-    suspend fun updateAccount(
-        id: String,
-        name: String,
-        typeId: String,
-        currency: String,
-        startingBalance: Long,
-        logoUrl: String,
-        logoInvertDark: Boolean,
-    ) {
-        // The round-up opt-in is deliberately left out: the Save the Change screen owns it, and an edit
-        // here must not quietly take it off an account.
-        ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+    /** A new account when [id] is null. */
+    suspend fun save(id: String?, submission: AccountSubmission) {
+        with(submission) {
+            if (id == null) {
+                ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+            } else {
+                // The round-up opt-in is deliberately left out: the Save the Change screen owns it, and an edit
+                // here must not quietly take it off an account.
+                ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+            }
+        }
     }
 
     suspend fun setArchived(id: String, archived: Boolean) {

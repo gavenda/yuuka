@@ -27,24 +27,13 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.tooling.preview.Preview
 
-/** What the form hands back. [startOn] is null when an edit left the date alone, so the schedule is not restarted. */
-private data class SubscriptionSubmission(
-    val accountId: String,
-    val categoryId: String?,
-    val amount: Long,
-    val payee: String,
-    val notes: String,
-    val startOn: String?,
-)
-
 @Composable
 fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsViewModel = org.koin.compose.viewmodel.koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     SubscriptionsScreenContent(
         state = state,
         modifier = modifier,
-        onCreate = viewModel::create,
-        onUpdate = viewModel::update,
+        onSave = viewModel::save,
         onSetEnabled = viewModel::setEnabled,
         onDelete = viewModel::delete,
     )
@@ -55,8 +44,7 @@ fun SubscriptionsScreen(modifier: Modifier = Modifier, viewModel: SubscriptionsV
 internal fun SubscriptionsScreenContent(
     state: SubscriptionsUiState,
     modifier: Modifier = Modifier,
-    onCreate: suspend (accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String) -> Unit = { _, _, _, _, _, _ -> },
-    onUpdate: suspend (id: String, accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String?) -> Unit = { _, _, _, _, _, _, _ -> },
+    onSave: suspend (id: String?, SubscriptionSubmission) -> Unit = { _, _ -> },
     onSetEnabled: suspend (id: String, enabled: Boolean) -> Unit = { _, _ -> },
     onDelete: suspend (id: String) -> Unit = {},
 ) {
@@ -176,28 +164,7 @@ internal fun SubscriptionsScreenContent(
                     snackbarHostState,
                     successMessage = if (target != null) updatedMessage else addedMessage,
                     onSuccess = close,
-                ) {
-                    if (target != null) {
-                        onUpdate(
-                            target.id,
-                            submission.accountId,
-                            submission.categoryId,
-                            submission.amount,
-                            submission.payee,
-                            submission.notes,
-                            submission.startOn,
-                        )
-                    } else {
-                        onCreate(
-                            submission.accountId,
-                            submission.categoryId,
-                            submission.amount,
-                            submission.payee,
-                            submission.notes,
-                            submission.startOn!!,
-                        )
-                    }
-                }
+                ) { onSave(target?.id, submission) }
             },
         )
     }

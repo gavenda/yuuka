@@ -12,7 +12,12 @@ import FieldSupport from '@/components/FieldSupport.vue';
 import { parseMoney, toDecimalString } from '@/lib/money';
 import { useHarmonised } from '@/lib/harmonise';
 import { supportId, useFormValidation } from '@/lib/validation';
+import { api, ApiError } from '@/lib/api';
+import { displayMoney } from '@/lib/privacy';
+import { showSnackbar } from '@/lib/snackbar';
+import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
+import { useTransactionStore } from '@/stores/transactions';
 import type { Payee, Transaction } from '@/types';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
@@ -31,9 +36,11 @@ const MODES: { value: Mode; label: string }[] = [
  * row being edited. It takes the screen over on a phone and is an ordinary dialog beside a rail.
  */
 const props = defineProps<{ open: boolean; transaction?: Transaction | null; transferToAccountId?: string | null }>();
-const emit = defineEmits<{ submit: [Record<string, unknown> & { mode: Mode }]; close: [] }>();
+const emit = defineEmits<{ close: [] }>();
 
 const ledger = useLedgerStore();
+const transactions = useTransactionStore();
+const budget = useBudgetStore();
 const isEditing = computed(() => Boolean(props.transaction));
 /** Posted by a subscription's cron at 00:00 UTC — its time of day is not the user's to set. */
 const isAutomated = computed(() => props.transaction?.automated === true);
@@ -202,10 +209,9 @@ async function submit(): Promise<void> {
 	const tagIds = form.tagIds.filter((id) => ledger.tags.some((tag) => tag.id === id));
 
 	// Direction lives in the sign, so the form's mode is what decides it.
-	const payload =
+	const body =
 		form.mode === 'transfer'
 			? {
-					mode: form.mode,
 					fromAccountId: form.accountId,
 					toAccountId: form.toAccountId,
 					amount: minor,
@@ -216,7 +222,6 @@ async function submit(): Promise<void> {
 					tagIds,
 				}
 			: {
-					mode: form.mode,
 					accountId: form.accountId,
 					categoryId: form.categoryId || null,
 					amount: form.mode === 'expense' ? -minor : minor,
@@ -226,14 +231,45 @@ async function submit(): Promise<void> {
 					tagIds,
 				};
 
-	emit('submit', payload);
+	const editing = props.transaction ?? null;
+	try {
+		let roundUp: Transaction | null = null;
+
+		if (form.mode === 'transfer' && editing?.transferId) {
+			await api.updateTransfer(editing.transferId, body);
+		} else if (form.mode === 'transfer') {
+			await api.createTransfer(body);
+		} else if (editing) {
+			await api.updateTransaction(editing.id, body);
+		} else {
+			roundUp = (await api.createTransaction(body)).roundUp ?? null;
+		}
+
+		emit('close');
+		showSnackbar(
+			editing
+				? t('transactions.changesSaved')
+				: form.mode === 'transfer'
+					? t('transactions.transferAdded')
+					: t('transactions.transactionAdded'),
+		);
+		if (roundUp) announceRoundUp(roundUp);
+		await Promise.all([transactions.refresh(), ledger.refreshAccounts(), budget.refresh()]);
+	} catch (caught) {
+		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
+	}
 }
 
-defineExpose({
-	fail: (message: string) => {
-		error.value = message;
-	},
-});
+/** Says "₱X saved to <account>" after a purchase triggers a Save the Change round-up. */
+function announceRoundUp(roundUp: Transaction): void {
+	const destinationCurrency = ledger.accountsById.get(roundUp.accountId)?.currency ?? ledger.displayCurrency;
+	showSnackbar(
+		t('transactions.roundUpSaved', {
+			amount: displayMoney(roundUp.amount, destinationCurrency),
+			account: roundUp.accountName ?? t('transactions.roundUpFallback'),
+		}),
+	);
+}
 </script>
 
 <template>

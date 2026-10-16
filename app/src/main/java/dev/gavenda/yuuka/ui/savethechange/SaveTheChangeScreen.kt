@@ -58,7 +58,7 @@ fun SaveTheChangeScreen(
 internal fun SaveTheChangeScreenContent(
     state: SaveTheChangeUiState,
     modifier: Modifier = Modifier,
-    onSave: suspend (enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onSave: suspend (enabled: Boolean, roundTo: Long, destinationAccountId: String?, categoryId: String?) -> Unit = { _, _, _, _ -> },
     onSetRoundUpSource: suspend (accountId: String, roundUpSource: Boolean) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
@@ -98,14 +98,7 @@ internal fun SaveTheChangeScreenContent(
         if (!enabled || state.accounts.any { it.id == destination }) {
             scope.launch {
                 try {
-                    onSave(
-                        enabled,
-                        roundTo,
-                        destination,
-                        destination == null && state.destinationAccountId != null,
-                        category,
-                        category == null && state.categoryId != null,
-                    )
+                    onSave(enabled, roundTo, destination, category)
                 } catch (e: ApiError) {
                     snackbarHostState.showSnackbar(e.message ?: couldNotSaveMessage)
                 }

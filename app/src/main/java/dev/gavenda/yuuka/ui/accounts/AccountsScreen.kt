@@ -39,8 +39,7 @@ fun AccountsScreen(modifier: Modifier = Modifier, viewModel: AccountsViewModel =
         modifier = modifier,
         onToggleShowArchived = viewModel::toggleShowArchived,
         onSearchTextChange = viewModel::setSearchText,
-        onCreateAccount = viewModel::createAccount,
-        onUpdateAccount = viewModel::updateAccount,
+        onSaveAccount = viewModel::save,
         onSetArchived = viewModel::setArchived,
         onDeleteAccount = viewModel::deleteAccount,
         onAdjustBalance = viewModel::adjustBalance,
@@ -54,8 +53,7 @@ internal fun AccountsScreenContent(
     modifier: Modifier = Modifier,
     onToggleShowArchived: () -> Unit = {},
     onSearchTextChange: (String) -> Unit = {},
-    onCreateAccount: suspend (name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _ -> },
-    onUpdateAccount: suspend (id: String, name: String, typeId: String, currency: String, startingBalance: Long, logoUrl: String, logoInvertDark: Boolean) -> Unit = { _, _, _, _, _, _, _ -> },
+    onSaveAccount: suspend (id: String?, AccountSubmission) -> Unit = { _, _ -> },
     onSetArchived: suspend (id: String, archived: Boolean) -> Unit = { _, _ -> },
     onDeleteAccount: suspend (id: String, includeTransactions: Boolean) -> Unit = { _, _ -> },
     onAdjustBalance: suspend (id: String, balance: Long, payee: String) -> Unit = { _, _, _ -> },
@@ -191,19 +189,14 @@ internal fun AccountsScreenContent(
             accountTypes = state.accountTypes.filter { !it.archived },
             displayCurrency = state.displayCurrency,
             submitting = submitting,
-            onSave = { name, typeId, currency, startingBalance, logoUrl, invertDark ->
+            onSave = { submission ->
+                val id = editing?.id
                 busy.run(
                     formKey,
                     snackbarHostState,
                     successMessage = if (editing != null) accountUpdatedMessage else accountAddedMessage,
                     onSuccess = { creating = false; editing = null },
-                ) {
-                    if (editing != null) {
-                        onUpdateAccount(editing!!.id, name, typeId, currency, startingBalance, logoUrl, invertDark)
-                    } else {
-                        onCreateAccount(name, typeId, currency, startingBalance, logoUrl, invertDark)
-                    }
-                }
+                ) { onSaveAccount(id, submission) }
             },
             onCancel = { creating = false; editing = null },
         )
@@ -324,8 +317,7 @@ private fun AccountFormContent(
     accountTypes: List<AccountType>,
     displayCurrency: String,
     submitting: Boolean,
-    // Whether the account's purchases round up is not here: it is chosen on the Save the Change screen, beside the rule it feeds.
-    onSave: (String, String, String, Long, String, Boolean) -> Unit,
+    onSave: (AccountSubmission) -> Unit,
     onCancel: () -> Unit,
 ) {
     var name by remember { mutableStateOf(account?.name ?: "") }
@@ -365,7 +357,7 @@ private fun AccountFormContent(
         onDismiss = onCancel,
         onSave = submit@{
             val balance = startingBalanceMinor ?: return@submit
-            onSave(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark)
+            onSave(AccountSubmission(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark))
         },
         saveEnabled = form.valid(nameField, typeField, balanceField, currencyField, logoField),
         submitting = submitting,

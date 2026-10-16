@@ -42,13 +42,17 @@ class SettingsViewModel(
         }
     }
 
-    /** Only changed fields are sent, mirroring the dialog's own `currencyChanged`/`budgetModeChanged`/`defaultAccountChanged` guards. */
-    suspend fun save(displayCurrency: String?, budgetMode: BudgetMode?, defaultAccountId: String?, clearDefaultAccount: Boolean) {
+    /**
+     * Only changed fields are sent, mirroring the web's `currencyChanged`/`budgetModeChanged` guards; a default
+     * account that is null now but was set is cleared, rather than left out of the write.
+     */
+    suspend fun save(displayCurrency: String, budgetMode: BudgetMode, defaultAccountId: String?) {
+        val stored = uiState.value
         ledgerRepository.updateSettings(
-            displayCurrency = displayCurrency,
-            budgetMode = budgetMode?.name,
+            displayCurrency = displayCurrency.takeIf { it != stored.displayCurrency },
+            budgetMode = budgetMode.takeIf { it != stored.budgetMode }?.name,
             defaultAccountId = defaultAccountId,
-            clearDefaultAccount = clearDefaultAccount,
+            clearDefaultAccount = defaultAccountId == null && stored.defaultAccountId != null,
         )
         // Neither setting is shown pre-formatted in the cached summary, but both change what it means, so keep it in step.
         runCatching { budgetRepository.refreshSummary(currentMonth()) }

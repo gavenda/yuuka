@@ -85,7 +85,7 @@ internal fun SettingsScreenContent(
     state: SettingsUiState,
     modifier: Modifier = Modifier,
     themePreference: ThemePreference = koinInject(),
-    onSave: suspend (displayCurrency: String?, budgetMode: BudgetMode?, defaultAccountId: String?, clearDefaultAccount: Boolean) -> Unit = { _, _, _, _ -> },
+    onSave: suspend (displayCurrency: String, budgetMode: BudgetMode, defaultAccountId: String?) -> Unit = { _, _, _ -> },
     onOpenAccountTypes: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
@@ -119,12 +119,7 @@ internal fun SettingsScreenContent(
     val persist: (String, BudgetMode, String?) -> Unit = { currency, budgetMode, defaultAccountId ->
         scope.launch {
             try {
-                onSave(
-                    currency.takeIf { it != state.displayCurrency },
-                    budgetMode.takeIf { it != state.budgetMode },
-                    defaultAccountId,
-                    defaultAccountId == null && state.defaultAccountId != null,
-                )
+                onSave(currency, budgetMode, defaultAccountId)
             } catch (e: ApiError) {
                 snackbarHostState.showSnackbar(e.message ?: couldNotSaveSettingMessage)
             }

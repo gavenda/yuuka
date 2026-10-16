@@ -46,8 +46,17 @@ class SaveTheChangeViewModel(private val ledgerRepository: LedgerRepository) : V
         }
     }
 
-    suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, clearDestination: Boolean, categoryId: String?, clearCategory: Boolean) {
-        ledgerRepository.updateRoundUpRule(enabled, roundTo, destinationAccountId, clearDestination, categoryId, clearCategory)
+    /** A destination or category that is null now but was set is cleared, rather than left out of the write. */
+    suspend fun save(enabled: Boolean, roundTo: Long, destinationAccountId: String?, categoryId: String?) {
+        val stored = uiState.value
+        ledgerRepository.updateRoundUpRule(
+            enabled,
+            roundTo,
+            destinationAccountId,
+            destinationAccountId == null && stored.destinationAccountId != null,
+            categoryId,
+            categoryId == null && stored.categoryId != null,
+        )
     }
 
     /** Which accounts take part, set here rather than on each account's own form. */

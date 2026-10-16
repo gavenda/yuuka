@@ -26,6 +26,16 @@ data class SubscriptionsUiState(
     val displayCurrency: String = DEFAULT_CURRENCY,
 )
 
+/** What the form hands back. [startOn] is null when an edit left the date alone, so the schedule is not restarted. */
+data class SubscriptionSubmission(
+    val accountId: String,
+    val categoryId: String?,
+    val amount: Long,
+    val payee: String,
+    val notes: String,
+    val startOn: String?,
+)
+
 /** Mirrors the web app's `subscriptions` store plus `SubscriptionsView.vue`. */
 class SubscriptionsViewModel(
     private val subscriptionRepository: SubscriptionRepository,
@@ -47,11 +57,16 @@ class SubscriptionsViewModel(
         viewModelScope.launch { runCatching { subscriptionRepository.refresh() } }
     }
 
-    suspend fun create(accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String) =
-        subscriptionRepository.create(accountId, categoryId, amount, payee, notes, startOn)
-
-    suspend fun update(id: String, accountId: String, categoryId: String?, amount: Long, payee: String, notes: String, startOn: String?) =
-        subscriptionRepository.update(id, accountId, categoryId, amount, payee, notes, startOn)
+    /** A new subscription when [id] is null, which always has a start date. */
+    suspend fun save(id: String?, submission: SubscriptionSubmission) {
+        with(submission) {
+            if (id == null) {
+                subscriptionRepository.create(accountId, categoryId, amount, payee, notes, requireNotNull(startOn))
+            } else {
+                subscriptionRepository.update(id, accountId, categoryId, amount, payee, notes, startOn)
+            }
+        }
+    }
 
     suspend fun setEnabled(id: String, enabled: Boolean) = subscriptionRepository.setEnabled(id, enabled)
 

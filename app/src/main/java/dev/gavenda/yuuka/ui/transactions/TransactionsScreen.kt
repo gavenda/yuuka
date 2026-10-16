@@ -41,38 +41,31 @@ import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
-import dev.gavenda.yuuka.data.model.Payee
+import dev.gavenda.yuuka.data.remote.ApiError
 import androidx.compose.ui.tooling.preview.Preview
 
 /** How many items short of a list's end its next page is asked for, so it is usually there before the end is. */
 private const val LOAD_AHEAD = 10
 
+private const val FORM_KEY = "form"
+
+/** What the form was opened on: the row being edited, or nothing for a new one. */
+private class FormTarget(val editing: Transaction?, val transferToAccountId: String?)
+
 @Composable
 fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val formState by viewModel.formState.collectAsStateWithLifecycle()
-    val payees by viewModel.payeeRepository.payees.collectAsStateWithLifecycle(initialValue = emptyList())
-    val snackbarHostState = LocalSnackbarHostState.current
-
-    LaunchedEffect(viewModel) {
-        viewModel.events.collect { message -> snackbarHostState.showSnackbar(message) }
-    }
-
     TransactionsScreenContent(
         state = state,
         modifier = modifier,
-        formState = formState,
-        payees = payees,
         onMonthChange = viewModel::setMonth,
         onSearchTextChange = viewModel::setSearchText,
         onAccountFilterChange = viewModel::setAccountFilter,
         onCategoryFilterChange = viewModel::setCategoryFilter,
         onTagFilterChange = viewModel::setTagFilter,
         onLoadMore = viewModel::loadMore,
-        onOpenCreate = viewModel::openCreate,
-        onOpenEdit = viewModel::openEdit,
-        onCloseForm = viewModel::closeForm,
-        onSubmit = viewModel::submit,
+        onRefreshPayees = viewModel::refreshPayees,
+        onSave = viewModel::save,
         onDelete = viewModel::delete,
     )
 }
@@ -82,21 +75,31 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
 internal fun TransactionsScreenContent(
     state: TransactionsUiState,
     modifier: Modifier = Modifier,
-    formState: TransactionFormState = TransactionFormState(),
-    payees: List<Payee> = emptyList(),
     onMonthChange: (String) -> Unit = {},
     onSearchTextChange: (String) -> Unit = {},
     onAccountFilterChange: (Set<String>) -> Unit = {},
     onCategoryFilterChange: (Set<String>) -> Unit = {},
     onTagFilterChange: (Set<String>) -> Unit = {},
     onLoadMore: () -> Unit = {},
-    onOpenCreate: () -> Unit = {},
-    onOpenEdit: (transaction: Transaction, transferToAccountId: String?) -> Unit = { _, _ -> },
-    onCloseForm: () -> Unit = {},
-    onSubmit: (TransactionSubmission) -> Unit = {},
-    onDelete: (Transaction) -> Unit = {},
+    onRefreshPayees: () -> Unit = {},
+    onSave: suspend (editing: Transaction?, TransactionSubmission) -> String = { _, _ -> "" },
+    onDelete: suspend (Transaction) -> Unit = {},
 ) {
+    val busy = rememberBusyState()
+    val snackbarHostState = LocalSnackbarHostState.current
+    val genericErrorMessage = stringResource(R.string.error_generic)
+    val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
+    val transferDeletedMessage = stringResource(R.string.transfer_deleted)
+
+    var form by remember { mutableStateOf<FormTarget?>(null) }
+    var formError by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
+
+    val openForm = { editing: Transaction?, transferToAccountId: String? ->
+        onRefreshPayees()
+        formError = null
+        form = FormTarget(editing, transferToAccountId)
+    }
 
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
     val accountOptions = remember(state.accounts) { state.accounts.map { FilterOption(it.id, it.name) } }
@@ -126,8 +129,8 @@ internal fun TransactionsScreenContent(
 
     val openEdit = { row: TransactionRow ->
         when (row) {
-            is TransactionRow.Transfer -> onOpenEdit(row.leg, row.toAccountId)
-            is TransactionRow.Single -> onOpenEdit(row.transaction, null)
+            is TransactionRow.Transfer -> openForm(row.leg, row.toAccountId)
+            is TransactionRow.Single -> openForm(row.transaction, null)
         }
     }
     val askDelete = { row: TransactionRow ->
@@ -159,7 +162,7 @@ internal fun TransactionsScreenContent(
             ScreenFab(
                 label = stringResource(R.string.new_transaction),
                 icon = R.drawable.add_48px,
-                onClick = onOpenCreate,
+                onClick = { openForm(null, null) },
             )
         },
     ) { padding ->
@@ -208,31 +211,38 @@ internal fun TransactionsScreenContent(
         }
     }
 
-    if (formState.open) {
+    form?.let { target ->
         TransactionForm(
-            editing = formState.editing,
-            transferToAccountId = formState.transferToAccountId,
+            editing = target.editing,
+            transferToAccountId = target.transferToAccountId,
             accounts = state.accounts.filter { !it.archived },
             categories = state.categories,
             tags = state.tags,
-            payees = payees,
+            payees = state.payees,
             defaultAccountId = state.defaultAccountId,
-            submitting = formState.submitting,
-            error = formState.error,
-            onSubmit = onSubmit,
-            onCancel = onCloseForm,
+            submitting = busy.isBusy(FORM_KEY),
+            error = formError,
+            onSubmit = { submission ->
+                formError = null
+                // A failure is the form's to say, so it stays open with the reason in it rather than a snackbar.
+                busy.launch(FORM_KEY) {
+                    try {
+                        val message = onSave(target.editing, submission)
+                        form = null
+                        snackbarHostState.showSnackbar(message)
+                    } catch (e: ApiError) {
+                        formError = e.message ?: genericErrorMessage
+                    }
+                }
+            },
+            onCancel = { form = null },
         )
     }
 
     val toDelete = pendingDelete
     if (toDelete != null) {
-        val deleting = state.deletingId == toDelete.id
-        // Deletion is fire-and-forget on the ViewModel, so the dialog stays open (showing the
-        // spinner) until deletingId reverts to null, rather than closing the instant it's tapped.
-        var started by remember(toDelete.id) { mutableStateOf(false) }
-        LaunchedEffect(deleting) {
-            if (deleting) started = true else if (started) pendingDelete = null
-        }
+        val deleteKey = "delete:${toDelete.id}"
+        val deleting = busy.isBusy(deleteKey)
 
         AlertDialog(
             onDismissRequest = { if (!deleting) pendingDelete = null },
@@ -245,7 +255,14 @@ internal fun TransactionsScreenContent(
                 }
             },
             confirmButton = {
-                Button(onClick = { onDelete(toDelete) }, enabled = !deleting, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) {
+                Button(onClick = {
+                    busy.run(
+                        deleteKey,
+                        snackbarHostState,
+                        successMessage = if (toDelete.transferId != null) transferDeletedMessage else transactionDeletedMessage,
+                        onSuccess = { pendingDelete = null },
+                    ) { onDelete(toDelete) }
+                }, enabled = !deleting, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) {
                     if (deleting) {
                         MutationLoadingIndicator()
                     } else {

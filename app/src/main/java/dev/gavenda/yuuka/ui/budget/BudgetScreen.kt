@@ -25,16 +25,8 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val savingKeys by viewModel.savingKeys.collectAsStateWithLifecycle()
-    val snackbarHostState = LocalSnackbarHostState.current
-
-    LaunchedEffect(viewModel) {
-        viewModel.mutationErrors.collect { message -> snackbarHostState.showSnackbar(message) }
-    }
-
     BudgetScreenContent(
         state = state,
-        savingKeys = savingKeys,
         modifier = modifier,
         onMonthChange = viewModel::setMonth,
         onSetIncomePlan = viewModel::setIncomePlan,
@@ -48,12 +40,13 @@ fun BudgetScreen(modifier: Modifier = Modifier, viewModel: BudgetViewModel = koi
 internal fun BudgetScreenContent(
     state: BudgetUiState,
     modifier: Modifier = Modifier,
-    savingKeys: Set<String> = emptySet(),
     onMonthChange: (String) -> Unit = {},
-    onSetIncomePlan: (Long, IncomePlanMode, Long?) -> Unit = { _, _, _ -> },
-    onSetBudgetAmount: (String, Long) -> Unit = { _, _ -> },
-    onSetBudgetPercent: (String, Double) -> Unit = { _, _ -> },
+    onSetIncomePlan: suspend (Long, IncomePlanMode, Long?) -> Unit = { _, _, _ -> },
+    onSetBudgetAmount: suspend (String, Long) -> Unit = { _, _ -> },
+    onSetBudgetPercent: suspend (String, Double) -> Unit = { _, _ -> },
 ) {
+    val busy = rememberBusyState()
+    val snackbarHostState = LocalSnackbarHostState.current
     val visibility = koinInject<AmountVisibility>()
     val isPhp = state.currency == "PHP"
 
@@ -229,14 +222,14 @@ internal fun BudgetScreenContent(
             if (state.expenseBreakdown.isNotEmpty()) {
                 item { Text(stringResource(R.string.category_kind_expense), style = MaterialTheme.typography.titleSmall) }
                 items(state.expenseBreakdown, key = { it.categoryId }) { entry ->
-                    BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
+                    BudgetRow(entry, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
                 }
             }
 
             if (state.cashflowBreakdown.isNotEmpty()) {
                 item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
                 items(state.cashflowBreakdown, key = { it.categoryId }) { entry ->
-                    BudgetRow(entry, state.currency, entry.categoryId in savingKeys, onSetBudgetAmount, onSetBudgetPercent)
+                    BudgetRow(entry, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
                 }
             }
         }
@@ -247,16 +240,21 @@ internal fun BudgetScreenContent(
             initial = incomeDraft,
             currency = if (usingGross) "PHP" else state.currency,
             usingGross = usingGross,
-            saving = BudgetViewModel.INCOME_KEY in savingKeys,
+            saving = busy.isBusy(INCOME_KEY),
             onSave = { draft, amount ->
                 incomeDraft = draft
                 val toSave = if (usingGross && amount > 0) computeNetPay(amount).netPay else amount
-                onSetIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
+                busy.run(INCOME_KEY, snackbarHostState, onSuccess = { incomeEditing = false }) {
+                    onSetIncomePlan(toSave, if (usingGross) IncomePlanMode.gross else IncomePlanMode.fixed, if (usingGross) amount else null)
+                }
             },
             onDismiss = { incomeEditing = false },
         )
     }
 }
+
+/** The busy key of a planned-income save, beside the category ids that key a plan's. */
+private const val INCOME_KEY = "income"
 
 /** Planned income in a basic dialog of its one field; it stays open, spinning, until the save finishes. */
 @Composable
@@ -269,10 +267,6 @@ private fun PlannedIncomeDialog(
     onDismiss: () -> Unit,
 ) {
     var draft by remember { mutableStateOf(initial) }
-    var saveStarted by remember { mutableStateOf(false) }
-    LaunchedEffect(saving) {
-        if (saving) saveStarted = true else if (saveStarted) onDismiss()
-    }
     val amount = if (draft.isBlank()) 0L else parseMoney(draft)
 
     AlertDialog(
@@ -305,11 +299,12 @@ private fun PlannedIncomeDialog(
 private fun BudgetRow(
     entry: CategoryBreakdown,
     currency: String,
-    saving: Boolean,
-    onSetAmount: (String, Long) -> Unit,
-    onSetPercent: (String, Double) -> Unit,
+    busy: BusyState,
+    onSetAmount: suspend (String, Long) -> Unit,
+    onSetPercent: suspend (String, Double) -> Unit,
 ) {
     val visibility = koinInject<AmountVisibility>()
+    val snackbarHostState = LocalSnackbarHostState.current
     val health = budgetStatus(entry.actual, entry.planned)
     val percent = percentOf(entry.actual, entry.planned)
     val over = entry.planned > 0 && entry.remaining < 0
@@ -363,7 +358,15 @@ private fun BudgetRow(
     }
 
     if (editing) {
-        BudgetDialog(entry, currency, saving, onSetAmount, onSetPercent, onDismiss = { editing = false })
+        BudgetDialog(
+            entry = entry,
+            currency = currency,
+            saving = busy.isBusy(entry.categoryId),
+            onSave = { save -> busy.run(entry.categoryId, snackbarHostState, onSuccess = { editing = false }, action = save) },
+            onSetAmount = onSetAmount,
+            onSetPercent = onSetPercent,
+            onDismiss = { editing = false },
+        )
     }
 }
 
@@ -373,8 +376,10 @@ private fun BudgetDialog(
     entry: CategoryBreakdown,
     currency: String,
     saving: Boolean,
-    onSetAmount: (String, Long) -> Unit,
-    onSetPercent: (String, Double) -> Unit,
+    /** Runs the save, closing the dialog once it has gone through; it stays open, spinning, until then. */
+    onSave: (suspend () -> Unit) -> Unit,
+    onSetAmount: suspend (String, Long) -> Unit,
+    onSetPercent: suspend (String, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(if (entry.plannedPercent != null) "percent" else "amount") }
@@ -382,13 +387,6 @@ private fun BudgetDialog(
         mutableStateOf(if (entry.plannedPercent != null) entry.plannedPercent.toString() else if (entry.planned > 0) toDecimalString(entry.planned) else "")
     }
     val form = remember { FormValidation() }
-
-    // setBudgetAmount/Percent is fire-and-forget, so the dialog stays open (showing the spinner)
-    // until saving actually finishes rather than closing the instant Save is tapped.
-    var saveStarted by remember { mutableStateOf(false) }
-    LaunchedEffect(saving) {
-        if (saving) saveStarted = true else if (saveStarted) onDismiss()
-    }
 
     // Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative.
     val plannedAmount = if (mode == "amount") parseMoney(draft) else null
@@ -432,12 +430,13 @@ private fun BudgetDialog(
             Button(
                 enabled = !saving && form.valid(plannedField),
                 onClick = {
-                    if (draft.isBlank()) {
-                        onSetAmount(entry.categoryId, 0)
-                    } else if (mode == "percent") {
-                        parsePercent(draft)?.let { onSetPercent(entry.categoryId, it) }
-                    } else {
-                        plannedAmount?.let { onSetAmount(entry.categoryId, it) }
+                    val percent = if (mode == "percent") parsePercent(draft) else null
+                    val amount = if (draft.isBlank()) 0L else plannedAmount
+                    onSave {
+                        when {
+                            percent != null && draft.isNotBlank() -> onSetPercent(entry.categoryId, percent)
+                            amount != null -> onSetAmount(entry.categoryId, amount)
+                        }
                     }
                 },
             ) {

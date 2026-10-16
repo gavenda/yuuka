@@ -13,7 +13,7 @@ import TopBar from '@/components/TopBar.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
 import SpeechBubble from '@/components/SpeechBubble.vue';
 import YuukaPortrait from '@/components/YuukaPortrait.vue';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
@@ -47,7 +47,6 @@ const budget = useBudgetStore();
 const dialogOpen = ref(false);
 const editing = ref<Transaction | null>(null);
 const editingTransferToAccountId = ref<string | null>(null);
-const formRef = ref<InstanceType<typeof TransactionForm> | null>(null);
 const search = ref('');
 const accountFilter = ref<string[]>([]);
 const categoryFilter = ref<string[]>([]);
@@ -164,49 +163,6 @@ function openEdit(transaction: Transaction, transferToAccountId: string | null =
 	editing.value = transaction;
 	editingTransferToAccountId.value = transferToAccountId;
 	dialogOpen.value = true;
-}
-
-/** Says "₱X saved to <account>" after a purchase triggers a Save the Change round-up. */
-function announceRoundUp(roundUp: Transaction): void {
-	const destinationCurrency = ledger.accountsById.get(roundUp.accountId)?.currency ?? currency.value;
-	showSnackbar(
-		t('transactions.roundUpSaved', {
-			amount: displayMoney(roundUp.amount, destinationCurrency),
-			account: roundUp.accountName ?? t('transactions.roundUpFallback'),
-		}),
-	);
-}
-
-async function save(payload: Record<string, unknown> & { mode: string }): Promise<void> {
-	const { mode, ...body } = payload;
-
-	try {
-		const wasEditing = editing.value !== null;
-		let roundUp: Transaction | null = null;
-
-		if (mode === 'transfer' && editing.value?.transferId) {
-			await api.updateTransfer(editing.value.transferId, body);
-		} else if (mode === 'transfer') {
-			await api.createTransfer(body);
-		} else if (editing.value) {
-			await api.updateTransaction(editing.value.id, body);
-		} else {
-			roundUp = (await api.createTransaction(body)).roundUp ?? null;
-		}
-
-		dialogOpen.value = false;
-		showSnackbar(
-			wasEditing
-				? t('transactions.changesSaved')
-				: mode === 'transfer'
-					? t('transactions.transferAdded')
-					: t('transactions.transactionAdded'),
-		);
-		if (roundUp) announceRoundUp(roundUp);
-		await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
-	} catch (caught) {
-		formRef.value?.fail(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
-	}
 }
 
 async function remove(): Promise<void> {
@@ -422,11 +378,9 @@ async function remove(): Promise<void> {
 		</template>
 
 		<TransactionForm
-			ref="formRef"
 			:open="dialogOpen"
 			:transaction="editing"
 			:transfer-to-account-id="editingTransferToAccountId"
-			@submit="save"
 			@close="dialogOpen = false"
 		/>
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.Category
+import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
@@ -37,7 +38,8 @@ data class TransactionsUiState(
     val status: ScreenStatus = ScreenStatus.Idle,
     /** Why the next page could not be had. It is the foot of the list's to say, since the rows above it are still good. */
     val moreError: String? = null,
-    val deletingId: String? = null,
+    /** Names entered before, which the form's payee field offers back. */
+    val payees: List<Payee> = emptyList(),
 ) {
     val hasMore: Boolean get() = loadedCount < total
 }
@@ -65,30 +67,16 @@ sealed interface TransactionSubmission {
     ) : TransactionSubmission
 }
 
-data class TransactionFormState(
-    val open: Boolean = false,
-    val editing: Transaction? = null,
-    val transferToAccountId: String? = null,
-    val submitting: Boolean = false,
-    val error: String? = null,
-)
-
 /** Mirrors the web app's `transactions` Pinia store plus `TransactionsView.vue`'s own dialog and filter state. */
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
 class TransactionsViewModel(
     private val ledgerRepository: LedgerRepository,
     private val transactionRepository: TransactionRepository,
-    val payeeRepository: PayeeRepository,
+    private val payeeRepository: PayeeRepository,
     private val syncRepository: SyncRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
-
-    private val _formState = MutableStateFlow(TransactionFormState())
-    val formState: StateFlow<TransactionFormState> = _formState.asStateFlow()
-
-    private val _events = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val events: SharedFlow<String> = _events
 
     private val filterKey = MutableStateFlow(currentFilters())
     private val limit = MutableStateFlow(PAGE_SIZE)
@@ -103,22 +91,25 @@ class TransactionsViewModel(
     )
 
     init {
-        viewModelScope.launch { ledgerRepository.accounts.collect { list -> _uiState.update { it.copy(accounts = list) } } }
         viewModelScope.launch {
-            ledgerRepository.categories.collect { list ->
-                _uiState.update { it.copy(categories = list) }
-            }
-        }
-        viewModelScope.launch { ledgerRepository.tags.collect { list -> _uiState.update { it.copy(tags = list) } } }
-        viewModelScope.launch {
-            ledgerRepository.settings.collect { settings ->
-                _uiState.update {
-                    it.copy(
+            combine(
+                ledgerRepository.accounts,
+                ledgerRepository.categories,
+                ledgerRepository.tags,
+                ledgerRepository.settings,
+                payeeRepository.payees,
+            ) { accounts, categories, tags, settings, payees ->
+                { state: TransactionsUiState ->
+                    state.copy(
+                        accounts = accounts,
+                        categories = categories,
+                        tags = tags,
                         currency = settings?.displayCurrency ?: DEFAULT_CURRENCY,
-                        defaultAccountId = settings?.defaultAccountId
+                        defaultAccountId = settings?.defaultAccountId,
+                        payees = payees,
                     )
                 }
-            }
+            }.collect { apply -> _uiState.update(apply) }
         }
 
         viewModelScope.launch {
@@ -252,129 +243,80 @@ class TransactionsViewModel(
         }
     }
 
-    fun openCreate() {
+    /** The form offers names entered before, so it asks for the latest when it opens. */
+    fun refreshPayees() {
         viewModelScope.launch { runCatching { payeeRepository.refresh() } }
-        _formState.value = TransactionFormState(open = true)
     }
 
-    fun openEdit(transaction: Transaction, transferToAccountId: String? = null) {
-        viewModelScope.launch { runCatching { payeeRepository.refresh() } }
-        _formState.value =
-            TransactionFormState(open = true, editing = transaction, transferToAccountId = transferToAccountId)
-    }
+    /** Saves the form, a new row when [editing] is null, and answers with what to confirm it by. */
+    suspend fun save(editing: Transaction?, submission: TransactionSubmission): String {
+        // Only a plain, newly created expense can trigger "Save the Change" — captured here so its
+        // feedback can ride along with the ordinary success message below.
+        var roundUp: Transaction? = null
 
-    fun closeForm() {
-        _formState.value = TransactionFormState()
-    }
-
-    fun submit(submission: TransactionSubmission) {
-        val editing = _formState.value.editing
-
-        viewModelScope.launch {
-            _formState.update { it.copy(submitting = true, error = null) }
-            try {
-                // Only a plain, newly created expense can trigger "Save the
-                // Change" — captured here so its feedback can ride along with
-                // the ordinary success message below.
-                var roundUp: Transaction? = null
-
-                when (submission) {
-                    is TransactionSubmission.Plain -> if (editing != null) {
-                        transactionRepository.updateTransaction(
-                            editing.id,
-                            submission.accountId,
-                            submission.categoryId,
-                            submission.amount,
-                            submission.occurredOn,
-                            submission.payee,
-                            submission.notes,
-                            submission.tagIds,
-                        )
-                    } else {
-                        roundUp = transactionRepository.createTransaction(
-                            submission.accountId,
-                            submission.categoryId,
-                            submission.amount,
-                            submission.occurredOn,
-                            submission.payee,
-                            submission.notes,
-                            submission.tagIds,
-                        )
-                    }
-
-                    is TransactionSubmission.Transfer -> {
-                        val transferId = editing?.transferId
-                        if (transferId != null) {
-                            transactionRepository.updateTransfer(
-                                transferId,
-                                submission.fromAccountId,
-                                submission.toAccountId,
-                                submission.categoryId,
-                                submission.amount,
-                                submission.occurredOn,
-                                submission.payee,
-                                submission.notes,
-                                submission.tagIds,
-                            )
-                        } else {
-                            transactionRepository.createTransfer(
-                                submission.fromAccountId,
-                                submission.toAccountId,
-                                submission.categoryId,
-                                submission.amount,
-                                submission.occurredOn,
-                                submission.payee,
-                                submission.notes,
-                                submission.tagIds,
-                            )
-                        }
-                    }
-                }
-
-                val isEditing = editing != null
-                closeForm()
-
-                val baseMessage = when (submission) {
-                    is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
-                    is TransactionSubmission.Plain -> if (isEditing) "Transaction updated" else "Transaction added"
-                }
-
-                // Combined into one message rather than a second `_events.tryEmit()`:
-                // with `extraBufferCapacity = 1` and no suspension between the two
-                // calls, a second emit here could land while the buffer from the
-                // first is still unread and get silently dropped.
-                _events.tryEmit(
-                    if (roundUp != null) {
-                        val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency
-                            ?: _uiState.value.currency
-                        "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
-                    } else {
-                        baseMessage
-                    },
+        when (submission) {
+            is TransactionSubmission.Plain -> if (editing != null) {
+                transactionRepository.updateTransaction(
+                    editing.id,
+                    submission.accountId,
+                    submission.categoryId,
+                    submission.amount,
+                    submission.occurredOn,
+                    submission.payee,
+                    submission.notes,
+                    submission.tagIds,
                 )
-            } catch (e: ApiError) {
-                _formState.update {
-                    it.copy(
-                        submitting = false,
-                        error = e.message ?: "Could not save the transaction."
+            } else {
+                roundUp = transactionRepository.createTransaction(
+                    submission.accountId,
+                    submission.categoryId,
+                    submission.amount,
+                    submission.occurredOn,
+                    submission.payee,
+                    submission.notes,
+                    submission.tagIds,
+                )
+            }
+
+            is TransactionSubmission.Transfer -> {
+                val transferId = editing?.transferId
+                if (transferId != null) {
+                    transactionRepository.updateTransfer(
+                        transferId,
+                        submission.fromAccountId,
+                        submission.toAccountId,
+                        submission.categoryId,
+                        submission.amount,
+                        submission.occurredOn,
+                        submission.payee,
+                        submission.notes,
+                        submission.tagIds,
+                    )
+                } else {
+                    transactionRepository.createTransfer(
+                        submission.fromAccountId,
+                        submission.toAccountId,
+                        submission.categoryId,
+                        submission.amount,
+                        submission.occurredOn,
+                        submission.payee,
+                        submission.notes,
+                        submission.tagIds,
                     )
                 }
             }
         }
+
+        val isEditing = editing != null
+        val baseMessage = when (submission) {
+            is TransactionSubmission.Transfer -> if (isEditing) "Transfer updated" else "Transfer added"
+            is TransactionSubmission.Plain -> if (isEditing) "Transaction updated" else "Transaction added"
+        }
+        if (roundUp == null) return baseMessage
+        val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency ?: _uiState.value.currency
+        return "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
     }
 
-    fun delete(transaction: Transaction) {
-        val isTransfer = transaction.transferId != null
-        viewModelScope.launch {
-            _uiState.update { it.copy(deletingId = transaction.id) }
-            try {
-                transactionRepository.deleteTransactionOrTransfer(transaction)
-                _events.tryEmit(if (isTransfer) "Transfer deleted" else "Transaction deleted")
-            } catch (e: ApiError) {
-                _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not delete.")) }
-            } finally {
-                _uiState.update { it.copy(deletingId = null) }
-            }
-        }
-    }
+    /** Deletes [transaction], and the other side with it when it is a transfer's. */
+    suspend fun delete(transaction: Transaction) = transactionRepository.deleteTransactionOrTransfer(transaction)
 }
