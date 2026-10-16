@@ -116,6 +116,8 @@
     <string name="dashboard_pace_ahead">Ahead of pace: day %1$d of %2$d</string>
     <string name="dashboard_pace_within">Within the plan</string>
     <string name="dashboard_pace_past">Past the plan</string>
+    <string name="dashboard_accounts">Accounts</string>
+    <string name="dashboard_mixed_currencies">Net worth adds these as they stand. Currencies are not converted.</string>
     <string name="dashboard_needs_attention">I\'ll need an explanation.</string>
     <string name="dashboard_nothing_overspent">Every budget within its limit.</string>
     <string name="chart_average_per_day">Daily average</string>

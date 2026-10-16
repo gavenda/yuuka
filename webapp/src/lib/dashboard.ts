@@ -1,4 +1,4 @@
-import type { CategoryBreakdown } from '@/types';
+import type { Account, CategoryBreakdown } from '@/types';
 import { today } from '@/lib/dates';
 import type { STATUS } from '@/lib/palette';
 
@@ -57,4 +57,22 @@ export function paceHealth(pace: BudgetPace): keyof typeof STATUS {
 export function incomeProgress(income: number, plannedIncome: number): number | null {
 	if (plannedIncome <= 0) return null;
 	return Math.round((income / plannedIncome) * 100);
+}
+
+/** The accounts still in use, under their types in alphabetical order, the largest balance first within each. */
+export function accountGroups(accounts: Account[]): { type: string; accounts: Account[] }[] {
+	const groups = new Map<string, Account[]>();
+	for (const account of accounts) {
+		if (account.archived) continue;
+		const type = account.typeName ?? '';
+		groups.set(type, [...(groups.get(type) ?? []), account]);
+	}
+	return [...groups.entries()]
+		.sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+		.map(([type, members]) => ({ type, accounts: members.sort((a, b) => b.balance - a.balance) }));
+}
+
+/** Whether the accounts in use hold more than one currency — when net worth, which adds them as they stand, is not one currency's figure. */
+export function mixedCurrencies(accounts: Account[]): boolean {
+	return new Set(accounts.filter((account) => !account.archived).map((account) => account.currency.toUpperCase())).size > 1;
 }

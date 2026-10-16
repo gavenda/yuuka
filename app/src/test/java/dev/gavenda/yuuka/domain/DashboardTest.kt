@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.domain
 
+import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.CategoryKind
 import org.junit.Assert.assertEquals
@@ -54,6 +55,29 @@ class DashboardTest {
         assertEquals(120, incomeProgress(12000, 10000))
         assertNull(incomeProgress(5000, 0))
     }
+
+    @Test
+    fun accountGroupsGroupTheAccountsInUseUnderTheirTypesLargestFirst() {
+        val groups = accountGroups(
+            listOf(
+                account("a", "Savings", 100),
+                account("b", "checking", 50),
+                account("c", "Savings", 900),
+                account("d", "Savings", 5000, archived = true),
+            ),
+        )
+        assertEquals(listOf("checking" to listOf("b"), "Savings" to listOf("c", "a")), groups.map { (type, rows) -> type to rows.map { it.id } })
+    }
+
+    @Test
+    fun mixedCurrenciesNoticesASecondCurrencyAmongAccountsInUse() {
+        assertEquals(false, mixedCurrencies(listOf(account("a", currency = "PHP"), account("b", currency = "php"))))
+        assertEquals(true, mixedCurrencies(listOf(account("a", currency = "PHP"), account("b", currency = "USD"))))
+        assertEquals(false, mixedCurrencies(listOf(account("a", currency = "PHP"), account("b", currency = "USD", archived = true))))
+    }
+
+    private fun account(id: String, type: String = "Checking", balance: Long = 0, currency: String = "PHP", archived: Boolean = false) =
+        Account(id = id, name = id, typeId = type, typeName = type, currency = currency, startingBalance = 0, balance = balance, archived = archived)
 
     private fun entry(id: String, planned: Long, actual: Long, kind: CategoryKind = CategoryKind.expense) =
         CategoryBreakdown(categoryId = id, name = id, kind = kind, color = "#2a78d6", planned = planned, actual = actual, remaining = planned - actual)

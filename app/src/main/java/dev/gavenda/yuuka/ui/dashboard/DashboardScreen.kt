@@ -177,6 +177,11 @@ internal fun DashboardScreenContent(
                     }
                 }
             }
+
+            val groups = accountGroups(state.summary?.accounts.orEmpty())
+            if (groups.isNotEmpty()) {
+                item { AccountsCard(groups, mixedCurrencies(state.summary?.accounts.orEmpty())) }
+            }
         }
     }
 }

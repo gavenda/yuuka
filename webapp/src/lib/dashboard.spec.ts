@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoryBreakdown } from '@/types';
-import { budgetPace, incomeProgress, overBudget, paceHealth, savingsRate } from './dashboard';
+import { account } from '@/testing/fixtures';
+import { accountGroups, budgetPace, incomeProgress, mixedCurrencies, overBudget, paceHealth, savingsRate } from './dashboard';
 
 const entry = (categoryId: string, extra: Partial<CategoryBreakdown>): CategoryBreakdown => ({
 	categoryId,
@@ -81,5 +82,29 @@ describe('incomeProgress', () => {
 	it('is unclamped, and absent without a plan', () => {
 		expect(incomeProgress(12000, 10000)).toBe(120);
 		expect(incomeProgress(5000, 0)).toBeNull();
+	});
+});
+
+describe('accountGroups', () => {
+	it('groups the accounts in use under their types, the largest balance first', () => {
+		const groups = accountGroups([
+			account('a', { typeName: 'Savings', balance: 100 }),
+			account('b', { typeName: 'checking', balance: 50 }),
+			account('c', { typeName: 'Savings', balance: 900 }),
+			account('d', { typeName: 'Savings', balance: 5000, archived: true }),
+		]);
+
+		expect(groups.map((group) => [group.type, group.accounts.map((row) => row.id)])).toEqual([
+			['checking', ['b']],
+			['Savings', ['c', 'a']],
+		]);
+	});
+});
+
+describe('mixedCurrencies', () => {
+	it('notices a second currency among the accounts in use only', () => {
+		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'php' })])).toBe(false);
+		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'USD' })])).toBe(true);
+		expect(mixedCurrencies([account('a', { currency: 'PHP' }), account('b', { currency: 'USD', archived: true })])).toBe(false);
 	});
 });

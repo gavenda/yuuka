@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.domain
 
+import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.CategoryKind
 import java.time.YearMonth
@@ -51,3 +52,13 @@ fun incomeProgress(income: Long, plannedIncome: Long): Int? {
     if (plannedIncome <= 0) return null
     return (income.toDouble() / plannedIncome * 100).roundToInt()
 }
+
+/** The accounts still in use, under their types in alphabetical order, the largest balance first within each. */
+fun accountGroups(accounts: List<Account>): List<Pair<String, List<Account>>> =
+    accounts.filter { !it.archived }
+        .groupBy { it.typeName.orEmpty() }
+        .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+        .map { (type, members) -> type to members.sortedByDescending { it.balance } }
+
+/** Whether the accounts in use hold more than one currency — when net worth, which adds them as they stand, is not one currency's figure. */
+fun mixedCurrencies(accounts: List<Account>): Boolean = accounts.filter { !it.archived }.map { it.currency.uppercase() }.distinct().size > 1

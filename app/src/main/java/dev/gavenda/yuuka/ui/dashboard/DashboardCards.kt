@@ -14,11 +14,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
+import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.BudgetHealth
 import dev.gavenda.yuuka.domain.BudgetPace
 import dev.gavenda.yuuka.domain.statusColor
+import dev.gavenda.yuuka.ui.common.AccountLogo
+import dev.gavenda.yuuka.ui.common.MoneyText
+import dev.gavenda.yuuka.ui.common.MoneyTone
 import dev.gavenda.yuuka.ui.common.harmonisedColor
 import org.koin.compose.koinInject
 
@@ -147,6 +151,51 @@ private fun PlanMeter(label: String, percent: Int, color: Color, lines: List<Str
         }
         lines.forEach { line ->
             Text(line, modifier = Modifier.padding(top = 4.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Every account in use with its balance, under its type, each in the currency it holds. Net worth adds them
+ * as they stand, so when they hold more than one currency the card says so rather than let the total pass for
+ * one currency's figure. Mirrors `AccountsCard.vue`.
+ */
+@Composable
+internal fun AccountsCard(groups: List<Pair<String, List<Account>>>, mixed: Boolean, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(stringResource(R.string.dashboard_accounts), style = MaterialTheme.typography.titleLarge)
+
+            groups.forEach { (type, accounts) ->
+                if (type.isNotEmpty()) {
+                    Text(
+                        type,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                accounts.forEach { account ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 24)
+                        Text(account.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                        MoneyText(account.balance, currency = account.currency, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+
+            if (mixed) {
+                Text(
+                    stringResource(R.string.dashboard_mixed_currencies),
+                    modifier = Modifier.padding(top = 12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

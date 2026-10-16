@@ -12,6 +12,8 @@ export default {
 	againstPlan: 'Against the plan',
 	budgetUsed: 'Budget used',
 	incomeReceived: 'Income received',
+	accounts: 'Accounts',
+	mixedCurrencies: 'Net worth adds these as they stand. Currencies are not converted.',
 	pace: {
 		keeping: 'Keeping pace: day {day} of {days}',
 		ahead: 'Ahead of pace: day {day} of {days}',
