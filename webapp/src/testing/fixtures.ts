@@ -142,6 +142,8 @@ export const summary = (month: string, marker = 'x'): Summary & { marker: string
 	accounts: [],
 	categories: [],
 	dailySpend: [],
+	topPayees: [],
+	roundUps: 0,
 	generatedAt: stamps.createdAt,
 	cached: false,
 	marker,

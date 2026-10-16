@@ -182,6 +182,12 @@ export interface CategoryBreakdown {
 	children: SubcategoryBreakdown[];
 }
 
+export interface PayeeSpend {
+	payee: string;
+	amount: number;
+	count: number;
+}
+
 export interface Summary {
 	month: string;
 	income: number;
@@ -200,6 +206,10 @@ export interface Summary {
 	accounts: Account[];
 	categories: CategoryBreakdown[];
 	dailySpend: { date: string; amount: number }[];
+	/** The payees the month's spending went to, the most first, as a positive amount and how many times. Transfers are left out. */
+	topPayees: PayeeSpend[];
+	/** What "Save the Change" rounded up this month, as a positive amount. */
+	roundUps: number;
 	generatedAt: string;
 	cached: boolean;
 }

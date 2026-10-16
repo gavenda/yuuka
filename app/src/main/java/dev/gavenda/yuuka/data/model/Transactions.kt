@@ -107,6 +107,11 @@ data class CategoryBreakdown(
 @Serializable
 data class DailySpend(val date: String, val amount: Long)
 
+/** One payee's share of a month's spending: a positive [amount] over [count] transactions. */
+@Immutable
+@Serializable
+data class PayeeSpend(val payee: String, val amount: Long, val count: Int)
+
 @Serializable
 data class Summary(
     val month: String,
@@ -125,6 +130,10 @@ data class Summary(
     val accounts: List<Account> = emptyList(),
     val categories: List<CategoryBreakdown> = emptyList(),
     val dailySpend: List<DailySpend> = emptyList(),
+    /** The payees the month's spending went to, the most first. Transfers are left out. */
+    val topPayees: List<PayeeSpend> = emptyList(),
+    /** What "Save the Change" rounded up this month, as a positive amount. */
+    val roundUps: Long = 0,
     val generatedAt: String = "",
     val cached: Boolean = false,
 )

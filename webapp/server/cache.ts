@@ -8,7 +8,9 @@
  */
 const SUMMARY_TTL_SECONDS = 300;
 
-const userPrefix = (userId: string) => `summary:v1:${userId}:`;
+// The version moves when the payload's shape does, so a summary cached before a deploy is never served
+// without the fields the new clients read. The old keys simply expire.
+const userPrefix = (userId: string) => `summary:v2:${userId}:`;
 
 export function summaryKey(userId: string, month: string): string {
 	return `${userPrefix(userId)}${month}`;

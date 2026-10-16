@@ -35,6 +35,15 @@ interface DailyRow {
 	spent: number;
 }
 
+interface PayeeRow {
+	payee: string;
+	spent: number;
+	count: number;
+}
+
+/** How many payees `topPayees` names: enough to see who the money goes to, few enough to read at a glance. */
+const TOP_PAYEES = 5;
+
 export interface SubcategoryBreakdown {
 	categoryId: string;
 	name: string;
@@ -73,7 +82,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 
 	// Income and spending exclude transfers: moving money between your own
 	// accounts is neither. Transfers are measured separately, below.
-	const [accounts, totals, categories, categoryTotals, budgets, incomePlan, daily] = await c.env.DB.batch([
+	const [accounts, totals, categories, categoryTotals, budgets, incomePlan, daily, payees, roundUps] = await c.env.DB.batch([
 		c.env.DB.prepare(
 			`SELECT a.id, a.name, a.type_id, ty.name AS type_name, a.currency, a.logo_url, a.starting_balance, a.archived,
 			        a.created_at, a.updated_at,
@@ -127,6 +136,23 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND occurred_on >= ? AND occurred_on < ?
 			 GROUP BY occurred_on
 			 ORDER BY date ASC`,
+		).bind(userId, start, end),
+		// Who the month's spending went to. A transfer's derived "From → To" name and the round-ups'
+		// "Save the Change" are both transfer legs, so excluding transfers keeps every synthetic payee out;
+		// an unnamed row has nobody to name. Names match case-insensitively, as the payee history does.
+		c.env.DB.prepare(
+			`SELECT payee, -SUM(amount) AS spent, COUNT(*) AS count
+			 FROM transactions
+			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND payee <> '' AND occurred_on >= ? AND occurred_on < ?
+			 GROUP BY payee COLLATE NOCASE
+			 ORDER BY spent DESC, payee COLLATE NOCASE ASC
+			 LIMIT ${TOP_PAYEES}`,
+		).bind(userId, start, end),
+		// What "Save the Change" moved this month: the outflow legs of its round-ups.
+		c.env.DB.prepare(
+			`SELECT COALESCE(-SUM(amount), 0) AS total
+			 FROM transactions
+			 WHERE user_id = ? AND source = 'round_up' AND amount < 0 AND occurred_on >= ? AND occurred_on < ?`,
 		).bind(userId, start, end),
 	]);
 
@@ -214,6 +240,10 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		accounts: accountRows.map(toAccount),
 		categories: breakdown,
 		dailySpend: (daily.results as DailyRow[]).map((row) => ({ date: row.date, amount: row.spent })),
+		/** The payees the month's spending went to, the most first, as a positive amount and how many times. Transfers are left out. */
+		topPayees: (payees.results as PayeeRow[]).map((row) => ({ payee: row.payee, amount: row.spent, count: row.count })),
+		/** What "Save the Change" rounded up this month, as a positive amount. */
+		roundUps: (roundUps.results as { total: number }[])[0]?.total ?? 0,
 		generatedAt: new Date().toISOString(),
 	};
 
