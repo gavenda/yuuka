@@ -3,6 +3,7 @@ import CategoryBars from '@/components/CategoryBars.vue';
 import MonthAction from '@/components/MonthAction.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
+import { savingsRate } from '@/lib/dashboard';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { computed, onMounted } from 'vue';
@@ -18,18 +19,30 @@ const month = computed({
 	set: (next: string) => void budget.setMonth(next),
 });
 
-/** Where things stand: what there is, and what came in and went out this month. */
-const standing = computed(() => [
-	{ label: t('common.netWorth'), amount: budget.summary?.netWorth ?? 0, watermark: true },
-	{ label: t('common.income'), amount: budget.summary?.income ?? 0 },
-	{ label: t('common.spent'), amount: budget.summary?.expenses ?? 0 },
-]);
+/** Where things stand: what there is, and what came in, went out and was set aside this month. */
+const standing = computed(() => {
+	const cashflow = budget.summary?.cashflow ?? 0;
+	return [
+		{ label: t('common.netWorth'), amount: budget.summary?.netWorth ?? 0, watermark: true },
+		{ label: t('common.income'), amount: budget.summary?.income ?? 0 },
+		{ label: t('common.spent'), amount: budget.summary?.expenses ?? 0 },
+		// Only once something has been moved: most months of someone who never files a transfer would read zero.
+		...(cashflow > 0 ? [{ label: t('dashboard.setAside'), amount: cashflow, caption: t('dashboard.setAsideCaption') }] : []),
+	];
+});
+
+/** What the net comes to in words: overspent, or the share of income kept when there was any. */
+function netCaption(net: number): string {
+	if (net < 0) return t('dashboard.overspent');
+	const rate = savingsRate(net, budget.summary?.income ?? 0);
+	return rate === null ? t('dashboard.saved') : t('dashboard.savedShare', { percent: rate });
+}
 
 /** How the month is going against the plan. */
 const progress = computed(() => {
 	const net = budget.summary?.net ?? 0;
 	return [
-		{ label: t('dashboard.netThisMonth'), amount: net, caption: net >= 0 ? t('dashboard.saved') : t('dashboard.overspent'), signed: true },
+		{ label: t('dashboard.netThisMonth'), amount: net, caption: netCaption(net), signed: true },
 		{ label: t('dashboard.budgetRemaining'), amount: budget.unspent, caption: t('dashboard.acrossBudgeted') },
 		{
 			label: t('dashboard.overBudget'),

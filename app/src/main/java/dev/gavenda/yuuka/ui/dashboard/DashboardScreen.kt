@@ -62,12 +62,17 @@ internal fun DashboardScreenContent(
             }
 
             item {
+                val cashflow = state.summary?.cashflow ?: 0
                 StatCarousel(
-                    listOf(
-                        StatItem(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, state.currency, watermark = true),
-                        StatItem(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, state.currency),
-                        StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency),
-                    ),
+                    buildList {
+                        add(StatItem(stringResource(R.string.net_worth), state.summary?.netWorth ?: 0, state.currency, watermark = true))
+                        add(StatItem(stringResource(R.string.category_kind_income), state.summary?.income ?: 0, state.currency))
+                        add(StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency))
+                        // Only once something has been moved: most months of someone who never files a transfer would read zero.
+                        if (cashflow > 0) {
+                            add(StatItem(stringResource(R.string.dashboard_set_aside), cashflow, state.currency, caption = stringResource(R.string.dashboard_set_aside_caption)))
+                        }
+                    },
                     tone = StatTone.Tertiary,
                 )
             }
@@ -77,6 +82,7 @@ internal fun DashboardScreenContent(
                 val unspent = expenseBreakdown.sumOf { maxOf(0, it.remaining) }
                 val overspent = expenseBreakdown.sumOf { minOf(0, it.remaining) }
                 val net = state.summary?.net ?: 0
+                val rate = savingsRate(net, state.summary?.income ?: 0)
 
                 StatCarousel(
                     listOf(
@@ -84,7 +90,11 @@ internal fun DashboardScreenContent(
                             stringResource(R.string.dashboard_net_this_month),
                             net,
                             state.currency,
-                            caption = if (net >= 0) stringResource(R.string.dashboard_saved) else stringResource(R.string.dashboard_overspent),
+                            caption = when {
+                                net < 0 -> stringResource(R.string.dashboard_overspent)
+                                rate != null -> stringResource(R.string.dashboard_saved_share, rate)
+                                else -> stringResource(R.string.dashboard_saved)
+                            },
                             signed = true,
                         ),
                         StatItem(

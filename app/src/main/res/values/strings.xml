@@ -101,6 +101,9 @@
     <!-- Dashboard -->
     <string name="dashboard_net_this_month">Net this month</string>
     <string name="dashboard_saved">Saved</string>
+    <string name="dashboard_saved_share">Saved %1$d%% of income</string>
+    <string name="dashboard_set_aside">Set aside</string>
+    <string name="dashboard_set_aside_caption">Moved into savings and investments</string>
     <string name="dashboard_overspent">Overspent</string>
     <string name="dashboard_budget_remaining">Budget remaining</string>
     <string name="dashboard_across_budgeted_categories">Across budgeted categories</string>
