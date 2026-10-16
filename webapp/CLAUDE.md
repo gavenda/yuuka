@@ -159,7 +159,7 @@ answer and write it back. Four rules keep that honest:
   separately from having something to show, so a copy shown offline is fetched
   again next time rather than treated as loaded.
 - **What is held per month and per page is bounded, and dropped after writes.**
-  Summaries are kept for the newest six months and first pages for the newest
+  Summaries are kept for the newest six months (twelve rows, each month's trend beside it) and first pages for the newest
   eight filter sets — first page only, never what scrolling on appended.
   `budget.refresh()` and `transactions.refresh()` are what every write already
   calls, and once the API has answered they drop the other months and filter
@@ -437,8 +437,13 @@ nothing.
 
 ## Charts
 
-**There is no charting library.** Both charts are drawn in the page, as they are on Android,
-so they read the theme's colour roles as classes and never repeat a hex value.
+**There is no charting library.** Every chart is drawn in the page, as it is on Android,
+so it reads the theme's colour roles as classes and never repeats a hex value. The trend charts
+(`IncomeSpendChart.vue` and `NetWorthChart.vue`, the twins of `TrendCharts.kt`) fill their card, laid out
+against its width (`useElementWidth`, `lib/elementWidth.ts`); income is `primary` and spending
+`on-surface-variant`, the neutral a routine outflow's figure wears, and the net worth line's axis comes from
+`axisRange`, which need not start at zero. The budget store loads the month before (`loadPrevious`) and the
+trend (`loadTrend`) only when the dashboard asks.
 "Where the money went" (`CategoryBars.vue`) is `CategoryBarList` from `BarCharts.kt` again: a
 name and its "amount · share%" over a bar drawn as Material's linear progress indicator (the category's
 colour as far as its share of the largest, a gap, then the rest of the track), with the tail

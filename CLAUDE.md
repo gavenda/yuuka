@@ -382,6 +382,27 @@ wrote for a caller is not shown in a dialog. Both apps use the same words, and a
 the same shape. A dialog that is fields or a list rather than a question — adjusting a balance, naming an
 account type, a selection — keeps a start-aligned headline, no icon, and Cancel.
 
+## Dashboard
+
+- **The dashboard reads one month, and says what it is made of**: two rows of figures (net worth, income,
+spent, and — once a month has any — what was set aside into transfer categories and what Save the Change
+rounded up; then the net with the share of income kept, budget remaining and over budget), then the cards,
+each left out when it has nothing to say: against the plan (the expense budget used, with a mark for the day
+while the month runs, and income received against plan), the categories over budget, spending by day, where
+the money went (each row saying how far it moved from the month before) and came from (two sources or more),
+income and spending over the last six months, net worth over twelve, who the money went to (the summary's
+top five payees, transfers left out), the subscriptions still to post in the month under way, and every
+account in use with its balance in its own currency. What is worked out on the device lives in one place,
+`domain/Dashboard.kt` and `lib/dashboard.ts`, which mirror each other and are tested alike.
+- **The trend is its own route**: `/api/trend` spans months, and the summary is cached per month and purged
+only for the months a write touches, so a trend inside it would go stale on a back-dated write. It is not
+cached on the server. Its net worth at a month's end is worked back from today's balances, which counts an
+account opened since as if it had always held its starting balance, and keeps the last point equal to the
+summary's figure. Both apps keep it locally in the summaries table under `trend:<month>`, so it goes whenever
+the summaries go.
+- **Net worth adds currencies as they stand**: it is never converted, so where the accounts hold more than one
+currency the accounts card says so rather than let the total pass for one currency's figure.
+
 ## Brand
 
 The app is Hayase Yuuka, in her pyjamas, and what makes it look and sound like her is written down in
