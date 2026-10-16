@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import AccountsCard from '@/components/AccountsCard.vue';
 import CategoryBars from '@/components/CategoryBars.vue';
+import IncomeSpendChart from '@/components/IncomeSpendChart.vue';
 import MonthAction from '@/components/MonthAction.vue';
+import NetWorthChart from '@/components/NetWorthChart.vue';
 import OverBudgetCard from '@/components/OverBudgetCard.vue';
 import PlanCard from '@/components/PlanCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
@@ -97,9 +99,16 @@ const comparedTo = computed(() => (budget.previous ? monthName(budget.previous.m
 
 watch(
 	() => budget.month,
-	() => void budget.loadPrevious(),
+	() => {
+		void budget.loadPrevious();
+		void budget.loadTrend();
+	},
 	{ immediate: true },
 );
+
+/** The months up to the one on show; the bars take the last six, which is as many pairs as a phone holds. */
+const trendMonths = computed(() => (budget.trend?.month === budget.month ? budget.trend.months : []));
+const barMonths = computed(() => trendMonths.value.slice(-6));
 
 onMounted(() => Promise.all([ledger.load(), budget.load(true), subscriptionStore.load()]));
 </script>
@@ -135,6 +144,10 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true), subscriptionStore
 		/>
 
 		<CategoryBars v-if="manySources" :title="t('dashboard.whereMoneyCameFrom')" :entries="budget.incomeBreakdown" :currency="currency" />
+
+		<IncomeSpendChart v-if="barMonths.length >= 2" :months="barMonths" :currency="currency" />
+
+		<NetWorthChart v-if="trendMonths.length >= 2" :months="trendMonths" :currency="currency" />
 
 		<TopPayeesCard v-if="budget.summary?.topPayees?.length" :payees="budget.summary.topPayees" :currency="currency" />
 

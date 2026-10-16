@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.data.model.Summary
+import dev.gavenda.yuuka.data.model.Trend
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
 import dev.gavenda.yuuka.domain.addMonths
@@ -25,6 +26,8 @@ data class DashboardUiState(
     val status: ScreenStatus = ScreenStatus.Idle,
     /** Every subscription, for what is still to post this month. */
     val subscriptions: List<Subscription> = emptyList(),
+    /** The months up to the one on show, for the trend charts; null until known. */
+    val trend: Trend? = null,
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -53,8 +56,12 @@ class DashboardViewModel(
         )
     }
 
-    val uiState: StateFlow<DashboardUiState> = combine(monthState, subscriptionRepository.subscriptions) { state, subscriptions ->
-        state.copy(subscriptions = subscriptions)
+    val uiState: StateFlow<DashboardUiState> = combine(
+        monthState,
+        subscriptionRepository.subscriptions,
+        month.flatMapLatest { budgetRepository.observeTrend(it) },
+    ) { state, subscriptions, trend ->
+        state.copy(subscriptions = subscriptions, trend = trend)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
     init {
@@ -73,6 +80,7 @@ class DashboardViewModel(
         val target = month.value
         // Only a comparison: without it the bars stand alone, so a failure here is not the screen's error.
         viewModelScope.launch { runCatching { budgetRepository.refreshSummary(addMonths(target, -1)) } }
+        viewModelScope.launch { runCatching { budgetRepository.refreshTrend(target) } }
         viewModelScope.launch {
             status.value = ScreenStatus.Loading
             try {

@@ -20,6 +20,17 @@ export default {
 	payeeTimes: '{amount} · {count} time | {amount} · {count} times',
 	stillToPostSummary: '{amount} across {count} subscription | {amount} across {count} subscriptions',
 	mixedCurrencies: 'Net worth adds these as they stand. Currencies are not converted.',
+	trend: {
+		incomeSpend: 'Income and spending',
+		kept: 'Kept {amount} across {count} month | Kept {amount} across {count} months',
+		overspent: 'Overspent {amount} across {count} month | Overspent {amount} across {count} months',
+		net: 'Net',
+		month: 'Month',
+		netWorth: 'Net worth by month',
+		up: 'Up {amount} since {month}',
+		down: 'Down {amount} since {month}',
+		level: 'Level since {month}',
+	},
 	pace: {
 		keeping: 'Keeping pace: day {day} of {days}',
 		ahead: 'Ahead of pace: day {day} of {days}',

@@ -201,6 +201,16 @@ internal fun DashboardScreenContent(
                 }
             }
 
+            // The months up to the one on show; the bars take the last six, which is as many pairs as a phone holds.
+            val trendMonths = state.trend?.takeIf { it.month == state.month }?.months.orEmpty()
+            val barMonths = trendMonths.takeLast(6)
+            if (barMonths.size >= 2) {
+                item { IncomeSpendChart(barMonths, state.currency) }
+            }
+            if (trendMonths.size >= 2) {
+                item { NetWorthChart(trendMonths, state.currency) }
+            }
+
             val payees = state.summary?.topPayees.orEmpty()
             if (payees.isNotEmpty()) {
                 item { TopPayeesCard(payees, state.currency) }

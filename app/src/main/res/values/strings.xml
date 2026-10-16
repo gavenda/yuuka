@@ -118,6 +118,20 @@
     <string name="dashboard_pace_past">Past the plan</string>
     <string name="dashboard_accounts">Accounts</string>
     <string name="dashboard_still_to_post">Still to post</string>
+    <string name="dashboard_trend_income_spend">Income and spending</string>
+    <plurals name="dashboard_trend_kept">
+        <item quantity="one">Kept %1$s across %2$d month</item>
+        <item quantity="other">Kept %1$s across %2$d months</item>
+    </plurals>
+    <plurals name="dashboard_trend_overspent">
+        <item quantity="one">Overspent %1$s across %2$d month</item>
+        <item quantity="other">Overspent %1$s across %2$d months</item>
+    </plurals>
+    <string name="dashboard_trend_net">Net</string>
+    <string name="dashboard_trend_net_worth">Net worth by month</string>
+    <string name="dashboard_trend_up">Up %1$s since %2$s</string>
+    <string name="dashboard_trend_down">Down %1$s since %2$s</string>
+    <string name="dashboard_trend_level">Level since %1$s</string>
     <string name="dashboard_rounded_up">Rounded up</string>
     <string name="dashboard_rounded_up_caption">Kept by Save the Change</string>
     <string name="dashboard_top_payees">Who the money went to</string>
