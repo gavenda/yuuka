@@ -72,6 +72,10 @@ internal fun DashboardScreenContent(
                         if (cashflow > 0) {
                             add(StatItem(stringResource(R.string.dashboard_set_aside), cashflow, state.currency, caption = stringResource(R.string.dashboard_set_aside_caption)))
                         }
+                        val roundUps = state.summary?.roundUps ?: 0
+                        if (roundUps > 0) {
+                            add(StatItem(stringResource(R.string.dashboard_rounded_up), roundUps, state.currency, caption = stringResource(R.string.dashboard_rounded_up_caption)))
+                        }
                     },
                     tone = StatTone.Tertiary,
                 )
@@ -195,6 +199,11 @@ internal fun DashboardScreenContent(
                         }
                     }
                 }
+            }
+
+            val payees = state.summary?.topPayees.orEmpty()
+            if (payees.isNotEmpty()) {
+                item { TopPayeesCard(payees, state.currency) }
             }
 
             // Every month after the one under way would just be the whole list again.

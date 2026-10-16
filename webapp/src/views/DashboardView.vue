@@ -6,6 +6,7 @@ import OverBudgetCard from '@/components/OverBudgetCard.vue';
 import PlanCard from '@/components/PlanCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
 import StillToPostCard from '@/components/StillToPostCard.vue';
+import TopPayeesCard from '@/components/TopPayeesCard.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
 import {
 	accountGroups,
@@ -39,12 +40,15 @@ const month = computed({
 /** Where things stand: what there is, and what came in, went out and was set aside this month. */
 const standing = computed(() => {
 	const cashflow = budget.summary?.cashflow ?? 0;
+	// A copy saved before the summary carried round-ups has none, so it reads as nothing rounded up.
+	const roundUps = budget.summary?.roundUps ?? 0;
 	return [
 		{ label: t('common.netWorth'), amount: budget.summary?.netWorth ?? 0, watermark: true },
 		{ label: t('common.income'), amount: budget.summary?.income ?? 0 },
 		{ label: t('common.spent'), amount: budget.summary?.expenses ?? 0 },
 		// Only once something has been moved: most months of someone who never files a transfer would read zero.
 		...(cashflow > 0 ? [{ label: t('dashboard.setAside'), amount: cashflow, caption: t('dashboard.setAsideCaption') }] : []),
+		...(roundUps > 0 ? [{ label: t('dashboard.roundedUp'), amount: roundUps, caption: t('dashboard.roundedUpCaption') }] : []),
 	];
 });
 
@@ -131,6 +135,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true), subscriptionStore
 		/>
 
 		<CategoryBars v-if="manySources" :title="t('dashboard.whereMoneyCameFrom')" :entries="budget.incomeBreakdown" :currency="currency" />
+
+		<TopPayeesCard v-if="budget.summary?.topPayees?.length" :payees="budget.summary.topPayees" :currency="currency" />
 
 		<StillToPostCard v-if="upcoming.length" :subscriptions="upcoming" :currency="currency" />
 

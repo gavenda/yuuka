@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
+import dev.gavenda.yuuka.data.model.PayeeSpend
 import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.BudgetHealth
@@ -237,6 +238,41 @@ internal fun StillToPostCard(subscriptions: List<Subscription>, currency: String
                             )
                         }
                         MoneyText(subscription.amount, currency = currency, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Who the month's spending went to, the most first: one series, so every bar is the primary colour and the
+ * title names it. Each says its amount and how many times in words. Mirrors `TopPayeesCard.vue`.
+ */
+@Composable
+internal fun TopPayeesCard(payees: List<PayeeSpend>, currency: String, modifier: Modifier = Modifier) {
+    val visibility = koinInject<AmountVisibility>()
+    val largest = payees.maxOfOrNull { it.amount } ?: 0L
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(stringResource(R.string.dashboard_top_payees), style = MaterialTheme.typography.titleLarge)
+
+            Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                payees.forEach { payee ->
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(payee.payee, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                            Text(
+                                pluralStringResource(R.plurals.dashboard_payee_times, payee.count, visibility.displayMoney(payee.amount, currency), payee.count),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        LinearProgressIndicator(
+                            progress = { if (largest > 0) (payee.amount.toFloat() / largest).coerceIn(0f, 1f) else 0f },
+                            modifier = Modifier.padding(top = 4.dp).fillMaxWidth().height(8.dp),
+                            drawStopIndicator = {},
+                        )
                     }
                 }
             }
