@@ -12,6 +12,7 @@ import { formatCount } from '@/lib/count';
 import { useHarmonised } from '@/lib/harmonise';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
+import { useEditDialog } from '@/lib/editDialog';
 import { colorProblem, nameProblem, sameName, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Tag } from '@/types';
@@ -21,13 +22,11 @@ import { t } from '@/i18n';
 const ledger = useLedgerStore();
 const harmonised = useHarmonised();
 
-const dialogOpen = ref(false);
-const editing = ref<Tag | null>(null);
-const error = ref<string | null>(null);
 const saving = ref(false);
 const search = ref('');
 
 const form = reactive({ name: '', color: PALETTE[0].light });
+const { open: dialogOpen, editing, error, dirty, show } = useEditDialog<Tag, typeof form>(form, () => validation.reset());
 
 const validation = useFormValidation({
 	'tag-name': () =>
@@ -35,10 +34,6 @@ const validation = useFormValidation({
 	'tag-color': () => colorProblem(form.color),
 });
 const { error: fieldError, touch } = validation;
-
-/** What the form opened with, so that closing it can tell an entry from an untouched form. */
-const opened = ref('');
-const dirty = computed(() => JSON.stringify(form) !== opened.value);
 
 /** A long list is searched rather than scrolled; the box only appears once there is enough to lose something in. */
 const SEARCH_FROM = 8;
@@ -49,21 +44,11 @@ const visible = computed(() => {
 });
 
 function openCreate(): void {
-	editing.value = null;
-	error.value = null;
-	validation.reset();
-	Object.assign(form, { name: '', color: nextColor(ledger.tags.length) });
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
+	show(null, { name: '', color: nextColor(ledger.tags.length) });
 }
 
 function openEdit(tag: Tag): void {
-	editing.value = tag;
-	error.value = null;
-	validation.reset();
-	Object.assign(form, { name: tag.name, color: tag.color });
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
+	show(tag, { name: tag.name, color: tag.color });
 }
 
 async function save(): Promise<void> {
@@ -159,7 +144,7 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 			<div class="contents" @input="validation.onInput">
 				<TextField id="tag-name" v-model="form.name" :label="t('common.name')" :error="fieldError('tag-name')" @blur="touch('tag-name')" />
 
-				<ColourField id="tag-color" v-model="form.color" :error="fieldError('tag-color')" @touch="touch('tag-color')" />
+				<ColourField id="tag-color" v-model="form.color" :error="fieldError('tag-color')" @blur="touch('tag-color')" />
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
 

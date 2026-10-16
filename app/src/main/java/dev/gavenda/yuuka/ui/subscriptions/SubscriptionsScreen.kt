@@ -1,6 +1,5 @@
 package dev.gavenda.yuuka.ui.subscriptions
 
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -173,26 +172,16 @@ internal fun SubscriptionsScreenContent(
         val deleteKey = "delete:${subscription.id}"
         val deleting = busy.isBusy(deleteKey)
 
-        AlertDialog(
-            onDismissRequest = { if (!deleting) pendingDelete = null },
-            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
-            iconContentColor = MaterialTheme.colorScheme.error,
-            title = { Text(stringResource(R.string.delete_subscription_confirm_title)) },
-            text = { WithSnackbarOverlay { Text(stringResource(R.string.delete_subscription_body, subscription.payee)) } },
-            confirmButton = {
-                Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
-                    enabled = !deleting,
-                    onClick = {
-                        busy.run(deleteKey, snackbarHostState, successMessage = deletedMessage, onSuccess = { pendingDelete = null }) {
-                            onDelete(subscription.id)
-                        }
-                    },
-                ) {
-                    if (deleting) MutationLoadingIndicator() else Text(stringResource(R.string.action_yes_delete))
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.delete_subscription_confirm_title),
+            body = stringResource(R.string.delete_subscription_body, subscription.payee),
+            deleting = deleting,
+            onConfirm = {
+                busy.run(deleteKey, snackbarHostState, successMessage = deletedMessage, onSuccess = { pendingDelete = null }) {
+                    onDelete(subscription.id)
                 }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
+            onDismiss = { pendingDelete = null },
         )
     }
 }

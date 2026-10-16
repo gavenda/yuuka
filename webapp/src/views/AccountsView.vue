@@ -20,6 +20,7 @@ import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
+import { useEditDialog } from '@/lib/editDialog';
 import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
@@ -30,9 +31,6 @@ import { t } from '@/i18n';
 const ledger = useLedgerStore();
 const budget = useBudgetStore();
 
-const dialogOpen = ref(false);
-const editing = ref<Account | null>(null);
-const error = ref<string | null>(null);
 const showArchived = ref(false);
 
 const form = reactive({
@@ -43,9 +41,7 @@ const form = reactive({
 	logoUrl: '',
 	logoInvertDark: false,
 });
-/** What the form opened with, so that closing it can tell an entry from an untouched form. */
-const opened = ref('');
-const dirty = computed(() => JSON.stringify(form) !== opened.value);
+const { open: dialogOpen, editing, error, dirty, show } = useEditDialog<Account, typeof form>(form, () => validation.reset());
 
 // Whether an account's purchases round up is not here: it is chosen on the Save the Change screen, beside the rule it feeds.
 const validation = useFormValidation({
@@ -153,10 +149,7 @@ const groups = computed<AccountGroup[]>(() => {
 });
 
 function openCreate(): void {
-	editing.value = null;
-	error.value = null;
-	validation.reset();
-	Object.assign(form, {
+	show(null, {
 		name: '',
 		typeId: ledger.activeAccountTypes[0]?.id ?? '',
 		currency: ledger.accounts[0]?.currency ?? ledger.displayCurrency,
@@ -164,15 +157,10 @@ function openCreate(): void {
 		logoUrl: '',
 		logoInvertDark: false,
 	});
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
 }
 
 function openEdit(account: Account): void {
-	editing.value = account;
-	error.value = null;
-	validation.reset();
-	Object.assign(form, {
+	show(account, {
 		name: account.name,
 		typeId: account.typeId,
 		currency: account.currency,
@@ -180,8 +168,6 @@ function openEdit(account: Account): void {
 		logoUrl: account.logoUrl ?? '',
 		logoInvertDark: account.logoInvertDark,
 	});
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
 }
 
 async function save(): Promise<void> {

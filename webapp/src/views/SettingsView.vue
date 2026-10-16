@@ -30,7 +30,7 @@ import { useTheme, type ThemeMode } from '@/lib/theme';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { BudgetMode, Settings } from '@/types';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
@@ -128,11 +128,11 @@ const currencySearch = ref('');
 /** Pressing a row only marks it. Changing the currency relabels every figure in the app, so it waits for Save. */
 const pickedCurrency = ref(ledger.displayCurrency);
 
-watch(currencyDialogOpen, (open) => {
-	if (!open) return;
+function openCurrencyDialog(): void {
 	currencySearch.value = '';
 	pickedCurrency.value = ledger.displayCurrency;
-});
+	currencyDialogOpen.value = true;
+}
 
 /**
  * Before anything is typed the list is the ten currencies most people would pick from, not the hundreds the
@@ -164,7 +164,7 @@ onMounted(() => ledger.load());
 		<section class="flex flex-col gap-4">
 			<h2 class="settings-header">{{ t('settings.currency') }}</h2>
 			<div class="settings-group">
-				<button type="button" class="settings-row" aria-haspopup="dialog" @click="currencyDialogOpen = true">
+				<button type="button" class="settings-row" aria-haspopup="dialog" @click="openCurrencyDialog">
 					<AppIcon :icon="ATTACH_MONEY" />
 					<span class="min-w-0 flex-1">
 						<span class="type-title-medium block">{{ t('settings.displayCurrency') }}</span>

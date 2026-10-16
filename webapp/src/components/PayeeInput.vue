@@ -14,8 +14,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
  * typed (`PayeeField` on Android), so the rest of the form can fill itself in. `error` is what the form's
  * validation has to say about it.
  */
-const props = defineProps<{ modelValue: string; label: string; placeholder?: string; error?: string | null }>();
-const emit = defineEmits<{ 'update:modelValue': [string]; select: [Payee]; blur: [] }>();
+defineProps<{ label: string; placeholder?: string; error?: string | null }>();
+const emit = defineEmits<{ select: [Payee]; blur: [] }>();
+const model = defineModel<string>({ required: true });
 
 /**
  * The whole history is fetched once when the form opens and filtered here.
@@ -28,9 +29,9 @@ const open = ref(false);
 const active = ref(-1);
 const root = ref<HTMLElement | null>(null);
 
-const matches = computed(() => rankPayees(all.value, props.modelValue));
+const matches = computed(() => rankPayees(all.value, model.value));
 
-const showList = computed(() => open.value && matches.value.length > 0 && !isExhausted(matches.value, props.modelValue));
+const showList = computed(() => open.value && matches.value.length > 0 && !isExhausted(matches.value, model.value));
 
 async function load(): Promise<void> {
 	// What the local copy remembers first, so suggestions work offline, then what the API has now.
@@ -47,7 +48,7 @@ async function load(): Promise<void> {
 }
 
 function choose(entry: Payee): void {
-	emit('update:modelValue', entry.payee);
+	model.value = entry.payee;
 	emit('select', entry);
 	open.value = false;
 	active.value = -1;
@@ -81,7 +82,7 @@ function onClickOutside(event: MouseEvent): void {
 }
 
 watch(
-	() => props.modelValue,
+	() => model.value,
 	() => {
 		active.value = -1;
 	},
@@ -110,7 +111,7 @@ function hint(entry: Payee): string {
 		<div class="field">
 			<input
 				id="payee"
-				:value="modelValue"
+				:value="model"
 				class="input"
 				:class="{ 'pr-12': error }"
 				autocomplete="off"
@@ -121,7 +122,7 @@ function hint(entry: Payee): string {
 				:aria-describedby="error ? supportId('payee') : undefined"
 				aria-controls="payee-suggestions"
 				:placeholder="placeholder ?? ' '"
-				@input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+				@input="model = ($event.target as HTMLInputElement).value"
 				@focus="open = true"
 				@blur="emit('blur')"
 				@keydown="onKeydown"

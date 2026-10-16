@@ -8,7 +8,10 @@ import kotlin.math.abs
 /** A transfer is two linked rows; every list shows them as the single movement they represent. Mirrors `src/lib/transactionRows.ts`. */
 @Immutable
 sealed interface TransactionRow {
-    data class Single(val transaction: Transaction) : TransactionRow
+    /** The row that stands for it: the transaction itself, or a transfer's outflow leg. */
+    val transaction: Transaction
+
+    data class Single(override val transaction: Transaction) : TransactionRow
 
     data class Transfer(
         val id: String,
@@ -23,7 +26,9 @@ sealed interface TransactionRow {
         val amount: Long,
         /** The outflow leg — the row that carries the shared id and category. */
         val leg: Transaction,
-    ) : TransactionRow
+    ) : TransactionRow {
+        override val transaction: Transaction get() = leg
+    }
 }
 
 /** Pairs up transfer legs within a set of transactions, leaving ordinary transactions untouched. */

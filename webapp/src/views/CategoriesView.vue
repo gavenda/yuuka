@@ -322,7 +322,7 @@ onMounted(() => ledger.load());
 					{{ t('categories.nestedUnder', { name: parentName }) }}
 				</p>
 
-				<ColourField id="category-color" v-model="form.color" :error="fieldError('category-color')" @touch="touch('category-color')" />
+				<ColourField id="category-color" v-model="form.color" :error="fieldError('category-color')" @blur="touch('category-color')" />
 
 				<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
 

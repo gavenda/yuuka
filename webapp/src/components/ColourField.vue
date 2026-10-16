@@ -13,7 +13,7 @@ import { t } from '@/i18n';
  * for the hex itself. `id` is the key the form's validation knows the hex field by.
  */
 defineProps<{ id: string; error?: string | null }>();
-const emit = defineEmits<{ touch: [] }>();
+const emit = defineEmits<{ blur: [] }>();
 
 const model = defineModel<string>({ required: true });
 
@@ -23,7 +23,7 @@ const isValid = computed(() => /^#[0-9a-fA-F]{6}$/.test(model.value));
 
 function pick(colour: string): void {
 	model.value = colour;
-	emit('touch');
+	emit('blur');
 }
 </script>
 
@@ -64,7 +64,7 @@ function pick(colour: string): void {
 
 		<template v-if="isCustom">
 			<ColourWheel v-model="model" />
-			<TextField :id="id" v-model="model" :label="t('form.customColourHex')" placeholder="#64748b" :error="error" @blur="emit('touch')" />
+			<TextField :id="id" v-model="model" :label="t('form.customColourHex')" placeholder="#64748b" :error="error" @blur="emit('blur')" />
 		</template>
 	</fieldset>
 </template>

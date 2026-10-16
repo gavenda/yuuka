@@ -1,32 +1,20 @@
 package dev.gavenda.yuuka.ui.tags
 
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Tag
-import dev.gavenda.yuuka.domain.PALETTE
 import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.domain.sameName
 import dev.gavenda.yuuka.domain.formatCount
@@ -183,13 +171,8 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, onEdit: 
     }
 }
 
-private fun Color.toHexString(): String = String.format("#%06X", 0xFFFFFF and this.toArgb())
 
-private val HEX_COLOR_REGEX = Regex("^#[0-9a-fA-F]{6}$")
 
-@Composable
-private fun colorFromHex(hex: String): Color =
-    runCatching { Color(hex.toColorInt()) }.getOrDefault(MaterialTheme.colorScheme.onSurfaceVariant)
 
 /** A tag is a name and a colour: one of the palette's, or a hand-picked one, as for a category. */
 @Composable
@@ -230,64 +213,7 @@ private fun TagForm(
             field = nameField,
         )
 
-        val isCustomColor = PALETTE.none { it.light.equals(color, ignoreCase = true) }
-        val isValidColor = HEX_COLOR_REGEX.matches(color)
-
-        Text(stringResource(R.string.label_colour), style = MaterialTheme.typography.labelMedium)
-        Row(modifier = Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PALETTE.forEach { slot ->
-                val selected = color.equals(slot.light, ignoreCase = true)
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(colorFromHex(slot.light))
-                        .then(if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                        .semantics { contentDescription = slot.name }
-                        .selectable(selected = selected, role = Role.RadioButton) { color = slot.light },
-                )
-            }
-
-            // A ninth, custom slot: picking it opts out of the validated palette's colour-vision-deficiency
-            // guarantee, so it stays a deliberate extra step rather than a slot in the same row, as for a category.
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(if (isCustomColor && isValidColor) colorFromHex(color) else MaterialTheme.colorScheme.surfaceContainerHighest)
-                    .border(
-                        width = if (isCustomColor) 2.dp else 1.dp,
-                        color = if (isCustomColor) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
-                        shape = CircleShape,
-                    )
-                    .selectable(selected = isCustomColor, role = Role.RadioButton) { if (!isCustomColor) color = "#64748b" },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (!isCustomColor) {
-                    Icon(painterResource(R.drawable.add_48px),
-                        contentDescription = stringResource(R.string.custom_colour),
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-        }
-
-        if (isCustomColor) {
-            ColorWheelPicker(
-                color = if (isValidColor) colorFromHex(color) else colorFromHex("#64748b"),
-                onColorChange = { picked -> color = picked.toHexString() },
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            )
-
-            YuukaTextField(
-                value = color,
-                onValueChange = { color = it },
-                label = stringResource(R.string.custom_colour_hex),
-                placeholder = stringResource(R.string.placeholder_hex_sample),
-                singleLine = true,
-                field = colourField,
-            )
-        }
+        ColourField(color = color, onColorChange = { color = it }, field = colourField)
 
         // Only a new one: Yuuka at the foot of the form.
         if (editing == null) {

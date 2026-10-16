@@ -17,7 +17,6 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
  */
 const props = defineProps<{
 	id: string;
-	modelValue: string;
 	options: SelectOption[];
 	/** The field's label, drawn in the field itself. */
 	label?: string;
@@ -31,7 +30,8 @@ const props = defineProps<{
 	describedby?: string;
 }>();
 
-const emit = defineEmits<{ 'update:modelValue': [value: string]; blur: [] }>();
+const emit = defineEmits<{ blur: [] }>();
+const model = defineModel<string>({ required: true });
 
 const open = ref(false);
 const active = ref(-1);
@@ -47,7 +47,7 @@ const position = ref<{ left: number; width: number; top?: number; bottom?: numbe
 const listboxId = computed(() => `${props.id}-listbox`);
 const optionId = (index: number) => `${props.id}-option-${index}`;
 
-const selected = computed(() => props.options.find((option) => option.value === props.modelValue));
+const selected = computed(() => props.options.find((option) => option.value === model.value));
 /** A disabled option chosen by default is the placeholder, so it reads as one. */
 const isPlaceholder = computed(() => !selected.value || selected.value.disabled === true);
 
@@ -91,7 +91,7 @@ function scrollActiveIntoView(): void {
 function show(start?: 'first' | 'last'): void {
 	if (props.disabled || open.value) return;
 
-	const chosen = props.options.findIndex((option) => option.value === props.modelValue && !option.disabled);
+	const chosen = props.options.findIndex((option) => option.value === model.value && !option.disabled);
 	const indexes = enabledIndexes.value;
 	active.value =
 		start === 'first'
@@ -115,7 +115,7 @@ function choose(index: number): void {
 	const option = props.options[index];
 	if (!option || option.disabled) return;
 
-	emit('update:modelValue', option.value);
+	model.value = option.value;
 	close();
 	trigger.value?.focus();
 	// A choice counts as visiting the field; focus never left it, so there is no blur to say so.
@@ -145,7 +145,7 @@ function typeahead(character: string): void {
 	const indexes = enabledIndexes.value;
 	const from = Math.max(
 		0,
-		indexes.indexOf(open.value ? active.value : props.options.findIndex((option) => option.value === props.modelValue)),
+		indexes.indexOf(open.value ? active.value : props.options.findIndex((option) => option.value === model.value)),
 	);
 	// Pressing the same letter again cycles through the options that share it, so the search starts after the current one.
 	const ordered =
@@ -157,7 +157,7 @@ function typeahead(character: string): void {
 		active.value = hit;
 		scrollActiveIntoView();
 	} else {
-		emit('update:modelValue', props.options[hit].value);
+		model.value = props.options[hit].value;
 	}
 }
 
@@ -276,7 +276,7 @@ onBeforeUnmount(() => {
 		<!-- A button cannot be `required`, so this stands in for it: it is what the form's own validation checks and points at. -->
 		<input
 			v-if="required"
-			:value="modelValue"
+			:value="model"
 			tabindex="-1"
 			required
 			aria-hidden="true"
@@ -316,7 +316,7 @@ onBeforeUnmount(() => {
 						role="option"
 						class="menu-option"
 						:class="option.indent ? 'pl-7' : ''"
-						:aria-selected="option.value === modelValue && !option.disabled"
+						:aria-selected="option.value === model && !option.disabled"
 						:aria-disabled="option.disabled || undefined"
 						:data-active="index === active"
 						@mousemove="!option.disabled && (active = index)"

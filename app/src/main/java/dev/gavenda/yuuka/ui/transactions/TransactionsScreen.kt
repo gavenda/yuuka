@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -15,13 +14,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -134,10 +131,7 @@ internal fun TransactionsScreenContent(
         }
     }
     val askDelete = { row: TransactionRow ->
-        pendingDelete = when (row) {
-            is TransactionRow.Transfer -> row.leg
-            is TransactionRow.Single -> row.transaction
-        }
+        pendingDelete = row.transaction
     }
 
     Scaffold(
@@ -244,33 +238,20 @@ internal fun TransactionsScreenContent(
         val deleteKey = "delete:${toDelete.id}"
         val deleting = busy.isBusy(deleteKey)
 
-        AlertDialog(
-            onDismissRequest = { if (!deleting) pendingDelete = null },
-            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
-            iconContentColor = MaterialTheme.colorScheme.error,
-            title = { Text(if (toDelete.transferId != null) stringResource(R.string.delete_transfer_confirm_title) else stringResource(R.string.delete_transaction_confirm_title)) },
-            text = {
-                WithSnackbarOverlay {
-                    Text(stringResource(if (toDelete.transferId != null) R.string.delete_transfer_body else R.string.delete_transaction_body))
-                }
+        val isTransfer = toDelete.transferId != null
+        ConfirmDeleteDialog(
+            title = stringResource(if (isTransfer) R.string.delete_transfer_confirm_title else R.string.delete_transaction_confirm_title),
+            body = stringResource(if (isTransfer) R.string.delete_transfer_body else R.string.delete_transaction_body),
+            deleting = deleting,
+            onConfirm = {
+                busy.run(
+                    deleteKey,
+                    snackbarHostState,
+                    successMessage = if (isTransfer) transferDeletedMessage else transactionDeletedMessage,
+                    onSuccess = { pendingDelete = null },
+                ) { onDelete(toDelete) }
             },
-            confirmButton = {
-                Button(onClick = {
-                    busy.run(
-                        deleteKey,
-                        snackbarHostState,
-                        successMessage = if (toDelete.transferId != null) transferDeletedMessage else transactionDeletedMessage,
-                        onSuccess = { pendingDelete = null },
-                    ) { onDelete(toDelete) }
-                }, enabled = !deleting, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)) {
-                    if (deleting) {
-                        MutationLoadingIndicator()
-                    } else {
-                        Text(stringResource(R.string.action_yes_delete))
-                    }
-                }
-            },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
+            onDismiss = { pendingDelete = null },
         )
     }
 }
@@ -413,10 +394,7 @@ private fun TransactionResults(
 /** One transaction as Material's own list item, on the search view's colour rather than a container of its own. */
 @Composable
 private fun TransactionResultItem(row: TransactionRow, currency: String, onClick: () -> Unit) {
-    val transaction = when (row) {
-        is TransactionRow.Transfer -> row.leg
-        is TransactionRow.Single -> row.transaction
-    }
+    val transaction = row.transaction
     val where = when (row) {
         is TransactionRow.Transfer -> stringResource(R.string.transfer_account_flow, row.fromAccountName.orEmpty(), row.toAccountName.orEmpty())
         is TransactionRow.Single -> transaction.accountName.orEmpty()
@@ -519,10 +497,7 @@ private fun NextPageFooter(error: String?, onRetry: () -> Unit) {
 private fun groupByDate(rows: List<TransactionRow>): List<Pair<String, List<TransactionRow>>> {
     val groups = LinkedHashMap<String, MutableList<TransactionRow>>()
     for (row in rows) {
-        val date = when (row) {
-            is TransactionRow.Transfer -> row.leg.occurredOn.take(10)
-            is TransactionRow.Single -> row.transaction.occurredOn.take(10)
-        }
+        val date = row.transaction.occurredOn.take(10)
         groups.getOrPut(date) { mutableListOf() }.add(row)
     }
     return groups.entries.map { it.key to it.value }

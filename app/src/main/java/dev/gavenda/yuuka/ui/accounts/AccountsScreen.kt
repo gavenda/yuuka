@@ -1,6 +1,5 @@
 package dev.gavenda.yuuka.ui.accounts
 
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -222,45 +221,28 @@ internal fun AccountsScreenContent(
     if (toDelete != null) {
         val deleteKey = "delete:${toDelete.id}"
         val deleting = busy.isBusy(deleteKey)
-        AlertDialog(
-            onDismissRequest = { if (!deleting) { pendingDelete = null; deleteError = null } },
-            icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
-            iconContentColor = MaterialTheme.colorScheme.error,
-            title = { Text(stringResource(R.string.delete_confirm_title, toDelete.name)) },
-            text = {
-                WithSnackbarOverlay {
-                    Text(deleteError ?: stringResource(R.string.delete_account_body))
-                }
-            },
-            confirmButton = {
-                Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
-                    enabled = !deleting,
-                    onClick = {
-                        busy.launch(deleteKey) {
-                            try {
-                                onDeleteAccount(toDelete.id, deleteError != null)
-                                pendingDelete = null
-                                deleteError = null
-                                snackbarHostState.showSnackbar(accountDeletedMessage)
-                            } catch (e: ApiError) {
-                                if (e.status == 409) {
-                                    deleteError = deleteAccountTransactionsConfirmTemplate.format(toDelete.name)
-                                } else {
-                                    snackbarHostState.showSnackbar(e.message ?: couldNotDeleteAccountMessage)
-                                }
-                            }
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.delete_confirm_title, toDelete.name),
+            body = deleteError ?: stringResource(R.string.delete_account_body),
+            deleting = deleting,
+            confirmLabel = stringResource(if (deleteError != null) R.string.delete_anyway else R.string.action_yes_delete),
+            onConfirm = {
+                busy.launch(deleteKey) {
+                    try {
+                        onDeleteAccount(toDelete.id, deleteError != null)
+                        pendingDelete = null
+                        deleteError = null
+                        snackbarHostState.showSnackbar(accountDeletedMessage)
+                    } catch (e: ApiError) {
+                        if (e.status == 409) {
+                            deleteError = deleteAccountTransactionsConfirmTemplate.format(toDelete.name)
+                        } else {
+                            snackbarHostState.showSnackbar(e.message ?: couldNotDeleteAccountMessage)
                         }
-                    },
-                ) {
-                    if (deleting) {
-                        MutationLoadingIndicator()
-                    } else {
-                        Text(if (deleteError != null) stringResource(R.string.delete_anyway) else stringResource(R.string.action_yes_delete))
                     }
                 }
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null; deleteError = null }, enabled = !deleting) { Text(stringResource(R.string.action_no_go_back)) } },
+            onDismiss = { pendingDelete = null; deleteError = null },
         )
     }
 }

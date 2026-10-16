@@ -20,6 +20,7 @@ import { useHarmonised } from '@/lib/harmonise';
 import { parseMoney, toDecimalString } from '@/lib/money';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
+import { useEditDialog } from '@/lib/editDialog';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
@@ -39,10 +40,6 @@ const ledger = useLedgerStore();
 const store = useSubscriptionStore();
 const harmonised = useHarmonised();
 
-const dialogOpen = ref(false);
-const editing = ref<Subscription | null>(null);
-/** A failure that belongs to no one field — the save itself went wrong. Each field's own problem is drawn beside it. */
-const error = ref<string | null>(null);
 
 const form = reactive({
 	direction: 'expense' as Direction,
@@ -53,12 +50,10 @@ const form = reactive({
 	startOn: '',
 	notes: '',
 });
+const { open: dialogOpen, editing, error, dirty, show } = useEditDialog<Subscription, typeof form>(form, () => validation.reset());
 
 /** What the date field held when the dialog opened, so an untouched date is not sent as a request to restart the schedule. */
 let initialStartOn = '';
-/** What the whole form opened with, so that closing it can tell an entry from an untouched form. */
-const opened = ref('');
-const dirty = computed(() => JSON.stringify(form) !== opened.value);
 /** The subscription a delete has been asked for, while the question is still open. */
 const pendingDelete = ref<Subscription | null>(null);
 
@@ -113,15 +108,11 @@ onMounted(async () => {
 });
 
 function openCreate(): void {
-	editing.value = null;
-	error.value = null;
-	validation.reset();
-
 	const preferred = ledger.activeAccounts.find((account) => account.id === ledger.defaultAccountId);
 	// Tomorrow, not today: today's run has already happened by the time anyone is here to set one up.
 	initialStartOn = nextDay(earliest);
 
-	Object.assign(form, {
+	show(null, {
 		direction: 'expense',
 		payee: '',
 		amount: '',
@@ -130,17 +121,12 @@ function openCreate(): void {
 		startOn: initialStartOn,
 		notes: '',
 	});
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
 }
 
 function openEdit(subscription: Subscription): void {
-	editing.value = subscription;
-	error.value = null;
-	validation.reset();
 	initialStartOn = subscription.nextRunOn;
 
-	Object.assign(form, {
+	show(subscription, {
 		direction: subscription.amount >= 0 ? 'income' : 'expense',
 		payee: subscription.payee,
 		amount: toDecimalString(Math.abs(subscription.amount)),
@@ -149,8 +135,6 @@ function openEdit(subscription: Subscription): void {
 		startOn: subscription.nextRunOn,
 		notes: subscription.notes,
 	});
-	opened.value = JSON.stringify(form);
-	dialogOpen.value = true;
 }
 
 async function setDirection(direction: Direction): Promise<void> {
