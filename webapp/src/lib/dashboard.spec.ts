@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoryBreakdown } from '@/types';
-import { account } from '@/testing/fixtures';
+import { account, subscription } from '@/testing/fixtures';
 import {
 	accountGroups,
 	budgetPace,
@@ -10,6 +10,7 @@ import {
 	overBudget,
 	paceHealth,
 	savingsRate,
+	stillToPost,
 } from './dashboard';
 
 const entry = (categoryId: string, extra: Partial<CategoryBreakdown>): CategoryBreakdown => ({
@@ -126,5 +127,21 @@ describe('categoryChanges', () => {
 		);
 
 		expect(Object.fromEntries(changes)).toEqual({ food: 200, fun: -200, new: 50 });
+	});
+});
+
+describe('stillToPost', () => {
+	it('lists the active subscriptions next running in the month, the soonest first', () => {
+		const list = stillToPost(
+			[
+				subscription('late', { nextRunOn: '2026-10-28' }),
+				subscription('soon', { nextRunOn: '2026-10-20' }),
+				subscription('paused', { nextRunOn: '2026-10-21', enabled: false }),
+				subscription('next', { nextRunOn: '2026-11-02' }),
+			],
+			'2026-10',
+		);
+
+		expect(list.map((row) => row.id)).toEqual(['soon', 'late']);
 	});
 });

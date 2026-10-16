@@ -5,6 +5,7 @@ import MonthAction from '@/components/MonthAction.vue';
 import OverBudgetCard from '@/components/OverBudgetCard.vue';
 import PlanCard from '@/components/PlanCard.vue';
 import SpendChart from '@/components/SpendChart.vue';
+import StillToPostCard from '@/components/StillToPostCard.vue';
 import StatCarousel from '@/components/StatCarousel.vue';
 import {
 	accountGroups,
@@ -15,14 +16,18 @@ import {
 	monthName,
 	overBudget,
 	savingsRate,
+	stillToPost,
 } from '@/lib/dashboard';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
+import { useSubscriptionStore } from '@/stores/subscriptions';
+import { currentMonth } from '@/lib/dates';
 import { computed, onMounted, watch } from 'vue';
 import { t } from '@/i18n';
 
 const budget = useBudgetStore();
 const ledger = useLedgerStore();
+const subscriptionStore = useSubscriptionStore();
 
 const currency = computed(() => ledger.displayCurrency);
 
@@ -75,6 +80,9 @@ const over = computed(() => overBudget(budget.summary?.categories ?? []));
 /** One source would only repeat the income figure above, so it takes two to be worth a chart. */
 const manySources = computed(() => budget.incomeBreakdown.filter((entry) => entry.actual > 0).length >= 2);
 
+/** Every month after the one under way would just be the whole list again. */
+const upcoming = computed(() => (budget.month === currentMonth() ? stillToPost(subscriptionStore.subscriptions, budget.month) : []));
+
 /** The accounts in use under their types, each in its own currency. */
 const groups = computed(() => accountGroups(budget.summary?.accounts ?? []));
 const mixed = computed(() => mixedCurrencies(budget.summary?.accounts ?? []));
@@ -89,7 +97,7 @@ watch(
 	{ immediate: true },
 );
 
-onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
+onMounted(() => Promise.all([ledger.load(), budget.load(true), subscriptionStore.load()]));
 </script>
 
 <template>
@@ -123,6 +131,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 		/>
 
 		<CategoryBars v-if="manySources" :title="t('dashboard.whereMoneyCameFrom')" :entries="budget.incomeBreakdown" :currency="currency" />
+
+		<StillToPostCard v-if="upcoming.length" :subscriptions="upcoming" :currency="currency" />
 
 		<AccountsCard v-if="groups.length" :groups="groups" :mixed="mixed" />
 	</div>

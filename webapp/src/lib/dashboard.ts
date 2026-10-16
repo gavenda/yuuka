@@ -1,4 +1,4 @@
-import type { Account, CategoryBreakdown } from '@/types';
+import type { Account, CategoryBreakdown, Subscription } from '@/types';
 import { today } from '@/lib/dates';
 import type { STATUS } from '@/lib/palette';
 
@@ -90,4 +90,14 @@ export function categoryChanges(current: CategoryBreakdown[], previous: Category
 export function monthName(month: string): string {
 	const [year, monthIndex] = month.split('-').map(Number);
 	return new Intl.DateTimeFormat(undefined, { month: 'long' }).format(new Date(year, monthIndex - 1, 1));
+}
+
+/**
+ * The active subscriptions whose next run falls in `month`, the soonest first: what is still to post in it.
+ * Only a question for the month under way — every month after it is the whole list again.
+ */
+export function stillToPost(subscriptions: Subscription[], month: string): Subscription[] {
+	return subscriptions
+		.filter((subscription) => subscription.enabled && subscription.nextRunOn.slice(0, 7) === month)
+		.sort((a, b) => a.nextRunOn.localeCompare(b.nextRunOn));
 }

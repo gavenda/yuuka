@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.domain
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.CategoryKind
+import dev.gavenda.yuuka.data.model.Subscription
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -84,6 +85,23 @@ class DashboardTest {
         )
         assertEquals(mapOf("food" to 200L, "fun" to -200L, "new" to 50L), changes)
     }
+
+    @Test
+    fun stillToPostListsActiveSubscriptionsNextRunningInTheMonthSoonestFirst() {
+        val list = stillToPost(
+            listOf(
+                subscription("late", "2026-10-28"),
+                subscription("soon", "2026-10-20"),
+                subscription("paused", "2026-10-21", enabled = false),
+                subscription("next", "2026-11-02"),
+            ),
+            "2026-10",
+        )
+        assertEquals(listOf("soon", "late"), list.map { it.id })
+    }
+
+    private fun subscription(id: String, nextRunOn: String, enabled: Boolean = true) =
+        Subscription(id = id, accountId = "acc", amount = -500, payee = id, startOn = nextRunOn, dayOfMonth = 1, nextRunOn = nextRunOn, enabled = enabled)
 
     private fun account(id: String, type: String = "Checking", balance: Long = 0, currency: String = "PHP", archived: Boolean = false) =
         Account(id = id, name = id, typeId = type, typeName = type, currency = currency, startingBalance = 0, balance = balance, archived = archived)

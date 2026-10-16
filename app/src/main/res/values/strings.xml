@@ -117,6 +117,11 @@
     <string name="dashboard_pace_within">Within the plan</string>
     <string name="dashboard_pace_past">Past the plan</string>
     <string name="dashboard_accounts">Accounts</string>
+    <string name="dashboard_still_to_post">Still to post</string>
+    <plurals name="dashboard_still_to_post_summary">
+        <item quantity="one">%1$s across %2$d subscription</item>
+        <item quantity="other">%1$s across %2$d subscriptions</item>
+    </plurals>
     <string name="dashboard_mixed_currencies">Net worth adds these as they stand. Currencies are not converted.</string>
     <string name="dashboard_needs_attention">I\'ll need an explanation.</string>
     <string name="dashboard_nothing_overspent">Every budget within its limit.</string>

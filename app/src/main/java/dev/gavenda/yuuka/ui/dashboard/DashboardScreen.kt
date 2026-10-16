@@ -197,6 +197,12 @@ internal fun DashboardScreenContent(
                 }
             }
 
+            // Every month after the one under way would just be the whole list again.
+            val upcoming = if (state.month == currentMonth()) stillToPost(state.subscriptions, state.month) else emptyList()
+            if (upcoming.isNotEmpty()) {
+                item { StillToPostCard(upcoming, state.currency) }
+            }
+
             val groups = accountGroups(state.summary?.accounts.orEmpty())
             if (groups.isNotEmpty()) {
                 item { AccountsCard(groups, mixedCurrencies(state.summary?.accounts.orEmpty())) }

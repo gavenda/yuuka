@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.data.model.Summary
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
@@ -9,6 +10,7 @@ import dev.gavenda.yuuka.domain.addMonths
 import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.repository.BudgetRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
+import dev.gavenda.yuuka.repository.SubscriptionRepository
 import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.ui.common.ScreenStatus
 import kotlinx.coroutines.flow.*
@@ -21,18 +23,21 @@ data class DashboardUiState(
     /** The month before's summary, which "Where the money went" is compared with; null until it is known. */
     val previous: Summary? = null,
     val status: ScreenStatus = ScreenStatus.Idle,
+    /** Every subscription, for what is still to post this month. */
+    val subscriptions: List<Subscription> = emptyList(),
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class DashboardViewModel(
     private val ledgerRepository: LedgerRepository,
     private val budgetRepository: BudgetRepository,
+    private val subscriptionRepository: SubscriptionRepository,
     syncRepository: SyncRepository,
 ) : ViewModel() {
     private val month = MutableStateFlow(currentMonth())
     private val status = MutableStateFlow<ScreenStatus>(ScreenStatus.Idle)
 
-    val uiState: StateFlow<DashboardUiState> = combine(
+    private val monthState = combine(
         month,
         ledgerRepository.settings,
         month.flatMapLatest { budgetRepository.observeSummary(it) },
@@ -46,10 +51,15 @@ class DashboardViewModel(
             previous = previous,
             status = currentStatus,
         )
+    }
+
+    val uiState: StateFlow<DashboardUiState> = combine(monthState, subscriptionRepository.subscriptions) { state, subscriptions ->
+        state.copy(subscriptions = subscriptions)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshAll() } }
+        viewModelScope.launch { runCatching { subscriptionRepository.refresh() } }
         viewModelScope.launch { syncRepository.synced.collect { refresh() } }
         refresh()
     }

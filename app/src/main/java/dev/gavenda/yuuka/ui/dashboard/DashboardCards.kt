@@ -11,14 +11,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
+import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.BudgetHealth
 import dev.gavenda.yuuka.domain.BudgetPace
+import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.statusColor
 import dev.gavenda.yuuka.ui.common.AccountLogo
 import dev.gavenda.yuuka.ui.common.MoneyText
@@ -195,6 +198,47 @@ internal fun AccountsCard(groups: List<Pair<String, List<Account>>>, mixed: Bool
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * The subscriptions still to post this month, the soonest first, and what they come to — signed like the
+ * amounts, in the display currency, added up as they stand like the Subscriptions screen's monthly total.
+ * Mirrors `StillToPostCard.vue`.
+ */
+@Composable
+internal fun StillToPostCard(subscriptions: List<Subscription>, currency: String, modifier: Modifier = Modifier) {
+    val visibility = koinInject<AmountVisibility>()
+    val total = subscriptions.sumOf { it.amount }
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(stringResource(R.string.dashboard_still_to_post), style = MaterialTheme.typography.titleLarge)
+            Text(
+                pluralStringResource(R.plurals.dashboard_still_to_post_summary, subscriptions.size, visibility.displayMoney(total, currency), subscriptions.size),
+                style = MaterialTheme.typography.bodySmall,
+            )
+
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                subscriptions.forEach { subscription ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(subscription.payee, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                            Text(
+                                formatLongDate(subscription.nextRunOn),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        MoneyText(subscription.amount, currency = currency, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }

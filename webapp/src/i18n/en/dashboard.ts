@@ -13,6 +13,8 @@ export default {
 	budgetUsed: 'Budget used',
 	incomeReceived: 'Income received',
 	accounts: 'Accounts',
+	stillToPost: 'Still to post',
+	stillToPostSummary: '{amount} across {count} subscription | {amount} across {count} subscriptions',
 	mixedCurrencies: 'Net worth adds these as they stand. Currencies are not converted.',
 	pace: {
 		keeping: 'Keeping pace: day {day} of {days}',

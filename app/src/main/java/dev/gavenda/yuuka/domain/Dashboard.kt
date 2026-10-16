@@ -3,6 +3,7 @@ package dev.gavenda.yuuka.domain
 import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.CategoryKind
+import dev.gavenda.yuuka.data.model.Subscription
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -76,3 +77,10 @@ fun categoryChanges(current: List<CategoryBreakdown>, previous: List<CategoryBre
 
 /** `2026-09` -> `September`: the month alone, for a comparison whose year goes without saying. */
 fun monthName(month: String): String = YearMonth.parse(month).month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+
+/**
+ * The active subscriptions whose next run falls in [month], the soonest first: what is still to post in it.
+ * Only a question for the month under way — every month after it is the whole list again.
+ */
+fun stillToPost(subscriptions: List<Subscription>, month: String): List<Subscription> =
+    subscriptions.filter { it.enabled && it.nextRunOn.take(7) == month }.sortedBy { it.nextRunOn }
