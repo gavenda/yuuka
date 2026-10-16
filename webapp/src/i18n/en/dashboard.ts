@@ -23,6 +23,7 @@ export default {
 	needsAttention: "I'll need an explanation.",
 	nothingOverspent: 'Every budget within its limit.',
 	whereMoneyWent: 'Where the money went',
+	whereMoneyCameFrom: 'Where the money came from',
 	nothingRecorded: 'Nothing recorded this month.',
 	chart: {
 		title: 'Spending by day',

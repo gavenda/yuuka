@@ -63,6 +63,9 @@ const incomePercent = computed(() => incomeProgress(budget.summary?.income ?? 0,
 /** The categories behind the "Over budget" figure; the card is left out when there are none. */
 const over = computed(() => overBudget(budget.summary?.categories ?? []));
 
+/** One source would only repeat the income figure above, so it takes two to be worth a chart. */
+const manySources = computed(() => budget.incomeBreakdown.filter((entry) => entry.actual > 0).length >= 2);
+
 /** The accounts in use under their types, each in its own currency. */
 const groups = computed(() => accountGroups(budget.summary?.accounts ?? []));
 const mixed = computed(() => mixedCurrencies(budget.summary?.accounts ?? []));
@@ -93,6 +96,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true)]));
 		<SpendChart :month="budget.month" :days="budget.summary?.dailySpend ?? []" :currency="currency" />
 
 		<CategoryBars :title="t('dashboard.whereMoneyWent')" :entries="budget.expenseBreakdown" :currency="currency" />
+
+		<CategoryBars v-if="manySources" :title="t('dashboard.whereMoneyCameFrom')" :entries="budget.incomeBreakdown" :currency="currency" />
 
 		<AccountsCard v-if="groups.length" :groups="groups" :mixed="mixed" />
 	</div>

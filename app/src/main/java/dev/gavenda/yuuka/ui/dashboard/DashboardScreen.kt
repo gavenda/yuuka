@@ -178,6 +178,19 @@ internal fun DashboardScreenContent(
                 }
             }
 
+            // One source would only repeat the income figure above, so it takes two to be worth a chart.
+            val sources = rankAndFold(state.summary?.categories.orEmpty().filter { it.kind == CategoryKind.income }, 8)
+            if (sources.size >= 2) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(stringResource(R.string.dashboard_where_money_came_from), style = MaterialTheme.typography.titleLarge)
+                            CategoryBarList(sources, modifier = Modifier.padding(top = 12.dp), currency = state.currency)
+                        }
+                    }
+                }
+            }
+
             val groups = accountGroups(state.summary?.accounts.orEmpty())
             if (groups.isNotEmpty()) {
                 item { AccountsCard(groups, mixedCurrencies(state.summary?.accounts.orEmpty())) }
