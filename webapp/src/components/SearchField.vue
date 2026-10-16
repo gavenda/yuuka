@@ -6,7 +6,7 @@ import { t } from '@/i18n';
 /**
  * A search drawn as Material's search bar (`.search-field`): a pill that filters as it is typed, with a
  * button to empty it once it holds anything. `label` names it for assistive tech; `placeholder` is what an
- * empty one says, which a narrow one keeps to a word.
+ * empty one says, cut short with an ellipsis where it does not fit.
  */
 defineProps<{ label: string; placeholder: string }>();
 const model = defineModel<string>({ required: true });

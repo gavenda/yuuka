@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -211,8 +212,12 @@ internal fun AccountsCard(groups: List<Pair<String, List<Account>>>, mixed: Bool
 internal fun StillToPostCard(subscriptions: List<Subscription>, currency: String, modifier: Modifier = Modifier) {
     val visibility = koinInject<AmountVisibility>()
     val total = subscriptions.sumOf { it.amount }
+    val scheme = MaterialTheme.colorScheme
 
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = scheme.tertiaryContainer, contentColor = scheme.onTertiaryContainer),
+    ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(stringResource(R.string.dashboard_still_to_post), style = MaterialTheme.typography.titleLarge)
             Text(
@@ -232,10 +237,10 @@ internal fun StillToPostCard(subscriptions: List<Subscription>, currency: String
                             Text(
                                 formatLongDate(subscription.nextRunOn),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = scheme.onTertiaryContainer.copy(alpha = 0.72f),
                             )
                         }
-                        MoneyText(subscription.amount, currency = currency, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.bodyMedium)
+                        MoneyText(subscription.amount, currency = currency, tone = MoneyTone.NEUTRAL, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

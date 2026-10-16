@@ -70,11 +70,11 @@ internal fun DashboardScreenContent(
                         add(StatItem(stringResource(R.string.label_spent), state.summary?.expenses ?: 0, state.currency))
                         // Only once something has been moved: most months of someone who never files a transfer would read zero.
                         if (cashflow > 0) {
-                            add(StatItem(stringResource(R.string.dashboard_set_aside), cashflow, state.currency))
+                            add(StatItem(stringResource(R.string.dashboard_set_aside), cashflow, state.currency, tone = StatTone.Secondary))
                         }
                         val roundUps = state.summary?.roundUps ?: 0
                         if (roundUps > 0) {
-                            add(StatItem(stringResource(R.string.dashboard_rounded_up), roundUps, state.currency, caption = stringResource(R.string.dashboard_rounded_up_caption)))
+                            add(StatItem(stringResource(R.string.dashboard_rounded_up), roundUps, state.currency, tone = StatTone.Secondary))
                         }
                     },
                     tone = StatTone.Tertiary,

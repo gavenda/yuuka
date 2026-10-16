@@ -131,7 +131,6 @@
     <string name="dashboard_trend_down">Down %1$s since %2$s</string>
     <string name="dashboard_trend_level">Level since %1$s</string>
     <string name="dashboard_rounded_up">Rounded up</string>
-    <string name="dashboard_rounded_up_caption">Kept by Save the Change</string>
     <string name="dashboard_top_payees">Who the money went to</string>
     <plurals name="dashboard_payee_times">
         <item quantity="one">%1$s · %2$d time</item>
@@ -169,8 +168,8 @@
     <string name="set_gross_income">Set gross income</string>
     <string name="set_income">Set income</string>
     <string name="income_mode_gross">Gross</string>
-    <string name="gross_income_hint">Tell me your gross monthly pay.\nThe take-home net is what you budget from.</string>
-    <string name="net_income_hint">Tell me what you expect to bring in.\nBudget a category as a percentage of it.</string>
+    <string name="gross_income_hint">Your gross monthly pay.\nThe take-home net is what you budget from.</string>
+    <string name="net_income_hint">What you bring in.\nBudget a category as a percentage of it.</string>
     <string name="monthly_contributions">Monthly contributions</string>
     <string name="net_pay">Net pay</string>
     <string name="used_as_planned_income">Used as planned income</string>
@@ -268,7 +267,7 @@
     <string name="type_deleted">Type deleted</string>
     <string name="adjust_balance">Adjust balance</string>
     <string name="cd_adjust_balance_item">Adjust balance for %1$s</string>
-    <string name="adjust_balance_description">%1$s\'s current balance is %2$s. Enter what it should be instead — the difference is logged as its own transaction, dated today.</string>
+    <string name="adjust_balance_description">%1$s\'s current balance is %2$s. Adjust to?</string>
     <string name="label_new_balance">New balance</string>
     <string name="label_payee_optional">Payee (optional)</string>
     <string name="adjust_balance_logs_income">Logs %1$s as income.</string>
@@ -308,7 +307,7 @@
     <!-- Save the Change -->
     <string name="destination_save_the_change">Save the Change</string>
     <string name="save_the_change_enabled">Round up purchases</string>
-    <string name="save_the_change_description">Rounds up each purchase and moves the spare change into the account you choose. Small amounts add up. I\'ve done the maths.</string>
+    <string name="save_the_change_description">Small amounts add up</string>
     <string name="save_the_change_accounts_hint">A purchase on the destination account itself never rounds up.</string>
     <string name="round_up_purchases_account_label">Accounts that round up</string>
     <string name="save_the_change_no_accounts">None chosen yet</string>
@@ -357,9 +356,8 @@
     <!-- Transactions screen -->
     <string name="new_transaction">New transaction</string>
     <string name="edit_transaction">Edit transaction</string>
-    <string name="search">Search</string>
-    <string name="search_accounts">Search name, type or currency</string>
-    <string name="search_payee_notes">Search payee, notes or tag</string>
+    <string name="search_accounts">Search accounts</string>
+    <string name="search_payee_notes">Search transactions</string>
     <string name="all_accounts">All accounts</string>
     <string name="all_categories">All categories</string>
     <string name="all_tags">All tags</string>
@@ -377,8 +375,8 @@
     <string name="transactions_end">That\'s every last one, all accounted for.</string>
     <string name="delete_transfer_confirm_title">Delete this transfer?</string>
     <string name="delete_transaction_confirm_title">Delete this transaction?</string>
-    <string name="delete_transfer_body">Both sides of the transfer will be removed, and both accounts\' balances will change to match. This cannot be undone.</string>
-    <string name="delete_transaction_body">It will be removed from your history, and its account\'s balance will change to match. This cannot be undone.</string>
+    <string name="delete_transfer_body">This transfer will be removed. This cannot be undone.</string>
+    <string name="delete_transaction_body">This transaction will be removed. This cannot be undone.</string>
 
     <!-- Subscriptions -->
     <string name="subscriptions_description">Charges that post themselves each month at 00:00 UTC, as ordinary transactions you can still edit or delete.</string>
@@ -405,12 +403,12 @@
     <string name="placeholder_subscription_payee">Who gets paid, e.g. Netflix</string>
     <string name="error_payee_required">Enter a payee.</string>
     <string name="delete_subscription_confirm_title">Delete this subscription?</string>
-    <string name="delete_subscription_body">%1$s will stop posting. Transactions it has already posted stay in your history. This cannot be undone.</string>
+    <string name="delete_subscription_body">%1$s will stop posting. This cannot be undone.</string>
 
     <!-- Transactions posted by a subscription -->
     <string name="automated_badge">Subscription</string>
     <string name="automated_time_value">00:00 UTC</string>
-    <string name="automated_transaction_hint">Posted automatically by a subscription at 00:00 UTC, so its time can\'t be changed. You can still edit or delete it.</string>
+    <string name="automated_transaction_hint">Can\'t edit subscription.</string>
 
     <!-- Generic -->
     <string name="error_generic">Something doesn\'t add up. Try that again?</string>

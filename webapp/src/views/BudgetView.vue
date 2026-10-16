@@ -80,12 +80,24 @@ watch(
 	{ immediate: true },
 );
 
-// Switching modes locally, before saving, shows what was last saved for that mode.
-watch(incomeMode, () => {
-	if (!isPhp.value) return;
+/**
+ * A switch is written as it is made. The figure on show stays and only its meaning changes — gross pay to
+ * take home from, or the amount budgeted — so switching back and forth loses nothing.
+ */
+async function switchIncomeMode(mode: 'gross' | 'fixed'): Promise<void> {
+	if (mode === incomeMode.value) return;
+	const figure = usingGross.value ? grossDraft.value : budget.plannedIncome;
+	incomeMode.value = mode;
+	incomeDraft.value = figure > 0 ? toDecimalString(figure) : '';
 	editingIncome.value = false;
-	syncIncomeDraft();
-});
+	savingIncome.value = true;
+	try {
+		if (mode === 'gross') await budget.setIncomePlan(figure > 0 ? computeNetPay(figure).netPay : 0, 'gross', figure);
+		else await budget.setIncomePlan(figure, 'fixed');
+	} finally {
+		savingIncome.value = false;
+	}
+}
 
 function startEditingIncome(): void {
 	editingIncome.value = true;
@@ -176,8 +188,9 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			<!-- PH-specific: what is typed is gross pay, and the take-home net is what actually gets budgeted from. -->
 			<ConnectedButtonGroup
 				v-if="isPhp"
-				v-model="incomeMode"
+				:model-value="incomeMode"
 				class="mt-2 w-full"
+				@update:model-value="switchIncomeMode"
 				:label="t('budget.howIncomeIsSet')"
 				:options="[
 					{ value: 'gross', label: t('budget.gross') },

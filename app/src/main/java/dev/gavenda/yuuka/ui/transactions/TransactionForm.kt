@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
@@ -284,6 +285,7 @@ fun TransactionForm(
                 onClick = { pickingTime = true },
                 enabled = !isAutomated,
                 modifier = Modifier.weight(1f),
+                supportingText = if (isAutomated) stringResource(R.string.automated_transaction_hint) else ""
             )
         }
 
@@ -295,13 +297,6 @@ fun TransactionForm(
                     fields = fields.copy(date = it)
                     pickingDate = false
                 },
-            )
-        }
-
-        if (isAutomated) {
-            Text(
-                stringResource(R.string.automated_transaction_hint),
-                style = MaterialTheme.typography.bodySmall,
             )
         }
 

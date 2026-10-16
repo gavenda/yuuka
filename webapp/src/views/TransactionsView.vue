@@ -194,7 +194,7 @@ async function remove(): Promise<void> {
 		     has no bar, so there the search leads the strip below instead: one field in each place, and only
 		     one of them ever on show. -->
 		<Teleport defer to="#bar-search">
-			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('transactions.search')" :placeholder="t('transactions.search')" />
+			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('transactions.search')" :placeholder="t('transactions.searchPlaceholder')" />
 		</Teleport>
 
 		<!-- What stays put while the list scrolls: the search, where there is no bar for it, and one row of

@@ -299,7 +299,7 @@ filter row under the bar stands in line with it — its buttons the bar's own di
 account button's icon is under the bar's first and the tag and category icons under its last two — and keeps
 to the page's margin where there is no bar (`barAlignedEdgePadding`). On Android this is `MonthSearchTopBar`
 (`ui/common/ScreenTopBar.kt`, over Material's `AppBarWithSearch`, `SearchBar` and
-`ExpandedFullScreenSearchBar`), and the results are `TransactionResults` in `TransactionsScreen.kt`. A browser
+`ExpandedFullScreenContainedSearchBar`, which keeps the page's surface and the field a pill, a left chevron at its start and a clear button at its end), and the results are `TransactionResults` in `TransactionsScreen.kt`. A browser
 has no search view, so on the web the search is a `SearchField` typed in where it stands: in a phone's bar,
 where it has the whole bar while it is typed in — the mark and the actions step aside until it is left — and
 from the rail's breakpoint up at the head of the screen's `TopBar`.

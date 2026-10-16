@@ -1,7 +1,7 @@
 export default {
 	roundUps: 'Round-ups',
 	roundUpPurchases: 'Round up purchases',
-	description: "Rounds up each purchase and moves the spare change into the account you choose. Small amounts add up. I've done the maths.",
+	description: 'Small amounts add up',
 	roundTo: 'Round up to the nearest',
 	roundToHint: 'How far each purchase is rounded up',
 	accounts: 'Accounts',

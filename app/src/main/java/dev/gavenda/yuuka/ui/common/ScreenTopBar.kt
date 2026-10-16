@@ -1,43 +1,27 @@
 package dev.gavenda.yuuka.ui.common
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Arrangement
-import kotlinx.coroutines.delay
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.ui.Alignment
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExpandedFullScreenSearchBar
+import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,12 +38,20 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -68,6 +60,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.domain.formatMonth
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -216,12 +209,13 @@ fun MonthSearchTopBar(
         SearchBarDefaults.InputField(
             textFieldState = search,
             searchBarState = searchBarState,
+            // The pill keeps the colour it rests on in the bar, though the view behind it is now the page's surface.
+            colors = SearchBarDefaults.containedColors(searchBarState).inputFieldColors,
             // The list is filtered as it is typed, so the search key has nothing left to send: it puts the view away.
             onSearch = { collapse() },
-            // Between a phone bar's buttons there is room for a word; anywhere wider there is room to say what is searched.
             placeholder = {
                 Text(
-                    if (expanded || shell.useRail) searchHint else stringResource(R.string.search),
+                    searchHint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -229,14 +223,15 @@ fun MonthSearchTopBar(
             leadingIcon = {
                 if (expanded) {
                     IconButton(onClick = collapse) {
-                        Icon(painterResource(R.drawable.arrow_back_48px), contentDescription = stringResource(R.string.cd_back))
+                        Icon(painterResource(R.drawable.keyboard_arrow_left_48px), contentDescription = stringResource(R.string.cd_back))
                     }
                 } else {
                     Icon(painterResource(R.drawable.search_48px), contentDescription = null)
                 }
             },
-            // Left out rather than left empty: an empty slot would still take its width from the bar.
-            trailingIcon = if (hasText) ({ ClearSearchButton(search) }) else null,
+            // Always there in the open view; in the bar it is left out rather than left empty, as an empty slot
+            // would still take its width.
+            trailingIcon = if (hasText || expanded) ({ ClearSearchButton(search) }) else null,
         )
     }
 
@@ -279,7 +274,13 @@ fun MonthSearchTopBar(
 
             UnsentChangesBanner(count = shell.unsentChanges, sending = shell.sending)
         }
-        ExpandedFullScreenSearchBar(state = searchBarState, inputField = inputField, content = results)
+        ExpandedFullScreenContainedSearchBar(
+            state = searchBarState,
+            inputField = inputField,
+            // The results keep the page's surface; the field in them stays the pill it is in the bar.
+            colors = SearchBarDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
+            content = results,
+        )
     }
 }
 
@@ -347,7 +348,7 @@ private fun NavigationMenuButton() {
 private fun BackButton() {
     val shell = LocalAppBarShell.current
     IconButton(onClick = shell.onBack) {
-        Icon(painterResource(R.drawable.arrow_back_48px), contentDescription = stringResource(R.string.cd_back))
+        Icon(painterResource(R.drawable.keyboard_arrow_left_48px), contentDescription = stringResource(R.string.cd_back))
     }
 }
 

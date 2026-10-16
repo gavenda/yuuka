@@ -3,7 +3,7 @@ export default {
 	newTransaction: 'New transaction',
 	editTransaction: 'Edit transaction',
 	search: 'Search',
-	searchPlaceholder: 'Search payee, notes or tag',
+	searchPlaceholder: 'Search transactions',
 	allAccounts: 'All accounts',
 	andMore: '{name} & more',
 	filterByAccount: 'Filter by account',
@@ -33,7 +33,7 @@ export default {
 		fromAccount: 'From account',
 		toAccount: 'To account',
 		cashflowCategory: 'Cashflow category',
-		automated: "Posted automatically by a subscription at 00:00 UTC, so its time can't be changed. You can still edit or delete it.",
+		automated: "Can't edit subscription.",
 		payeeTooLong: 'Use {max} characters or fewer.',
 		amountRequired: 'Enter an amount.',
 		amountNumber: 'Enter an amount as a number, such as 45.99.',
@@ -45,7 +45,6 @@ export default {
 		notesTooLong: 'Use {max} characters or fewer.',
 		tooManyTags: 'A transaction can wear at most {max} tags.',
 	},
-	deleteTransferBody:
-		"Both sides of the transfer will be removed, and both accounts' balances will change to match. This cannot be undone.",
-	deleteTransactionBody: "It will be removed from your history, and its account's balance will change to match. This cannot be undone.",
+	deleteTransferBody: 'This transfer will be removed. This cannot be undone.',
+	deleteTransactionBody: 'This transaction will be removed. This cannot be undone.',
 };

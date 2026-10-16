@@ -26,7 +26,7 @@ export default {
 	couldNotUpdate: 'Could not update the subscription.',
 	couldNotDelete: 'Could not delete the subscription.',
 	deleteTitle: 'Delete this subscription?',
-	deleteBody: '{name} will stop posting. Transactions it has already posted stay in your history. This cannot be undone.',
+	deleteBody: '{name} will stop posting. This cannot be undone.',
 	payeeRequired: 'Enter a payee.',
 	payeeTooLong: 'Use {max} characters or fewer.',
 	amountRequired: 'Enter an amount.',

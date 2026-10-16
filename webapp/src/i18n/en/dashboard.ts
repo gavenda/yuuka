@@ -14,7 +14,6 @@ export default {
 	accounts: 'Accounts',
 	stillToPost: 'Still to post',
 	roundedUp: 'Rounded up',
-	roundedUpCaption: 'Kept by Save the Change',
 	topPayees: 'Who the money went to',
 	payeeTimes: '{amount} · {count} time | {amount} · {count} times',
 	stillToPostSummary: '{amount} across {count} subscription | {amount} across {count} subscriptions',

@@ -21,6 +21,8 @@ data class StatItem(
     val caption: String? = null,
     val signed: Boolean = false,
     val watermark: Boolean = false,
+    /** Draws this card on its own container instead of the carousel's. */
+    val tone: StatTone? = null,
 )
 
 /**
@@ -61,7 +63,7 @@ fun StatCarousel(stats: List<StatItem>, modifier: Modifier = Modifier, edgeBleed
                 currency = stat.currency,
                 caption = stat.caption,
                 signed = stat.signed,
-                tone = tone,
+                tone = stat.tone ?: tone,
                 watermark = stat.watermark,
                 onClick = {},
             )

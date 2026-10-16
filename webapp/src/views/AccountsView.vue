@@ -276,7 +276,7 @@ onMounted(() => ledger.load());
 	<div class="px-4 pt-4 pb-24">
 		<!-- A phone's bar has the search in it; a window with a rail has no bar, so there it leads the page. -->
 		<Teleport defer to="#bar-search">
-			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('accounts.search')" :placeholder="t('transactions.search')" />
+			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('accounts.search')" :placeholder="t('accounts.searchPlaceholder')" />
 		</Teleport>
 		<TopBar>
 			<SearchField v-model="search" class="max-sm:hidden" :label="t('accounts.search')" :placeholder="t('accounts.searchPlaceholder')" />

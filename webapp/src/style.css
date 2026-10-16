@@ -545,7 +545,7 @@
 	}
 
 	.search-field > input {
-		@apply type-body-large min-w-0 flex-1 bg-transparent text-on-surface placeholder:text-on-surface-variant focus:outline-none;
+		@apply type-body-large min-w-0 flex-1 bg-transparent text-ellipsis text-on-surface placeholder:text-on-surface-variant focus:outline-none;
 	}
 
 	.search-field > input::-webkit-search-cancel-button {

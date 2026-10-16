@@ -9,6 +9,8 @@ export interface StatItem {
 	caption?: string;
 	signed?: boolean;
 	watermark?: boolean;
+	/** Draws this card on its own container instead of the carousel's. */
+	tone?: 'surface' | 'secondary' | 'tertiary';
 }
 
 /**
@@ -35,7 +37,7 @@ withDefaults(defineProps<{ stats: StatItem[]; currency?: string; tone?: 'surface
 			:caption="stat.caption"
 			:signed="stat.signed"
 			:watermark="stat.watermark"
-			:tone="tone"
+			:tone="stat.tone ?? tone"
 		/>
 	</div>
 </template>

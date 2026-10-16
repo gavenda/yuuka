@@ -54,13 +54,17 @@ internal fun BudgetScreenContent(
     var incomeMode by remember { mutableStateOf(IncomePlanMode.gross) }
     var incomeDraft by remember { mutableStateOf("") }
 
-    LaunchedEffect(state.summary) {
-        incomeMode = state.plannedIncomeMode
-        incomeDraft = if (isPhp && incomeMode == IncomePlanMode.gross) {
+    /** What the closed field should read for [mode], from what is saved. */
+    fun savedDraftFor(mode: IncomePlanMode): String =
+        if (isPhp && mode == IncomePlanMode.gross) {
             state.plannedIncomeGrossAmount?.let { toDecimalString(it) } ?: ""
         } else {
             if (state.plannedIncome > 0) toDecimalString(state.plannedIncome) else ""
         }
+
+    LaunchedEffect(state.summary) {
+        incomeMode = state.plannedIncomeMode
+        incomeDraft = savedDraftFor(incomeMode)
     }
 
     val usingGross = isPhp && incomeMode == IncomePlanMode.gross
@@ -119,7 +123,24 @@ internal fun BudgetScreenContent(
                             ConnectedButtonGroup(
                                 options = IncomePlanMode.entries,
                                 selected = incomeMode,
-                                onSelect = { incomeMode = it; incomeEditing = false },
+                                // A switch is written as it is made. The figure on show stays and only its meaning
+                                // changes — gross pay to take home from, or the amount budgeted — so switching back
+                                // and forth loses nothing.
+                                onSelect = { mode ->
+                                    if (mode != incomeMode) {
+                                        val figure = if (usingGross) grossDraft else state.plannedIncome
+                                        incomeMode = mode
+                                        incomeDraft = if (figure > 0) toDecimalString(figure) else ""
+                                        incomeEditing = false
+                                        busy.run(INCOME_KEY, snackbarHostState) {
+                                            if (mode == IncomePlanMode.gross) {
+                                                onSetIncomePlan(if (figure > 0) computeNetPay(figure).netPay else 0, mode, figure)
+                                            } else {
+                                                onSetIncomePlan(figure, mode, null)
+                                            }
+                                        }
+                                    }
+                                },
                                 label = { if (it == IncomePlanMode.gross) stringResource(R.string.income_mode_gross) else stringResource(R.string.label_fixed) },
                                 modifier = Modifier.padding(top = 8.dp),
                             )

@@ -3,7 +3,7 @@ export default {
 	emptyShort: 'No accounts yet',
 	emptyDescription: "Add an account and I'll keep it balanced to the last coin.",
 	search: 'Search accounts',
-	searchPlaceholder: 'Search name, type or currency',
+	searchPlaceholder: 'Search accounts',
 	newAccount: 'New account',
 	editAccount: 'Edit account',
 	added: 'Account added',
@@ -19,8 +19,7 @@ export default {
 	balanceNumber: 'Enter a number, such as 1250.00.',
 	adjust: 'Adjust balance',
 	adjustFor: 'Adjust balance for {name}',
-	adjustDescription:
-		"{name}'s current balance is {balance}. Enter what it should be instead — the difference is logged as its own transaction, dated today.",
+	adjustDescription: "{name}'s current balance is {balance}. Adjust to?",
 	newBalance: 'New balance',
 	payeeOptional: 'Payee (optional)',
 	logsIncome: 'Logs {amount} as income.',
