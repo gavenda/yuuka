@@ -119,7 +119,7 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation(libs.coil.svg)
 
-    implementation(libs.materialKolor)
+    implementation(libs.materialKolor.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

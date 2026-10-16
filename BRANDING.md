@@ -37,7 +37,7 @@ Her profile gives the facts, the card that introduced her pyjama outfit gives he
 
 ## Colour
 
-The app has one theme, its own, the same on every device and in the browser, in light and in dark. `YuukaTheme` in `ui/theme/Theme.kt` has MaterialKolor build it from three colours kept in `ui/theme/Color.kt`, in the tonal spot style, to the 2026 colour spec, at default contrast.
+The app has one theme, its own, the same on every device and in the browser, in light and in dark. `YuukaTheme` in `ui/theme/Theme.kt` has MaterialKolor's core build it from three colours kept in `ui/theme/Color.kt`, in the tonal spot style, to the 2026 colour spec, at default contrast.
 
 | Input | Value | Taken from | Becomes |
 |---|---|---|---|
@@ -45,7 +45,7 @@ The app has one theme, its own, the same on every device and in the browser, in 
 | Pyjama blue | `#9EBCD8` | Her pyjamas, where the fabric is in shade | `secondary` |
 | Bow pink | `#EDB0D0` | The bows on her slippers | `tertiary` |
 
-The seed goes through the style, which picks its hue's tones. The other two are given as they are, so their palettes keep their own hue and chroma. These are the roles as MaterialKolor 6.0.0-beta01 resolves them:
+The seed goes through the style, which picks its hue's tones. The other two are given as they are, so their palettes keep their own hue and chroma. These are the roles as MaterialKolor 6.0.0 resolves them:
 
 | Role | Light | Dark |
 |---|---|---|
