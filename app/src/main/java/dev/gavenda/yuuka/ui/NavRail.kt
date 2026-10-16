@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavKey
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.annotation.DrawableRes
@@ -84,14 +85,14 @@ private val RAIL_PRINT_WIDTH = 220.dp
 fun YuukaNavRail(
     docked: Boolean,
     state: WideNavigationRailState,
-    currentRoute: String?,
+    currentRoute: NavKey?,
     claims: IdTokenClaims?,
     amountsHidden: Boolean,
     fabSlot: RailSlot<FabEntry>,
     monthSlot: RailSlot<MonthEntry>,
     onExpandedChange: (Boolean) -> Unit,
-    onNavigate: (String) -> Unit,
-    onNavigateDetail: (String) -> Unit,
+    onNavigate: (Route) -> Unit,
+    onNavigateDetail: (Route) -> Unit,
     onToggleAmounts: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,

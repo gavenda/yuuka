@@ -19,8 +19,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
@@ -40,11 +40,13 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.NavMetadataKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.get
+import androidx.navigation3.runtime.metadata
+import androidx.navigation3.scene.Scene
+import androidx.navigation3.ui.NavDisplay
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.auth.AuthManager
 import dev.gavenda.yuuka.auth.AuthState
@@ -106,9 +108,11 @@ import dev.gavenda.yuuka.sync.Outbox
 )
 @Composable
 fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // A history per top-level destination, each kept as it was left while another is on show. Back
+    // walks the current one down to its root and then returns to Dashboard, the way out of the app.
+    val navigationState = rememberNavigationState(startRoute = Route.Dashboard, topLevelRoutes = TOP_LEVEL_ROUTES)
+    val navigator = remember(navigationState) { Navigator(navigationState) }
+    val currentRoute: NavKey? = navigationState.currentRoute
 
     val amountVisibility = koinInject<AmountVisibility>()
     val hidden by amountVisibility.hidden.collectAsStateWithLifecycle()
@@ -171,35 +175,17 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         if (!railDocked) railState.snapTo(WideNavigationRailValue.Collapsed)
     }
 
-    val bottomNavRoutes = RAIL_DESTINATIONS.map { it.route }
-
-    // Shared by the bottom nav items, drawer destinations, the rail and any programmatic jump to a
-    // top-level destination (e.g. "View all" from the dashboard). This pushes onto the real
-    // back stack instead of collapsing it back to the start destination, so visiting tabs in
-    // order (Dashboard -> Transactions -> Accounts) leaves a genuine [Dashboard, Transactions,
-    // Accounts] stack and back/predictive-back steps through them in that order rather than
-    // jumping straight to Dashboard. popUpTo(route, inclusive = true) still collapses a
-    // *revisited* destination's old position so repeated taps don't pile up duplicate entries.
-    // Tapping the destination already on screen is a no-op: the pop-and-repush above would
-    // otherwise replay the enter/exit transition on the very screen being shown.
-    val navigateToTopLevel: (String) -> Unit = { route ->
-        if (route != currentRoute) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                popUpTo(route) { inclusive = true }
-            }
-        }
-    }
-
-    // Settings and Save the Change are pushed on top of whatever tab was showing, so they
-    // just need the same guard against re-navigating to the screen already shown.
-    val navigateToDetail: (String) -> Unit = { route ->
-        when (route) {
-            currentRoute -> Unit
-            // Settings from a screen it opened is the way back to it, not a second copy on top.
-            SETTINGS_ROUTE if currentRoute == ACCOUNT_TYPES_ROUTE -> navController.popBackStack()
-            else -> navController.navigate(route)
-        }
+    val entryProvider = entryProvider<NavKey> {
+        entry<Route.Dashboard>(metadata = tabOrder(Route.Dashboard)) { DashboardScreen() }
+        entry<Route.Transactions>(metadata = tabOrder(Route.Transactions)) { TransactionsScreen() }
+        entry<Route.Budget> { BudgetScreen() }
+        entry<Route.Accounts>(metadata = tabOrder(Route.Accounts)) { AccountsScreen() }
+        entry<Route.Categories> { CategoriesScreen() }
+        entry<Route.Tags> { TagsScreen() }
+        entry<Route.Subscriptions> { SubscriptionsScreen() }
+        entry<Route.Settings> { SettingsScreen(onOpenAccountTypes = { navigator.navigate(Route.AccountTypes) }) }
+        entry<Route.AccountTypes> { AccountTypesScreen() }
+        entry<Route.SaveTheChange> { SaveTheChangeScreen() }
     }
 
     // The screens themselves, hosted either beside the rail or inside the phone's drawer.
@@ -280,39 +266,22 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     label = { Text(stringResource(destination.labelRes)) },
                                     icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
                                     selected = destination == currentDestination,
-                                    onClick = { navigateToTopLevel(destination.route) },
+                                    onClick = { navigator.navigate(destination.route) },
                                 )
                             }
                         }
                     }
                 },
             ) { padding ->
-                NavHost(
+                NavDisplay(
+                    entries = navigationState.toEntries(entryProvider),
+                    onBack = navigator::goBack,
                     modifier = Modifier.padding(padding),
-                    navController = navController,
-                    startDestination = YuukaDestination.DASHBOARD.route,
-                    enterTransition = { tabSlideIn(bottomNavRoutes, fallback = 1) },
-                    exitTransition = { tabSlideOut(bottomNavRoutes, fallback = 1) },
-                    popEnterTransition = { tabSlideIn(bottomNavRoutes, fallback = -1) },
-                    popExitTransition = { tabSlideOut(bottomNavRoutes, fallback = -1) },
-                    // Without these, the Android 16 predictive back gesture preview falls back to
-                    // NavHost's default fade/scale instead of following the same swipe as a completed pop.
-                    predictivePopEnterTransition = { tabSlideIn(bottomNavRoutes, fallback = -1) },
-                    predictivePopExitTransition = { tabSlideOut(bottomNavRoutes, fallback = -1) },
-                ) {
-                    composable(YuukaDestination.DASHBOARD.route) {
-                        DashboardScreen()
-                    }
-                    composable(YuukaDestination.TRANSACTIONS.route) { TransactionsScreen() }
-                    composable(YuukaDestination.BUDGET.route) { BudgetScreen() }
-                    composable(YuukaDestination.ACCOUNTS.route) { AccountsScreen() }
-                    composable(YuukaDestination.CATEGORIES.route) { CategoriesScreen() }
-                    composable(YuukaDestination.TAGS.route) { TagsScreen() }
-                    composable(YuukaDestination.SUBSCRIPTIONS.route) { SubscriptionsScreen() }
-                    composable(SETTINGS_ROUTE) { SettingsScreen(onOpenAccountTypes = { navController.navigate(ACCOUNT_TYPES_ROUTE) }) }
-                    composable(ACCOUNT_TYPES_ROUTE) { AccountTypesScreen() }
-                    composable(SAVE_THE_CHANGE_ROUTE) { SaveTheChangeScreen() }
-                }
+                    transitionSpec = { tabSlide(fallback = 1) },
+                    popTransitionSpec = { tabSlide(fallback = -1) },
+                    // The predictive back preview follows the same swipe as a completed pop.
+                    predictivePopTransitionSpec = { tabSlide(fallback = -1) },
+                )
             }
         }
     }
@@ -326,7 +295,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
             unsentChanges = unsentChanges,
             sending = isSending,
             onOpenNavigation = { scope.launch { drawerState.open() } },
-            onBack = { navController.popBackStack() },
+            onBack = navigator::goBack,
             onToggleAmounts = amountVisibility::toggle,
         )
     }
@@ -351,8 +320,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     fabSlot = fabSlot,
                     monthSlot = monthSlot,
                     onExpandedChange = setRailExpanded,
-                    onNavigate = navigateToTopLevel,
-                    onNavigateDetail = navigateToDetail,
+                    onNavigate = navigator::navigate,
+                    onNavigateDetail = navigator::navigate,
                     onToggleAmounts = amountVisibility::toggle,
                     onSignOut = { confirmingSignOut = true },
                 )
@@ -411,7 +380,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                     icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
                                     selected = destination == currentDestination,
                                     onClick = {
-                                        navigateToTopLevel(destination.route)
+                                        navigator.navigate(destination.route)
                                         scope.launch { drawerState.close() }
                                     },
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -420,12 +389,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             // Grouped with Budget/Categories rather than with Settings at the foot —
                             // it's a ledger concern, not app configuration.
                             DetailDrawerItem(DetailDestination.SAVE_THE_CHANGE, currentRoute) {
-                                navigateToDetail(it)
+                                navigator.navigate(it)
                                 scope.launch { drawerState.close() }
                             }
                         }
                         DetailDrawerItem(DetailDestination.SETTINGS, currentRoute) {
-                            navigateToDetail(it)
+                            navigator.navigate(it)
                             scope.launch { drawerState.close() }
                         }
                         NavigationDrawerItem(
@@ -480,23 +449,32 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
+/** Where a destination sits in the bottom bar, so a switch between two tabs slides the way the bar reads. */
+private data object TabOrder : NavMetadataKey<Int>
+
+private fun tabOrder(route: Route): Map<String, Any> =
+    metadata { put(TabOrder, RAIL_DESTINATIONS.indexOfFirst { it.route == route }) }
+
 /**
- * +1 (slide from the right) or -1 (slide from the left) based on the two routes' order among
- * the bottom-nav tabs, or null when either side isn't a tab. Compose Navigation's `popUpTo` +
- * `restoreState` dance around the bottom nav means the same tab switch is sometimes classified
- * as a push and sometimes as a pop, which flips the direction if enter/exit and popEnter/popExit
- * each pick their own fixed direction. Basing it on tab order instead keeps it consistent regardless
- * of which pair of callbacks Navigation happens to fire.
+ * +1 (slide from the right) or -1 (slide from the left) based on the two screens' order among
+ * the bottom-nav tabs, or null when either side isn't a tab. Leaving Accounts for Dashboard by
+ * back is a pop and by the bar is a switch, but both slide the way the bar reads.
  */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideDirection(bottomNavRoutes: List<String>): Int? {
-    val fromIndex = bottomNavRoutes.indexOf(initialState.destination.route)
-    val toIndex = bottomNavRoutes.indexOf(targetState.destination.route)
-    if (fromIndex == -1 || toIndex == -1) return null
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSlideDirection(): Int? {
+    val fromIndex = initialState.metadata[TabOrder] ?: return null
+    val toIndex = targetState.metadata[TabOrder] ?: return null
     return if (toIndex >= fromIndex) 1 else -1
 }
 
+/** A destination slides in from the side it lies on in the bottom bar; anything else from [fallback]'s. */
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSlide(fallback: Int): ContentTransform {
+    val direction = tabSlideDirection() ?: fallback
+    return slideInHorizontally { fullWidth -> direction * fullWidth } togetherWith
+        slideOutHorizontally { fullWidth -> -direction * fullWidth }
+}
+
 @Composable
-private fun DetailDrawerItem(destination: DetailDestination, currentRoute: String?, onNavigate: (String) -> Unit) {
+private fun DetailDrawerItem(destination: DetailDestination, currentRoute: NavKey?, onNavigate: (Route) -> Unit) {
     val selected = destination.isCurrent(currentRoute)
     NavigationDrawerItem(
         label = { Text(stringResource(destination.labelRes)) },
@@ -505,17 +483,6 @@ private fun DetailDrawerItem(destination: DetailDestination, currentRoute: Strin
         onClick = { onNavigate(destination.route) },
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
     )
-}
-
-/** A destination slides in from the side it lies on in the bottom bar; anything else from [fallback]'s. */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideIn(bottomNavRoutes: List<String>, fallback: Int): EnterTransition {
-    val direction = tabSlideDirection(bottomNavRoutes) ?: fallback
-    return slideInHorizontally { fullWidth -> direction * fullWidth }
-}
-
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideOut(bottomNavRoutes: List<String>, fallback: Int): ExitTransition {
-    val direction = tabSlideDirection(bottomNavRoutes) ?: fallback
-    return slideOutHorizontally { fullWidth -> -direction * fullWidth }
 }
 
 /** How far the drawer header's print reaches up, so it runs behind the status bar as the rail's does. */

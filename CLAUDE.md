@@ -146,7 +146,7 @@ and reading, which is exactly why it can be user-defined without touching any
 arithmetic. A type still in use cannot be deleted — the API reports how many
 accounts hold it and points at archiving. The types are managed on a screen of
 their own, opened from a row in Settings (`/settings/account-types` on the web,
-`ACCOUNT_TYPES_ROUTE` on Android) rather than from the Accounts screen: Settings
+`Route.AccountTypes` on Android) rather than from the Accounts screen: Settings
 stays the marked destination while it is on show, and its leading action is
 "New type".
 

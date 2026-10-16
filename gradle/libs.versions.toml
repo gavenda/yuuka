@@ -18,7 +18,8 @@ material3 = "1.5.0-beta01"
 # View-system Material library, here only for Theme.Material3.DayNight (the window/splash theme).
 material = "1.14.0"
 auth0 = "4.1.0"
-navigationCompose = "2.10.2"
+nav3 = "1.2.0"
+lifecycleViewmodelNav3 = "2.11.0"
 koin = "4.2.2"
 room = "3.0.3"
 retrofit = "3.0.0"
@@ -54,7 +55,10 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "nav3" }
+androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "nav3" }
+# Gives each destination its own ViewModelStore, cleared when it leaves the back stack, as a NavBackStackEntry did.
+androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 androidx-room-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room" }
 auth0-android = { group = "com.auth0.android", name = "auth0", version.ref = "auth0" }
