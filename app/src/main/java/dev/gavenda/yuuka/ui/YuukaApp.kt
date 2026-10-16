@@ -62,12 +62,13 @@ import dev.gavenda.yuuka.ui.common.FullScreenDialogHost
 import dev.gavenda.yuuka.ui.common.FullScreenDialogHostState
 import dev.gavenda.yuuka.ui.common.LocalAppBarShell
 import dev.gavenda.yuuka.ui.common.LocalFullScreenDialogHost
-import dev.gavenda.yuuka.ui.common.LocalRailFabHost
-import dev.gavenda.yuuka.ui.common.LocalRailMonthHost
+import dev.gavenda.yuuka.ui.common.FabEntry
+import dev.gavenda.yuuka.ui.common.LocalRailFab
+import dev.gavenda.yuuka.ui.common.LocalRailMonth
+import dev.gavenda.yuuka.ui.common.MonthEntry
 import dev.gavenda.yuuka.ui.common.LocalSnackbarHostState
 import dev.gavenda.yuuka.ui.common.LocalSnackbarOverlays
-import dev.gavenda.yuuka.ui.common.RailFabHost
-import dev.gavenda.yuuka.ui.common.RailMonthHost
+import dev.gavenda.yuuka.ui.common.RailSlot
 import dev.gavenda.yuuka.ui.dashboard.DashboardScreen
 import dev.gavenda.yuuka.ui.accounttypes.AccountTypesScreen
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeScreen
@@ -155,8 +156,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val useRail = widthClass != null && widthClass != WindowWidthSizeClass.Compact
     val railDocked = widthClass == WindowWidthSizeClass.Expanded
 
-    val fabHost = remember { RailFabHost() }
-    val monthHost = remember { RailMonthHost() }
+    val fabSlot = remember { RailSlot<FabEntry>() }
+    val monthSlot = remember { RailSlot<MonthEntry>() }
     val railPreference = koinInject<RailPreference>()
     // Only a window with room for it brings the rail back open: a floating one on launch would greet
     // a narrow window with a scrim.
@@ -361,9 +362,9 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         LocalAppBarShell provides appBarShell,
         LocalFullScreenDialogHost provides dialogHost,
         // Only a rail has a place to put a screen's FAB; without one each screen draws its own.
-        LocalRailFabHost provides if (useRail) fabHost else null,
+        LocalRailFab provides if (useRail) fabSlot else null,
         // Where a month-scoped screen's bar puts its month once a rail has taken the bar's place.
-        LocalRailMonthHost provides monthHost,
+        LocalRailMonth provides monthSlot,
     ) {
         if (useRail) {
             Row(modifier = modifier) {
@@ -373,8 +374,8 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     currentRoute = currentRoute,
                     claims = claims,
                     amountsHidden = hidden,
-                    fabHost = fabHost,
-                    monthHost = monthHost,
+                    fabSlot = fabSlot,
+                    monthSlot = monthSlot,
                     onExpandedChange = setRailExpanded,
                     onNavigate = navigateToTopLevel,
                     onNavigateDetail = navigateToDetail,

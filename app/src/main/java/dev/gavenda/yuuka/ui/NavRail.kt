@@ -54,8 +54,8 @@ import dev.gavenda.yuuka.ui.common.CatFade
 import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.FabEntry
 import dev.gavenda.yuuka.ui.common.catPattern
-import dev.gavenda.yuuka.ui.common.RailFabHost
-import dev.gavenda.yuuka.ui.common.RailMonthHost
+import dev.gavenda.yuuka.ui.common.MonthEntry
+import dev.gavenda.yuuka.ui.common.RailSlot
 import dev.gavenda.yuuka.ui.common.UserAvatar
 import dev.gavenda.yuuka.ui.theme.ShapeXl
 
@@ -87,8 +87,8 @@ fun YuukaNavRail(
     currentRoute: String?,
     claims: IdTokenClaims?,
     amountsHidden: Boolean,
-    fabHost: RailFabHost,
-    monthHost: RailMonthHost,
+    fabSlot: RailSlot<FabEntry>,
+    monthSlot: RailSlot<MonthEntry>,
     onExpandedChange: (Boolean) -> Unit,
     onNavigate: (String) -> Unit,
     onNavigateDetail: (String) -> Unit,
@@ -151,7 +151,7 @@ fun YuukaNavRail(
                     contentDescription = stringResource(if (expanded) R.string.cd_collapse_navigation else R.string.cd_expand_navigation),
                 )
             }
-            RailFab(host = fabHost, railExpanded = expanded, afterRun = afterChoice)
+            RailFab(slot = fabSlot, railExpanded = expanded, afterRun = afterChoice)
         }
     }
 
@@ -257,7 +257,7 @@ fun YuukaNavRail(
 
                 // On a month-scoped screen, the button that opens its month picker, which a phone keeps in the bar
                 // after the switch above. Open, it is labelled with the month on show.
-                monthHost.entry?.let { entry ->
+                monthSlot.value?.let { entry ->
                     val month = formatMonth(entry.month)
                     RailItem(
                         label = month,
@@ -312,8 +312,8 @@ fun YuukaNavRail(
  * one goes, sliding the destinations with it.
  */
 @Composable
-private fun RailFab(host: RailFabHost, railExpanded: Boolean, afterRun: () -> Unit) {
-    val entry = host.entry
+private fun RailFab(slot: RailSlot<FabEntry>, railExpanded: Boolean, afterRun: () -> Unit) {
+    val entry = slot.value
     // The slot animates shut after the entry is gone, so remember what it last held to draw while it does.
     val lastShown = remember { arrayOfNulls<FabEntry>(1) }
     if (entry != null) lastShown[0] = entry
