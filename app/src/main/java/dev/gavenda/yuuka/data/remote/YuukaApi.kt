@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.data.remote
 
 import dev.gavenda.yuuka.data.model.Summary
+import dev.gavenda.yuuka.data.model.Trend
 import dev.gavenda.yuuka.data.remote.dto.*
 import retrofit2.http.*
 
@@ -51,6 +52,9 @@ interface YuukaApi {
 
     @GET("summary")
     suspend fun summary(@Query("month") month: String): Summary
+
+    @GET("trend")
+    suspend fun trend(@Query("month") month: String, @Query("months") months: Int): Trend
 
     /**
      * Drains the offline queue. The operations are replayed in the order they

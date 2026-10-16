@@ -107,6 +107,15 @@ data class CategoryBreakdown(
 @Serializable
 data class DailySpend(val date: String, val amount: Long)
 
+/** One month of `GET /trend`; [netWorth] is what every account added up to at its end, worked back from today's balances. */
+@Immutable
+@Serializable
+data class TrendMonth(val month: String, val income: Long, val expenses: Long, val net: Long, val netWorth: Long)
+
+/** Income, spending and net worth month by month, oldest first, ending at [month]. */
+@Serializable
+data class Trend(val month: String, val months: List<TrendMonth> = emptyList())
+
 /** One payee's share of a month's spending: a positive [amount] over [count] transactions. */
 @Immutable
 @Serializable

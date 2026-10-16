@@ -214,6 +214,22 @@ export interface Summary {
 	cached: boolean;
 }
 
+/** One month of `GET /trend`. */
+export interface TrendMonth {
+	month: string;
+	income: number;
+	expenses: number;
+	net: number;
+	/** What every account added up to at the end of the month, worked back from today's balances. */
+	netWorth: number;
+}
+
+/** Income, spending and net worth month by month, oldest first, ending at `month`. */
+export interface Trend {
+	month: string;
+	months: TrendMonth[];
+}
+
 export interface TransactionPage {
 	transactions: Transaction[];
 	total: number;

@@ -346,6 +346,13 @@ export const monthQuerySchema = z.object({
 	month: monthString.optional(),
 });
 
+export const trendQuerySchema = z.object({
+	/** The last month the trend runs to. */
+	month: monthString.optional(),
+	/** How many months it covers, ending at `month`. */
+	months: z.coerce.number().int().min(2).max(24).default(12),
+});
+
 export const listQuerySchema = z.object({
 	includeArchived: z
 		.enum(['true', 'false'])

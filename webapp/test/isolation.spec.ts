@@ -379,6 +379,19 @@ describe('summaries are private', () => {
 	});
 });
 
+describe('trends are private', () => {
+	it('never count another user’s figures', async () => {
+		const accountId = await makeAccount(mine, { startingBalance: 100_000 });
+		await mine('/transactions', {
+			method: 'POST',
+			body: JSON.stringify({ accountId, amount: -25_000, occurredOn: '2026-09-04' }),
+		});
+
+		const { months } = await json<{ months: { expenses: number; netWorth: number }[] }>(await theirs('/trend?month=2026-09&months=2'));
+		expect(months.every((entry) => entry.expenses === 0 && entry.netWorth === 0)).toBe(true);
+	});
+});
+
 describe('subscriptions are private', () => {
 	let subscriptionId: string;
 	const startOn = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);

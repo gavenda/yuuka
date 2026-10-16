@@ -11,6 +11,7 @@ import type {
 	Summary,
 	Tag,
 	TransactionFilters,
+	Trend,
 	TransactionPage,
 } from '@/types';
 
@@ -560,4 +561,6 @@ export const api = {
 		),
 
 	summary: (month: string) => request<Summary>(`/summary${queryString({ month })}`),
+
+	trend: (month: string, months: number) => request<Trend>(`/trend${queryString({ month, months })}`),
 };

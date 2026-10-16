@@ -14,6 +14,7 @@ import { settingsRoutes } from './routes/settings';
 import { subscriptionRoutes } from './routes/subscriptions';
 import { createSyncRoutes } from './routes/sync';
 import { summaryRoutes } from './routes/summary';
+import { trendRoutes } from './routes/trend';
 import { tagRoutes } from './routes/tags';
 import { transactionRoutes } from './routes/transactions';
 import { notifyChange, slicesForPath } from './notify';
@@ -82,6 +83,7 @@ app.route('/api/settings', settingsRoutes);
 app.route('/api/round-up', roundUpRoutes);
 app.route('/api/subscriptions', subscriptionRoutes);
 app.route('/api/summary', summaryRoutes);
+app.route('/api/trend', trendRoutes);
 app.route('/api/devices', deviceRoutes);
 // Mounted with a dispatcher back into this same app: a queued operation is
 // replayed through the router it would have gone through online. Declaring it
