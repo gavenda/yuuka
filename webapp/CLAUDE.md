@@ -584,7 +584,7 @@ about round-ups.
 **Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`, a Material 3
 wide navigation rail) and a bottom bar below it (`NavDestination`). Slim, the rail is 96px: the logo — a
 plain mark, never a control — the menu button, the screen's FAB, and Dashboard, Transactions and Accounts
-(`dailyLinks` in `App.vue`, the same three as the phone's bar) with their labels beneath. The menu button
+(`dailyLinks` in `src/lib/nav.ts`, the same three as the phone's bar, with `moreLinks` behind "More" and the avatar menu) with their labels beneath. The menu button
 opens it into a drawer whose "More" group holds Budget, Categories, Tags, Subscriptions, Save the Change,
 Settings and Sign out, with the signed-in account in a card at the foot; phones keep those in the avatar
 menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount; under

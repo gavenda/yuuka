@@ -8,25 +8,9 @@ import SnackbarHost from '@/components/SnackbarHost.vue';
 import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { clearCache } from '@/lib/cache';
 import AppIcon from '@/components/AppIcon.vue';
-import {
-	ACCOUNT_BALANCE_WALLET,
-	ACCOUNT_BALANCE_WALLET_FILL,
-	ARROW_BACK,
-	ATTACH_MONEY,
-	CALENDAR_MONTH,
-	CATEGORY,
-	CATEGORY_FILL,
-	DASHBOARD,
-	DASHBOARD_FILL,
-	MONEY_OFF,
-	PIE_CHART,
-	PIE_CHART_FILL,
-	RECEIPT,
-	RECEIPT_FILL,
-	SELL,
-	SELL_FILL,
-} from '@/lib/icons';
+import { ARROW_BACK, ATTACH_MONEY, CALENDAR_MONTH, MONEY_OFF } from '@/lib/icons';
 import { formatMonth } from '@/lib/dates';
+import { dailyLinks, moreLinks } from '@/lib/nav';
 import { currentMonthAction } from '@/lib/monthAction';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
@@ -60,22 +44,6 @@ const monthActionLabel = computed(() =>
 );
 const userMenuOpen = ref(false);
 const userMenuRoot = ref<HTMLElement | null>(null);
-
-/**
- * Every destination. The daily ones sit in the rail and the phone's bar; `more: true` sends one to the rail's "More"
- * group and, on a phone, to the avatar menu instead.
- */
-const links = computed(() => [
-	{ to: '/', label: t('nav.dashboard'), icon: DASHBOARD, iconSelected: DASHBOARD_FILL },
-	{ to: '/transactions', label: t('nav.transactions'), icon: RECEIPT, iconSelected: RECEIPT_FILL },
-	{ to: '/budget', label: t('nav.budget'), icon: PIE_CHART, iconSelected: PIE_CHART_FILL, more: true },
-	{ to: '/accounts', label: t('nav.accounts'), icon: ACCOUNT_BALANCE_WALLET, iconSelected: ACCOUNT_BALANCE_WALLET_FILL },
-	{ to: '/categories', label: t('nav.categories'), icon: CATEGORY, iconSelected: CATEGORY_FILL, more: true },
-	{ to: '/tags', label: t('nav.tags'), icon: SELL, iconSelected: SELL_FILL, more: true },
-]);
-
-const dailyLinks = computed(() => links.value.filter((link) => !link.more));
-const moreLinks = computed(() => links.value.filter((link) => link.more));
 
 const showShell = computed(() => isAuthenticated.value);
 
@@ -236,8 +204,6 @@ onBeforeUnmount(() => {
 		     destination: budget, categories, tags, subscriptions, settings and signing out. -->
 		<NavRail
 			v-if="shellShown"
-			:links="dailyLinks"
-			:more-links="moreLinks"
 			:version="appVersion"
 			:account="{ name: displayName, email: user?.email ?? null, picture: user?.picture ?? null, initial: avatarInitial }"
 			@sign-out="askSignOut"
@@ -259,7 +225,12 @@ onBeforeUnmount(() => {
 				:class="isTabDestination ? 'grid-cols-[auto_minmax(0,1fr)_auto]' : 'grid-cols-[1fr_minmax(0,auto)_1fr]'"
 			>
 				<!-- A screen opened from another leads back to it, where the others lead home. -->
-				<RouterLink v-if="parentPath" :to="parentPath" class="btn-icon -ml-2 justify-self-start text-on-surface" :aria-label="t('common.back')">
+				<RouterLink
+					v-if="parentPath"
+					:to="parentPath"
+					class="btn-icon -ml-2 justify-self-start text-on-surface"
+					:aria-label="t('common.back')"
+				>
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
 				<RouterLink
@@ -343,18 +314,6 @@ onBeforeUnmount(() => {
 								@click="userMenuOpen = false"
 							>
 								{{ link.label }}
-							</RouterLink>
-
-							<RouterLink to="/subscriptions" role="menuitem" class="menu-item" @click="userMenuOpen = false">
-								{{ t('nav.subscriptions') }}
-							</RouterLink>
-
-							<RouterLink to="/save-the-change" role="menuitem" class="menu-item" @click="userMenuOpen = false">
-								{{ t('nav.saveTheChange') }}
-							</RouterLink>
-
-							<RouterLink to="/settings" role="menuitem" class="menu-item" @click="userMenuOpen = false">
-								{{ t('nav.settings') }}
 							</RouterLink>
 
 							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">{{ t('common.signOut') }}</button>

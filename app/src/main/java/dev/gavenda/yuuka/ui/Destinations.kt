@@ -38,6 +38,18 @@ fun isSettingsRoute(route: String?): Boolean = route == SETTINGS_ROUTE || route 
 /** Reached from the navigation drawer, grouped with the ledger destinations rather than [SETTINGS_ROUTE] — not a bottom-nav tab. */
 const val SAVE_THE_CHANGE_ROUTE = "save-the-change"
 
+/**
+ * What is set up once and left alone, listed after the ledger screens in the drawer and the rail's "More"
+ * group. They open as detail screens over the destination on show rather than replacing it.
+ */
+enum class DetailDestination(val route: String, @StringRes val labelRes: Int, @DrawableRes val icon: Int, @DrawableRes val iconSelected: Int) {
+    SAVE_THE_CHANGE(SAVE_THE_CHANGE_ROUTE, R.string.destination_save_the_change, R.drawable.savings_48px, R.drawable.savings_fill_48px),
+    SETTINGS(SETTINGS_ROUTE, R.string.destination_settings, R.drawable.settings_48px, R.drawable.settings_fill_48px);
+
+    /** Settings stays marked while a screen opened from it is on show. */
+    fun isCurrent(currentRoute: String?): Boolean = if (this == SETTINGS) isSettingsRoute(currentRoute) else currentRoute == route
+}
+
 /** Screens that show no amount, so the hide-amounts switch has nothing to mask there. */
 val AMOUNT_FREE_ROUTES = setOf(
     YuukaDestination.CATEGORIES.route,

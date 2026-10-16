@@ -40,7 +40,6 @@ const ledger = useLedgerStore();
 const store = useSubscriptionStore();
 const harmonised = useHarmonised();
 
-
 const form = reactive({
 	direction: 'expense' as Direction,
 	payee: '',

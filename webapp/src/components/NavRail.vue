@@ -4,39 +4,16 @@ import AppIcon from '@/components/AppIcon.vue';
 import RailItem from '@/components/RailItem.vue';
 import { formatMonth } from '@/lib/dates';
 import { currentFab, type FabEntry } from '@/lib/fab';
-import {
-	ATTACH_MONEY,
-	CALENDAR_MONTH,
-	EVENT_REPEAT,
-	EVENT_REPEAT_FILL,
-	LOGOUT,
-	MENU,
-	MENU_OPEN,
-	MONEY_OFF,
-	SAVINGS,
-	SAVINGS_FILL,
-	SETTINGS,
-	SETTINGS_FILL,
-	type IconPath,
-} from '@/lib/icons';
+import { ATTACH_MONEY, CALENDAR_MONTH, LOGOUT, MENU, MENU_OPEN, MONEY_OFF } from '@/lib/icons';
 import { currentMonthAction } from '@/lib/monthAction';
+import { dailyLinks, moreLinks } from '@/lib/nav';
 import { useAmountVisibility } from '@/lib/privacy';
 import { railPushesContent, useRail } from '@/lib/rail';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { t } from '@/i18n';
 
-export interface RailLink {
-	to: string;
-	label: string;
-	icon: IconPath;
-	iconSelected?: IconPath;
-}
-
-const props = defineProps<{
-	links: RailLink[];
-	/** The destinations that are not daily ones, first in the open rail's "More" group, ahead of the ones set up once. */
-	moreLinks: RailLink[];
+defineProps<{
 	/** The app's version, shown small after the title once the rail is open. */
 	version: string;
 	/** Who is signed in, for the account card that shows once the rail is open. */
@@ -133,18 +110,6 @@ const showsAmounts = computed(() => route.meta.amountFree !== true);
 
 /** The month on show, which labels the month button once the rail is open; null on a screen that looks at none. */
 const month = computed(() => (currentMonthAction.value ? formatMonth(currentMonthAction.value.month) : null));
-
-/**
- * Set up once and then left alone, so they live behind the menu rather than in the row of daily
- * destinations, and follow the less-visited screens passed as `moreLinks`. Save the Change sits with the
- * screens, as in the Android drawer, and Settings is its own screen too.
- */
-const ownMoreLinks = computed<RailLink[]>(() => [
-	{ to: '/subscriptions', label: t('nav.subscriptions'), icon: EVENT_REPEAT, iconSelected: EVENT_REPEAT_FILL },
-	{ to: '/save-the-change', label: t('nav.saveTheChange'), icon: SAVINGS, iconSelected: SAVINGS_FILL },
-	{ to: '/settings', label: t('nav.settings'), icon: SETTINGS, iconSelected: SETTINGS_FILL },
-]);
-const allMoreLinks = computed(() => [...props.moreLinks, ...ownMoreLinks.value]);
 
 /** A floating rail is in the way once it has done its job; a docked one stays put. */
 function afterChoice(): void {
@@ -274,7 +239,7 @@ onBeforeUnmount(() => {
 				<!-- One scrolling column: on a short window the open rail would otherwise run off the bottom. -->
 				<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:none]">
 					<RailItem
-						v-for="link in links"
+						v-for="link in dailyLinks"
 						:key="link.to"
 						:to="link.to"
 						:label="link.label"
@@ -290,7 +255,7 @@ onBeforeUnmount(() => {
 							<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">{{ t('nav.more') }}</h2>
 
 							<RailItem
-								v-for="link in allMoreLinks"
+								v-for="link in moreLinks"
 								:key="link.to"
 								:to="link.to"
 								:label="link.label"

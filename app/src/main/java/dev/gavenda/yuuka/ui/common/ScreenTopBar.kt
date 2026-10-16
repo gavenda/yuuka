@@ -184,16 +184,16 @@ fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: 
  *
  * A rail window has no bar, so there the search bar is all that is left of this one: Material's search bar on
  * its own at the top of the page, opening into the same full-screen view, with the month handed to the rail.
- * A screen that is not month-scoped (Accounts) passes a null [month] and gets the bar without the month button.
+ * A screen that is not month-scoped (Accounts) leaves out [month] and gets the bar without the month button.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MonthSearchTopBar(
-    month: String?,
-    onMonthChange: (String) -> Unit,
     search: TextFieldState,
     searchHint: String,
     scrollBehavior: SearchBarScrollBehavior,
+    month: String? = null,
+    onMonthChange: (String) -> Unit = {},
     results: @Composable ColumnScope.() -> Unit,
 ) {
     val shell = LocalAppBarShell.current

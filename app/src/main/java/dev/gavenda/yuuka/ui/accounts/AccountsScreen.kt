@@ -89,8 +89,6 @@ internal fun AccountsScreenContent(
         // Bottom-bar destinations carry no title: the bar below already says where this is. Not month-scoped, so no month button.
         topBar = {
             MonthSearchTopBar(
-                month = null,
-                onMonthChange = {},
                 search = searchFieldState,
                 searchHint = stringResource(R.string.search_accounts),
                 scrollBehavior = scrollBehavior,

@@ -143,10 +143,7 @@ function typeahead(character: string): void {
 	typedTimer = setTimeout(() => (typed = ''), 600);
 
 	const indexes = enabledIndexes.value;
-	const from = Math.max(
-		0,
-		indexes.indexOf(open.value ? active.value : props.options.findIndex((option) => option.value === model.value)),
-	);
+	const from = Math.max(0, indexes.indexOf(open.value ? active.value : props.options.findIndex((option) => option.value === model.value)));
 	// Pressing the same letter again cycles through the options that share it, so the search starts after the current one.
 	const ordered =
 		typed.length === 1 ? [...indexes.slice(from + 1), ...indexes.slice(0, from + 1)] : [...indexes.slice(from), ...indexes.slice(0, from)];

@@ -31,8 +31,8 @@ import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.material3.WideNavigationRailValue
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -205,26 +205,19 @@ fun YuukaNavRail(
                                 },
                             )
                         }
-                        RailItem(
-                            label = stringResource(R.string.destination_save_the_change),
-                            icon = if (currentRoute == SAVE_THE_CHANGE_ROUTE) R.drawable.savings_fill_48px else R.drawable.savings_48px,
-                            selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
-                            expanded = true,
-                            onClick = {
-                                onNavigateDetail(SAVE_THE_CHANGE_ROUTE)
-                                afterChoice()
-                            },
-                        )
-                        RailItem(
-                            label = stringResource(R.string.destination_settings),
-                            icon = if (isSettingsRoute(currentRoute)) R.drawable.settings_fill_48px else R.drawable.settings_48px,
-                            selected = isSettingsRoute(currentRoute),
-                            expanded = true,
-                            onClick = {
-                                onNavigateDetail(SETTINGS_ROUTE)
-                                afterChoice()
-                            },
-                        )
+                        DetailDestination.entries.forEach { destination ->
+                            val selected = destination.isCurrent(currentRoute)
+                            RailItem(
+                                label = stringResource(destination.labelRes),
+                                icon = if (selected) destination.iconSelected else destination.icon,
+                                selected = selected,
+                                expanded = true,
+                                onClick = {
+                                    onNavigateDetail(destination.route)
+                                    afterChoice()
+                                },
+                            )
+                        }
                         RailItem(
                             label = stringResource(R.string.action_sign_out),
                             icon = R.drawable.logout_48px,

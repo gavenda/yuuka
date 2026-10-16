@@ -3,9 +3,7 @@ package dev.gavenda.yuuka.ui
 import dev.gavenda.yuuka.ui.common.catPattern
 import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.CatFade
-import dev.gavenda.yuuka.BuildConfig
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.size
@@ -21,6 +19,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
@@ -32,6 +32,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,7 +82,6 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import dev.gavenda.yuuka.sync.Outbox
 
@@ -124,8 +124,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
 
     val currentDestination = YuukaDestination.entries.firstOrNull { it.route == currentRoute }
     val brandName = stringResource(R.string.brand_name)
-    val settingsLabel = stringResource(R.string.destination_settings)
-    val saveTheChangeLabel = stringResource(R.string.destination_save_the_change)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -173,13 +171,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         if (!railDocked) railState.snapTo(WideNavigationRailValue.Collapsed)
     }
 
-    val bottomNavDestinations = listOf(
-        YuukaDestination.DASHBOARD,
-        YuukaDestination.TRANSACTIONS,
-        YuukaDestination.ACCOUNTS,
-    )
-    val bottomNavRoutes = bottomNavDestinations.map { it.route }
-    val drawerDestinations = YuukaDestination.entries - bottomNavDestinations.toSet()
+    val bottomNavRoutes = RAIL_DESTINATIONS.map { it.route }
 
     // Shared by the bottom nav items, drawer destinations, the rail and any programmatic jump to a
     // top-level destination (e.g. "View all" from the dashboard). This pushes onto the real
@@ -283,7 +275,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 bottomBar = {
                     if (!useRail && currentDestination != null) {
                         NavigationBar {
-                            bottomNavDestinations.forEach { destination ->
+                            RAIL_DESTINATIONS.forEach { destination ->
                                 NavigationBarItem(
                                     label = { Text(stringResource(destination.labelRes)) },
                                     icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
@@ -299,32 +291,14 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(padding),
                     navController = navController,
                     startDestination = YuukaDestination.DASHBOARD.route,
-                    enterTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: 1
-                        slideInHorizontally { fullWidth -> direction * fullWidth }
-                    },
-                    exitTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: 1
-                        slideOutHorizontally { fullWidth -> -direction * fullWidth }
-                    },
-                    popEnterTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: -1
-                        slideInHorizontally { fullWidth -> direction * fullWidth }
-                    },
-                    popExitTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: -1
-                        slideOutHorizontally { fullWidth -> -direction * fullWidth }
-                    },
+                    enterTransition = { tabSlideIn(bottomNavRoutes, fallback = 1) },
+                    exitTransition = { tabSlideOut(bottomNavRoutes, fallback = 1) },
+                    popEnterTransition = { tabSlideIn(bottomNavRoutes, fallback = -1) },
+                    popExitTransition = { tabSlideOut(bottomNavRoutes, fallback = -1) },
                     // Without these, the Android 16 predictive back gesture preview falls back to
                     // NavHost's default fade/scale instead of following the same swipe as a completed pop.
-                    predictivePopEnterTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: -1
-                        slideInHorizontally { fullWidth -> direction * fullWidth }
-                    },
-                    predictivePopExitTransition = {
-                        val direction = tabSlideDirection(bottomNavRoutes) ?: -1
-                        slideOutHorizontally { fullWidth -> -direction * fullWidth }
-                    },
+                    predictivePopEnterTransition = { tabSlideIn(bottomNavRoutes, fallback = -1) },
+                    predictivePopExitTransition = { tabSlideOut(bottomNavRoutes, fallback = -1) },
                 ) {
                     composable(YuukaDestination.DASHBOARD.route) {
                         DashboardScreen()
@@ -431,7 +405,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState()),
                         ) {
-                            drawerDestinations.forEach { destination ->
+                            RAIL_MORE_DESTINATIONS.forEach { destination ->
                                 NavigationDrawerItem(
                                     label = { Text(stringResource(destination.labelRes)) },
                                     icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
@@ -445,37 +419,15 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                             }
                             // Grouped with Budget/Categories rather than with Settings at the foot —
                             // it's a ledger concern, not app configuration.
-                            NavigationDrawerItem(
-                                label = { Text(saveTheChangeLabel) },
-                                icon = {
-                                    Icon(
-                                        painterResource(if (currentRoute == SAVE_THE_CHANGE_ROUTE) R.drawable.savings_fill_48px else R.drawable.savings_48px),
-                                        contentDescription = null,
-                                    )
-                                },
-                                selected = currentRoute == SAVE_THE_CHANGE_ROUTE,
-                                onClick = {
-                                    navigateToDetail(SAVE_THE_CHANGE_ROUTE)
-                                    scope.launch { drawerState.close() }
-                                },
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            )
-                        }
-                        NavigationDrawerItem(
-                            label = { Text(settingsLabel) },
-                            icon = {
-                                Icon(
-                                    painterResource(if (isSettingsRoute(currentRoute)) R.drawable.settings_fill_48px else R.drawable.settings_48px),
-                                    contentDescription = null,
-                                )
-                            },
-                            selected = isSettingsRoute(currentRoute),
-                            onClick = {
-                                navigateToDetail(SETTINGS_ROUTE)
+                            DetailDrawerItem(DetailDestination.SAVE_THE_CHANGE, currentRoute) {
+                                navigateToDetail(it)
                                 scope.launch { drawerState.close() }
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        )
+                            }
+                        }
+                        DetailDrawerItem(DetailDestination.SETTINGS, currentRoute) {
+                            navigateToDetail(it)
+                            scope.launch { drawerState.close() }
+                        }
                         NavigationDrawerItem(
                             label = { Text(stringResource(R.string.action_sign_out)) },
                             icon = { Icon(painterResource(R.drawable.logout_48px), contentDescription = null) },
@@ -541,6 +493,29 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideDirection(
     val toIndex = bottomNavRoutes.indexOf(targetState.destination.route)
     if (fromIndex == -1 || toIndex == -1) return null
     return if (toIndex >= fromIndex) 1 else -1
+}
+
+@Composable
+private fun DetailDrawerItem(destination: DetailDestination, currentRoute: String?, onNavigate: (String) -> Unit) {
+    val selected = destination.isCurrent(currentRoute)
+    NavigationDrawerItem(
+        label = { Text(stringResource(destination.labelRes)) },
+        icon = { Icon(painterResource(if (selected) destination.iconSelected else destination.icon), contentDescription = null) },
+        selected = selected,
+        onClick = { onNavigate(destination.route) },
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+    )
+}
+
+/** A destination slides in from the side it lies on in the bottom bar; anything else from [fallback]'s. */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideIn(bottomNavRoutes: List<String>, fallback: Int): EnterTransition {
+    val direction = tabSlideDirection(bottomNavRoutes) ?: fallback
+    return slideInHorizontally { fullWidth -> direction * fullWidth }
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.tabSlideOut(bottomNavRoutes: List<String>, fallback: Int): ExitTransition {
+    val direction = tabSlideDirection(bottomNavRoutes) ?: fallback
+    return slideOutHorizontally { fullWidth -> -direction * fullWidth }
 }
 
 /** How far the drawer header's print reaches up, so it runs behind the status bar as the rail's does. */
