@@ -163,6 +163,20 @@ export const api = {
 			(answer) => local.saveAccountType(answer.accountType),
 		);
 	},
+	/** The types in the order they were dragged into, first to last: each takes its place as its sort order. */
+	reorderAccountTypes: (ids: string[]) => {
+		const place = new Map(ids.map((id, index) => [id, index]));
+		const reordered = ledgerView().accountTypes.map((type) => (place.has(type.id) ? { ...type, sortOrder: place.get(type.id)! } : type));
+		return saved(
+			queued({
+				method: 'PUT',
+				path: '/api/account-types/order',
+				body: { ids },
+				optimistic: { accountTypes: reordered },
+			}),
+			(answer) => local.saveAccountTypes(answer.accountTypes),
+		);
+	},
 	deleteAccountType: (id: string) =>
 		saved(queued<void>({ method: 'DELETE', path: `/api/account-types/${id}`, entity: 'accountType', id, optimistic: undefined }), () =>
 			local.deleteAccountType(id),

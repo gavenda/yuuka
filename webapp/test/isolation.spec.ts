@@ -280,6 +280,22 @@ describe('categories are private', () => {
 	});
 });
 
+describe('account type order is private', () => {
+	it('cannot reorder another user’s types', async () => {
+		const { accountTypes } = await json<{ accountTypes: { id: string; sortOrder: number }[] }>(await mine('/account-types'));
+		const reversed = [...accountTypes].reverse().map((type) => type.id);
+
+		const response = await theirs('/account-types/order', { method: 'PUT', body: JSON.stringify({ ids: reversed }) });
+		expect(response.status).toBe(200);
+		// Their answer is their own list, untouched by ids that are not theirs.
+		const answer = await json<{ accountTypes: { id: string }[] }>(response);
+		expect(answer.accountTypes.some((type) => reversed.includes(type.id))).toBe(false);
+
+		const after = await json<{ accountTypes: { id: string; sortOrder: number }[] }>(await mine('/account-types'));
+		expect(after.accountTypes.map((type) => type.id)).toEqual(accountTypes.map((type) => type.id));
+	});
+});
+
 describe('tags are private', () => {
 	async function makeTag(as: Call, name: string): Promise<string> {
 		const response = await as('/tags', { method: 'POST', body: JSON.stringify({ name }) });

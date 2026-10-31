@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import ActionIcon from '@/components/ActionIcon.vue';
+import AppIcon from '@/components/AppIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import FabButton from '@/components/FabButton.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
+import { DRAG_INDICATOR } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
 import { showSaved } from '@/lib/sync';
 import { nameProblem, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import type { AccountType } from '@/types';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { t } from '@/i18n';
 
 /**
  * The account types, on a screen of their own reached from Settings (`AccountTypesScreen`): a list like any
  * other in the app. Pressing a type renames it, swiping it shows archive and delete, and the screen's
- * leading action asks for a new one by name in a basic dialog — the same one a rename opens.
+ * leading action asks for a new one by name in a basic dialog — the same one a rename opens. An active type is
+ * moved by the handle at its end — dragged, or with the arrow keys — and the order is saved the moment it is
+ * dropped; archived types are not ordered, and stay after the active ones.
  */
 const ledger = useLedgerStore();
 
@@ -40,8 +44,103 @@ const validation = useFormValidation({
 		),
 });
 
-const visible = computed(() => ledger.accountTypes.filter((type) => showArchived.value || !type.archived));
-const archivedCount = computed(() => ledger.accountTypes.filter((type) => type.archived).length);
+/** An order dropped but not yet back from the local copy, held on screen so the rows do not jump back meanwhile. */
+const pending = ref<string[] | null>(null);
+const active = computed(() => {
+	const types = ledger.accountTypes.filter((type) => !type.archived);
+	const order = pending.value;
+	if (!order) return types;
+	return [...types].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+});
+const archivedTypes = computed(() => ledger.accountTypes.filter((type) => type.archived));
+const visible = computed(() => [...active.value, ...(showArchived.value ? archivedTypes.value : [])]);
+const archivedCount = computed(() => archivedTypes.value.length);
+
+/** The rows' gap: `.group-rows`' 2px, so a row's pitch is its height and this. */
+const ROW_GAP = 2;
+
+/**
+ * A drag in progress: the row being moved, where it started, how far the pointer has gone, the distance from
+ * one row to the next, and the place it would land in if dropped now. The list keeps its order while it runs —
+ * the dragged row follows the pointer and the rows it passes slide aside — and is reordered on the drop.
+ */
+const drag = ref<{ id: string; pointerId: number; from: number; startY: number; dy: number; pitch: number; to: number } | null>(null);
+
+function shiftOf(index: number): number {
+	const current = drag.value;
+	if (!current) return 0;
+	if (index === current.from) return current.dy;
+	if (current.from < index && index <= current.to) return -current.pitch;
+	if (current.to <= index && index < current.from) return current.pitch;
+	return 0;
+}
+
+/** Writes the active types in [ids]' order, unless it is the order they are already in. */
+async function saveOrder(ids: string[]): Promise<void> {
+	if (ids.join() === active.value.map((type) => type.id).join()) return;
+	listError.value = null;
+	pending.value = ids;
+	try {
+		await api.reorderAccountTypes(ids);
+		await showSaved();
+	} catch (caught) {
+		listError.value = caught instanceof ApiError ? caught.message : t('common.errorGeneric');
+	} finally {
+		pending.value = null;
+	}
+}
+
+function moved(from: number, to: number): string[] {
+	const ids = active.value.map((type) => type.id);
+	ids.splice(to, 0, ...ids.splice(from, 1));
+	return ids;
+}
+
+function onHandleDown(event: PointerEvent, index: number): void {
+	if (event.button !== 0 || drag.value) return;
+	const row = (event.currentTarget as HTMLElement).closest('li');
+	const pitch = (row?.offsetHeight ?? 56) + ROW_GAP;
+	drag.value = { id: active.value[index].id, pointerId: event.pointerId, from: index, startY: event.clientY, dy: 0, pitch, to: index };
+	window.addEventListener('pointermove', onHandleMove);
+	window.addEventListener('pointerup', onHandleUp);
+	window.addEventListener('pointercancel', onHandleUp);
+}
+
+function onHandleMove(event: PointerEvent): void {
+	const current = drag.value;
+	if (!current || event.pointerId !== current.pointerId) return;
+	// Kept within the active rows, as the list's first and last row are as far as it can go.
+	const dy = Math.min(
+		(active.value.length - 1 - current.from) * current.pitch,
+		Math.max(-current.from * current.pitch, event.clientY - current.startY),
+	);
+	drag.value = { ...current, dy, to: current.from + Math.round(dy / current.pitch) };
+}
+
+function stopDragging(): void {
+	window.removeEventListener('pointermove', onHandleMove);
+	window.removeEventListener('pointerup', onHandleUp);
+	window.removeEventListener('pointercancel', onHandleUp);
+}
+
+function onHandleUp(event: PointerEvent): void {
+	const current = drag.value;
+	if (!current || event.pointerId !== current.pointerId) return;
+	stopDragging();
+	const ids = moved(current.from, current.to);
+	drag.value = null;
+	void saveOrder(ids);
+}
+
+/** The keyboard's way to move a type, one place at a time. */
+function onHandleKey(event: KeyboardEvent, index: number): void {
+	const to = event.key === 'ArrowUp' ? index - 1 : event.key === 'ArrowDown' ? index + 1 : null;
+	if (to === null || to < 0 || to >= active.value.length) return;
+	event.preventDefault();
+	void saveOrder(moved(index, to));
+}
+
+onBeforeUnmount(stopDragging);
 
 const countLabel = (type: AccountType) =>
 	type.accountCount ? t('accounts.types.accountCount', type.accountCount) : t('accounts.types.unused');
@@ -102,7 +201,17 @@ onMounted(() => ledger.load());
 	<div class="flex flex-col gap-4 px-4 pt-4 pb-24">
 		<!-- One row per type, its accounts counted at the end, drawn as one connected block. -->
 		<ul v-if="visible.length" class="group-rows">
-			<li v-for="type in visible" :key="type.id">
+			<!-- The dragged row follows the pointer above the rest, and the rows it passes slide aside. -->
+			<li
+				v-for="(type, index) in visible"
+				:key="type.id"
+				class="relative"
+				:class="[
+					drag?.id === type.id ? 'z-10 shadow-elevation-2' : '',
+					drag && drag.id !== type.id ? 'transition-transform duration-200 ease-standard' : '',
+				]"
+				:style="drag ? { transform: `translateY(${shiftOf(index)}px)` } : undefined"
+			>
 				<SwipeReveal>
 					<template #actions>
 						<ActionIcon
@@ -121,19 +230,33 @@ onMounted(() => ledger.load());
 						/>
 					</template>
 
-					<button
-						type="button"
-						class="group-row state-layer focus-ring cursor-pointer"
-						:aria-label="t('common.rename', { name: type.name })"
-						@click="openName(type)"
-					>
-						<span class="flex min-h-14 items-center gap-3 px-4">
+					<!-- The row wears the state layer and the rename button's ::before is stretched over it, so the whole row
+					     answers to the pointer; the handle at its end stands above that, and is the only place a drag starts. -->
+					<div class="group-row state-layer flex min-h-14 items-center pr-2" :class="type.archived ? 'pr-4' : ''">
+						<button
+							type="button"
+							class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
+							:aria-label="t('common.rename', { name: type.name })"
+							@click="openName(type)"
+						>
 							<span class="type-body-large min-w-0 flex-1 truncate">{{
 								type.archived ? t('common.archivedName', { name: type.name }) : type.name
 							}}</span>
 							<span class="type-body-small shrink-0 text-on-surface-variant">{{ countLabel(type) }}</span>
-						</span>
-					</button>
+						</button>
+						<button
+							v-if="!type.archived"
+							type="button"
+							class="btn-icon relative ml-1 size-12 cursor-grab touch-none text-on-surface-variant"
+							:class="drag?.id === type.id ? 'cursor-grabbing' : ''"
+							:aria-label="t('accounts.types.reorder', { name: type.name })"
+							:title="t('accounts.types.reorder', { name: type.name })"
+							@pointerdown.stop="onHandleDown($event, index)"
+							@keydown="onHandleKey($event, index)"
+						>
+							<AppIcon :icon="DRAG_INDICATOR" />
+						</button>
+					</div>
 				</SwipeReveal>
 			</li>
 		</ul>

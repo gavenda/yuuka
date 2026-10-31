@@ -254,6 +254,9 @@
     <string name="new_account_type_title">New account type</string>
     <string name="rename_account_type">Rename account type</string>
     <string name="account_type_not_in_use">Not in use</string>
+    <string name="cd_reorder_item">Drag to reorder %1$s</string>
+    <string name="action_move_up">Move up</string>
+    <string name="action_move_down">Move down</string>
     <plurals name="account_type_account_count">
         <item quantity="one">%1$d account</item>
         <item quantity="other">%1$d accounts</item>

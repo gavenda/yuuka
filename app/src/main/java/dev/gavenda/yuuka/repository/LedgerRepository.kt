@@ -15,6 +15,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -154,6 +155,12 @@ class LedgerRepository(
     suspend fun renameAccountType(id: String, name: String) {
         accountTypeDao.byId(id)?.let { accountTypeDao.upsert(it.copy(name = name, updatedAt = Provisional.touchedAt())) }
         outbox.enqueue("PATCH", "/api/account-types/$id", buildJsonObject { put("name", name) }, entity = "accountType", rowId = id)
+    }
+
+    /** The types in the order they were dragged into, first to last; written locally at once, sent as one write. */
+    suspend fun reorderAccountTypes(ids: List<String>) {
+        accountTypeDao.reorder(ids, Provisional.touchedAt())
+        outbox.enqueue("PUT", "/api/account-types/order", buildJsonObject { put("ids", JsonArray(ids.map(::JsonPrimitive))) })
     }
 
     suspend fun setAccountTypeArchived(id: String, archived: Boolean) {

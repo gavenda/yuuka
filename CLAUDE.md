@@ -150,7 +150,7 @@ accounts hold it and points at archiving. The types are managed on a screen of
 their own, opened from a row in Settings (`/settings/account-types` on the web,
 `Route.AccountTypes` on Android) rather than from the Accounts screen: Settings
 stays the marked destination while it is on show, and its leading action is
-"New type". Settings is its list and it is the detail: where the page beside the
+"New type". Their order is the person's too: an active type is dragged by the handle at the end of its row (or moved with the arrow keys, or a screen reader's Move up and Move down), the order is written the moment it is dropped as one `PUT /account-types/order` naming them first to last, and Accounts groups by it; archived types are not ordered and stay after the active ones. Settings is its list and it is the detail: where the page beside the
 rail has room for both (see Navigation), the two stand side by side.
 
 - **The payee is the first field, and it fills in the rest**: Saving a named

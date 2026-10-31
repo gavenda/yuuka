@@ -151,6 +151,7 @@ export const replaceTags = (tags: Tag[]) => write(replace('tags', tags));
 export const saveSettings = (settings: Settings) => write([put('settings', { ...settings, id: SINGLE_ROW })]);
 export const saveRoundUpRule = (rule: RoundUpRule) => write([put('round_up_rule', { ...rule, id: SINGLE_ROW })]);
 export const saveAccountType = (type: AccountType) => write([put('account_types', type)]);
+export const saveAccountTypes = (types: AccountType[]) => write(types.map((type) => put('account_types', type)));
 export const saveAccount = (account: Account) => write([put('accounts', account)]);
 export const saveCategory = (category: Category) => write([put('categories', category)]);
 export const saveTag = (tag: Tag) => write([put('tags', tag)]);

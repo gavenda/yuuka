@@ -94,6 +94,18 @@ export const accountTypeCreateSchema = z.object({
 	sortOrder: z.number().int().min(0).default(0),
 });
 
+/**
+ * The whole order of a person's account types, first to last. One write rather than a `PATCH` per row, so a
+ * drag can never land half-applied; an id that is not the caller's matches nothing and is skipped.
+ */
+export const accountTypeOrderSchema = z.object({
+	ids: z
+		.array(z.string().min(1).max(80))
+		.min(1)
+		.max(200)
+		.refine((ids) => new Set(ids).size === ids.length, 'An account type can only appear once.'),
+});
+
 export const accountTypeUpdateSchema = z
 	.object({
 		name: label,

@@ -29,6 +29,15 @@ class AccountTypesViewModel(private val ledgerRepository: LedgerRepository) : Vi
         ledgerRepository.createAccountType(name, sortOrder)
     }
 
+    /**
+     * The active types in the order they were dragged into. Archived types are not dragged, and keep their
+     * order after the active ones, as the API lists them.
+     */
+    suspend fun reorder(activeIds: List<String>) {
+        val archived = uiState.value.types.filter { it.archived }.map { it.id }
+        ledgerRepository.reorderAccountTypes(activeIds + archived)
+    }
+
     suspend fun rename(id: String, name: String) = ledgerRepository.renameAccountType(id, name)
 
     suspend fun setArchived(id: String, archived: Boolean) = ledgerRepository.setAccountTypeArchived(id, archived)

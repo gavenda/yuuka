@@ -164,3 +164,39 @@ describe('types are private to their owner', () => {
 		expect((await theirs('/account-types', { method: 'POST', body: JSON.stringify({ name: 'Crypto Wallet' }) })).status).toBe(201);
 	});
 });
+
+describe('ordering', () => {
+	const order = (ids: string[]) => call('/account-types/order', { method: 'PUT', body: JSON.stringify({ ids }) });
+	const listed = async () =>
+		(await json<{ accountTypes: { id: string; name: string; sortOrder: number }[] }>(await call('/account-types'))).accountTypes;
+
+	it('puts the types in the order given, and answers with the list', async () => {
+		const before = await listed();
+		const reversed = [...before].reverse().map((type) => type.id);
+
+		const response = await order(reversed);
+		expect(response.status).toBe(200);
+		const { accountTypes } = await json<{ accountTypes: { id: string; sortOrder: number }[] }>(response);
+		expect(accountTypes.map((type) => type.id)).toEqual(reversed);
+		expect(accountTypes.map((type) => type.sortOrder)).toEqual(reversed.map((_, index) => index));
+
+		expect((await listed()).map((type) => type.id)).toEqual(reversed);
+	});
+
+	it('leaves a type already in its place untouched', async () => {
+		const before = await listed();
+		const swapped = [before[1].id, before[0].id, ...before.slice(2).map((type) => type.id)];
+		const { accountTypes } = await json<{ accountTypes: { id: string; updatedAt: string }[] }>(await order(swapped));
+
+		const untouched = before[2];
+		expect(accountTypes.find((type) => type.id === untouched.id)!.updatedAt).toBe(
+			(before as unknown as { id: string; updatedAt: string }[]).find((type) => type.id === untouched.id)!.updatedAt,
+		);
+	});
+
+	it('refuses a list that names a type twice, or none', async () => {
+		const [first] = await listed();
+		expect((await order([first.id, first.id])).status).toBe(400);
+		expect((await order([])).status).toBe(400);
+	});
+});

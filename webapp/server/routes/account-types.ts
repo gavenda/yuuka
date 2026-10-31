@@ -6,7 +6,7 @@ import { buildUpdate, isUniqueViolation, NOW_SQL, toSqliteBool } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
 import { toAccountType, type AccountTypeRow } from '../mappers';
-import { accountTypeCreateSchema, accountTypeUpdateSchema, listQuerySchema } from '../schemas';
+import { accountTypeCreateSchema, accountTypeOrderSchema, accountTypeUpdateSchema, listQuerySchema } from '../schemas';
 import type { AppEnv } from '../types';
 
 const DUPLICATE_MESSAGE = 'You already have an account type with that name.';
@@ -63,6 +63,31 @@ export const accountTypeRoutes = new Hono<AppEnv>()
 			.first<AccountTypeRow>();
 
 		return c.json({ accountType: toAccountType(row!) }, 201);
+	})
+	// The order a person dragged their types into: each takes its place in the list as its `sort_order`, in one
+	// batch so the order is never left half-written. It changes no figure, so no cached summary is touched.
+	.put('/order', async (c) => {
+		const { ids } = await parseJson(c, accountTypeOrderSchema);
+		const userId = c.get('userId');
+
+		await c.env.DB.batch(
+			ids.map((id, index) =>
+				c.env.DB.prepare(
+					`UPDATE account_types SET sort_order = ?, updated_at = ${NOW_SQL} WHERE id = ? AND user_id = ? AND sort_order IS NOT ?`,
+				).bind(index, id, userId, index),
+			),
+		);
+
+		const { results } = await c.env.DB.prepare(
+			`${SELECT_WITH_USAGE}
+			 WHERE t.user_id = ?
+			 GROUP BY t.id
+			 ORDER BY t.archived ASC, t.sort_order ASC, t.name COLLATE NOCASE ASC`,
+		)
+			.bind(userId)
+			.all<AccountTypeRow>();
+
+		return c.json({ accountTypes: results.map(toAccountType) });
 	})
 	.patch('/:id', async (c) => {
 		const id = c.req.param('id');

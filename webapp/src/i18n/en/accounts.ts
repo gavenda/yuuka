@@ -50,5 +50,6 @@ export default {
 		restored: 'Type restored',
 		archived: 'Type archived',
 		deleted: 'Type deleted',
+		reorder: 'Drag to reorder {name}',
 	},
 };

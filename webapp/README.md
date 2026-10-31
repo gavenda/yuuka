@@ -222,6 +222,7 @@ access token in `Authorization: Bearer <token>`.
 | `GET/PATCH`             | `/settings`                      | Per-user preferences (display currency)            |
 | `GET/PATCH`             | `/round-up`                      | "Save the Change" round-up rule                    |
 | `GET/POST/PATCH/DELETE` | `/account-types`                 | Account types, with usage counts                   |
+| `PUT`                   | `/account-types/order`           | The active types' order, first to last             |
 | `GET/POST/PATCH/DELETE` | `/accounts`, `/accounts/:id`     | Accounts, with derived balances                    |
 | `POST`                  | `/accounts/:id/adjust`           | Log the gap to a target balance as income/expense  |
 | `GET/POST/PATCH/DELETE` | `/categories`                    | Categories                                         |

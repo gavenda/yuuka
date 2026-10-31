@@ -59,6 +59,15 @@ interface AccountTypeDao {
     @Query("SELECT * FROM account_types WHERE id = :id")
     suspend fun byId(id: String): AccountTypeEntity?
 
+    @Query("UPDATE account_types SET sortOrder = :sortOrder, updatedAt = :updatedAt WHERE id = :id AND sortOrder != :sortOrder")
+    suspend fun setSortOrder(id: String, sortOrder: Int, updatedAt: String)
+
+    /** Each type takes its place in [ids] as its sort order, all at once, as `PUT /account-types/order` does. */
+    @Transaction
+    suspend fun reorder(ids: List<String>, updatedAt: String) {
+        ids.forEachIndexed { index, id -> setSortOrder(id, index, updatedAt) }
+    }
+
     @Query("DELETE FROM account_types WHERE id = :id")
     suspend fun deleteById(id: String)
 
