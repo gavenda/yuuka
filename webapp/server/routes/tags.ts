@@ -15,12 +15,20 @@ const DUPLICATE_MESSAGE = 'A tag with that name already exists.';
  * counting rows would say two for what the list shows as one. Counting the
  * transfer id where there is one, and the row's own id where there is not,
  * counts each movement once.
+ *
+ * The total is what the tagged transactions come to, signed like their
+ * amounts. Both legs of a transfer would add up to nothing, so a transfer
+ * counts by its outflow leg, as the cashflow figure does. Like net worth it is
+ * added up as it stands, across whatever currencies the accounts hold.
  */
 const SELECT_WITH_COUNT = `
 	SELECT g.*,
 	       (SELECT COUNT(DISTINCT COALESCE(t.transfer_id, t.id))
 	        FROM transaction_tags tt JOIN transactions t ON t.id = tt.transaction_id
-	        WHERE tt.tag_id = g.id) AS transaction_count
+	        WHERE tt.tag_id = g.id) AS transaction_count,
+	       (SELECT COALESCE(SUM(t.amount), 0)
+	        FROM transaction_tags tt JOIN transactions t ON t.id = tt.transaction_id
+	        WHERE tt.tag_id = g.id AND (t.transfer_id IS NULL OR t.amount < 0)) AS total
 	FROM tags g
 `;
 

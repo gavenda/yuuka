@@ -316,6 +316,7 @@ export function provisionalTag(input: { id: string; name: string; color?: string
 		name: input.name,
 		color: input.color ?? '#64748b',
 		transactionCount: 0,
+		total: 0,
 		...stamps(),
 	};
 }

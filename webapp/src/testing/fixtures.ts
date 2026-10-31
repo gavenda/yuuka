@@ -51,6 +51,7 @@ export const tag = (id: string, extra: Partial<Tag> = {}): Tag => ({
 	name: id,
 	color: '#228833',
 	transactionCount: 0,
+	total: 0,
 	...stamps,
 	...extra,
 });

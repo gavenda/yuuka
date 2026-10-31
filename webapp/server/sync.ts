@@ -116,6 +116,64 @@ async function lastWrittenAt(db: D1Database, userId: string, operation: SyncOper
 }
 
 /**
+ * The row a queued create names, found from its path and the id the client gave it: a create carries no
+ * `entity`, since there is nothing to be stale against yet, but the row it makes can be edited in the same queue.
+ */
+const CREATES: Record<string, { entity: string; id: (body: Record<string, unknown>) => unknown }> = {
+	'/api/accounts': { entity: 'account', id: (body) => body.id },
+	'/api/account-types': { entity: 'accountType', id: (body) => body.id },
+	'/api/categories': { entity: 'category', id: (body) => body.id },
+	'/api/tags': { entity: 'tag', id: (body) => body.id },
+	'/api/subscriptions': { entity: 'subscription', id: (body) => body.id },
+	'/api/transactions': { entity: 'transaction', id: (body) => body.id },
+	'/api/transactions/transfer': { entity: 'transfer', id: (body) => (body.ids as Record<string, unknown> | undefined)?.transferId },
+};
+
+/** What an applied operation wrote: the entity and row it names, or the one its create made. */
+function writtenRow(operation: SyncOperation): { entity: string; id?: string } | null {
+	if (operation.method === 'DELETE') return null;
+	if (operation.entity) return { entity: operation.entity, id: operation.id };
+
+	const create = operation.method === 'POST' ? CREATES[operation.path] : undefined;
+	if (!create || !operation.body || typeof operation.body !== 'object') return null;
+	const id = create.id(operation.body as Record<string, unknown>);
+	return typeof id === 'string' ? { entity: create.entity, id } : null;
+}
+
+/**
+ * Dates the row an applied operation wrote to when the user acted, not to when it landed. A route stamps
+ * `updated_at` with the server's clock, which is always after the moment the user made the change; left so,
+ * a second change to the same row made before the first one landed — on, then off again — would be judged
+ * older than the first and dropped as stale. Only a time after the user acted is moved back, which,
+ * straight after the operation, is the one it wrote itself.
+ */
+async function stampWrittenAt(db: D1Database, userId: string, operation: SyncOperation): Promise<void> {
+	const row = writtenRow(operation);
+	if (!row) return;
+	const at = new Date(operation.at).toISOString();
+
+	if (row.entity === 'transfer') {
+		if (!row.id) return;
+		await db
+			.prepare('UPDATE transactions SET updated_at = ? WHERE transfer_id = ? AND user_id = ? AND updated_at > ?')
+			.bind(at, row.id, userId, at)
+			.run();
+		return;
+	}
+
+	const guard = GUARDS[row.entity];
+	if (!guard) return;
+	if (guard.perUser) {
+		await db.prepare(`UPDATE ${guard.table} SET updated_at = ? WHERE ${guard.perUser} = ? AND updated_at > ?`).bind(at, userId, at).run();
+	} else if (row.id) {
+		await db
+			.prepare(`UPDATE ${guard.table} SET updated_at = ? WHERE id = ? AND user_id = ? AND updated_at > ?`)
+			.bind(at, row.id, userId, at)
+			.run();
+	}
+}
+
+/**
  * Dispatches one already-authenticated request through the Worker's own router.
  *
  * It takes the bindings and execution context explicitly rather than closing
@@ -189,6 +247,7 @@ export async function applyBatch(
 			const alreadyGone = operation.method === 'DELETE' && response.status === 404;
 
 			if (response.ok || alreadyGone) {
+				if (response.ok) await stampWrittenAt(db, userId, operation);
 				results.push({ opId: operation.opId, status: 'applied', code: response.status, body });
 				for (const slice of slicesForPath(operation.path)) slices.add(slice);
 			} else {

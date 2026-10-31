@@ -82,6 +82,7 @@ data class TagEntity(
     val name: String,
     val color: String,
     val transactionCount: Int,
+    val total: Long,
     val createdAt: String,
     val updatedAt: String,
 )

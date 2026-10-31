@@ -351,3 +351,33 @@ describe('tags are private', () => {
 		expect((await theirs('/tags', { method: 'POST', body: JSON.stringify({ name: 'Trip' }) })).status).toBe(201);
 	});
 });
+
+describe('total', () => {
+	const totalOf = async (id: string) =>
+		(await json<{ tags: { id: string; total: number }[] }>(await call('/tags'))).tags.find((tag) => tag.id === id)!.total;
+
+	it('adds up what the tagged transactions come to, signed like them', async () => {
+		const trip = await makeTag(call, 'Trip');
+		await post({ accountId, amount: -1000, occurredOn: '2026-09-03', tagIds: [trip] });
+		await post({ accountId, amount: -2500, occurredOn: '2026-09-04', tagIds: [trip] });
+		await post({ accountId, amount: 500, occurredOn: '2026-09-05', tagIds: [trip] });
+		await post({ accountId, amount: -9000, occurredOn: '2026-09-06' });
+
+		expect(await totalOf(trip)).toBe(-3000);
+	});
+
+	it('counts a transfer by its outflow leg rather than adding both to nothing', async () => {
+		const trip = await makeTag(call, 'Trip');
+		const savingsId = await makeAccount(call, { name: 'Savings' });
+		await call('/transactions/transfer', {
+			method: 'POST',
+			body: JSON.stringify({ fromAccountId: accountId, toAccountId: savingsId, amount: 5000, occurredOn: '2026-09-03', tagIds: [trip] }),
+		});
+
+		expect(await totalOf(trip)).toBe(-5000);
+	});
+
+	it('is zero for a tag nothing wears', async () => {
+		expect(await totalOf(await makeTag(call, 'Trip'))).toBe(0);
+	});
+});

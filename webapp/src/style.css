@@ -592,9 +592,26 @@
 		@apply btn-icon bg-error text-on-error disabled:bg-on-surface/10;
 	}
 
+	/*
+	 * The narrow width of Material's small icon button, 32 wide by 40 tall, for a filled one above. Compose keeps
+	 * its 48dp touch target around the container, which is what stands neighbouring buttons 16 apart; the margin
+	 * is that target here.
+	 */
+	.btn-icon-narrow {
+		width: 2rem;
+		margin: 0.25rem 0.5rem;
+	}
+
 	/* A filled tonal icon button (`FilledTonalIconButton`). */
 	.btn-icon-tonal {
 		@apply btn-icon bg-secondary-container text-on-secondary-container disabled:bg-on-surface/10;
+	}
+
+	/* A narrow filled tonal icon button in the primary role: Material's small icon button, 32 wide by 40 tall. */
+	.btn-icon-tonal-primary-narrow {
+		@apply btn-icon bg-primary-container text-on-primary-container disabled:bg-on-surface/10;
+		width: 2rem;
+		margin: 0.25rem 0.5rem;
 	}
 
 	/* An extended FAB: the one primary action a screen leads with. */

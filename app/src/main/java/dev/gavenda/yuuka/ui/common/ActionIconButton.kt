@@ -1,10 +1,12 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.compose.foundation.layout.size
 import dev.gavenda.yuuka.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +46,16 @@ fun ActionIconButton(
         IconButtonDefaults.filledIconButtonColors()
     }
 
-    FilledIconButton(onClick = onClick, modifier = modifier, enabled = enabled && !loading, colors = colors) {
+    // Material's narrow small icon button, sized as the library sizes its own: the 48dp touch target first,
+    // then the container inside it, so neighbouring actions stand the target's width apart.
+    FilledIconButton(
+        onClick = onClick,
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .size(IconButtonDefaults.smallContainerSize(IconButtonDefaults.IconButtonWidthOption.Narrow)),
+        enabled = enabled && !loading,
+        colors = colors,
+    ) {
         if (loading) {
             MutationLoadingIndicator()
         } else {

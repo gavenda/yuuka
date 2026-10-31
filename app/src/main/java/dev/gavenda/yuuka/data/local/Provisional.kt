@@ -146,6 +146,7 @@ object Provisional {
         name = name,
         color = color,
         transactionCount = 0,
+        total = 0,
         createdAt = now(),
         updatedAt = now(),
     )

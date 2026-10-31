@@ -2,7 +2,6 @@ package dev.gavenda.yuuka.ui.budget
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +14,7 @@ import dev.gavenda.yuuka.data.model.CategoryBreakdown
 import dev.gavenda.yuuka.data.model.IncomePlanMode
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.*
+import dev.gavenda.yuuka.ui.settings.SettingsGroupHeader
 import kotlin.math.roundToInt
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -241,16 +241,14 @@ internal fun BudgetScreenContent(
             }
 
             if (state.expenseBreakdown.isNotEmpty()) {
-                item { Text(stringResource(R.string.category_kind_expense), style = MaterialTheme.typography.titleSmall) }
-                items(state.expenseBreakdown, key = { it.categoryId }) { entry ->
-                    BudgetRow(entry, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
+                item(key = "expense") {
+                    BudgetSection(stringResource(R.string.category_kind_expense), state.expenseBreakdown, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
                 }
             }
 
             if (state.cashflowBreakdown.isNotEmpty()) {
-                item { Text(stringResource(R.string.category_kind_cashflow), style = MaterialTheme.typography.titleSmall) }
-                items(state.cashflowBreakdown, key = { it.categoryId }) { entry ->
-                    BudgetRow(entry, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
+                item(key = "cashflow") {
+                    BudgetSection(stringResource(R.string.category_kind_cashflow), state.cashflowBreakdown, state.currency, busy, onSetBudgetAmount, onSetBudgetPercent)
                 }
             }
         }
@@ -316,9 +314,36 @@ private fun PlannedIncomeDialog(
     )
 }
 
+/** A kind's categories as one segmented list under its heading, the way Categories draws its sections. */
+@Composable
+private fun BudgetSection(
+    title: String,
+    entries: List<CategoryBreakdown>,
+    currency: String,
+    busy: BusyState,
+    onSetAmount: suspend (String, Long) -> Unit,
+    onSetPercent: suspend (String, Double) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SettingsGroupHeader(title = title)
+        Column(verticalArrangement = Arrangement.spacedBy(SegmentedGap)) {
+            entries.forEachIndexed { index, entry ->
+                key(entry.categoryId) {
+                    BudgetRow(entry, positionInGroup(index, entries.lastIndex), currency, busy, onSetAmount, onSetPercent)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One category's plan as a segmented list item: its name, what has been spent against
+ * the plan and what is left, and the share used as a ring at the end. Pressing it opens the plan's dialog.
+ */
 @Composable
 private fun BudgetRow(
     entry: CategoryBreakdown,
+    position: ItemPosition,
     currency: String,
     busy: BusyState,
     onSetAmount: suspend (String, Long) -> Unit,
@@ -332,51 +357,35 @@ private fun BudgetRow(
 
     var editing by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(entry.name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+    ListItem(
+        onClick = { editing = true },
+        modifier = Modifier.fillMaxWidth(),
+        shapes = groupedListItemShapes(position),
+        colors = groupedListItemColors(),
+        supportingContent = {
+            Column {
                 Text(
-                    visibility.displayMoney(entry.actual, currency) + if (entry.planned > 0) " / ${visibility.displayMoney(entry.planned, currency)}" else "",
-                    style = MaterialTheme.typography.bodySmall,
+                    when {
+                        entry.planned > 0 -> visibility.displayMoney(entry.actual, currency) + " / " +
+                            visibility.displayMoney(entry.planned, currency) +
+                            (entry.plannedPercent?.let { " · $it%" } ?: "")
+                        entry.actual > 0 -> visibility.displayMoney(entry.actual, currency)
+                        else -> stringResource(R.string.set_a_budget)
+                    },
                 )
-            }
-
-            TextButton(
-                    onClick = { editing = true },
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
-                    modifier = Modifier.padding(top = 4.dp),
-                ) {
-                    Text(
-                        when {
-                            entry.plannedPercent != null -> "${entry.plannedPercent}%"
-                            entry.planned > 0 -> visibility.displayMoney(entry.planned, currency)
-                            else -> stringResource(R.string.set_a_budget)
-                        },
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
                 Text(
                     when {
                         entry.planned <= 0 -> if (entry.actual > 0) stringResource(R.string.unbudgeted) else stringResource(R.string.no_budget_set)
                         over -> stringResource(R.string.amount_over, visibility.displayMoney(-entry.remaining, currency))
                         else -> stringResource(R.string.amount_left, visibility.displayMoney(entry.remaining, currency))
                     },
-                    style = MaterialTheme.typography.bodySmall,
                     color = if (over) MaterialTheme.colorScheme.error else Color.Unspecified,
-                    modifier = Modifier.weight(1f),
                 )
-                BudgetProgressRing(percent = percent, color = statusColor(health))
             }
-
-        }
-    }
+        },
+        trailingContent = { BudgetProgressRing(percent = percent, color = statusColor(health)) },
+        content = { Text(entry.name) },
+    )
 
     if (editing) {
         BudgetDialog(

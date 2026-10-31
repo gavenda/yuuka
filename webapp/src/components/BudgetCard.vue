@@ -90,13 +90,19 @@ async function commit(): Promise<void> {
 	}
 }
 
-/** What the plan reads as when it is not being edited: the share, the amount, or an invitation to set one. */
-const plannedLabel = computed(() => {
-	// Always with a decimal, as Android writes a share: 15 reads "15.0%".
-	if (props.entry.plannedPercent !== null) {
-		return `${Number.isInteger(props.entry.plannedPercent) ? props.entry.plannedPercent.toFixed(1) : props.entry.plannedPercent}%`;
+/** A share always with a decimal, as Android writes one: 15 reads "15.0%". */
+function shareLabel(share: number): string {
+	return `${Number.isInteger(share) ? share.toFixed(1) : share}%`;
+}
+
+/** Spent against the plan (and the share it is), what has been spent without one, or an invitation to set one. */
+const plannedLine = computed(() => {
+	const { actual, planned, plannedPercent } = props.entry;
+	if (planned > 0) {
+		const line = `${displayMoney(actual, props.currency)} / ${displayMoney(planned, props.currency)}`;
+		return plannedPercent !== null ? `${line} · ${shareLabel(plannedPercent)}` : line;
 	}
-	return props.entry.planned > 0 ? displayMoney(props.entry.planned, props.currency) : t('budget.setABudget');
+	return actual > 0 ? displayMoney(actual, props.currency) : t('budget.setABudget');
 });
 
 /** Material's circular wavy progress indicator: a 48dp box, a 4dp stroke. */
@@ -163,22 +169,22 @@ const track = computed(() => {
 </script>
 
 <template>
-	<article class="card p-4">
-		<header class="flex items-center justify-between gap-3">
-			<h3 class="type-body-medium min-w-0 flex-1 truncate">{{ entry.name }}</h3>
-			<span class="type-body-small tabular">
-				{{ displayMoney(entry.actual, currency)
-				}}<template v-if="entry.planned > 0"> / {{ displayMoney(entry.planned, currency) }}</template>
+	<!-- One row of a segmented list, as Android's ListItem draws it: the name, what has been
+	     spent against the plan and what is left, then the share used as a ring. Pressing it opens the plan's dialog. -->
+	<div>
+		<button
+			type="button"
+			class="group-row state-layer focus-ring flex min-h-[88px] cursor-pointer items-center gap-4 py-3 pr-4 pl-4"
+			@click="start"
+		>
+			<span class="min-w-0 flex-1">
+				<span class="type-body-large block truncate">{{ entry.name }}</span>
+				<span class="type-body-medium block text-on-surface-variant tabular">{{ plannedLine }}</span>
+				<!-- The state in words beside the ring: status never rests on colour alone. -->
+				<span class="type-body-medium block" :class="over ? 'text-error' : 'text-on-surface-variant'">{{ statusLabel }}</span>
 			</span>
-		</header>
 
-		<button type="button" class="btn-text type-headline-medium mt-1 min-h-11 px-0 py-1" @click="start">{{ plannedLabel }}</button>
-
-		<!-- The state in words, then the share spent as a ring: status never rests on colour alone. -->
-		<div class="flex items-center gap-3 pt-2.5">
-			<span class="type-body-small min-w-0 flex-1" :class="over ? 'text-error' : ''">{{ statusLabel }}</span>
-
-			<div class="relative grid size-12 shrink-0 place-items-center">
+			<span class="relative grid size-12 shrink-0 place-items-center">
 				<svg :viewBox="`0 0 ${RING.size} ${RING.size}`" class="absolute inset-0 size-full" aria-hidden="true">
 					<path
 						v-if="track"
@@ -191,8 +197,8 @@ const track = computed(() => {
 					<path v-if="arc" :d="arc" fill="none" :stroke="fill" :stroke-width="RING.stroke" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
 				<span class="type-label-small relative">{{ percent }}%</span>
-			</div>
-		</div>
+			</span>
+		</button>
 
 		<AlertDialog :open="editing" :title="entry.name" role="dialog" @close="editing = false">
 			<form :id="`${fieldId}-form`" class="flex flex-col gap-3 sm:w-96" novalidate @submit.prevent="commit" @input="validation.onInput">
@@ -229,5 +235,5 @@ const track = computed(() => {
 				</button>
 			</template>
 		</AlertDialog>
-	</article>
+	</div>
 </template>

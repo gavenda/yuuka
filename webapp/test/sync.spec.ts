@@ -191,6 +191,87 @@ describe('last write wins', () => {
 		expect(roundUpRule).toMatchObject({ enabled: true, roundTo: 1000 });
 	});
 
+	it('keeps the second of two changes the user made before the first had landed', async () => {
+		const destination = await makeAccount(call, { name: 'Savings' });
+		const on = earlier(2);
+		const off = earlier(1);
+
+		// Switched on, then off again, all before the queue drained: the server's clock is after both.
+		const results = await batch([
+			{
+				opId: '1',
+				method: 'PATCH',
+				path: '/api/round-up',
+				at: on,
+				entity: 'roundUpRule',
+				body: { enabled: true, destinationAccountId: destination },
+			},
+			{ opId: '2', method: 'PATCH', path: '/api/round-up', at: off, entity: 'roundUpRule', body: { enabled: false } },
+		]);
+
+		expect(results.map((result) => result.status)).toEqual(['applied', 'applied']);
+		const { roundUpRule } = await json<{ roundUpRule: { enabled: boolean } }>(await call('/round-up'));
+		expect(roundUpRule.enabled).toBe(false);
+	});
+
+	it('keeps the second change when it arrives in a batch of its own', async () => {
+		const destination = await makeAccount(call, { name: 'Savings' });
+		const on = earlier(2);
+		const off = earlier(1);
+
+		await batch([
+			{
+				opId: '1',
+				method: 'PATCH',
+				path: '/api/round-up',
+				at: on,
+				entity: 'roundUpRule',
+				body: { enabled: true, destinationAccountId: destination },
+			},
+		]);
+		const results = await batch([
+			{ opId: '2', method: 'PATCH', path: '/api/round-up', at: off, entity: 'roundUpRule', body: { enabled: false } },
+		]);
+
+		expect(results[0].status).toBe('applied');
+		const { roundUpRule } = await json<{ roundUpRule: { enabled: boolean } }>(await call('/round-up'));
+		expect(roundUpRule.enabled).toBe(false);
+	});
+
+	it('applies an edit to a row created earlier in the same queue', async () => {
+		const results = await batch([
+			{ opId: '1', method: 'POST', path: '/api/tags', at: earlier(2), body: { id: 'tag_madethenedited1', name: 'Draft' } },
+			{
+				opId: '2',
+				method: 'PATCH',
+				path: '/api/tags/tag_madethenedited1',
+				at: earlier(1),
+				entity: 'tag',
+				id: 'tag_madethenedited1',
+				body: { name: 'Final' },
+			},
+		]);
+
+		expect(results.map((result) => result.status)).toEqual(['applied', 'applied']);
+		const { tags } = await json<{ tags: { id: string; name: string }[] }>(await call('/tags'));
+		expect(tags.find((entry) => entry.id === 'tag_madethenedited1')?.name).toBe('Final');
+	});
+
+	it('still drops a change older than one written since elsewhere', async () => {
+		const results = await batch([
+			{ opId: '1', method: 'PATCH', path: '/api/round-up', at: earlier(2), entity: 'roundUpRule', body: { roundTo: 10000 } },
+		]);
+		expect(results[0].status).toBe('applied');
+
+		// The other device, online, a minute after.
+		await call('/round-up', { method: 'PATCH', body: JSON.stringify({ roundTo: 1000 }) });
+
+		const stale = await batch([
+			{ opId: '2', method: 'PATCH', path: '/api/round-up', at: earlier(1), entity: 'roundUpRule', body: { roundTo: 10000 } },
+		]);
+		expect(stale[0].status).toBe('stale');
+	});
+
 	it('judges a change to the settings against the settings as they stand', async () => {
 		const results = await batch([
 			{ opId: '1', method: 'PATCH', path: '/api/settings', at: later(60), entity: 'settings', body: { budgetMode: 'monthly' } },

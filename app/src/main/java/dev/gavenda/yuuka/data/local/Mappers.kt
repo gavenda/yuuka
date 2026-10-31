@@ -29,9 +29,9 @@ fun CategoryEntity.toDomain() = Category(
 
 fun Category.toEntity() = CategoryEntity(id, name, kind.name, color, sortOrder, archived, parentId, createdAt, updatedAt)
 
-fun TagEntity.toDomain() = Tag(id, name, color, transactionCount, createdAt, updatedAt)
+fun TagEntity.toDomain() = Tag(id, name, color, transactionCount, total, createdAt, updatedAt)
 
-fun Tag.toEntity() = TagEntity(id, name, color, transactionCount, createdAt, updatedAt)
+fun Tag.toEntity() = TagEntity(id, name, color, transactionCount, total, createdAt, updatedAt)
 
 fun SettingsEntity.toDomain() = Settings(displayCurrency, enumValueOf<BudgetMode>(budgetMode), defaultAccountId, createdAt, updatedAt)
 

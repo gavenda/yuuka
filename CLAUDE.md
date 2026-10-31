@@ -120,7 +120,9 @@ categories, so it is searchable once it grows — and a transaction wears any nu
 ten. They are drawn as chips at the right end of the notes row of a transaction
 card. A category decides where money counts; a tag decides nothing, so no
 income, spending, budget, balance or summary figure ever reads them (which is
-why tagging never invalidates a cached summary). The two legs of a transfer wear
+why tagging never invalidates a cached summary). The one figure a tag has is its own:
+the Tags screen shows what the transactions wearing it come to, signed like them and added up as they stand
+in the display currency, a transfer counting by its outflow leg. The two legs of a transfer wear
 the same tags, so it reads the same from either account. Saving a transaction
 sends the whole set, which replaces what it wore; an edit that leaves `tagIds`
 out keeps them. Deleting a tag only takes the label off — the transactions stay

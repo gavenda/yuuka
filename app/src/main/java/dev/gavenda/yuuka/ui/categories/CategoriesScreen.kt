@@ -321,18 +321,12 @@ private fun CategoryRow(
             modifier = Modifier.fillMaxWidth(),
             onClick = onClick,
             shapes = groupedListItemShapes(position, selected),
-            // An open family, parent and subcategories alike, is told apart by its colour rather than by indenting.
+            // An open family, parent and subcategories alike, is told apart by a higher surface rather than by indenting.
             colors = if (selected) {
                 // The category whose form stands beside the list, marked over its family's colour.
                 groupedListItemColors(selected = true)
             } else if (expanded || indent) {
-                ListItemDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    leadingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    trailingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    supportingContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
+                ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
             } else {
                 ListItemDefaults.colors(containerColor = groupedItemColor)
             },
@@ -351,7 +345,17 @@ private fun CategoryRow(
             },
             trailingContent = if (subCount > 0) {
                 {
-                    IconButton(onClick = onToggle) {
+                    // Material's narrow small icon button, filled tonal in the primary role: the touch target, then the container.
+                    FilledTonalIconButton(
+                        onClick = onToggle,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .size(IconButtonDefaults.smallContainerSize(IconButtonDefaults.IconButtonWidthOption.Narrow)),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    ) {
                         Icon(
                             painterResource(R.drawable.expand_more_48px),
                             contentDescription = if (expanded) {

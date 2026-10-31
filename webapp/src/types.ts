@@ -85,6 +85,8 @@ export interface Tag {
 	color: string;
 	/** How many transactions wear it. A transfer counts once, not once per leg. */
 	transactionCount: number;
+	/** What its transactions come to, in minor units and signed like them; a transfer counts by its outflow leg. */
+	total: number;
 	createdAt: string;
 	updatedAt: string;
 }

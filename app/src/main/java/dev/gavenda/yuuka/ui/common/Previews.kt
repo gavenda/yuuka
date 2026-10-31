@@ -86,9 +86,9 @@ object PreviewData {
     )
 
     val tags = listOf(
-        Tag(id = "tag_work", name = "Work", color = "#2a78d6", transactionCount = 12),
-        Tag(id = "tag_family", name = "Family", color = "#1baf7a", transactionCount = 7),
-        Tag(id = "tag_trip", name = "Cebu trip", color = "#eb6834", transactionCount = 3),
+        Tag(id = "tag_work", name = "Work", color = "#2a78d6", transactionCount = 12, total = -1_845_000),
+        Tag(id = "tag_family", name = "Family", color = "#1baf7a", transactionCount = 7, total = -623_550),
+        Tag(id = "tag_trip", name = "Cebu trip", color = "#eb6834", transactionCount = 3, total = -1_210_000),
     )
 
     val transactions = listOf(

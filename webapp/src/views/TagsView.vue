@@ -4,12 +4,12 @@ import ColourField from '@/components/ColourField.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FormDialog from '@/components/FormDialog.vue';
+import MoneyText from '@/components/MoneyText.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import { whenDiscardable } from '@/lib/formPane';
 import { api, ApiError } from '@/lib/api';
-import { formatCount } from '@/lib/count';
 import { useHarmonised } from '@/lib/harmonise';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
@@ -98,15 +98,14 @@ async function remove(tag: Tag): Promise<void> {
 	}
 }
 
-// The counts move whenever a transaction is saved, and `load` is done once the ledger has been fetched, so ask again.
+// The totals move whenever a transaction is saved, and `load` is done once the ledger has been fetched, so ask again.
 onMounted(async () => {
 	await ledger.load();
 	await ledger.refreshTags().catch(() => undefined);
 });
 
-/** A copy saved before counts existed has none, so read a missing one as zero until the API answers. */
-const countOf = (tag: Tag) => tag.transactionCount ?? 0;
-const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(countOf(tag)) }, countOf(tag));
+/** A copy saved before totals existed has none, so read a missing one as zero until the API answers. */
+const totalOf = (tag: Tag) => tag.total ?? 0;
 </script>
 
 <template>
@@ -126,7 +125,7 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 
 			<p v-if="!visible.length" class="type-body-small">{{ t('tags.noMatch', { search: search.trim() }) }}</p>
 
-			<!-- One row per tag — its colour leading, its count at the end — drawn as one connected block. -->
+			<!-- One row per tag — its colour leading, what its transactions come to at the end — drawn as one connected block. -->
 			<ul v-else class="group-rows">
 				<li v-for="tag in visible" :key="tag.id">
 					<SwipeReveal>
@@ -143,7 +142,11 @@ const countLabel = (tag: Tag) => t('tags.transactions', { amount: formatCount(co
 							<span class="flex min-h-14 items-center gap-3 px-4">
 								<span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
 								<span class="type-body-medium min-w-0 flex-1 truncate">{{ tag.name }}</span>
-								<span class="type-body-small shrink-0 text-on-surface-variant">{{ countLabel(tag) }}</span>
+								<MoneyText
+									:amount="totalOf(tag)"
+									:currency="ledger.displayCurrency"
+									class="type-body-small shrink-0 text-on-surface-variant"
+								/>
 							</span>
 						</button>
 					</SwipeReveal>

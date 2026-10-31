@@ -225,16 +225,21 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<EmptyState v-if="!hasAnyCategories" mood="stern" :title="t('budget.emptyTitle')" :description="t('budget.emptyDescription')" />
 
-		<template v-if="budget.expenseBreakdown.length">
-			<h2 class="type-title-small">{{ t('common.expense') }}</h2>
-			<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
-		</template>
+		<!-- Each kind is one segmented list under its heading, as Categories draws its sections. -->
+		<section v-if="budget.expenseBreakdown.length" class="flex flex-col">
+			<h2 class="settings-header">{{ t('common.expense') }}</h2>
+			<div class="group-rows">
+				<BudgetCard v-for="entry in budget.expenseBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+			</div>
+		</section>
 
 		<!-- Budgeted separately from expenses: a movement into savings or investments is planned, not spent. -->
-		<template v-if="budget.cashflowBreakdown.length">
-			<h2 class="type-title-small">{{ t('common.cashflow') }}</h2>
-			<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
-		</template>
+		<section v-if="budget.cashflowBreakdown.length" class="flex flex-col">
+			<h2 class="settings-header">{{ t('common.cashflow') }}</h2>
+			<div class="group-rows">
+				<BudgetCard v-for="entry in budget.cashflowBreakdown" :key="entry.categoryId" :entry="entry" :currency="currency" />
+			</div>
+		</section>
 
 		<AlertDialog :open="editingIncome" :title="t('budget.plannedIncome')" role="dialog" @close="cancelEditingIncome">
 			<form id="planned-income-form" class="sm:w-96" novalidate @submit.prevent="commitIncome">

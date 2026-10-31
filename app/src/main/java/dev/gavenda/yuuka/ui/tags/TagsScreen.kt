@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,7 +16,6 @@ import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.domain.isHexColour
 import dev.gavenda.yuuka.domain.sameName
-import dev.gavenda.yuuka.domain.formatCount
 import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -28,7 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 fun TagsScreen(modifier: Modifier = Modifier, viewModel: TagsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // The counts move whenever a transaction is saved, so ask again each time the screen is shown.
+    // The totals move whenever a transaction is saved, so ask again each time the screen is shown.
     LaunchedEffect(viewModel) { viewModel.refresh() }
 
     TagsScreenContent(
@@ -114,6 +112,7 @@ internal fun TagsScreenContent(
                         val deleteKey = "delete:${tag.id}"
                         TagRow(
                             tag,
+                            currency = state.displayCurrency,
                             // Tags are one list rather than groups of a few, so the whole list is the block.
                             position = positionInGroup(index, state.visible.lastIndex),
                             deleting = busy.isBusy(deleteKey),
@@ -152,9 +151,9 @@ internal fun TagsScreenContent(
     }
 }
 
-/** One row per tag — its colour leading, its count at the end — drawn as one of a connected block. */
+/** One row per tag — its colour leading, what its transactions come to at the end — drawn as one of a connected block. */
 @Composable
-private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, selected: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TagRow(tag: Tag, currency: String, position: ItemPosition, deleting: Boolean, selected: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
@@ -169,10 +168,7 @@ private fun TagRow(tag: Tag, position: ItemPosition, deleting: Boolean, selected
             leadingContent = { Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(harmonisedColor(tag.color, MaterialTheme.colorScheme.onSurfaceVariant))) },
             content = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
             trailingContent = {
-                Text(
-                    pluralStringResource(R.plurals.tag_transaction_count, tag.transactionCount, formatCount(tag.transactionCount.toLong())),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                MoneyText(tag.total, currency = currency, style = MaterialTheme.typography.bodySmall)
             },
         )
     }

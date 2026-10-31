@@ -124,8 +124,8 @@ describe('a provisional transaction', () => {
 
 	it('carries the chips for the tags it names, in name order', () => {
 		const tags: Tag[] = [
-			{ id: 'tag_z', name: 'Zurich', color: '#111111', transactionCount: 0, createdAt: '', updatedAt: '' },
-			{ id: 'tag_a', name: 'Amsterdam', color: '#222222', transactionCount: 0, createdAt: '', updatedAt: '' },
+			{ id: 'tag_z', name: 'Zurich', color: '#111111', transactionCount: 0, total: 0, createdAt: '', updatedAt: '' },
+			{ id: 'tag_a', name: 'Amsterdam', color: '#222222', transactionCount: 0, total: 0, createdAt: '', updatedAt: '' },
 		];
 		const result = provisionalTransaction(view({ tags }), { ...draft, tagIds: ['tag_z', 'tag_a'] });
 

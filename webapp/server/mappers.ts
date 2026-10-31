@@ -67,6 +67,8 @@ export interface TagRow {
 	color: string;
 	/** How many transactions wear it, from a subquery; a transfer counts once, not once per leg. */
 	transaction_count?: number;
+	/** What the tagged transactions come to in minor units, from a subquery; a transfer counts by its outflow leg. */
+	total?: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -195,6 +197,7 @@ export const toTag = (row: TagRow) => ({
 	name: row.name,
 	color: row.color,
 	transactionCount: row.transaction_count ?? 0,
+	total: row.total ?? 0,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

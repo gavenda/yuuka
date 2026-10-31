@@ -32,7 +32,8 @@ import dev.gavenda.yuuka.data.local.entity.*
     // `OutboxDatabase`, deliberately apart, because this one falls back to a
     // destructive migration and that is exactly what a queue must not do.
     // 10: accounts gained `bank`, a preset bank's key.
-    version = 10,
+    // 11: tags gained `total`, what their transactions come to.
+    version = 11,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

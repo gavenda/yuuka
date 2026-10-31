@@ -5,7 +5,7 @@ import { computed } from 'vue';
 
 export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete' | 'adjust' | 'pause' | 'resume' | 'add';
 
-/** One of a row's actions behind its swipe (`ActionIconButton` on Android): a filled icon button, primary, or error when it destroys something. */
+/** One of a row's actions behind its swipe (`ActionIconButton` on Android): a narrow filled icon button, primary, or error when it destroys something. */
 const props = withDefaults(defineProps<{ icon: ActionIconName; label: string; danger?: boolean; disabled?: boolean }>(), {
 	danger: false,
 	disabled: false,
@@ -30,7 +30,7 @@ const icon = computed(() => ICONS[props.icon]);
 	     sighted users the same word on hover. -->
 	<button
 		type="button"
-		class="m-1"
+		class="btn-icon-narrow"
 		:class="danger ? 'btn-icon-filled-danger' : 'btn-icon-filled'"
 		:aria-label="label"
 		:title="label"

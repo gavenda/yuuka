@@ -228,7 +228,7 @@ onMounted(() => ledger.load());
 							class="group-row state-layer flex items-center pr-4"
 							:class="[
 								family.children.length ? 'min-h-[72px]' : 'min-h-[60px]',
-								expanded.has(family.parent.id) ? 'bg-secondary-container text-on-secondary-container' : '',
+								expanded.has(family.parent.id) ? 'bg-surface-container-highest' : '',
 							]"
 						>
 							<button
@@ -237,22 +237,14 @@ onMounted(() => ledger.load());
 								:aria-current="dialogOpen && editing?.id === family.parent.id ? 'true' : undefined"
 								@click="openEdit(family.parent)"
 							>
-								<span
-									class="flex size-6 shrink-0 items-center justify-center rounded-full"
-									:class="expanded.has(family.parent.id) ? 'bg-surface-container' : ''"
-									aria-hidden="true"
-								>
+								<span class="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
 									<span class="flex" :style="{ color: harmonised(family.parent.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
 								</span>
 								<span class="min-w-0 flex-1">
 									<span class="type-body-large block truncate">{{
 										family.parent.archived ? t('common.archivedName', { name: family.parent.name }) : family.parent.name
 									}}</span>
-									<span
-										v-if="family.children.length"
-										class="type-body-medium block"
-										:class="expanded.has(family.parent.id) ? 'text-on-secondary-container' : 'text-on-surface-variant'"
-									>
+									<span v-if="family.children.length" class="type-body-medium block text-on-surface-variant">
 										{{ t('categories.subcategories', family.children.length) }}
 									</span>
 								</span>
@@ -261,7 +253,7 @@ onMounted(() => ledger.load());
 							<button
 								v-if="family.children.length"
 								type="button"
-								class="btn-icon relative"
+								class="btn-icon-tonal-primary-narrow relative"
 								:aria-expanded="expanded.has(family.parent.id)"
 								:aria-label="t(expanded.has(family.parent.id) ? 'categories.collapse' : 'categories.expand', { name: family.parent.name })"
 								@click="toggle(family.parent)"
@@ -275,7 +267,7 @@ onMounted(() => ledger.load());
 						</div>
 					</SwipeReveal>
 
-					<!-- Its subcategories, in secondary container with their parent. Pressing one edits it. -->
+					<!-- Its subcategories, on the same higher surface as their parent. Pressing one edits it. -->
 					<template v-if="expanded.has(family.parent.id)">
 						<SwipeReveal v-for="child in family.children" :key="child.id">
 							<template #actions>
@@ -289,11 +281,11 @@ onMounted(() => ledger.load());
 
 							<button
 								type="button"
-								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-secondary-container pr-4 pl-4 text-on-secondary-container"
+								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-surface-container-highest pr-4 pl-4"
 								:aria-current="dialogOpen && editing?.id === child.id ? 'true' : undefined"
 								@click="openEdit(child)"
 							>
-								<span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-container" aria-hidden="true">
+								<span class="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
 									<span class="flex" :style="{ color: harmonised(child.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
 								</span>
 								<span class="type-body-large min-w-0 flex-1 truncate">{{

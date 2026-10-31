@@ -215,10 +215,6 @@
     <string name="tags_empty_title">No tags yet</string>
     <string name="tags_empty_description">Add one and put it on a transaction. I\'ll find it again for you later.</string>
     <string name="search_tags">Search tags</string>
-    <plurals name="tag_transaction_count">
-        <item quantity="one">%1$s transaction</item>
-        <item quantity="other">%1$s transactions</item>
-    </plurals>
     <string name="no_tag_matches">No tag matches “%1$s”.</string>
     <string name="new_tag">New tag</string>
     <string name="edit_tag">Edit tag</string>
