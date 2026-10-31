@@ -72,6 +72,8 @@ data class AccountSubmission(
     val startingBalance: Long,
     val logoUrl: String,
     val logoInvertDark: Boolean,
+    /** A preset bank's key, or null for Custom. */
+    val bank: String?,
 )
 
 /** Mirrors `AccountsView.vue`. */
@@ -115,11 +117,11 @@ class AccountsViewModel(
     suspend fun save(id: String?, submission: AccountSubmission) {
         with(submission) {
             if (id == null) {
-                ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+                ledgerRepository.createAccount(name, typeId, currency, startingBalance, logoUrl, logoInvertDark, bank)
             } else {
                 // The round-up opt-in is deliberately left out: the Save the Change screen owns it, and an edit
                 // here must not quietly take it off an account.
-                ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark)
+                ledgerRepository.updateAccount(id, name, typeId, currency, startingBalance, logoUrl, logoInvertDark, bank)
             }
         }
     }

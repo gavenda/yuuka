@@ -54,6 +54,8 @@ export interface Account {
 	logoUrl: string | null;
 	/** Applies an `invert()` filter to the logo in dark mode, for a dark mark that would otherwise disappear. */
 	logoInvertDark: boolean;
+	/** A preset bank's key (`lib/banks.ts`), whose logo replaces `logoUrl`; null for Custom. */
+	bank: string | null;
 	/** Whether this account's own expenses round up under "Save the Change". */
 	roundUpSource: boolean;
 	startingBalance: number;

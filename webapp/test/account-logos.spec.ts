@@ -139,3 +139,48 @@ describe('logo inversion in dark mode', () => {
 		expect(accounts.find((account) => account.name === 'Inverted')?.logoInvertDark).toBe(true);
 	});
 });
+
+/**
+ * A preset bank is named by its key; its name, logo and inversion are the
+ * apps'. The server checks only the key's shape, so a new bank is a client
+ * release, not a deploy.
+ */
+describe('preset banks', () => {
+	const bankOf = async (id: string) => (await json<{ account: { bank: string | null } }>(await call(`/accounts/${id}`))).account.bank;
+
+	it('defaults to custom', async () => {
+		expect(await bankOf(await makeAccount(call))).toBeNull();
+	});
+
+	it('stores a key on create', async () => {
+		const { account } = await json<{ account: { bank: string } }>(await create({ bank: 'some-bank' }));
+		expect(account.bank).toBe('some-bank');
+	});
+
+	it('can be changed and cleared back to custom', async () => {
+		const id = await makeAccount(call, { bank: 'one' });
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ bank: 'two' }) });
+		expect(await bankOf(id)).toBe('two');
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ bank: '' }) });
+		expect(await bankOf(id)).toBeNull();
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ bank: 'three' }) });
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ bank: null }) });
+		expect(await bankOf(id)).toBeNull();
+	});
+
+	it('is left alone by a patch that does not mention it', async () => {
+		const id = await makeAccount(call, { bank: 'keep' });
+
+		await call(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ name: 'Renamed' }) });
+		expect(await bankOf(id)).toBe('keep');
+	});
+
+	it('refuses a key that is not a lowercase slug', async () => {
+		for (const bank of ['BDO', 'has space', '../x', 'a'.repeat(41)]) {
+			expect((await create({ bank })).status, bank).toBe(400);
+		}
+	});
+});

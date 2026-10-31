@@ -183,6 +183,7 @@ class LedgerRepository(
         startingBalance: Long,
         logoUrl: String,
         logoInvertDark: Boolean,
+        bank: String?,
         roundUpSource: Boolean = false,
     ) {
         val body = buildJsonObject {
@@ -192,6 +193,7 @@ class LedgerRepository(
             put("startingBalance", startingBalance)
             put("logoUrl", logoUrl)
             put("logoInvertDark", logoInvertDark)
+            put("bank", bank)
             put("roundUpSource", roundUpSource)
         }
         val id = Ids.new(Ids.ACCOUNT)
@@ -205,6 +207,7 @@ class LedgerRepository(
                 startingBalance = startingBalance,
                 logoUrl = logoUrl.takeIf { it.isNotBlank() },
                 logoInvertDark = logoInvertDark,
+                bank = bank,
                 roundUpSource = roundUpSource,
             ),
         )
@@ -219,6 +222,7 @@ class LedgerRepository(
         startingBalance: Long,
         logoUrl: String,
         logoInvertDark: Boolean,
+        bank: String?,
         roundUpSource: Boolean? = null,
     ) {
         val body = buildJsonObject {
@@ -228,6 +232,7 @@ class LedgerRepository(
             put("startingBalance", startingBalance)
             put("logoUrl", logoUrl)
             put("logoInvertDark", logoInvertDark)
+            put("bank", bank)
             roundUpSource?.let { put("roundUpSource", it) }
         }
         accountDao.byId(id)?.let { current ->
@@ -245,6 +250,7 @@ class LedgerRepository(
                     startingBalance = startingBalance,
                     logoUrl = logoUrl.takeIf { it.isNotBlank() },
                     logoInvertDark = logoInvertDark,
+                    bank = bank,
                     roundUpSource = roundUpSource ?: current.roundUpSource,
                     updatedAt = Provisional.touchedAt(),
                 ),

@@ -18,7 +18,7 @@ import type { AppEnv } from '../types';
  * so a stray row could never leak into someone else's total.
  */
 const SELECT_WITH_BALANCE = `
-	SELECT a.id, a.name, a.type_id, a.currency, a.logo_url, a.logo_invert_dark, a.round_up_source, a.starting_balance, a.archived, a.created_at, a.updated_at,
+	SELECT a.id, a.name, a.type_id, a.currency, a.logo_url, a.logo_invert_dark, a.bank, a.round_up_source, a.starting_balance, a.archived, a.created_at, a.updated_at,
 	       ty.name AS type_name,
 	       a.starting_balance + COALESCE(SUM(t.amount), 0) AS balance
 	FROM accounts a
@@ -69,8 +69,8 @@ export const accountRoutes = new Hono<AppEnv>()
 		// Guarded the same way transactions are: the type has to be the caller's,
 		// checked in the statement that performs the write.
 		const result = await c.env.DB.prepare(
-			`INSERT INTO accounts (id, user_id, name, type_id, currency, starting_balance, logo_url, logo_invert_dark, round_up_source)
-			 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+			`INSERT INTO accounts (id, user_id, name, type_id, currency, starting_balance, logo_url, logo_invert_dark, bank, round_up_source)
+			 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 			 WHERE EXISTS (SELECT 1 FROM account_types WHERE id = ? AND user_id = ?)`,
 		)
 			.bind(
@@ -82,6 +82,7 @@ export const accountRoutes = new Hono<AppEnv>()
 				input.startingBalance,
 				input.logoUrl ?? null,
 				toSqliteBool(input.logoInvertDark),
+				input.bank ?? null,
 				toSqliteBool(input.roundUpSource),
 				input.typeId,
 				userId,
@@ -108,6 +109,7 @@ export const accountRoutes = new Hono<AppEnv>()
 			currency: input.currency,
 			logo_url: input.logoUrl,
 			logo_invert_dark: toSqliteBool(input.logoInvertDark),
+			bank: input.bank,
 			round_up_source: toSqliteBool(input.roundUpSource),
 			starting_balance: input.startingBalance,
 			archived: toSqliteBool(input.archived),

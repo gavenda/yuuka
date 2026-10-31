@@ -245,6 +245,8 @@
     <string name="delete_account_transactions_confirm">%1$s still has transactions, and deleting it deletes them too. To keep your history, go back and archive the account instead. This cannot be undone.</string>
     <string name="delete_anyway">Yes, delete everything</string>
     <string name="label_starting_balance">Starting balance</string>
+    <string name="label_bank">Bank</string>
+    <string name="bank_custom">Custom</string>
     <string name="label_logo_url">Logo URL (optional)</string>
     <string name="invert_colours_dark_mode">Invert colours in dark mode</string>
     <string name="error_starting_balance_number">Enter a number, such as 1250.00.</string>

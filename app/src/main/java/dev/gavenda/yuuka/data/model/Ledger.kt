@@ -65,6 +65,8 @@ data class Account(
     val logoUrl: String? = null,
     /** Applies an invert filter to the logo in dark mode, for a dark mark that would otherwise disappear. */
     val logoInvertDark: Boolean = false,
+    /** A preset bank's key ([dev.gavenda.yuuka.ui.common.Banks]), whose logo replaces [logoUrl]; null for Custom. */
+    val bank: String? = null,
     /** Whether this account's own purchases round up under "Save the Change". */
     val roundUpSource: Boolean = false,
     val startingBalance: Long,

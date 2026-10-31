@@ -46,6 +46,22 @@ const logoUrl = z
 		}
 	}, 'Must be an http or https URL.');
 
+/**
+ * One of the preset banks the apps ship with, by its key. The list itself is
+ * the clients' — the server checks only the shape, so a new bank never needs a
+ * deploy. Null or an empty string means "Custom": the account's own logo URL.
+ */
+const bank = z
+	.union([
+		z.null(),
+		z
+			.string()
+			.trim()
+			.max(40)
+			.regex(/^[a-z0-9-]*$/, 'Must be a preset bank key.'),
+	])
+	.transform((value) => (value === null || value === '' ? null : value));
+
 export const dateString = z.string().regex(DATE_PATTERN, 'Must be a YYYY-MM-DD date.');
 /** When a transaction records what time of day it happened, not just the date. */
 export const dateTimeString = z.string().regex(DATE_TIME_PATTERN, 'Must be a YYYY-MM-DD date, optionally with a THH:MM time.');
@@ -95,6 +111,7 @@ export const accountCreateSchema = z.object({
 	startingBalance: money.default(0),
 	logoUrl: logoUrl.optional(),
 	logoInvertDark: z.boolean().default(false),
+	bank: bank.optional(),
 	/** Whether this account's own purchases round up under "Save the Change". */
 	roundUpSource: z.boolean().default(false),
 });
@@ -107,6 +124,7 @@ export const accountUpdateSchema = z
 		startingBalance: money,
 		logoUrl,
 		logoInvertDark: z.boolean(),
+		bank,
 		roundUpSource: z.boolean(),
 		archived: z.boolean(),
 	})

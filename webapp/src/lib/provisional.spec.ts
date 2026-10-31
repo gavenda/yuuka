@@ -30,6 +30,7 @@ const account = (overrides: Partial<Account> = {}): Account => ({
 	currency: 'PHP',
 	logoUrl: null,
 	logoInvertDark: false,
+	bank: null,
 	roundUpSource: false,
 	startingBalance: 0,
 	balance: 100_00,

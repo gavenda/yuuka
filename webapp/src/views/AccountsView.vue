@@ -16,6 +16,7 @@ import SearchField from '@/components/SearchField.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import TopBar from '@/components/TopBar.vue';
 import { api, ApiError } from '@/lib/api';
+import { BANKS } from '@/lib/banks';
 import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
@@ -39,6 +40,8 @@ const form = reactive({
 	typeId: '',
 	currency: ledger.displayCurrency,
 	startingBalance: '0.00',
+	/** A preset bank's key, or '' for Custom — only Custom takes a logo URL of its own. */
+	bank: '',
 	logoUrl: '',
 	logoInvertDark: false,
 });
@@ -50,7 +53,8 @@ const validation = useFormValidation({
 	'account-type': () => (ledger.accountTypes.some((type) => type.id === form.typeId) ? null : t('accounts.chooseType')),
 	'account-balance': () => (parseMoney(form.startingBalance) === null ? t('accounts.balanceNumber') : null),
 	'account-currency': () => currencyProblem(form.currency),
-	'account-logo': () => logoUrlProblem(form.logoUrl),
+	// A preset bank brings its own logo, so the URL field is hidden and cannot hold the form back.
+	'account-logo': () => (form.bank ? null : logoUrlProblem(form.logoUrl)),
 });
 const { error: fieldError, touch } = validation;
 const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
@@ -87,6 +91,11 @@ const adjustDifference = computed(() => {
 });
 
 const typeChoices = computed(() => namedOptions(ledger.activeAccountTypes));
+/** The preset banks, then Custom, which is where a logo URL of the account's own is given. */
+const bankChoices = computed(() => [
+	...BANKS.map((bank) => ({ value: bank.key, label: bank.name })),
+	{ value: '', label: t('accounts.customBank') },
+]);
 const search = ref('');
 
 /** What the search matches: a name, a type or a currency, whatever the case. */
@@ -156,6 +165,7 @@ function openCreate(): void {
 			typeId: ledger.activeAccountTypes[0]?.id ?? '',
 			currency: ledger.accounts[0]?.currency ?? ledger.displayCurrency,
 			startingBalance: '0.00',
+			bank: '',
 			logoUrl: '',
 			logoInvertDark: false,
 		});
@@ -169,6 +179,7 @@ function openEdit(account: Account): void {
 			typeId: account.typeId,
 			currency: account.currency,
 			startingBalance: toDecimalString(account.startingBalance),
+			bank: account.bank ?? '',
 			logoUrl: account.logoUrl ?? '',
 			logoInvertDark: account.logoInvertDark,
 		});
@@ -193,8 +204,10 @@ async function save(): Promise<void> {
 		typeId: form.typeId,
 		currency: form.currency.trim().toUpperCase(),
 		startingBalance,
-		logoUrl: form.logoUrl.trim(),
-		logoInvertDark: form.logoInvertDark,
+		bank: form.bank || null,
+		// A preset bank's logo is its own, so a URL typed under Custom before switching is not kept.
+		logoUrl: form.bank ? '' : form.logoUrl.trim(),
+		logoInvertDark: form.bank ? false : form.logoInvertDark,
 	};
 
 	try {
@@ -326,7 +339,13 @@ onMounted(() => ledger.load());
 									<span class="type-body-small">{{ currencyName(account.currency) }}</span>
 									<MoneyText :amount="account.balance" :currency="account.currency" tone="signed-alert" class="type-title-medium" />
 								</span>
-								<AccountLogo :name="account.name" :logo-url="account.logoUrl" :invert-dark="account.logoInvertDark" :size="28" />
+								<AccountLogo
+									:name="account.name"
+									:bank="account.bank"
+									:logo-url="account.logoUrl"
+									:invert-dark="account.logoInvertDark"
+									:size="28"
+								/>
 							</span>
 						</button>
 					</SwipeReveal>
@@ -370,6 +389,8 @@ onMounted(() => ledger.load());
 					<FieldSupport id="account-type" :error="fieldError('account-type')" />
 				</div>
 
+				<SelectField id="account-bank" v-model="form.bank" :label="t('accounts.bank')" :options="bankChoices" />
+
 				<TextField
 					id="account-balance"
 					v-model="form.startingBalance"
@@ -390,7 +411,9 @@ onMounted(() => ledger.load());
 					@blur="touch('account-currency')"
 				/>
 
+				<!-- Only Custom takes a logo of the account's own; a preset bank brings its logo and its inversion. -->
 				<TextField
+					v-if="!form.bank"
 					id="account-logo"
 					v-model="form.logoUrl"
 					:label="t('accounts.logoUrl')"
@@ -399,8 +422,8 @@ onMounted(() => ledger.load());
 					@blur="touch('account-logo')"
 				/>
 
-				<!-- Always shown, not only once a logo is entered; it has no effect until the account has one. -->
-				<div class="type-body-large flex items-center text-on-surface">
+				<!-- Shown under Custom whether or not a logo is entered; it has no effect until the account has one. -->
+				<div v-if="!form.bank" class="type-body-large flex items-center text-on-surface">
 					<span class="flex-1">{{ t('accounts.invertDark') }}</span>
 					<ToggleSwitch v-model="form.logoInvertDark" :label="t('accounts.invertDark')" />
 				</div>

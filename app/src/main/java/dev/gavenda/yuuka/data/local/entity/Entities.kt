@@ -31,6 +31,7 @@ data class AccountEntity(
     val currency: String,
     val logoUrl: String?,
     val logoInvertDark: Boolean,
+    val bank: String?,
     val roundUpSource: Boolean,
     val startingBalance: Long,
     val balance: Long,

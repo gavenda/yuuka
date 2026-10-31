@@ -31,7 +31,8 @@ import dev.gavenda.yuuka.data.local.entity.*
     // 9: offline-first. Nothing here changed shape — the unsent queue lives in
     // `OutboxDatabase`, deliberately apart, because this one falls back to a
     // destructive migration and that is exactly what a queue must not do.
-    version = 9,
+    // 10: accounts gained `bank`, a preset bank's key.
+    version = 10,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

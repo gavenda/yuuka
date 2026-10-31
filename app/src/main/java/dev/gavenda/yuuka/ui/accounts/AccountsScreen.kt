@@ -293,7 +293,7 @@ private fun AccountCard(
                     Text(currencyName(account.currency), style = MaterialTheme.typography.bodySmall)
                     MoneyText(account.balance, tone = MoneyTone.SIGNED_ALERT, currency = account.currency, style = MaterialTheme.typography.titleMedium)
                 }
-                AccountLogo(account.name, account.logoUrl, account.logoInvertDark, size = 28)
+                AccountLogo(account.name, account.bank, account.logoUrl, account.logoInvertDark, size = 28)
             }
         }
     }
@@ -312,10 +312,14 @@ private fun AccountFormContent(
     var typeId by remember { mutableStateOf(account?.typeId ?: accountTypes.firstOrNull()?.id ?: "") }
     var currency by remember { mutableStateOf(account?.currency ?: displayCurrency) }
     var startingBalance by remember { mutableStateOf(account?.let { toDecimalString(it.startingBalance) } ?: "0.00") }
+    // A preset bank's key, or null for Custom — only Custom takes a logo URL of its own.
+    var bank by remember { mutableStateOf(account?.bank) }
     var logoUrl by remember { mutableStateOf(account?.logoUrl ?: "") }
     var invertDark by remember { mutableStateOf(account?.logoInvertDark ?: false) }
     // What the form opened with, so that closing it can tell an entry from an untouched form.
-    val opened = remember { listOf(name, typeId, currency, startingBalance, logoUrl, invertDark) }
+    val opened = remember { listOf(name, typeId, currency, startingBalance, bank, logoUrl, invertDark) }
+    val custom = bank == null
+    val customLabel = stringResource(R.string.bank_custom)
     // Every field's problem is worked out from what it holds now, and shown once its field has been left or a save tried.
     val form = rememberFormValidation()
     val startingBalanceMinor = parseMoney(startingBalance)
@@ -333,7 +337,8 @@ private fun AccountFormContent(
     val logoField = form.field(
         "logo",
         when {
-            logoUrl.isBlank() -> null
+            // A preset bank brings its own logo, so the URL field is hidden and cannot hold the form back.
+            !custom || logoUrl.isBlank() -> null
             logoUrl.trim().length > LOGO_URL_MAX -> stringResource(R.string.error_too_long, LOGO_URL_MAX)
             !isHttpUrl(logoUrl) -> stringResource(R.string.error_logo_url)
             else -> null
@@ -345,11 +350,22 @@ private fun AccountFormContent(
         onDismiss = onCancel,
         onSave = submit@{
             val balance = startingBalanceMinor ?: return@submit
-            onSave(AccountSubmission(name.trim(), typeId, currency.trim().uppercase(), balance, logoUrl.trim(), invertDark))
+            // A preset bank's logo is its own, so a URL typed under Custom before switching is not kept.
+            onSave(
+                AccountSubmission(
+                    name = name.trim(),
+                    typeId = typeId,
+                    currency = currency.trim().uppercase(),
+                    startingBalance = balance,
+                    logoUrl = if (custom) logoUrl.trim() else "",
+                    logoInvertDark = custom && invertDark,
+                    bank = bank,
+                ),
+            )
         },
         saveEnabled = form.valid(nameField, typeField, balanceField, currencyField, logoField),
         submitting = submitting,
-        dirty = listOf(name, typeId, currency, startingBalance, logoUrl, invertDark) != opened,
+        dirty = listOf(name, typeId, currency, startingBalance, bank, logoUrl, invertDark) != opened,
     ) {
         YuukaTextField(value = name, onValueChange = { name = it }, label = stringResource(R.string.label_name), singleLine = true, field = nameField)
 
@@ -359,6 +375,14 @@ private fun AccountFormContent(
             options = accountTypes.map { SelectOption(it.id, it.name) },
             onSelect = { typeId = it },
             field = typeField,
+        )
+
+        // The preset banks, then Custom, which is where a logo URL of the account's own is given.
+        DropdownField(
+            label = stringResource(R.string.label_bank),
+            value = Banks.byKey(bank)?.name ?: customLabel,
+            options = Banks.presets.map { SelectOption<String?>(it.key, it.name) } + SelectOption<String?>(null, customLabel),
+            onSelect = { bank = it },
         )
 
         YuukaTextField(
@@ -378,12 +402,15 @@ private fun AccountFormContent(
             field = currencyField,
         )
 
-        YuukaTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = stringResource(R.string.label_logo_url), singleLine = true, field = logoField)
+        // Only Custom takes a logo of the account's own; a preset bank brings its logo and its inversion.
+        if (custom) {
+            YuukaTextField(value = logoUrl, onValueChange = { logoUrl = it }, label = stringResource(R.string.label_logo_url), singleLine = true, field = logoField)
 
-        // Always shown, not only once a logo is entered; it has no effect until the account has one.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
-            YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
+            // Shown under Custom whether or not a logo is entered; it has no effect until the account has one.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.invert_colours_dark_mode), modifier = Modifier.weight(1f))
+                YuukaSwitch(checked = invertDark, onCheckedChange = { invertDark = it })
+            }
         }
 
         // Only a new account: Yuuka at the foot of the form, ready to start counting.

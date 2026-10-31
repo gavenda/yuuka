@@ -84,7 +84,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 	// accounts is neither. Transfers are measured separately, below.
 	const [accounts, totals, categories, categoryTotals, budgets, incomePlan, daily, payees, roundUps] = await c.env.DB.batch([
 		c.env.DB.prepare(
-			`SELECT a.id, a.name, a.type_id, ty.name AS type_name, a.currency, a.logo_url, a.starting_balance, a.archived,
+			`SELECT a.id, a.name, a.type_id, ty.name AS type_name, a.currency, a.logo_url, a.bank, a.starting_balance, a.archived,
 			        a.created_at, a.updated_at,
 			        a.starting_balance + COALESCE(SUM(t.amount), 0) AS balance
 			 FROM accounts a

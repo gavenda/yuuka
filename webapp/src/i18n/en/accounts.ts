@@ -12,6 +12,8 @@ export default {
 	restored: 'Account restored',
 	deleted: 'Account deleted',
 	startingBalance: 'Starting balance',
+	bank: 'Bank',
+	customBank: 'Custom',
 	logoUrl: 'Logo URL (optional)',
 	invertDark: 'Invert colours in dark mode',
 	formLine: "Tell me what it holds, and I'll count from there.",

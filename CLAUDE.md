@@ -247,6 +247,20 @@ dark mode is a per-account opt-in (`logoInvertDark`), not a blanket filter — a
 dark mark on a transparent background needs it to stay visible, but a colour logo
 inverted the same way would come out wrong.
 
+- **A preset bank is a key, and everything else about it is code**: The account form's Bank field, after
+Type, lists the banks both apps ship with and then Custom. An account stores only the chosen bank's key
+(`accounts.bank`); its name, its logo (with a dark-mode one where the bank has one, `*_light.svg` and
+`*_dark.svg`) and whether a single logo inverts in dark mode live in `webapp/src/lib/banks.ts` and
+`ui/common/Banks.kt`. The web serves the SVGs from `webapp/public/banks/`; Android draws them as vector
+drawables (`res/drawable/bank_*.xml`) converted from the same files, with the SVG's styles inlined first
+(svgo's `inlineStyles` and `convertStyleToAttrs`) or class-based fills come out empty, and shapes turned into
+paths (`convertShapeToPath`) or a `<polygon>` or `<rect>` is silently dropped; `banks/` at the root
+is where they arrive,
+so changing a bank reaches every account that names it — the same reason an account references its type by
+id. Only Custom shows the logo URL and the invert switch; choosing a preset clears both on save. The server
+checks only the key's shape (a lowercase slug), so adding a bank is a release in both apps, never a
+migration, and a key one app does not know yet falls back to the initial.
+
 ## Navigation
 
 - **Navigation follows the window, in both apps**: From 600dp / the `sm` breakpoint up (on Android, any

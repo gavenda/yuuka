@@ -265,6 +265,8 @@ export function provisionalAccount(ledger: LedgerView, input: Partial<Account> &
 		currency: input.currency ?? ledger.displayCurrency,
 		logoUrl: input.logoUrl ?? null,
 		logoInvertDark: input.logoInvertDark ?? false,
+		// '' is how the form says Custom; the server stores it as null.
+		bank: input.bank || null,
 		roundUpSource: input.roundUpSource ?? false,
 		startingBalance: input.startingBalance ?? 0,
 		// Nothing has posted to it yet, so its balance is what it opened with.

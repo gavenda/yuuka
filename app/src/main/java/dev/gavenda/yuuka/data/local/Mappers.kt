@@ -10,10 +10,10 @@ fun AccountTypeEntity.toDomain() = AccountType(id, name, sortOrder, archived, ac
 fun AccountType.toEntity() = AccountTypeEntity(id, name, sortOrder, archived, accountCount, createdAt, updatedAt)
 
 fun AccountEntity.toDomain() =
-    Account(id, name, typeId, typeName, currency, logoUrl, logoInvertDark, roundUpSource, startingBalance, balance, archived, createdAt, updatedAt)
+    Account(id, name, typeId, typeName, currency, logoUrl, logoInvertDark, bank, roundUpSource, startingBalance, balance, archived, createdAt, updatedAt)
 
 fun Account.toEntity() =
-    AccountEntity(id, name, typeId, typeName, currency, logoUrl, logoInvertDark, roundUpSource, startingBalance, balance, archived, createdAt, updatedAt)
+    AccountEntity(id, name, typeId, typeName, currency, logoUrl, logoInvertDark, bank, roundUpSource, startingBalance, balance, archived, createdAt, updatedAt)
 
 fun CategoryEntity.toDomain() = Category(
     id = id,

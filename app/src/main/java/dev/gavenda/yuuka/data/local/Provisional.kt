@@ -94,6 +94,7 @@ object Provisional {
         startingBalance: Long,
         logoUrl: String?,
         logoInvertDark: Boolean,
+        bank: String?,
         roundUpSource: Boolean,
     ): AccountEntity = AccountEntity(
         id = id,
@@ -103,6 +104,7 @@ object Provisional {
         currency = currency,
         logoUrl = logoUrl,
         logoInvertDark = logoInvertDark,
+        bank = bank,
         roundUpSource = roundUpSource,
         startingBalance = startingBalance,
         // Nothing has posted to it yet, so its balance is what it opened with.

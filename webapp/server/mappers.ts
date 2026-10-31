@@ -30,6 +30,8 @@ export interface AccountRow {
 	currency: string;
 	logo_url: string | null;
 	logo_invert_dark: number;
+	/** A preset bank's key, or null for a custom logo. */
+	bank?: string | null;
 	round_up_source: number;
 	starting_balance: number;
 	archived: number;
@@ -158,6 +160,7 @@ export const toAccount = (row: AccountRow) => ({
 	currency: row.currency,
 	logoUrl: row.logo_url,
 	logoInvertDark: row.logo_invert_dark === 1,
+	bank: row.bank ?? null,
 	roundUpSource: row.round_up_source === 1,
 	startingBalance: row.starting_balance,
 	balance: row.balance ?? row.starting_balance,
