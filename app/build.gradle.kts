@@ -37,8 +37,8 @@ android {
         minSdk = 36
         //noinspection OldTargetApi
         targetSdk = 36
-        versionCode = 41
-        versionName = "4.3.1"
+        versionCode = 42
+        versionName = "4.3.2"
 
         // Configure the Auth0 SDK
         manifestPlaceholders["auth0Domain"] = "@string/com_auth0_domain"
