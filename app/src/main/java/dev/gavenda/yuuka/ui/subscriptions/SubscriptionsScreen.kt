@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui.subscriptions
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -377,6 +379,8 @@ private fun SubscriptionForm(
             placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
             field = amountField,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            prefix = accounts.firstOrNull { it.id == accountId }?.let { currencySymbol(it.currency) } ?: "",
         )
 
         DropdownField(

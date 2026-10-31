@@ -17,7 +17,7 @@ import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
 import { formatLongDate } from '@/lib/dates';
 import { useHarmonised } from '@/lib/harmonise';
-import { parseMoney, toDecimalString } from '@/lib/money';
+import { currencySymbol, parseMoney, toDecimalString } from '@/lib/money';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { showSaved } from '@/lib/sync';
@@ -224,6 +224,12 @@ function scheduleOf(subscription: Subscription): string {
 	const schedule = scheduleLabel(subscription.dayOfMonth);
 	return subscription.enabled ? t('subscriptions.next', { schedule, date: formatLongDate(subscription.nextRunOn) }) : schedule;
 }
+
+/** The amount leads with the currency of the account it posts to. */
+const amountPrefix = computed(() => {
+	const currency = ledger.accountsById.get(form.accountId)?.currency;
+	return currency ? currencySymbol(currency) : undefined;
+});
 </script>
 
 <template>
@@ -333,6 +339,7 @@ function scheduleOf(subscription: Subscription): string {
 					:label="t('common.amount')"
 					placeholder="0.00"
 					inputmode="decimal"
+					:prefix="amountPrefix"
 					:error="fieldError('subscription-amount')"
 					@blur="touch('subscription-amount')"
 				/>

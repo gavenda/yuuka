@@ -2,11 +2,11 @@
 import AlertDialog from '@/components/AlertDialog.vue';
 import BudgetCard from '@/components/BudgetCard.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import DenseField from '@/components/DenseField.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import MonthAction from '@/components/MonthAction.vue';
 import StatCarousel, { type StatItem } from '@/components/StatCarousel.vue';
+import TextField from '@/components/TextField.vue';
 import { currencySymbol, parseMoney, percentOf, toDecimalString } from '@/lib/money';
 import { computeNetPay } from '@/lib/philippinesTax';
 import { displayMoney } from '@/lib/privacy';
@@ -243,11 +243,10 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 
 		<AlertDialog :open="editingIncome" :title="t('budget.plannedIncome')" role="dialog" @close="cancelEditingIncome">
 			<form id="planned-income-form" class="sm:w-96" novalidate @submit.prevent="commitIncome">
-				<DenseField
+				<TextField
 					id="planned-income"
 					v-model="incomeDraft"
-					class="type-headline-small"
-					:label="t('budget.plannedIncome')"
+					:label="t('common.amount')"
 					inputmode="decimal"
 					autofocus
 					clearable

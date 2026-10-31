@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui.budget
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -292,14 +294,16 @@ private fun PlannedIncomeDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(stringResource(R.string.planned_income_label)) },
         text = {
-            DenseOutlinedTextField(
+            YuukaTextField(
                 value = draft,
                 onValueChange = { draft = it },
+                label = stringResource(R.string.label_amount),
+                singleLine = true,
                 placeholder = if (usingGross) stringResource(R.string.placeholder_gross_income) else stringResource(R.string.placeholder_amount_decimal),
                 prefix = currencySymbol(currency),
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !saving,
                 onClear = { draft = "" },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         },
         confirmButton = {
@@ -442,17 +446,19 @@ private fun BudgetDialog(
                     label = { it.second },
                     enabled = !saving,
                 )
-                DenseOutlinedTextField(
+                YuukaTextField(
                     value = draft,
                     onValueChange = { draft = it },
+                    label = stringResource(R.string.label_budget),
+                    singleLine = true,
                     placeholder = if (mode == "percent") stringResource(R.string.placeholder_percent_zero) else stringResource(R.string.placeholder_amount_decimal),
                     // An empty string rather than null keeps the prefix slot always present, so
                     // M3's focus/empty-driven fade animation doesn't get stuck after the slot is
                     // added and removed across mode switches (it should only ever be added once).
                     prefix = if (mode == "amount") currencySymbol(currency) else "",
-                    modifier = Modifier.fillMaxWidth(),
                     enabled = !saving,
                     field = plannedField,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 )
             }
         },

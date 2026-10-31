@@ -9,7 +9,7 @@ import PayeeInput from '@/components/PayeeInput.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import { currentTime, today } from '@/lib/dates';
 import FieldSupport from '@/components/FieldSupport.vue';
-import { parseMoney, toDecimalString } from '@/lib/money';
+import { currencySymbol, parseMoney, toDecimalString } from '@/lib/money';
 import { useHarmonised } from '@/lib/harmonise';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { api, ApiError } from '@/lib/api';
@@ -273,6 +273,12 @@ function announceRoundUp(roundUp: Transaction): void {
 		}),
 	);
 }
+
+/** The amount leads with the currency of the account it lands on. */
+const amountPrefix = computed(() => {
+	const currency = ledger.accountsById.get(form.accountId)?.currency;
+	return currency ? currencySymbol(currency) : undefined;
+});
 </script>
 
 <template>
@@ -303,6 +309,7 @@ function announceRoundUp(roundUp: Transaction): void {
 				:label="t('common.amount')"
 				placeholder="0.00"
 				inputmode="decimal"
+				:prefix="amountPrefix"
 				:error="fieldError('amount')"
 				@blur="touch('amount')"
 			/>

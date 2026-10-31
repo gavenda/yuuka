@@ -14,6 +14,7 @@ import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -109,6 +110,10 @@ fun YuukaTextField(
     singleLine: Boolean = false,
     enabled: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    /** Leads the value, such as a currency symbol; Material shows it once the field has focus or a value. */
+    prefix: String? = null,
+    /** Non-null shows a trailing clear button whenever there is text to clear. */
+    onClear: (() -> Unit)? = null,
 ) {
     val error = field?.error
 
@@ -120,8 +125,15 @@ fun YuukaTextField(
         enabled = enabled,
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
+        prefix = prefix?.let { { Text(it) } },
         trailingIcon = if (error != null) {
             { ErrorIcon() }
+        } else if (onClear != null && value.isNotEmpty()) {
+            {
+                IconButton(onClick = onClear, enabled = enabled) {
+                    Icon(painterResource(R.drawable.cancel_48px), contentDescription = stringResource(R.string.cd_clear))
+                }
+            }
         } else {
             null
         },

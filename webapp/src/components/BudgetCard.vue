@@ -6,7 +6,7 @@ import { useBudgetStore } from '@/stores/budget';
 import type { CategoryBreakdown } from '@/types';
 import AlertDialog from '@/components/AlertDialog.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import DenseField from '@/components/DenseField.vue';
+import TextField from '@/components/TextField.vue';
 import { reducedMotion, useFrameClock } from '@/lib/frameClock';
 import { useFormValidation } from '@/lib/validation';
 import { computed, ref, shallowRef, watch } from 'vue';
@@ -214,11 +214,10 @@ const track = computed(() => {
 				/>
 
 				<!-- Empty clears the plan, which is a change like any other; anything else has to be a share, or an amount that is not negative. -->
-				<DenseField
+				<TextField
 					:id="fieldId"
 					v-model="draft"
-					class="type-body-large"
-					:label="t('common.planned')"
+					:label="t('common.budget')"
 					inputmode="decimal"
 					:placeholder="mode === 'percent' ? '0' : '0.00'"
 					:prefix="mode === 'amount' ? currencySymbol(currency) : undefined"

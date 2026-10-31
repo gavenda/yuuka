@@ -522,10 +522,9 @@ classes, not one-offs:
 - Fields are outlined text fields: `.field` wraps a `.input` followed by its `.label`, which rests in the
   field while it is empty and rises into the border's notch — cut out in the colour of whatever the field
   sits on (`--surface-under`) — once it has focus or a value. `TextField` is that with its error and
-  hint; `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it
+  hint, and a `prefix` or a clear button (`clearable`) where it needs one; `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it
   `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus
-  on its field), `PickerField` a date or time that opens the browser's own picker, `DenseField` the short
-  unlabelled one for a row beside a button, and `ColourField` the palette swatches with a wheel
+  on its field), `PickerField` a date or time that opens the browser's own picker, and `ColourField` the palette swatches with a wheel
   (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in, and
   `SearchField` that with its clear button.
 

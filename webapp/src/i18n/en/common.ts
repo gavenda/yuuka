@@ -47,6 +47,7 @@ export default {
 	cashflow: 'Cashflow',
 	spent: 'Spent',
 	planned: 'Planned',
+	budget: 'Budget',
 	netWorth: 'Net worth',
 	errorGeneric: "Something doesn't add up. Try that again?",
 	couldNotSave: "Couldn't save that. Give it another try?",

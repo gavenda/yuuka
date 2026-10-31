@@ -72,6 +72,8 @@ function onKeydown(event: KeyboardEvent): void {
 		event.preventDefault();
 		choose(matches.value[active.value]);
 	} else if (event.key === 'Escape') {
+		// The list goes first; the form behind it only closes on the next Escape.
+		event.preventDefault();
 		open.value = false;
 		active.value = -1;
 	}
@@ -87,6 +89,12 @@ watch(
 		active.value = -1;
 	},
 );
+
+/** Typing brings back a list that was put away. */
+function onInput(event: Event): void {
+	model.value = (event.target as HTMLInputElement).value;
+	open.value = true;
+}
 
 onMounted(() => {
 	void load();
@@ -122,7 +130,7 @@ function hint(entry: Payee): string {
 				:aria-describedby="error ? supportId('payee') : undefined"
 				aria-controls="payee-suggestions"
 				:placeholder="placeholder ?? ' '"
-				@input="model = ($event.target as HTMLInputElement).value"
+				@input="onInput"
 				@focus="open = true"
 				@blur="emit('blur')"
 				@keydown="onKeydown"

@@ -58,6 +58,7 @@
     <string name="net_worth">Net worth</string>
     <string name="label_spent">Spent</string>
     <string name="label_planned">Planned</string>
+    <string name="label_budget">Budget</string>
     <string name="name_archived">%1$s (Archived)</string>
     <string name="transfer_account_flow">%1$s → %2$s</string>
     <string name="archived_toggle_hide">Hide %1$d archived</string>

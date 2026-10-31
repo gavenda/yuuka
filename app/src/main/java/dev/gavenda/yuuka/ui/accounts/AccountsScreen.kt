@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui.accounts
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -19,6 +21,7 @@ import dev.gavenda.yuuka.data.model.Account
 import dev.gavenda.yuuka.data.model.AccountType
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.currencyName
+import dev.gavenda.yuuka.domain.currencySymbol
 import dev.gavenda.yuuka.domain.LOGO_URL_MAX
 import dev.gavenda.yuuka.domain.PAYEE_MAX
 import dev.gavenda.yuuka.domain.formatMoney
@@ -395,6 +398,9 @@ private fun AccountFormContent(
             placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
             field = balanceField,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            // Follows the currency typed below once it is a code.
+            prefix = if (isCurrencyCode(currency)) currencySymbol(currency.trim().uppercase()) else "",
         )
 
         YuukaTextField(
@@ -457,6 +463,8 @@ private fun AccountAdjustDialog(account: Account, submitting: Boolean, onSave: (
                     placeholder = stringResource(R.string.placeholder_amount_decimal),
                     singleLine = true,
                     field = balanceField,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    prefix = currencySymbol(account.currency),
                 )
 
                 if (difference != null && difference != 0L) {

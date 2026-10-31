@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui.transactions
 
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import dev.gavenda.yuuka.ui.common.YuukaSays
 import dev.gavenda.yuuka.ui.common.YuukaMood
 import androidx.compose.foundation.background
@@ -239,6 +241,9 @@ fun TransactionForm(
             placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
             field = amountField,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            // The currency of the account it lands on; empty rather than null keeps the prefix slot steady.
+            prefix = accounts.firstOrNull { it.id == fields.accountId }?.let { currencySymbol(it.currency) } ?: "",
         )
 
         val accountOptions = accounts.map { SelectOption(it.id, it.name) }

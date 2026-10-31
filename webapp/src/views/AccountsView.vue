@@ -17,7 +17,7 @@ import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import TopBar from '@/components/TopBar.vue';
 import { api, ApiError } from '@/lib/api';
 import { BANKS } from '@/lib/banks';
-import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
+import { currencyName, currencySymbol, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
@@ -402,6 +402,7 @@ onMounted(() => ledger.load());
 					:label="t('accounts.startingBalance')"
 					placeholder="0.00"
 					inputmode="decimal"
+					:prefix="currencyProblem(form.currency) ? undefined : currencySymbol(form.currency.trim().toUpperCase())"
 					:error="fieldError('account-balance')"
 					@blur="touch('account-balance')"
 				/>
@@ -459,6 +460,7 @@ onMounted(() => ledger.load());
 					:label="t('accounts.newBalance')"
 					placeholder="0.00"
 					inputmode="decimal"
+					:prefix="currencySymbol(adjusting.currency)"
 					:error="adjustFieldError('adjust-balance')"
 					@blur="adjustTouch('adjust-balance')"
 				/>

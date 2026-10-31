@@ -1,5 +1,6 @@
 package dev.gavenda.yuuka.ui.common
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.*
@@ -30,24 +31,35 @@ fun PayeeField(
     field: FieldState? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
+    // Put away by a tap outside it, Back or a choice, until the name is typed in again.
+    var dismissed by remember { mutableStateOf(false) }
     val matches = remember(payees, value) { rankPayees(payees, value) }
     var fieldWidth by remember { mutableIntStateOf(0) }
-    val showList = focused && matches.isNotEmpty() && !isExhausted(matches, value)
+    val showList = focused && !dismissed && matches.isNotEmpty() && !isExhausted(matches, value)
+
+    // Back puts the list away before it closes the form.
+    BackHandler(enabled = showList) { dismissed = true }
 
     androidx.compose.foundation.layout.Box(modifier = modifier) {
         YuukaTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = {
+                dismissed = false
+                onValueChange(it)
+            },
             label = label,
             placeholder = placeholder,
             singleLine = true,
             field = field,
-            modifier = Modifier.fillMaxWidth().onSizeChanged { fieldWidth = it.width }.onFocusChanged { focused = it.isFocused },
+            modifier = Modifier.fillMaxWidth().onSizeChanged { fieldWidth = it.width }.onFocusChanged {
+                focused = it.isFocused
+                if (!it.isFocused) dismissed = false
+            },
         )
 
         DropdownMenu(
             expanded = showList,
-            onDismissRequest = { },
+            onDismissRequest = { dismissed = true },
             modifier = Modifier.width(with(LocalDensity.current) { fieldWidth.toDp() }),
             properties = androidx.compose.ui.window.PopupProperties(focusable = false),
         ) {
@@ -65,7 +77,10 @@ fun PayeeField(
                             }
                         }
                     },
-                    onClick = { onSelect(entry); focused = false },
+                    onClick = {
+                        onSelect(entry)
+                        dismissed = true
+                    },
                 )
             }
         }

@@ -520,23 +520,14 @@
 		@apply border-error focus:border-error focus:ring-error;
 	}
 
-	/* For fields set inline beside a button, where 56dp is too tall (`DenseOutlinedTextField`). */
-	.input-sm {
-		@apply min-h-10 py-1;
+	/* What leads a field's value, a currency symbol say: hidden while the label rests where it would stand. */
+	.field-prefix {
+		@apply type-body-large pointer-events-none absolute top-4 left-4 text-on-surface-variant opacity-0 transition-opacity;
 	}
 
-	/* The same outline around a field that brings more than its input: a prefix, a clear button. */
-	.input-box {
-		@apply flex min-h-10 w-full items-center gap-1 rounded-xs border border-outline px-4 py-1 text-on-surface transition-colors;
-		@apply focus-within:border-primary focus-within:ring-1 focus-within:ring-primary;
-	}
-
-	.input-box[aria-invalid='true'] {
-		@apply border-error focus-within:border-error focus-within:ring-error;
-	}
-
-	.input-box[data-disabled] {
-		@apply border-on-surface/12 text-on-surface/38;
+	.field:focus-within > .field-prefix,
+	.field:has(> .input:not(:placeholder-shown)) > .field-prefix {
+		@apply opacity-100;
 	}
 
 	/* A filled field drawn as a pill — a search bar. No indicator line: a round shape does not clip one. */
