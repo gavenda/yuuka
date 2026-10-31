@@ -19,6 +19,10 @@ sealed interface Route : NavKey {
     @Serializable data object Categories : Route
     @Serializable data object Tags : Route
     @Serializable data object Subscriptions : Route
+    @Serializable data object Investments : Route
+
+    /** One stock, opened from [Investments] and standing beside it where the page has room. */
+    @Serializable data class Holding(val symbol: String) : Route
 
     /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
     @Serializable data object Settings : Route
@@ -34,7 +38,7 @@ sealed interface Route : NavKey {
  * The web app's bottom nav and top links — `App.vue`'s `links` — plus Subscriptions, which the web app
  * keeps under the avatar menu and this app keeps in the navigation drawer. Only some of these are
  * bottom-nav tabs; `YuukaApp` puts the rest in the drawer. A wide window's rail lists the same three as
- * the bottom bar ([RAIL_DESTINATIONS]) and keeps the rest under "More" ([RAIL_MORE_DESTINATIONS]).
+ * the bottom bar ([RAIL_DESTINATIONS]) and keeps the rest in labelled groups ([NAV_GROUPS]).
  */
 enum class YuukaDestination(val route: Route, @StringRes val labelRes: Int, @DrawableRes val icon: Int, @DrawableRes val iconSelected: Int) {
     DASHBOARD(Route.Dashboard, R.string.destination_dashboard, R.drawable.dashboard_48px, R.drawable.dashboard_fill_48px),
@@ -43,14 +47,17 @@ enum class YuukaDestination(val route: Route, @StringRes val labelRes: Int, @Dra
     ACCOUNTS(Route.Accounts, R.string.destination_accounts, R.drawable.account_balance_wallet_48px, R.drawable.account_balance_wallet_fill_48px),
     CATEGORIES(Route.Categories, R.string.destination_categories, R.drawable.category_48px, R.drawable.category_fill_48px),
     TAGS(Route.Tags, R.string.destination_tags, R.drawable.sell_48px, R.drawable.sell_fill_48px),
+    INVESTMENTS(Route.Investments, R.string.destination_investments, R.drawable.trending_up_48px, R.drawable.trending_up_fill_48px),
     SUBSCRIPTIONS(Route.Subscriptions, R.string.destination_subscriptions, R.drawable.event_repeat_48px, R.drawable.event_repeat_fill_48px),
 }
 
-/** The rail's row of daily destinations: the ones the phone's bottom bar holds. */
-val RAIL_DESTINATIONS = listOf(YuukaDestination.DASHBOARD, YuukaDestination.TRANSACTIONS, YuukaDestination.ACCOUNTS)
+/** Marked on the rail while it, or a screen opened from it, is on show. */
+fun YuukaDestination.isCurrent(route: NavKey?): Boolean =
+    route == this.route || (this == YuukaDestination.INVESTMENTS && route is Route.Holding)
 
-/** Everything else, opened from the rail's "More" group, in the order they were listed before leaving the row. */
-val RAIL_MORE_DESTINATIONS = YuukaDestination.entries - RAIL_DESTINATIONS.toSet()
+/** The rail's row of daily destinations: the ones the phone's bottom bar holds. */
+val RAIL_DESTINATIONS = listOf(YuukaDestination.TRANSACTIONS, YuukaDestination.INVESTMENTS, YuukaDestination.ACCOUNTS)
+
 
 /** Settings itself, or a screen opened from it. */
 fun isSettingsRoute(route: NavKey?): Boolean = route == Route.Settings || route == Route.AccountTypes
@@ -79,3 +86,28 @@ val AMOUNT_FREE_ROUTES: Set<NavKey> = setOf(
 /** The destinations that each keep a history of their own; anything else opens on top of one of them. */
 val TOP_LEVEL_ROUTES: Set<NavKey> =
     (YuukaDestination.entries.map { it.route } + DetailDestination.entries.map { it.route }).toSet()
+
+/** One entry of a navigation group: a ledger destination or something set up once, drawn the same way. */
+class NavItem(
+    val route: Route,
+    @StringRes val labelRes: Int,
+    @DrawableRes val icon: Int,
+    @DrawableRes val iconSelected: Int,
+    val isCurrent: (NavKey?) -> Boolean,
+)
+
+private fun YuukaDestination.item() = NavItem(route, labelRes, icon, iconSelected) { isCurrent(it) }
+private fun DetailDestination.item() = NavItem(route, labelRes, icon, iconSelected) { isCurrent(it) }
+
+/** A heading and the destinations under it, past the daily ones in the drawer and the open rail. */
+class NavGroup(@StringRes val labelRes: Int, val items: List<NavItem>)
+
+/**
+ * Everything that is not a daily destination, grouped by what it is for: what is read to see how things stand,
+ * what posts money by itself, and the labels set up once. Settings and Sign out follow without a heading.
+ */
+val NAV_GROUPS: List<NavGroup> = listOf(
+    NavGroup(R.string.nav_group_insights, listOf(YuukaDestination.DASHBOARD.item(), YuukaDestination.BUDGET.item())),
+    NavGroup(R.string.nav_group_automations, listOf(YuukaDestination.SUBSCRIPTIONS.item(), DetailDestination.SAVE_THE_CHANGE.item())),
+    NavGroup(R.string.nav_group_organize, listOf(YuukaDestination.CATEGORIES.item(), YuukaDestination.TAGS.item())),
+)

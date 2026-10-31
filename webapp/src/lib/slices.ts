@@ -24,16 +24,18 @@ export const CHANGE_SLICES = [
 	'roundUpRule',
 	'payees',
 	'summary',
+	'investments',
 ] as const;
 
 export type ChangeSlice = (typeof CHANGE_SLICES)[number];
 
 const SLICES_BY_PREFIX: ReadonlyArray<readonly [string, readonly ChangeSlice[]]> = [
 	['/api/account-types', ['accountTypes', 'accounts']],
-	['/api/accounts', ['accounts', 'transactions', 'summary', 'payees']],
+	['/api/accounts', ['accounts', 'transactions', 'summary', 'payees', 'investments']],
 	['/api/categories', ['categories', 'transactions', 'budgets', 'summary']],
 	['/api/tags', ['tags', 'transactions']],
-	['/api/transactions', ['transactions', 'accounts', 'summary', 'payees']],
+	['/api/transactions', ['transactions', 'accounts', 'summary', 'payees', 'investments']],
+	['/api/trades', ['investments', 'transactions', 'accounts', 'summary']],
 	['/api/budgets', ['budgets', 'summary']],
 	['/api/income-plan', ['incomePlan', 'summary']],
 	['/api/subscriptions', ['subscriptions']],

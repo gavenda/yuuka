@@ -16,9 +16,11 @@ import { createSyncRoutes } from './routes/sync';
 import { summaryRoutes } from './routes/summary';
 import { trendRoutes } from './routes/trend';
 import { tagRoutes } from './routes/tags';
+import { securityRoutes, tradeRoutes } from './routes/investments';
 import { transactionRoutes } from './routes/transactions';
 import { notifyChange, slicesForPath } from './notify';
 import { runDueSubscriptions } from './subscriptions';
+import { INVESTMENT_CRON, runInvestmentTick } from './investments';
 import type { AppEnv } from './types';
 
 /**
@@ -84,6 +86,8 @@ app.route('/api/round-up', roundUpRoutes);
 app.route('/api/subscriptions', subscriptionRoutes);
 app.route('/api/summary', summaryRoutes);
 app.route('/api/trend', trendRoutes);
+app.route('/api/securities', securityRoutes);
+app.route('/api/trades', tradeRoutes);
 app.route('/api/devices', deviceRoutes);
 // Mounted with a dispatcher back into this same app: a queued operation is
 // replayed through the router it would have gone through online. Declaring it
@@ -111,12 +115,14 @@ export default {
 	fetch: app.fetch,
 
 	/**
-	 * Fires at 00:00 UTC (`triggers.crons` in `wrangler.jsonc`) and posts every
-	 * subscription that has come due. `scheduledTime` is when the trigger was
-	 * meant to fire, not when it happened to start, so a late tick still posts
-	 * for the right day.
+	 * Two crons (`triggers.crons` in `wrangler.jsonc`). At 00:00 UTC it posts every subscription that
+	 * has come due; `scheduledTime` is when the trigger was meant to fire, not when it happened to
+	 * start, so a late tick still posts for the right day. Every hour at :20 it brings PSE prices up
+	 * to the latest close and backfills a slice of history (`server/investments.ts`).
 	 */
 	async scheduled(controller, env, ctx): Promise<void> {
-		ctx.waitUntil(runDueSubscriptions(env, new Date(controller.scheduledTime)));
+		const when = new Date(controller.scheduledTime);
+		if (controller.cron === INVESTMENT_CRON) ctx.waitUntil(runInvestmentTick(env, when));
+		else ctx.waitUntil(runDueSubscriptions(env, when));
 	},
 } satisfies ExportedHandler<Env>;

@@ -257,7 +257,11 @@ describe('patched', () => {
 
 describe('slices', () => {
 	it('knows a transaction moves balances and the month’s summary, not just the list', () => {
-		expect(slicesForPath('/api/transactions')).toEqual(['transactions', 'accounts', 'summary', 'payees']);
+		expect(slicesForPath('/api/transactions')).toEqual(['transactions', 'accounts', 'summary', 'payees', 'investments']);
+	});
+
+	it('knows a trade moves its holdings, its cash leg and net worth', () => {
+		expect(slicesForPath('/api/trades')).toEqual(['investments', 'transactions', 'accounts', 'summary']);
 	});
 
 	it('treats an adjustment as the transaction it is', () => {

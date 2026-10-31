@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { budgetMonthKey, getBudgetMode, MONTH_MATCHES } from '../budget-mode';
 import { readSummary, writeSummary } from '../cache';
 import { currentMonth, monthRange } from '../dates';
+import { holdingsValue, notTradeCash } from '../investments';
 import { parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
 import { toAccount, type AccountRow, type CategoryKind, type CategoryRow } from '../mappers';
@@ -98,7 +99,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			`SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount END), 0) AS income,
 			        COALESCE(-SUM(CASE WHEN amount < 0 THEN amount END), 0) AS expenses
 			 FROM transactions
-			 WHERE user_id = ? AND transfer_id IS NULL AND occurred_on >= ? AND occurred_on < ?`,
+			 WHERE user_id = ? AND transfer_id IS NULL AND ${notTradeCash('transactions.id')} AND occurred_on >= ? AND occurred_on < ?`,
 		).bind(userId, start, end),
 		c.env.DB.prepare(
 			'SELECT * FROM categories WHERE user_id = ? AND archived = 0 ORDER BY kind ASC, sort_order ASC, name COLLATE NOCASE ASC',
@@ -133,7 +134,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 			// rows keyed by timestamps the frontend's per-day lookup never matched.
 			`SELECT occurred_on AS date, -SUM(amount) AS spent
 			 FROM transactions
-			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND occurred_on >= ? AND occurred_on < ?
+			 WHERE user_id = ? AND transfer_id IS NULL AND ${notTradeCash('transactions.id')} AND amount < 0 AND occurred_on >= ? AND occurred_on < ?
 			 GROUP BY occurred_on
 			 ORDER BY date ASC`,
 		).bind(userId, start, end),
@@ -143,7 +144,7 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		c.env.DB.prepare(
 			`SELECT payee, -SUM(amount) AS spent, COUNT(*) AS count
 			 FROM transactions
-			 WHERE user_id = ? AND transfer_id IS NULL AND amount < 0 AND payee <> '' AND occurred_on >= ? AND occurred_on < ?
+			 WHERE user_id = ? AND transfer_id IS NULL AND ${notTradeCash('transactions.id')} AND amount < 0 AND payee <> '' AND occurred_on >= ? AND occurred_on < ?
 			 GROUP BY payee COLLATE NOCASE
 			 ORDER BY spent DESC, payee COLLATE NOCASE ASC
 			 LIMIT ${TOP_PAYEES}`,
@@ -157,6 +158,8 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 	]);
 
 	const accountRows = accounts.results as AccountRow[];
+	// Shares are worth what they last closed at; the cash they were bought with is already gone from the balances.
+	const holdings = await holdingsValue(c.env.DB, userId);
 	const categoryRows = categories.results as CategoryRow[];
 	const monthTotals = (totals.results as TotalsRow[])[0] ?? { income: 0, expenses: 0 };
 
@@ -233,7 +236,9 @@ export const summaryRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', a
 		plannedIncomeMode: incomePlanRow?.mode ?? 'fixed',
 		/** The gross figure `plannedIncome` was derived from, when `plannedIncomeMode` is 'gross'. */
 		plannedIncomeGrossAmount: incomePlanRow?.gross_amount ?? null,
-		netWorth: accountRows.reduce((sum, row) => sum + (row.balance ?? row.starting_balance), 0),
+		netWorth: accountRows.reduce((sum, row) => sum + (row.balance ?? row.starting_balance), 0) + holdings,
+		/** What the PSE holdings are worth at the latest close, already counted in `netWorth`. */
+		holdings,
 		/** Money moved into transfer-categorised destinations, e.g. investments. */
 		cashflow: breakdown.filter((entry) => entry.kind === 'transfer').reduce((sum, entry) => sum + entry.actual, 0),
 		totalBudgeted: breakdown.filter((entry) => entry.kind === 'expense').reduce((sum, entry) => sum + entry.planned, 0),

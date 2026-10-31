@@ -26,6 +26,7 @@ object Ids {
     const val TRANSFER = "tfr"
     const val SUBSCRIPTION = "sub"
     const val BUDGET = "bdg"
+    const val TRADE = "trd"
 
     /** A new id of this kind, e.g. `txn_9f1c…`. */
     fun new(prefix: String): String = "${prefix}_${UUID.randomUUID().toString().replace("-", "")}"

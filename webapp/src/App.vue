@@ -11,7 +11,7 @@ import AppIcon from '@/components/AppIcon.vue';
 import { ARROW_BACK, ATTACH_MONEY, CALENDAR_MONTH, DELETE, MONEY_OFF } from '@/lib/icons';
 import { FORM_PANE_MIN_PAGE, paneOpen, paneRoom, pendingSwitch } from '@/lib/formPane';
 import { formatMonth } from '@/lib/dates';
-import { dailyLinks, moreLinks } from '@/lib/nav';
+import { dailyLinks, navGroups, settingsLink } from '@/lib/nav';
 import { currentMonthAction } from '@/lib/monthAction';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
@@ -26,6 +26,7 @@ import { useAuth0 } from '@auth0/auth0-vue';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
+import { useInvestmentStore } from '@/stores/investments';
 import { useTransactionStore } from '@/stores/transactions';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -36,6 +37,7 @@ const ledger = useLedgerStore();
 const budget = useBudgetStore();
 const transactions = useTransactionStore();
 const subscriptions = useSubscriptionStore();
+const investments = useInvestmentStore();
 const router = useRouter();
 const route = useRoute();
 const { hidden: amountsHidden, toggle: toggleAmounts } = useAmountVisibility();
@@ -109,7 +111,7 @@ function switchForms(): void {
 const shellShown = computed(() => showShell.value && !isLoading.value);
 
 /** The top app bar names the screen; the views underneath don't repeat it. */
-const isTabDestination = computed(() => ['dashboard', 'transactions', 'accounts'].includes(route.name as string));
+const isTabDestination = computed(() => ['transactions', 'investments', 'accounts'].includes(route.name as string));
 const pageTitle = computed(() => (route.meta.titleKey ? t(route.meta.titleKey as string) : t('common.appName')));
 const parentPath = computed(() => route.meta.parent as string | undefined);
 /** Whether the screen on show names a list to stand beside (the router's `list` view). */
@@ -147,6 +149,7 @@ async function signOut(): Promise<void> {
 	budget.reset();
 	transactions.reset();
 	subscriptions.reset();
+	investments.reset();
 	// Waited for: the page is about to unload, and an unfinished clear would go with it.
 	await clearCache();
 	// Unsent changes go with the session that made them, and this install stops
@@ -348,16 +351,21 @@ onBeforeUnmount(() => {
 
 							<!-- What the phone's bar has no room for: the less-visited screens, then what is set up
 							     once and then left alone. -->
-							<RouterLink
-								v-for="(link, index) in moreLinks"
-								:key="link.to"
-								:to="link.to"
-								role="menuitem"
-								class="menu-item"
-								:class="index === 0 ? 'mt-2' : ''"
-								@click="userMenuOpen = false"
-							>
-								{{ link.label }}
+							<template v-for="group in navGroups" :key="group.label">
+								<span class="type-label-medium block px-3 pt-3 pb-1 text-on-surface-variant" role="presentation">{{ group.label }}</span>
+								<RouterLink
+									v-for="link in group.links"
+									:key="link.to"
+									:to="link.to"
+									role="menuitem"
+									class="menu-item"
+									@click="userMenuOpen = false"
+								>
+									{{ link.label }}
+								</RouterLink>
+							</template>
+							<RouterLink :to="settingsLink.to" role="menuitem" class="menu-item mt-3" @click="userMenuOpen = false">
+								{{ settingsLink.label }}
 							</RouterLink>
 
 							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">{{ t('common.signOut') }}</button>

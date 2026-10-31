@@ -6,7 +6,7 @@ import { formatMonth } from '@/lib/dates';
 import { currentFab, type FabEntry } from '@/lib/fab';
 import { ATTACH_MONEY, CALENDAR_MONTH, LOGOUT, MENU, MENU_OPEN, MONEY_OFF } from '@/lib/icons';
 import { currentMonthAction } from '@/lib/monthAction';
-import { dailyLinks, moreLinks } from '@/lib/nav';
+import { dailyLinks, navGroups, settingsLink } from '@/lib/nav';
 import { useAmountVisibility } from '@/lib/privacy';
 import { railPushesContent, useRail } from '@/lib/rail';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
@@ -252,15 +252,27 @@ onBeforeUnmount(() => {
 					<!-- Only in the open rail: it grows out of nothing rather than appearing, and is inert while shut. -->
 					<div class="rail-collapse" :data-open="expanded" :inert="!expanded">
 						<div>
-							<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">{{ t('nav.more') }}</h2>
+							<template v-for="group in navGroups" :key="group.label">
+								<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">{{ group.label }}</h2>
+								<RailItem
+									v-for="link in group.links"
+									:key="link.to"
+									:to="link.to"
+									:label="link.label"
+									:icon="link.icon"
+									:icon-selected="link.iconSelected"
+									expanded
+									@click="afterChoice"
+								/>
+							</template>
 
+							<!-- About the app rather than the money, so no heading: a gap sets them apart. -->
 							<RailItem
-								v-for="link in moreLinks"
-								:key="link.to"
-								:to="link.to"
-								:label="link.label"
-								:icon="link.icon"
-								:icon-selected="link.iconSelected"
+								class="mt-4"
+								:to="settingsLink.to"
+								:label="settingsLink.label"
+								:icon="settingsLink.icon"
+								:icon-selected="settingsLink.iconSelected"
 								expanded
 								@click="afterChoice"
 							/>

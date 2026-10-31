@@ -56,3 +56,12 @@ data class IncomePlanResponse(val incomePlan: IncomePlan)
 
 @Serializable
 data class SubscriptionsResponse(val subscriptions: List<Subscription>)
+
+@Serializable
+data class SecuritiesResponse(val securities: List<Security>)
+
+@Serializable
+data class TradesResponse(val trades: List<Trade>)
+
+@Serializable
+data class PricesResponse(val prices: List<PricePoint>)

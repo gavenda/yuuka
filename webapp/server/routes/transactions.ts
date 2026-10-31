@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { guardTradeLeg } from './investments';
 import { invalidateSummaries } from '../cache';
 import { payeeKind, rememberPayee, ROUND_UP_PAYEE } from '../payees';
 import { badRequest, notFound } from '../errors';
@@ -652,6 +653,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 			.first<{ occurred_on: string; source: TransactionSource; transfer_id: string | null }>();
 		if (!existing) throw notFound('Transaction not found.');
 
+		await guardTradeLeg(c.env.DB, userId, id, 'edit');
 		if (input.tagIds) await assertOwnTags(c.env.DB, userId, input.tagIds);
 
 		// A subscription posts at 00:00 UTC and nobody chooses that. The date can
@@ -744,6 +746,9 @@ export const transactionRoutes = new Hono<AppEnv>()
 			.first<{ occurred_on: string; transfer_id: string | null }>();
 
 		if (!existing) throw notFound('Transaction not found.');
+
+		// A trade's cash leg takes its trade with it, unless a later sell depends on that trade.
+		await guardTradeLeg(c.env.DB, userId, id, 'delete');
 
 		// A transfer is one movement recorded twice; deleting half would leave both
 		// accounts wrong. Dropping the parent takes both legs with it, and the

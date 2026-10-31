@@ -443,3 +443,26 @@ export const deviceRegisterSchema = z.object({
 	deviceId: z.string().min(8).max(80),
 	platform: z.enum(['android', 'web']),
 });
+
+/** A PSE trade. Its cash leg is worked out from the shares, the price and the fees, never taken from the caller. */
+export const tradeCreateSchema = z.object({
+	id: clientId('trd'),
+	/** The id its cash transaction takes, so a client's provisional row keeps its name. */
+	transactionId: clientId('txn'),
+	accountId: z.string().min(1),
+	symbol: z
+		.string()
+		.trim()
+		.regex(/^[A-Z0-9]{1,12}$/, 'Must be a PSE symbol.'),
+	kind: z.enum(['buy', 'sell', 'dividend']),
+	occurredOn: realDate,
+	shares: z.number().int().positive().max(1_000_000_000_000),
+	/** Ten-thousandths of a peso a share; a dividend's is what it paid a share. */
+	price: z.number().int().positive().max(100_000_000_000),
+	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
+	fees: money.min(0).default(0),
+});
+
+export const pricesQuerySchema = z.object({
+	from: dateString.optional(),
+});

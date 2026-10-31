@@ -194,6 +194,21 @@ negative. A paused subscription posts nothing, so it is left out and the screen
 says how many were. Like net worth it is added up as it stands and shown in the
 display currency — amounts are not converted between currencies.
 
+- **PSE investments are trades plus the cash they moved**: A trade is a buy, a sell or a cash dividend of
+one PSE stock in a broker account (any PHP account): whole shares, a price in ten-thousandths of a peso
+(`price_e4`, since the smallest tick is ₱0.0001) and fees in centavos. Each writes one ordinary,
+uncategorised transaction in that account — its cash leg, the stock as payee — and the trade goes with it:
+deleting the leg from the transaction list deletes the trade, and the leg cannot be edited as a
+transaction. A buy's and a sell's cash only turns money into shares and back, so like a transfer it is left
+out of income, spending, the daily chart and the payees; a dividend's (net of the 10% final tax) is income.
+Holdings are worked out from the trades, average cost, never stored: a sell takes shares out at the average
+so far and realises the rest, and a history that would sell more than it holds at any point is refused (a
+back-dated sell, or deleting a buy a later sell needs). Net worth adds the holdings at their latest close.
+The broker's fees are worked out by the form from the PSE schedule (`pseFees`, `domain/Investments.kt`).
+Prices are market data, shared by everyone: the server keeps them from PHISIX (see
+[webapp/CLAUDE.md](webapp/CLAUDE.md)), and the client only reads them. On Android this is
+`InvestmentRepository` and `ui/investments/`; the web app has no investment screens yet.
+
 - **Deleting a category never destroys history**: Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
 _would_ take its transactions with it, so the API answers `409` until the caller
@@ -267,11 +282,12 @@ migration, and a key one app does not know yet falls back to the initial.
 
 - **Navigation follows the window, in both apps**: From 600dp / the `sm` breakpoint up (on Android, any
 window width class but Compact, from Material 3 Adaptive's `currentWindowAdaptiveInfoV2`) it is a
-rail that opens into a labelled drawer (a "More" group holding the destinations that are not
-daily ones, Save the Change, Settings and Sign out, plus the signed-in account); below that a
-phone keeps its bottom bar and avatar or hamburger menu. In both apps the rail lists the same
-three destinations as the phone's bottom bar (Dashboard, Transactions, Accounts) and keeps Budget,
-Categories and Tags under "More", ahead of Subscriptions. An open rail sits beside the page from 1024 (on Android, an Expanded width class, 840dp) and floats over a scrim
+rail that opens into a labelled drawer; below that a phone keeps its bottom bar and avatar or
+hamburger menu. In both apps the rail lists the same three destinations as the phone's bottom bar
+(Transactions, Investments, Accounts), and the app opens on Transactions. The rest sit under three
+headings, with no dividers: Insights (Overview, Budget), Automations (Subscriptions, Save the Change)
+and Organize (Categories, Tags), then Settings and Sign out without one (`NAV_GROUPS` on Android,
+`navGroups` in `lib/nav.ts` on the web). An open rail sits beside the page from 1024 (on Android, an Expanded width class, 840dp) and floats over a scrim
 below it, and the open/closed choice is remembered locally — but a narrow window never starts
 with it floating. The rail marks the current destination, so a wide window has no top bar; it also carries the
 screen's leading action as its FAB, under the menu button (an icon while slim, extended when open).

@@ -336,6 +336,26 @@ covered by calling `runDueSubscriptions(env, now)` with a fixed clock, plus one
 test through the real `scheduled` export; seed rows directly for dates in the
 past, since the API refuses a start date before today.
 
+**PSE prices come from PHISIX, on a second cron.** `triggers.crons` also holds `"20 * * * *"`
+(`INVESTMENT_CRON`), which `scheduled` sends to `runInvestmentTick` (`server/investments.ts`). It brings
+`securities` (every PSE stock at its latest close) and that day's row of `stock_prices` up to date from
+`stocks.json` once a trading day — the close counts from 15:30 Manila (`latestCloseDay`), weekends roll back to
+Friday — and then backfills up to `BACKFILL_PER_TICK` past closes (`stocks/<SYMBOL>.<date>.json`) for the
+stocks someone holds, newest weekday first, a year deep; a weekday PHISIX has nothing for goes in
+`stock_price_gaps` so it is not asked again. `GET /api/securities` runs the same refresh first if it is behind,
+so a fresh deployment needs no tick. These tables carry no `user_id`: a close is public. A refresh purges the
+current month's summary for everyone holding a stock, because net worth counts holdings at the latest close.
+PHISIX amounts are JSON numbers with at most four decimals, so `toE4` rounding them is exact.
+
+`trades` (`routes/investments.ts`) belong to a person like any ledger row. `POST /api/trades` takes the
+shares, the price and the fees and works out the cash leg itself (`tradeCash`), writing the leg and the trade
+in one batch with the account checked in the statement; it takes a client-chosen `id` and `transactionId`,
+and answers a replay with the trade already there. There is no edit. Summary, trend and payee queries leave a
+buy's or sell's leg out with `notTradeCash(...)`, and `PATCH`/`DELETE /transactions/:id` go through
+`guardTradeLeg`. `positions()` is the average-cost walk both the sell check and `holdingsValue` use, and
+`domain/Investments.kt` on Android is its twin. The trend counts holdings at each month's end at the close on
+or before it.
+
 **Account logos load with `referrerpolicy="no-referrer"`.** The URL lands in an
 `<img src>`, and the policy stops browsing from leaking which account is being
 viewed to the image's host.
@@ -597,9 +617,9 @@ about round-ups.
 
 **Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`, a Material 3
 wide navigation rail) and a bottom bar below it (`NavDestination`). Slim, the rail is 96px: the logo — a
-plain mark, never a control — the menu button, the screen's FAB, and Dashboard, Transactions and Accounts
-(`dailyLinks` in `src/lib/nav.ts`, the same three as the phone's bar, with `moreLinks` behind "More" and the avatar menu) with their labels beneath. The menu button
-opens it into a drawer whose "More" group holds Budget, Categories, Tags, Subscriptions, Save the Change,
+plain mark, never a control — the menu button, the screen's FAB, and Transactions, Investments and Accounts
+(`dailyLinks` in `src/lib/nav.ts`, the same three as the phone's bar) with their labels beneath. The menu button
+opens it into a drawer of `navGroups` — Insights, Automations and Organize, each under its heading — then
 Settings and Sign out, with the signed-in account in a card at the foot; phones keep those in the avatar
 menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount; under
 it, on a screen that is looking at a month, is the month button, labelled with that month once open. Open,
@@ -649,7 +669,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-666 tests: 395 against the API in `test/`, 271 over the browser helpers as
+734 tests: 440 against the API in `test/`, 294 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

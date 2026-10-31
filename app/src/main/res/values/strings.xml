@@ -69,7 +69,9 @@
     <string name="cd_menu">Menu</string>
     <string name="cd_expand_navigation">Expand navigation</string>
     <string name="cd_collapse_navigation">Collapse navigation</string>
-    <string name="nav_more">More</string>
+    <string name="nav_group_insights">Insights</string>
+    <string name="nav_group_automations">Automations</string>
+    <string name="nav_group_organize">Organize</string>
     <string name="cd_back">Back</string>
     <string name="cd_show_amounts">Show amounts</string>
     <string name="cd_hide_amounts">Hide amounts</string>
@@ -86,7 +88,7 @@
     <string name="cd_resume_item">Resume %1$s</string>
 
     <!-- Destinations -->
-    <string name="destination_dashboard">Dashboard</string>
+    <string name="destination_dashboard">Overview</string>
     <string name="destination_transactions">Transactions</string>
     <string name="destination_budget">Budget</string>
     <string name="destination_accounts">Accounts</string>
@@ -428,4 +430,69 @@
         <item quantity="one">Syncing %1$d change…</item>
         <item quantity="other">Syncing %1$d changes…</item>
     </plurals>
+
+    <!-- Investments: PSE holdings, priced from PHISIX by the server -->
+    <string name="destination_investments">Investments</string>
+    <string name="investments_market_value">Market value</string>
+    <string name="investments_as_of">Cost %1$s · closing prices of %2$s</string>
+    <string name="investments_unrealised">Unrealised</string>
+    <string name="investments_today">Today</string>
+    <string name="investments_realised">Realised this year</string>
+    <string name="investments_dividends">Dividends this year</string>
+    <string name="investments_allocation">Allocation</string>
+    <string name="investments_tab_holdings">Holdings</string>
+    <string name="investments_tab_activity">Activity</string>
+    <string name="investments_shares_at">%1$s sh · %2$s</string>
+    <string name="investments_new_trade">New trade</string>
+    <string name="investments_trade_buy">Buy</string>
+    <string name="investments_trade_sell">Sell</string>
+    <string name="investments_trade_dividend">Dividend</string>
+    <string name="investments_trade_line">%1$s · %2$s</string>
+    <string name="investments_dividend_line">%1$s sh · %2$s a share</string>
+    <string name="investments_today_change">%1$s (%2$s) today</string>
+    <string name="investments_position">Position</string>
+    <string name="investments_shares">Shares</string>
+    <string name="investments_average_cost">Average cost</string>
+    <string name="investments_cost_basis">Cost basis</string>
+    <string name="investments_unrealised_gain">Unrealised gain</string>
+    <string name="investments_realised_gain">Realised gain</string>
+    <string name="investments_dividends_received">Dividends received</string>
+    <string name="investments_price_range_1m">1M</string>
+    <string name="investments_price_range_3m">3M</string>
+    <string name="investments_price_range_1y">1Y</string>
+    <string name="investments_price_chart">%1$s closing prices</string>
+    <string name="investments_trades">Trades</string>
+    <string name="investments_label_stock">Stock</string>
+    <string name="investments_label_broker">Broker account</string>
+    <string name="investments_label_price">Price</string>
+    <string name="investments_label_dividend_per_share">Dividend a share</string>
+    <string name="investments_board_lot_hint">Board lot at this price: %1$s shares</string>
+    <string name="investments_odd_lot_hint">An odd lot: the board lot at this price is %1$s shares</string>
+    <string name="investments_held_hint">You hold %1$s</string>
+    <string name="investments_gross">Gross</string>
+    <string name="investments_commission">Commission</string>
+    <string name="investments_vat">VAT on commission</string>
+    <string name="investments_pse_fee">PSE fee</string>
+    <string name="investments_sccp">SCCP fee</string>
+    <string name="investments_sales_tax">Stock transaction tax</string>
+    <string name="investments_final_tax">Final tax (10%)</string>
+    <string name="investments_total_cost">Total cost</string>
+    <string name="investments_net_proceeds">Net proceeds</string>
+    <string name="investments_net_dividend">Net dividend</string>
+    <string name="investments_gain_on_sale">Gain on this sale</string>
+    <string name="investments_cash">Cash</string>
+    <string name="investments_empty_title">No investments yet</string>
+    <string name="investments_empty_description">Record a buy and I\'ll keep track of what it\'s worth at every close.</string>
+    <string name="investments_prices_gathering">I\'m still gathering its past closes. Check back in a little while.</string>
+    <string name="investments_trade_added">Trade added</string>
+    <string name="investments_trade_deleted">Trade deleted</string>
+    <string name="investments_delete_trade_title">Delete this %1$s of %2$s?</string>
+    <string name="investments_delete_trade_body">Its cash in %1$s goes with it. This can\'t be undone.</string>
+    <string name="investments_delete_trade_blocked_title">This trade can\'t be deleted</string>
+    <string name="investments_delete_trade_blocked_body">A later sell of %1$s needs the shares it bought. Delete that sell first.</string>
+    <string name="error_choose_stock">Choose a stock</string>
+    <string name="error_choose_broker">Choose a broker account</string>
+    <string name="error_shares_whole">Shares must be a whole number above zero</string>
+    <string name="error_shares_over_held">You only hold %1$s</string>
+    <string name="error_price_number">Price must be a number above zero</string>
 </resources>

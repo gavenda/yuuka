@@ -28,6 +28,7 @@ val databaseModule = module {
     single { get<YuukaDatabase>().payeeDao() }
     single { get<YuukaDatabase>().roundUpRuleDao() }
     single { get<YuukaDatabase>().subscriptionDao() }
+    single { get<YuukaDatabase>().investmentDao() }
 
     // The unsent queue, in a database of its own and with no destructive
     // fallback: a row in it is work the server has never seen, so dropping the

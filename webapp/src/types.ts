@@ -204,6 +204,8 @@ export interface Summary {
 	/** The gross figure `plannedIncome` was derived from, when `plannedIncomeMode` is 'gross'. */
 	plannedIncomeGrossAmount: number | null;
 	netWorth: number;
+	/** What the PSE holdings are worth at the latest close, already counted in `netWorth`. */
+	holdings?: number;
 	/** Money moved into transfer-categorised destinations, e.g. investments. */
 	cashflow: number;
 	totalBudgeted: number;
@@ -271,4 +273,44 @@ export interface Payee {
 	notes: string;
 	usedCount: number;
 	lastUsedAt: string;
+}
+
+/** A PSE stock at its latest close (`GET /securities`). `price` is in ten-thousandths of a peso. */
+export interface Security {
+	symbol: string;
+	name: string;
+	price: number;
+	/** The day's move in hundredths of a percent, when PHISIX gave one. */
+	changeBp: number | null;
+	/** The trading day `price` is the close of. */
+	asOf: string;
+}
+
+export type TradeKind = 'buy' | 'sell' | 'dividend';
+
+/** A buy, a sell or a cash dividend, and the cash it moved in its broker account (`GET /trades`). */
+export interface Trade {
+	id: string;
+	accountId: string;
+	accountName: string | null;
+	symbol: string;
+	name: string | null;
+	kind: TradeKind;
+	occurredOn: string;
+	shares: number;
+	/** Ten-thousandths of a peso a share; a dividend's is what it paid a share. */
+	price: number;
+	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
+	fees: number;
+	/** Centavos, signed: the cash leg's amount. */
+	amount: number;
+	transactionId: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** One trading day's close, in ten-thousandths of a peso. */
+export interface PricePoint {
+	day: string;
+	close: number;
 }

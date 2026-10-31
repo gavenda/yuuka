@@ -26,6 +26,9 @@ import dev.gavenda.yuuka.data.local.entity.*
         PayeeEntity::class,
         RoundUpRuleEntity::class,
         SubscriptionEntity::class,
+        SecurityEntity::class,
+        TradeEntity::class,
+        StockPriceEntity::class,
     ],
     // 8: categories lost `appliesTo`, its meaning folded into `kind`.
     // 9: offline-first. Nothing here changed shape — the unsent queue lives in
@@ -33,7 +36,8 @@ import dev.gavenda.yuuka.data.local.entity.*
     // destructive migration and that is exactly what a queue must not do.
     // 10: accounts gained `bank`, a preset bank's key.
     // 11: tags gained `total`, what their transactions come to.
-    version = 11,
+    // 12: PSE investments: securities, trades and their daily closes.
+    version = 12,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {
@@ -49,4 +53,5 @@ abstract class YuukaDatabase : RoomDatabase() {
     abstract fun payeeDao(): PayeeDao
     abstract fun roundUpRuleDao(): RoundUpRuleDao
     abstract fun subscriptionDao(): SubscriptionDao
+    abstract fun investmentDao(): InvestmentDao
 }

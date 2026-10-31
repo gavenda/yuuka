@@ -40,6 +40,7 @@ export const CHANGE_SLICES = [
 	'roundUpRule',
 	'payees',
 	'summary',
+	'investments',
 ] as const;
 
 export type ChangeSlice = (typeof CHANGE_SLICES)[number];
@@ -57,10 +58,12 @@ export type ChangeSlice = (typeof CHANGE_SLICES)[number];
 const SLICES_BY_PREFIX: ReadonlyArray<readonly [string, readonly ChangeSlice[]]> = [
 	['/api/account-types', ['accountTypes', 'accounts']],
 	// Includes `/accounts/:id/adjust`, which posts a transaction like any other.
-	['/api/accounts', ['accounts', 'transactions', 'summary', 'payees']],
+	['/api/accounts', ['accounts', 'transactions', 'summary', 'payees', 'investments']],
 	['/api/categories', ['categories', 'transactions', 'budgets', 'summary']],
 	['/api/tags', ['tags', 'transactions']],
-	['/api/transactions', ['transactions', 'accounts', 'summary', 'payees']],
+	['/api/transactions', ['transactions', 'accounts', 'summary', 'payees', 'investments']],
+	// A trade writes its cash leg, which moves a balance and this month's net worth.
+	['/api/trades', ['investments', 'transactions', 'accounts', 'summary']],
 	['/api/budgets', ['budgets', 'summary']],
 	['/api/income-plan', ['incomePlan', 'summary']],
 	['/api/subscriptions', ['subscriptions']],

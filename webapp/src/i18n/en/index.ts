@@ -4,6 +4,7 @@ import categories from './categories';
 import common from './common';
 import dashboard from './dashboard';
 import form from './form';
+import investments from './investments';
 import login from './login';
 import nav from './nav';
 import saveTheChange from './saveTheChange';
@@ -26,4 +27,5 @@ export default {
 	saveTheChange,
 	transactions,
 	subscriptions,
+	investments,
 };

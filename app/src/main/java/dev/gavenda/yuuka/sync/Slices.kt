@@ -25,10 +25,11 @@ object Slices {
     const val ROUND_UP_RULE = "roundUpRule"
     const val PAYEES = "payees"
     const val SUMMARY = "summary"
+    const val INVESTMENTS = "investments"
 
     private val all = setOf(
         ACCOUNTS, ACCOUNT_TYPES, CATEGORIES, TAGS, TRANSACTIONS,
-        BUDGETS, INCOME_PLAN, SUBSCRIPTIONS, SETTINGS, ROUND_UP_RULE, PAYEES, SUMMARY,
+        BUDGETS, INCOME_PLAN, SUBSCRIPTIONS, SETTINGS, ROUND_UP_RULE, PAYEES, SUMMARY, INVESTMENTS,
     )
 
     /**
@@ -44,10 +45,12 @@ object Slices {
     fun forPath(path: String): List<String> = when {
         path.startsWith("/api/account-types") -> listOf(ACCOUNT_TYPES, ACCOUNTS)
         // Includes `/accounts/{id}/adjust`, which posts a transaction like any other.
-        path.startsWith("/api/accounts") -> listOf(ACCOUNTS, TRANSACTIONS, SUMMARY, PAYEES)
+        path.startsWith("/api/accounts") -> listOf(ACCOUNTS, TRANSACTIONS, SUMMARY, PAYEES, INVESTMENTS)
         path.startsWith("/api/categories") -> listOf(CATEGORIES, TRANSACTIONS, BUDGETS, SUMMARY)
         path.startsWith("/api/tags") -> listOf(TAGS, TRANSACTIONS)
-        path.startsWith("/api/transactions") -> listOf(TRANSACTIONS, ACCOUNTS, SUMMARY, PAYEES)
+        path.startsWith("/api/transactions") -> listOf(TRANSACTIONS, ACCOUNTS, SUMMARY, PAYEES, INVESTMENTS)
+        // A trade writes its cash leg, which moves a balance and this month's net worth.
+        path.startsWith("/api/trades") -> listOf(INVESTMENTS, TRANSACTIONS, ACCOUNTS, SUMMARY)
         path.startsWith("/api/budgets") -> listOf(BUDGETS, SUMMARY)
         path.startsWith("/api/income-plan") -> listOf(INCOME_PLAN, SUMMARY)
         path.startsWith("/api/subscriptions") -> listOf(SUBSCRIPTIONS)

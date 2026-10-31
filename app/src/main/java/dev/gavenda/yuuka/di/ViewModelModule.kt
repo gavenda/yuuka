@@ -5,6 +5,7 @@ import dev.gavenda.yuuka.ui.accounttypes.AccountTypesViewModel
 import dev.gavenda.yuuka.ui.budget.BudgetViewModel
 import dev.gavenda.yuuka.ui.categories.CategoriesViewModel
 import dev.gavenda.yuuka.ui.dashboard.DashboardViewModel
+import dev.gavenda.yuuka.ui.investments.InvestmentsViewModel
 import dev.gavenda.yuuka.ui.savethechange.SaveTheChangeViewModel
 import dev.gavenda.yuuka.ui.settings.SettingsViewModel
 import dev.gavenda.yuuka.ui.subscriptions.SubscriptionsViewModel
@@ -24,4 +25,5 @@ val viewModelModule = module {
     viewModel { SettingsViewModel(get(), get()) }
     viewModel { SaveTheChangeViewModel(get()) }
     viewModel { SubscriptionsViewModel(get(), get(), get()) }
+    viewModel { InvestmentsViewModel(get(), get()) }
 }

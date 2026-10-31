@@ -24,6 +24,7 @@ export const ID_PREFIXES = {
 	transfer: 'tfr',
 	subscription: 'sub',
 	budget: 'bdg',
+	trade: 'trd',
 } as const;
 
 export type IdKind = keyof typeof ID_PREFIXES;

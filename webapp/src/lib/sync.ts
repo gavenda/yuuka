@@ -1,6 +1,7 @@
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
+import { useInvestmentStore } from '@/stores/investments';
 import { useTransactionStore } from '@/stores/transactions';
 import { api } from './api';
 import { discardMonthly, replacePayees, type MonthlySlice } from './cache';
@@ -59,8 +60,14 @@ export async function fullSync(): Promise<void> {
 	const budget = useBudgetStore();
 	const transactions = useTransactionStore();
 	const subscriptions = useSubscriptionStore();
+	const investments = useInvestmentStore();
 
-	const lists = await Promise.allSettled([ledger.load(true), subscriptions.load(true), refreshPayees()]);
+	const lists = await Promise.allSettled([
+		ledger.load(true),
+		subscriptions.load(true),
+		refreshPayees(),
+		...(investments.loaded ? [investments.load(true)] : []),
+	]);
 	if (lists.some((list) => list.status === 'rejected' || list.value === false)) return;
 
 	await discardMonthly(['transactions', 'budgets', 'incomePlans', 'summaries']);
@@ -110,6 +117,8 @@ export async function refreshSlices(slices: ChangeSlice[]): Promise<void> {
 
 	if (transactions.loaded && wanted.has('transactions')) jobs.push(transactions.refresh());
 	if (subscriptions.loaded && wanted.has('subscriptions')) jobs.push(subscriptions.refresh());
+	const investments = useInvestmentStore();
+	if (investments.loaded && wanted.has('investments')) jobs.push(investments.refreshTrades());
 	if (wanted.has('payees')) jobs.push(refreshPayees());
 
 	await Promise.allSettled(jobs);

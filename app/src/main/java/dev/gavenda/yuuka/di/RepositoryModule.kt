@@ -24,7 +24,8 @@ val repositoryModule = module {
     single { BudgetRepository(get(), get(), get(), get(), get()) }
     single { PayeeRepository(get(), get()) }
     single { SubscriptionRepository(get(), get(), get(), get(), get()) }
-    single { SyncRepository(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { InvestmentRepository(get(), get(), get(), get(), get()) }
+    single { SyncRepository(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Takes the outbox as a constructor argument, which the default factory
     // cannot supply — hence Koin's, installed in `YuukaApplication`.

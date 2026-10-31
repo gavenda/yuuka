@@ -50,6 +50,17 @@ interface YuukaApi {
     @GET("subscriptions")
     suspend fun listSubscriptions(): SubscriptionsResponse
 
+    /** Every PSE stock at its latest close; the server brings them up to date from PHISIX first if they are behind. */
+    @GET("securities")
+    suspend fun listSecurities(): SecuritiesResponse
+
+    /** A stock's daily closes from [from] on, oldest first. */
+    @GET("securities/{symbol}/prices")
+    suspend fun prices(@Path("symbol") symbol: String, @Query("from") from: String? = null): PricesResponse
+
+    @GET("trades")
+    suspend fun listTrades(): TradesResponse
+
     @GET("summary")
     suspend fun summary(@Query("month") month: String): Summary
 

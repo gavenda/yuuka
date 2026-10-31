@@ -5,7 +5,11 @@ import type {
 	Category,
 	IncomePlan,
 	Payee,
+	PricePoint,
 	RoundUpRule,
+	Security,
+	Trade,
+	TradeKind,
 	Settings,
 	Subscription,
 	Summary,
@@ -32,6 +36,7 @@ import {
 	provisionalTransfer,
 } from './provisional';
 import { queued } from './queue';
+import { tradeCash } from './investments';
 
 // Re-exported so nothing that already imports these from `@/lib/api` has to move.
 export { ApiError, isNetworkError, setTokenProvider, setUnauthorizedHandler } from './http';
@@ -578,6 +583,57 @@ export const api = {
 			}),
 			(answer) => local.saveIncomePlan(answer.incomePlan, input.month),
 		),
+
+	listSecurities: () => request<{ securities: Security[] }>('/securities'),
+	prices: (symbol: string, from?: string) =>
+		request<{ prices: PricePoint[] }>(`/securities/${encodeURIComponent(symbol)}/prices${queryString({ from })}`),
+	listTrades: () => request<{ trades: Trade[] }>('/trades'),
+	/**
+	 * A trade and its cash leg, both named here so the server adopts them: the leg is an ordinary
+	 * transaction in the broker account, the stock as its payee, and moves its balance at once.
+	 */
+	createTrade: (input: {
+		accountId: string;
+		symbol: string;
+		name: string | null;
+		kind: TradeKind;
+		occurredOn: string;
+		shares: number;
+		price: number;
+		fees: number;
+	}) => {
+		const ledger = ledgerView();
+		const id = newId('trade');
+		const transactionId = newId('transaction');
+		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
+		const now = new Date().toISOString();
+		const verb = `${input.kind[0]!.toUpperCase()}${input.kind.slice(1)}`;
+		const leg = provisionalTransaction(ledger, {
+			id: transactionId,
+			accountId: input.accountId,
+			categoryId: null,
+			amount,
+			occurredOn: input.occurredOn,
+			payee: input.symbol,
+			notes: `${verb} ${input.shares.toLocaleString('en-US')} ${input.symbol}`,
+		});
+		const { name, ...body } = input;
+		const trade: Trade = {
+			...body,
+			id,
+			name,
+			accountName: leg.accountName,
+			amount,
+			transactionId,
+			createdAt: now,
+			updatedAt: now,
+		};
+		return saved(queued({ method: 'POST', path: '/api/trades', body: { ...body, id, transactionId }, optimistic: { trade } }), (answer) =>
+			local.saveTrade(answer.trade, leg),
+		);
+	},
+	deleteTrade: (id: string) =>
+		saved(queued<void>({ method: 'DELETE', path: `/api/trades/${id}`, optimistic: undefined }), () => local.deleteTrade(id)),
 
 	summary: (month: string) => request<Summary>(`/summary${queryString({ month })}`),
 

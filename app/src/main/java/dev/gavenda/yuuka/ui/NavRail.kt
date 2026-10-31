@@ -1,5 +1,7 @@
 package dev.gavenda.yuuka.ui
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -92,7 +94,6 @@ fun YuukaNavRail(
     monthSlot: RailSlot<MonthEntry>,
     onExpandedChange: (Boolean) -> Unit,
     onNavigate: (Route) -> Unit,
-    onNavigateDetail: (Route) -> Unit,
     onToggleAmounts: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
@@ -170,8 +171,8 @@ fun YuukaNavRail(
                 RAIL_DESTINATIONS.forEach { destination ->
                     RailItem(
                         label = stringResource(destination.labelRes),
-                        icon = if (destination.route == currentRoute) destination.iconSelected else destination.icon,
-                        selected = destination.route == currentRoute,
+                        icon = if (destination.isCurrent(currentRoute)) destination.iconSelected else destination.icon,
+                        selected = destination.isCurrent(currentRoute),
                         expanded = expanded,
                         onClick = {
                             onNavigate(destination.route)
@@ -180,45 +181,47 @@ fun YuukaNavRail(
                     )
                 }
 
-                // Everything past the daily destinations lives behind the menu: the other ledger screens, then
-                // what is set up once and left alone. Save the Change sits with the screens and Settings is a
-                // screen too.
+                // Everything past the daily destinations lives behind the menu, under the headings of NAV_GROUPS.
                 AnimatedVisibility(
                     visible = expanded,
                     enter = expandVertically() + fadeIn(),
                     exit = shrinkVertically() + fadeOut(),
                 ) {
                     Column {
-                        Text(
-                            stringResource(R.string.nav_more),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp),
+                        NAV_GROUPS.forEach { group ->
+                            Text(
+                                stringResource(group.labelRes),
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp),
+                            )
+                            group.items.forEach { item ->
+                                val selected = item.isCurrent(currentRoute)
+                                RailItem(
+                                    label = stringResource(item.labelRes),
+                                    icon = if (selected) item.iconSelected else item.icon,
+                                    selected = selected,
+                                    expanded = true,
+                                    onClick = {
+                                        onNavigate(item.route)
+                                        afterChoice()
+                                    },
+                                )
+                            }
+                        }
+                        // Settings and Sign out are about the app rather than the money, so they take no heading.
+                        val settings = DetailDestination.SETTINGS
+                        val settingsSelected = settings.isCurrent(currentRoute)
+                        Spacer(Modifier.height(16.dp))
+                        RailItem(
+                            label = stringResource(settings.labelRes),
+                            icon = if (settingsSelected) settings.iconSelected else settings.icon,
+                            selected = settingsSelected,
+                            expanded = true,
+                            onClick = {
+                                onNavigate(settings.route)
+                                afterChoice()
+                            },
                         )
-                        RAIL_MORE_DESTINATIONS.forEach { destination ->
-                            RailItem(
-                                label = stringResource(destination.labelRes),
-                                icon = if (destination.route == currentRoute) destination.iconSelected else destination.icon,
-                                selected = destination.route == currentRoute,
-                                expanded = true,
-                                onClick = {
-                                    onNavigate(destination.route)
-                                    afterChoice()
-                                },
-                            )
-                        }
-                        DetailDestination.entries.forEach { destination ->
-                            val selected = destination.isCurrent(currentRoute)
-                            RailItem(
-                                label = stringResource(destination.labelRes),
-                                icon = if (selected) destination.iconSelected else destination.icon,
-                                selected = selected,
-                                expanded = true,
-                                onClick = {
-                                    onNavigateDetail(destination.route)
-                                    afterChoice()
-                                },
-                            )
-                        }
                         RailItem(
                             label = stringResource(R.string.action_sign_out),
                             icon = R.drawable.logout_48px,

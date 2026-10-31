@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { addMonths, currentMonth } from '../dates';
+import { holdingsValue, notTradeCash } from '../investments';
 import { parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
 import { trendQuerySchema } from '../schemas';
@@ -14,6 +15,12 @@ interface MonthTotalsRow {
 interface MonthMovementRow {
 	month: string;
 	moved: number;
+}
+
+function dayBefore(day: string): string {
+	const date = new Date(`${day}T00:00:00Z`);
+	date.setUTCDate(date.getUTCDate() - 1);
+	return date.toISOString().slice(0, 10);
 }
 
 export interface TrendMonth {
@@ -50,7 +57,7 @@ export const trendRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', asy
 			        COALESCE(SUM(CASE WHEN amount > 0 THEN amount END), 0) AS income,
 			        COALESCE(-SUM(CASE WHEN amount < 0 THEN amount END), 0) AS expenses
 			 FROM transactions
-			 WHERE user_id = ? AND transfer_id IS NULL AND occurred_on >= ? AND occurred_on < ?
+			 WHERE user_id = ? AND transfer_id IS NULL AND ${notTradeCash('transactions.id')} AND occurred_on >= ? AND occurred_on < ?
 			 GROUP BY month`,
 		).bind(userId, start, end),
 		// Everything that moved a balance from the first month on, the months after `month` included:
@@ -71,13 +78,25 @@ export const trendRoutes = new Hono<AppEnv>().use('*', requireAuth).get('/', asy
 	const movementRows = movement.results as MonthMovementRow[];
 	const now = (worth.results as { total: number }[])[0]?.total ?? 0;
 
+	// Shares held at each month's end, at the close on or before it: the cash a buy took is gone from the
+	// balances worked back above, so without them net worth would dip on every purchase. The current
+	// month counts them at the latest close, as the summary does, so the last point still matches it.
+	const today = new Date().toISOString().slice(0, 10);
+	const holdings = await Promise.all(
+		Array.from({ length: count }, (_, index) => {
+			const key = addMonths(first, index);
+			const monthEnd = `${addMonths(key, 1)}-01`;
+			return monthEnd > today ? holdingsValue(c.env.DB, userId) : holdingsValue(c.env.DB, userId, dayBefore(monthEnd));
+		}),
+	);
+
 	const trend: TrendMonth[] = Array.from({ length: count }, (_, index) => {
 		const key = addMonths(first, index);
 		const row = totalsByMonth.get(key);
 		const income = row?.income ?? 0;
 		const expenses = row?.expenses ?? 0;
 		const later = movementRows.filter((entry) => entry.month > key).reduce((sum, entry) => sum + entry.moved, 0);
-		return { month: key, income, expenses, net: income - expenses, netWorth: now - later };
+		return { month: key, income, expenses, net: income - expenses, netWorth: now - later + holdings[index] };
 	});
 
 	return c.json({ month, months: trend });

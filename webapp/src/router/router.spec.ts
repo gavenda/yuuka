@@ -61,7 +61,7 @@ describe('signed out', () => {
 		expect(router.currentRoute.value.query.redirect).toBe('/budget');
 	});
 
-	it('does not add a redirect for the dashboard, which is the default anyway', async () => {
+	it('does not add a redirect for Transactions, which the app opens on anyway', async () => {
 		await router.push('/');
 		expect(router.currentRoute.value.query.redirect).toBeUndefined();
 	});
@@ -85,7 +85,9 @@ describe('signed in', () => {
 
 	it('allows the protected routes', async () => {
 		for (const [path, name] of [
-			['/', 'dashboard'],
+			['/', 'transactions'],
+			['/overview', 'dashboard'],
+			['/investments', 'investments'],
 			['/transactions', 'transactions'],
 			['/budget', 'budget'],
 			['/accounts', 'accounts'],
@@ -97,12 +99,12 @@ describe('signed in', () => {
 		}
 	});
 
-	it('bounces the sign-in screen to the dashboard', async () => {
+	it('bounces the sign-in screen to Transactions', async () => {
 		// Navigate away first: pushing the route we are already on is a duplicate
 		// navigation, which Vue Router drops without consulting the guard.
 		await router.push('/budget');
 		await router.push('/login');
-		expect(router.currentRoute.value.name).toBe('dashboard');
+		expect(router.currentRoute.value.name).toBe('transactions');
 	});
 });
 
@@ -139,7 +141,7 @@ describe('while the session is still being restored', () => {
 		}, 10);
 
 		await navigation;
-		expect(router.currentRoute.value.name).toBe('dashboard');
+		expect(router.currentRoute.value.name).toBe('transactions');
 	});
 
 	it('still refuses when the restore finishes with no session', async () => {

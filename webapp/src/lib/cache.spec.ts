@@ -84,11 +84,14 @@ describe('local database', () => {
 					'income_plans',
 					'payees',
 					'round_up_rule',
+					'securities',
 					'settings',
+					'stock_prices',
 					'subscriptions',
 					'summaries',
 					'tags',
 					'transaction_pages',
+					'trades',
 					'transaction_tags',
 					'transactions',
 				].sort(),
@@ -110,7 +113,7 @@ describe('local database', () => {
 			await cache.warmCache();
 
 			const db = await openDatabase();
-			expect(db.version).toBe(2);
+			expect(db.version).toBe(3);
 			expect(Array.from(db.objectStoreNames)).not.toContain('entries');
 			db.close();
 		});

@@ -11,12 +11,27 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
  */
 const routes: RouteRecordRaw[] = [
 	{ path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { public: true, titleKey: 'nav.signIn' } },
-	{ path: '/', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { titleKey: 'nav.dashboard' } },
+	// The app opens on Transactions, as Android's does; Overview is reached from the Insights group.
+	{ path: '/', redirect: '/transactions' },
+	{ path: '/overview', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { titleKey: 'nav.dashboard' } },
 	{
 		path: '/transactions',
 		name: 'transactions',
 		component: () => import('@/views/TransactionsView.vue'),
 		meta: { titleKey: 'nav.transactions' },
+	},
+	{
+		path: '/investments',
+		name: 'investments',
+		component: () => import('@/views/InvestmentsView.vue'),
+		meta: { titleKey: 'nav.investments' },
+	},
+	{
+		path: '/investments/:symbol',
+		name: 'holding',
+		// Investments is its list: where the page has room, `App.vue` shows it beside the holding.
+		components: { default: () => import('@/views/HoldingView.vue'), list: () => import('@/views/InvestmentsView.vue') },
+		meta: { titleKey: 'nav.holding', parent: '/investments' },
 	},
 	{ path: '/budget', name: 'budget', component: () => import('@/views/BudgetView.vue'), meta: { titleKey: 'nav.budget' } },
 	{
@@ -85,11 +100,12 @@ router.beforeEach(async (to) => {
 	if (auth0.isAuthenticated.value && (await adoptCacheFor(auth0.user.value?.sub))) await discardQueue();
 
 	if (!to.meta.public && !auth0.isAuthenticated.value) {
-		return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } };
+		// The screen the app opens on anyway needs no redirect back to it.
+		return { name: 'login', query: to.fullPath === '/' || to.fullPath === '/transactions' ? {} : { redirect: to.fullPath } };
 	}
 
 	if (to.name === 'login' && auth0.isAuthenticated.value) {
-		return { name: 'dashboard' };
+		return { name: 'transactions' };
 	}
 });
 

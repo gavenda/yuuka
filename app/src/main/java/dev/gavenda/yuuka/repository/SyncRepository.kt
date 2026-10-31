@@ -27,6 +27,7 @@ class SyncRepository(
     private val ledgerRepository: LedgerRepository,
     private val payeeRepository: PayeeRepository,
     private val subscriptionRepository: SubscriptionRepository,
+    private val investmentRepository: InvestmentRepository,
     private val transactionDao: TransactionDao,
     private val budgetDao: BudgetDao,
     private val incomePlanDao: IncomePlanDao,
@@ -79,6 +80,7 @@ class SyncRepository(
         if (Slices.ROUND_UP_RULE in wanted) launch { runCatching { ledgerRepository.refreshRoundUpRule() } }
         if (Slices.PAYEES in wanted) launch { runCatching { payeeRepository.refresh() } }
         if (Slices.SUBSCRIPTIONS in wanted) launch { runCatching { subscriptionRepository.refresh() } }
+        if (Slices.INVESTMENTS in wanted) launch { runCatching { investmentRepository.refreshTrades() } }
 
         // Transactions, budgets and summaries are held per page and per month,
         // and only the screens on show know which ones. Dropping what is cached
@@ -105,6 +107,7 @@ class SyncRepository(
         ledgerRepository.refreshAll()
         payeeRepository.refresh()
         subscriptionRepository.refresh()
+        investmentRepository.refresh()
 
         transactionsStale.set(true)
         database.withWriteTransaction {

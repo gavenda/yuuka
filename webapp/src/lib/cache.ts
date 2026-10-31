@@ -25,8 +25,11 @@ import type {
 	Payee,
 	RoundUpRule,
 	Settings,
+	PricePoint,
+	Security,
 	Subscription,
 	Summary,
+	Trade,
 	Tag,
 	Transaction,
 	TransactionFilters,
@@ -179,6 +182,7 @@ export function deleteAccount(id: string): Promise<void> {
 		...transactionRemovals(db, db('transactions').where('accountId', id)),
 		{ op: 'deleteWhere', table: 'transactions', field: 'accountId', value: id },
 		{ op: 'deleteWhere', table: 'subscriptions', field: 'accountId', value: id },
+		{ op: 'deleteWhere', table: 'trades', field: 'accountId', value: id },
 		remove('accounts', id),
 	]);
 }
@@ -206,8 +210,10 @@ function transactionRemovals(db: DatabaseView, rows: StoredRow[]): Op[] {
 		if (row.transferId) for (const leg of db('transactions').where('transferId', row.transferId as string)) legs.set(String(leg.id), leg);
 	}
 
+	// A trade goes with its cash leg, as on the server.
 	return [...legs.keys()].flatMap((id) => [
 		{ op: 'deleteWhere', table: 'transaction_tags', field: 'transactionId', value: id } as Op,
+		{ op: 'deleteWhere', table: 'trades', field: 'transactionId', value: id } as Op,
 		remove('transactions', id),
 	]);
 }
@@ -472,6 +478,69 @@ export function readSubscriptions(): Promise<Subscription[] | null> {
 export const replaceSubscriptions = (subscriptions: Subscription[]) => write(replace('subscriptions', subscriptions));
 export const saveSubscription = (subscription: Subscription) => write([put('subscriptions', subscription)]);
 export const deleteSubscription = (id: string) => write([remove('subscriptions', id)]);
+
+// ---------------------------------------------------------------------------------------------
+// PSE investments: the stocks and the trades are whole lists; a stock's closes fold in as they are asked for.
+
+export function readSecurities(): Promise<Security[] | null> {
+	return read((db) => {
+		const rows = db('securities').all();
+		return rows.length ? rows.map((row) => entity<Security>(row)).sort((a, b) => a.symbol.localeCompare(b.symbol)) : null;
+	});
+}
+
+export const replaceSecurities = (securities: Security[]) => write(replace('securities', securities));
+
+/** Newest first, the order the API answers in. */
+export function readTrades(): Promise<Trade[] | null> {
+	return read((db) => {
+		const rows = db('trades').all();
+		return rows.length
+			? rows
+					.map((row) => entity<Trade>(row))
+					.sort((a, b) => b.occurredOn.localeCompare(a.occurredOn) || b.createdAt.localeCompare(a.createdAt))
+			: null;
+	});
+}
+
+export const replaceTrades = (trades: Trade[]) => write(replace('trades', trades));
+
+/** A trade and its cash leg, which moves the broker account's balance. */
+export function saveTrade(trade: Trade, leg: Transaction | null): Promise<void> {
+	return write((db) => {
+		const legOps: Op[] = leg
+			? [
+					...balanceShifts(
+						db,
+						[db('transactions').get(leg.id)].filter((row) => row !== undefined),
+						[leg],
+					),
+					...transactionWrites(leg),
+				]
+			: [];
+		return [...legOps, put('trades', trade)];
+	});
+}
+
+/** A trade goes with its cash leg, and the balance moves back. */
+export function deleteTrade(id: string): Promise<void> {
+	return write((db) => {
+		const trade = db('trades').get(id);
+		const leg = trade ? db('transactions').get(trade.transactionId as string) : undefined;
+		return [...(leg ? [...balanceShifts(db, [leg], []), ...transactionRemovals(db, [leg])] : []), remove('trades', id)];
+	});
+}
+
+export function readPrices(symbol: string): Promise<PricePoint[] | null> {
+	return read((db) => {
+		const rows = db('stock_prices').where('symbol', symbol);
+		return rows.length
+			? rows.map((row) => ({ day: String(row.day), close: Number(row.close) })).sort((a, b) => a.day.localeCompare(b.day))
+			: null;
+	});
+}
+
+export const savePrices = (symbol: string, prices: PricePoint[]) => write(prices.map((price) => put('stock_prices', { symbol, ...price })));
 
 export function readPayees(): Promise<Payee[] | null> {
 	return read((db) => {

@@ -1,6 +1,8 @@
 package dev.gavenda.yuuka.ui
 
 import dev.gavenda.yuuka.ui.common.catPattern
+import dev.gavenda.yuuka.ui.investments.HoldingScreen
+import dev.gavenda.yuuka.ui.investments.InvestmentsScreen
 import dev.gavenda.yuuka.ui.common.CatPrint
 import dev.gavenda.yuuka.ui.common.CatFade
 import androidx.compose.ui.geometry.Rect
@@ -124,7 +126,7 @@ import dev.gavenda.yuuka.sync.Outbox
 fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     // A history per top-level destination, each kept as it was left while another is on show. Back
     // walks the current one down to its root and then returns to Dashboard, the way out of the app.
-    val navigationState = rememberNavigationState(startRoute = Route.Dashboard, topLevelRoutes = TOP_LEVEL_ROUTES)
+    val navigationState = rememberNavigationState(startRoute = Route.Transactions, topLevelRoutes = TOP_LEVEL_ROUTES)
     val navigator = remember(navigationState) { Navigator(navigationState) }
     val currentRoute: NavKey? = navigationState.currentRoute
 
@@ -190,13 +192,18 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     val entryProvider = entryProvider<NavKey> {
-        entry<Route.Dashboard>(metadata = tabOrder(Route.Dashboard)) { DashboardScreen() }
+        entry<Route.Dashboard> { DashboardScreen() }
         entry<Route.Transactions>(metadata = tabOrder(Route.Transactions)) { TransactionsScreen() }
         entry<Route.Budget> { BudgetScreen() }
         entry<Route.Accounts>(metadata = tabOrder(Route.Accounts)) { AccountsScreen() }
         entry<Route.Categories> { CategoriesScreen() }
         entry<Route.Tags> { TagsScreen() }
         entry<Route.Subscriptions> { SubscriptionsScreen() }
+        // Investments and the holding it opens are a list and its detail, as Settings and Account types are.
+        entry<Route.Investments>(metadata = ListDetailSceneStrategy.listPane() + tabOrder(Route.Investments)) {
+            InvestmentsScreen(onOpenHolding = { navigator.navigate(Route.Holding(it)) })
+        }
+        entry<Route.Holding>(metadata = ListDetailSceneStrategy.detailPane()) { HoldingScreen(it.symbol) }
         // Settings and the Account types it opens are a list and its detail: side by side where the page
         // has room for both (see TWO_PANE_MIN_WIDTH), one over the other where it has not.
         entry<Route.Settings>(metadata = ListDetailSceneStrategy.listPane()) {
@@ -296,7 +303,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 // stretches across the whole page, which leaves the scaffold's empty detail no width, and
                 // opening one draws the list in to its own width: the scene stays the same throughout, so
                 // the page is never slid away and back for what is only a second pane arriving.
-                val detailOpen = currentRoute in DETAIL_ROUTES
+                val detailOpen = currentRoute in DETAIL_ROUTES || currentRoute is Route.Holding
                 // 0 is the list at its own width beside a detail, 1 the list across the whole page.
                 val listSpread = remember { Animatable(if (detailOpen) 0f else 1f) }
                 val spreadSpec = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
@@ -398,7 +405,6 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                     monthSlot = monthSlot,
                     onExpandedChange = setRailExpanded,
                     onNavigate = navigator::navigate,
-                    onNavigateDetail = navigator::navigate,
                     onToggleAmounts = amountVisibility::toggle,
                     onSignOut = { confirmingSignOut = true },
                 )
@@ -451,25 +457,28 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                                 .weight(1f)
                                 .verticalScroll(rememberScrollState()),
                         ) {
-                            RAIL_MORE_DESTINATIONS.forEach { destination ->
-                                NavigationDrawerItem(
-                                    label = { Text(stringResource(destination.labelRes)) },
-                                    icon = { Icon(painterResource(if (destination == currentDestination) destination.iconSelected else destination.icon), contentDescription = null) },
-                                    selected = destination == currentDestination,
-                                    onClick = {
-                                        navigator.navigate(destination.route)
-                                        scope.launch { drawerState.close() }
-                                    },
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            NAV_GROUPS.forEach { group ->
+                                Text(
+                                    stringResource(group.labelRes),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.padding(start = 28.dp, top = 16.dp, bottom = 8.dp),
                                 )
-                            }
-                            // Grouped with Budget/Categories rather than with Settings at the foot —
-                            // it's a ledger concern, not app configuration.
-                            DetailDrawerItem(DetailDestination.SAVE_THE_CHANGE, currentRoute) {
-                                navigator.navigate(it)
-                                scope.launch { drawerState.close() }
+                                group.items.forEach { item ->
+                                    val selected = item.isCurrent(currentRoute)
+                                    NavigationDrawerItem(
+                                        label = { Text(stringResource(item.labelRes)) },
+                                        icon = { Icon(painterResource(if (selected) item.iconSelected else item.icon), contentDescription = null) },
+                                        selected = selected,
+                                        onClick = {
+                                            navigator.navigate(item.route)
+                                            scope.launch { drawerState.close() }
+                                        },
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    )
+                                }
                             }
                         }
+                        // Settings and Sign out are about the app rather than the money, so they take no heading.
                         DetailDrawerItem(DetailDestination.SETTINGS, currentRoute) {
                             navigator.navigate(it)
                             scope.launch { drawerState.close() }
@@ -555,7 +564,7 @@ private fun tabOrder(route: Route): Map<String, Any> =
 
 /**
  * +1 (slide from the right) or -1 (slide from the left) based on the two screens' order among
- * the bottom-nav tabs, or null when either side isn't a tab. Leaving Accounts for Dashboard by
+ * the bottom-nav tabs, or null when either side isn't a tab. Leaving Accounts for Transactions by
  * back is a pop and by the bar is a switch, but both slide the way the bar reads.
  */
 private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSlideDirection(): Int? {

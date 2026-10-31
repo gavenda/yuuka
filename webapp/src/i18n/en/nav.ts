@@ -1,7 +1,9 @@
 /** The screens' names: the router's titles, the rail and the phone's bar. */
 export default {
 	signIn: 'Sign in',
-	dashboard: 'Dashboard',
+	dashboard: 'Overview',
+	investments: 'Investments',
+	holding: 'Holding',
 	transactions: 'Transactions',
 	budget: 'Budget',
 	accounts: 'Accounts',
@@ -11,7 +13,9 @@ export default {
 	settings: 'Settings',
 	accountTypes: 'Account types',
 	saveTheChange: 'Save the Change',
-	more: 'More',
+	groupInsights: 'Insights',
+	groupAutomations: 'Automations',
+	groupOrganize: 'Organize',
 	primary: 'Primary',
 	accountMenu: 'Account menu',
 	expand: 'Expand navigation',
