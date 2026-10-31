@@ -6,8 +6,8 @@ import SwipeReveal from '@/components/SwipeReveal.vue';
 import TextField from '@/components/TextField.vue';
 import { api, ApiError } from '@/lib/api';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { nameProblem, useFormValidation } from '@/lib/validation';
-import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { AccountType } from '@/types';
 import { computed, onMounted, ref } from 'vue';
@@ -19,7 +19,6 @@ import { t } from '@/i18n';
  * leading action asks for a new one by name in a basic dialog — the same one a rename opens.
  */
 const ledger = useLedgerStore();
-const budget = useBudgetStore();
 
 /** Whether the name dialog is up, and the type it renames — none while it is adding one. */
 const nameOpen = ref(false);
@@ -47,7 +46,7 @@ const archivedCount = computed(() => ledger.accountTypes.filter((type) => type.a
 const countLabel = (type: AccountType) =>
 	type.accountCount ? t('accounts.types.accountCount', type.accountCount) : t('accounts.types.unused');
 
-/** Every mutation refreshes the store, since accounts display the type name. */
+/** Every mutation shows the local copy again, since accounts display the type name. */
 async function run(action: () => Promise<unknown>, done: string, failed: typeof nameError): Promise<boolean> {
 	nameError.value = null;
 	listError.value = null;
@@ -56,7 +55,7 @@ async function run(action: () => Promise<unknown>, done: string, failed: typeof 
 	try {
 		await action();
 		showSnackbar(done);
-		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
+		await showSaved();
 		return true;
 	} catch (caught) {
 		failed.value = caught instanceof ApiError ? caught.message : t('common.errorGeneric');

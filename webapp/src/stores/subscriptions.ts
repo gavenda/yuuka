@@ -74,5 +74,10 @@ export const useSubscriptionStore = defineStore('subscriptions', () => {
 		error.value = null;
 	}
 
-	return { subscriptions, loaded, loading, error, load, refresh, reset };
+	/** Shows the list as the local copy now holds it — what a save has just written there — without asking the API. */
+	async function showSaved(): Promise<void> {
+		if (loaded.value) await showCopy();
+	}
+
+	return { subscriptions, loaded, loading, error, load, refresh, showSaved, reset };
 });

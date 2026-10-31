@@ -20,6 +20,7 @@ import { useHarmonised } from '@/lib/harmonise';
 import { parseMoney, toDecimalString } from '@/lib/money';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { useEditDialog } from '@/lib/editDialog';
 import { whenDiscardable } from '@/lib/formPane';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
@@ -188,7 +189,7 @@ async function submit(): Promise<void> {
 
 		dialogOpen.value = false;
 		showSnackbar(editing.value ? t('subscriptions.updated') : t('subscriptions.added'));
-		await store.refresh();
+		await showSaved();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
@@ -198,7 +199,7 @@ async function togglePaused(subscription: Subscription): Promise<void> {
 	try {
 		await api.updateSubscription(subscription.id, { enabled: !subscription.enabled });
 		showSnackbar(subscription.enabled ? t('subscriptions.napping') : t('subscriptions.awake'));
-		await store.refresh();
+		await showSaved();
 	} catch (caught) {
 		store.error = caught instanceof ApiError ? caught.message : t('subscriptions.couldNotUpdate');
 	}
@@ -212,7 +213,7 @@ async function remove(): Promise<void> {
 	try {
 		await api.deleteSubscription(subscription.id);
 		showSnackbar(t('subscriptions.deleted'));
-		await store.refresh();
+		await showSaved();
 	} catch (caught) {
 		store.error = caught instanceof ApiError ? caught.message : t('subscriptions.couldNotDelete');
 	}

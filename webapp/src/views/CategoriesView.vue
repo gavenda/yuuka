@@ -15,15 +15,14 @@ import { useHarmonised } from '@/lib/harmonise';
 import { EXPAND_MORE, LABEL_FILL } from '@/lib/icons';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { colorProblem, nameProblem, useFormValidation } from '@/lib/validation';
-import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Category, CategoryKind } from '@/types';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
-const budget = useBudgetStore();
 const harmonised = useHarmonised();
 
 const dialogOpen = ref(false);
@@ -169,7 +168,7 @@ async function save(): Promise<void> {
 
 		dialogOpen.value = false;
 		showSnackbar(editing.value ? t('categories.updated') : t('categories.added'));
-		await Promise.all([ledger.refreshCategories(), budget.refresh()]);
+		await showSaved();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
@@ -178,14 +177,14 @@ async function save(): Promise<void> {
 async function toggleArchived(category: Category): Promise<void> {
 	await api.updateCategory(category.id, { archived: !category.archived });
 	showSnackbar(category.archived ? t('categories.restored') : t('categories.archived'));
-	await ledger.refreshCategories();
+	await showSaved();
 }
 
 /** Transactions keep their history and become uncategorised, so there is nothing here to ask about first. */
 async function remove(category: Category): Promise<void> {
 	await api.deleteCategory(category.id);
 	showSnackbar(t('categories.deleted'));
-	await Promise.all([ledger.refreshCategories(), budget.refresh()]);
+	await showSaved();
 }
 
 onMounted(() => ledger.load());

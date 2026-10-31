@@ -15,7 +15,8 @@ import dev.gavenda.yuuka.R
 /**
  * Asks before deleting what cannot be had back from the list: the question as the headline under an
  * error-coloured icon, what goes with it as the body, and buttons worded as answers. While [deleting] it
- * spins and cannot be dismissed. It carries its own snackbar host, since a dialog draws above the app's.
+ * spins and cannot be dismissed. It has no snackbar host, so a message never draws inside it: what the
+ * action confirms is shown on the screen once the dialog has closed.
  */
 @Composable
 fun ConfirmDeleteDialog(
@@ -31,7 +32,7 @@ fun ConfirmDeleteDialog(
         icon = { Icon(painterResource(R.drawable.delete_48px), contentDescription = null) },
         iconContentColor = MaterialTheme.colorScheme.error,
         title = { Text(title) },
-        text = { WithSnackbarOverlay { Text(body) } },
+        text = { Text(body) },
         confirmButton = {
             Button(
                 onClick = onConfirm,

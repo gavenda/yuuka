@@ -122,13 +122,17 @@ answered is the whole truth for it, so the rows it no longer returns go
 (`replaceLedger`, `replaceSubscriptions`, `writeTransactionPage` for the slice a
 first page covers). **A save is one row**: the API layer (`saved()` in
 `api.ts`) writes what each mutation answered — the queue's provisional row, or
-the server's — with the cascades the server applies: a transfer's legs go
-together, a deleted category leaves its transactions and subscriptions
+the server's — with the cascades the server applies: a transaction moves the
+balance of every account it touches (an edit by the difference, a delete back),
+as does an account's new starting balance, a transfer's legs go together, a deleted category leaves its transactions and subscriptions
 uncategorised and takes its budgets, a deleted tag only comes off, a deleted
 account takes its transactions, the other legs of its transfers and its
-subscriptions. The stores do not read those rows back while they are on show
-(they refetch after a write, as before), so a row saved offline is painted from
-the copy the next time the page loads, not by the screen that saved it.
+subscriptions. `saved()` waits for that write — the disk, never the network — and
+the screen that saved then shows it from the copy (`showSaved` in `lib/sync.ts`)
+rather than refetching: a refetch would wait on the network, fail offline for a
+change already made, and could land before the queued batch and paint the old
+value back. The server's version arrives with the slice refresh once the batch
+lands. A month's summary is not worked out locally, so it waits for that too.
 
 A transaction page is read from rows, not stored whole: a filter set seen before
 is answered by the rows the copy holds that it matches — month, dates, accounts,
@@ -161,8 +165,8 @@ answer and write it back. Four rules keep that honest:
 - **What is held per month and per page is bounded, and dropped after writes.**
   Summaries are kept for the newest six months (twelve rows, each month's trend beside it) and first pages for the newest
   eight filter sets — first page only, never what scrolling on appended.
-  `budget.refresh()` and `transactions.refresh()` are what every write already
-  calls, and once the API has answered they drop the other months and filter
+  `budget.refresh()` and `transactions.refresh()` are what a landed batch's slice
+  refresh calls, and once the API has answered they drop the other months and filter
   sets: a write can move figures the person is not looking at, and only the API
   knows. A full sync (`lib/sync.ts`) replaces accounts, types, categories, tags,
   settings, the round-up rule, subscriptions and payees, and only once all of

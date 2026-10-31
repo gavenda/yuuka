@@ -7,14 +7,13 @@ import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { api, ApiError } from '@/lib/api';
 import { ACCOUNT_BALANCE_WALLET_FILL, ACCOUNT_CIRCLE, BLOCK, CALCULATE, CATEGORY_FILL, ERROR, SAVINGS_FILL, WALLET } from '@/lib/icons';
 import { showSnackbar } from '@/lib/snackbar';
-import { useBudgetStore } from '@/stores/budget';
+import { showSaved } from '@/lib/sync';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account, RoundUpRule } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
-const budget = useBudgetStore();
 
 const ROUND_TO: { value: 1000 | 10000; label: string }[] = [
 	{ value: 1000, label: '₱10' },
@@ -67,7 +66,6 @@ async function persist(): Promise<void> {
 
 	try {
 		await ledger.updateRoundUpRule(change);
-		await budget.refresh();
 	} catch (caught) {
 		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}
@@ -104,7 +102,7 @@ const sourceSummary = computed(() => {
 async function toggleSource(account: Account): Promise<void> {
 	try {
 		await api.updateAccount(account.id, { roundUpSource: !account.roundUpSource });
-		await ledger.refreshAccounts();
+		await showSaved();
 	} catch (caught) {
 		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}

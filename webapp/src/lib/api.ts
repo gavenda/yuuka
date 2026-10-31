@@ -59,13 +59,13 @@ function settingsNow(): Settings {
  * Hands back [answer] once what it saved is in the local copy as well. A save is written there before
  * the server has seen it, as Android writes the provisional row into Room, so the next page load
  * paints it even offline; the server's rows replace it when the slices it touched are refetched. The
- * copy is best-effort, so this never fails the save, and the save never waits on the disk.
+ * copy is best-effort, so this never fails the save. It is waited for — it is the browser's own disk,
+ * never the network — so a screen can show the save from the copy the moment it resolves.
  */
-function saved<T>(answer: Promise<T>, keep: (value: T) => Promise<void>): Promise<T> {
-	return answer.then((value) => {
-		void keep(value);
-		return value;
-	});
+async function saved<T>(answer: Promise<T>, keep: (value: T) => Promise<void>): Promise<T> {
+	const value = await answer;
+	await keep(value).catch(() => undefined);
+	return value;
 }
 
 function queryString(filters: Record<string, string | number | undefined>): string {
@@ -201,6 +201,11 @@ export const api = {
 					account: patched(current ?? provisionalAccount(ledger, { id, name: input.name ?? '', typeId: input.typeId ?? '' }), {
 						...input,
 						...(typeName === undefined ? {} : { typeName }),
+						// The balance is the starting balance plus everything posted to it, so moving the one
+						// moves the other by the same amount.
+						...(current && input.startingBalance !== undefined
+							? { balance: current.balance - current.startingBalance + input.startingBalance }
+							: {}),
 					}),
 				},
 			}),

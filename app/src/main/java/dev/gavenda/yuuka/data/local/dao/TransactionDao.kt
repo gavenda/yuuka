@@ -144,4 +144,39 @@ interface TransactionDao {
         insertRows(transactions)
         insertTagLinks(links)
     }
+
+    @Query("SELECT * FROM transactions WHERE id IN (:ids)")
+    suspend fun byIds(ids: List<String>): List<TransactionEntity>
+
+    @Query("UPDATE accounts SET balance = balance + :delta WHERE id = :accountId")
+    suspend fun shiftBalance(accountId: String, delta: Long)
+
+    /**
+     * A save made on this device: the rows as [upsert] writes them, and every account they touch moved by
+     * what changed on it, so a balance and net worth read right before the server has answered. The
+     * server's balances replace these once the change has landed. Never for rows the API answered with:
+     * those balances are already the server's.
+     */
+    @Transaction
+    suspend fun saveLocal(transactions: List<TransactionEntity>, links: List<TransactionTagEntity>) {
+        val before = transactions.map { it.id }.chunked(ID_CHUNK).flatMap { byIds(it) }
+        upsert(transactions, links)
+        balanceShifts(before, transactions).forEach { (accountId, delta) -> shiftBalance(accountId, delta) }
+    }
+
+    /** Deletes a transaction made or shown here — both legs, when it is one side of a transfer — and moves the balances back. */
+    @Transaction
+    suspend fun deleteLocal(id: String, transferId: String?) {
+        val rows = if (transferId != null) byTransferId(transferId) else listOfNotNull(byId(id))
+        if (transferId != null) deleteByTransferId(transferId) else deleteById(id)
+        balanceShifts(rows, emptyList()).forEach { (accountId, delta) -> shiftBalance(accountId, delta) }
+    }
+}
+
+/** How far each account moves when [before] is replaced by [after]: an account's balance is its starting balance plus its rows. */
+internal fun balanceShifts(before: List<TransactionEntity>, after: List<TransactionEntity>): Map<String, Long> {
+    val shifts = mutableMapOf<String, Long>()
+    before.forEach { shifts[it.accountId] = (shifts[it.accountId] ?: 0L) - it.amount }
+    after.forEach { shifts[it.accountId] = (shifts[it.accountId] ?: 0L) + it.amount }
+    return shifts.filterValues { it != 0L }
 }

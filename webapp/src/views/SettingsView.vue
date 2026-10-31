@@ -27,14 +27,12 @@ import {
 import { currencyName, currencySymbol } from '@/lib/money';
 import { showSnackbar } from '@/lib/snackbar';
 import { useTheme, type ThemeMode } from '@/lib/theme';
-import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { BudgetMode, Settings } from '@/types';
 import { computed, onMounted, ref } from 'vue';
 import { t } from '@/i18n';
 
 const ledger = useLedgerStore();
-const budget = useBudgetStore();
 const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
 const appVersion = __APP_VERSION__;
@@ -92,9 +90,6 @@ const BUDGET_MODES: { value: BudgetMode; label: string; icon: IconPath }[] = [
 async function persist(change: Partial<Pick<Settings, 'displayCurrency' | 'budgetMode' | 'defaultAccountId'>>): Promise<void> {
 	try {
 		await ledger.updateSettings(change);
-		// The summary carries formatted figures nowhere, but refreshing keeps the
-		// dashboard consistent with anything a setting touched.
-		await budget.refresh();
 	} catch (caught) {
 		showSnackbar(caught instanceof ApiError ? caught.message : t('common.couldNotSave'));
 	}

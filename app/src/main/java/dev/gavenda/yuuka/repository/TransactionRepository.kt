@@ -59,9 +59,9 @@ class TransactionRepository(
     /** Rows and the tags they wear go in together, so a chip never outlives its transaction or the reverse. */
     private suspend fun store(transactions: List<Transaction>) = dao.upsert(transactions.map { it.toEntity() }, transactions.flatMap { it.tagLinks() })
 
-    /** The same, for rows built here rather than returned by the API. */
+    /** The same, for rows built here rather than returned by the API — which also moves the balances they touch. */
     private suspend fun storeLocal(rows: List<TransactionEntity>, tagIds: List<String>) =
-        dao.upsert(rows, rows.flatMap { row -> tagIds.map { TransactionTagEntity(row.id, it) } })
+        dao.saveLocal(rows, rows.flatMap { row -> tagIds.map { TransactionTagEntity(row.id, it) } })
 
     /** The cached page for these filters — populated by [refreshPage], observed live thereafter. */
     fun observePage(filters: TransactionFilters, limit: Int, offset: Int = 0): Flow<List<Transaction>> {
@@ -395,8 +395,7 @@ class TransactionRepository(
 
     /** Deletes both legs of a transfer, or a single plain transaction — the caller knows which by whether `transferId` was set. */
     suspend fun deleteTransactionOrTransfer(transaction: Transaction) {
-        val transferId = transaction.transferId
-        if (transferId != null) dao.deleteByTransferId(transferId) else dao.deleteById(transaction.id)
+        dao.deleteLocal(transaction.id, transaction.transferId)
 
         outbox.enqueue("DELETE", "/api/transactions/${transaction.id}", entity = "transaction", rowId = transaction.id)
     }

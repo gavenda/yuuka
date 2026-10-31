@@ -26,6 +26,23 @@ import type { ChangeSlice } from './slices';
  * empty.
  */
 
+/**
+ * Shows a save from the local copy, which it has just been written into, without asking the API.
+ *
+ * This is what a screen calls after a write instead of refetching: a refetch would wait on the
+ * network — and offline fail — for a change that is already made here, and could land before the
+ * queued batch does and paint the old value back. The server's version arrives when the batch lands
+ * and the queue refreshes the slices it touched. A month's summary is not worked out locally, so it
+ * waits for that too.
+ */
+export async function showSaved(): Promise<void> {
+	const ledger = useLedgerStore();
+	const transactions = useTransactionStore();
+	const subscriptions = useSubscriptionStore();
+
+	await Promise.all([ledger.loaded ? ledger.hydrate() : undefined, transactions.showSaved(), subscriptions.showSaved()]);
+}
+
 /** Replaces the remembered payees in the local copy. Throws when the API cannot be had. */
 export async function refreshPayees(): Promise<void> {
 	await replacePayees((await api.listPayees(undefined, PAYEE_LIMIT)).payees);

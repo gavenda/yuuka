@@ -95,6 +95,11 @@ export const useTransactionStore = defineStore('transactions', () => {
 		}
 	}
 
+	/** Shows the list as the local copy now holds it — what a save has just written there — without asking the API. */
+	async function showSaved(): Promise<void> {
+		if (loaded.value) await showCopy(filters.value);
+	}
+
 	async function load(next: TransactionFilters = filters.value): Promise<void> {
 		filters.value = next;
 		// Neither a copy nor a further page of the filter set this one replaces may land once it is asked for.
@@ -180,6 +185,7 @@ export const useTransactionStore = defineStore('transactions', () => {
 		load,
 		loadMore,
 		refresh,
+		showSaved,
 		reset,
 	};
 });

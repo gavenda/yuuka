@@ -168,6 +168,37 @@ describe('last write wins', () => {
 		expect(tags.find((entry) => entry.id === tag.id)?.name).toBe('Holidays');
 	});
 
+	it('judges a change to the Save the Change rule against the rule as it stands', async () => {
+		const destination = await makeAccount(call, { name: 'Savings' });
+		await call('/round-up', { method: 'PATCH', body: JSON.stringify({ roundTo: 1000 }) });
+
+		// The rule is keyed by its owner rather than an id of its own; checking it must not fail the batch.
+		const results = await batch([
+			{ opId: '1', method: 'PATCH', path: '/api/round-up', at: earlier(60), entity: 'roundUpRule', body: { roundTo: 10000 } },
+			{
+				opId: '2',
+				method: 'PATCH',
+				path: '/api/round-up',
+				at: later(60),
+				entity: 'roundUpRule',
+				body: { enabled: true, destinationAccountId: destination },
+			},
+		]);
+
+		expect(results.map((result) => result.status)).toEqual(['stale', 'applied']);
+
+		const { roundUpRule } = await json<{ roundUpRule: { enabled: boolean; roundTo: number } }>(await call('/round-up'));
+		expect(roundUpRule).toMatchObject({ enabled: true, roundTo: 1000 });
+	});
+
+	it('judges a change to the settings against the settings as they stand', async () => {
+		const results = await batch([
+			{ opId: '1', method: 'PATCH', path: '/api/settings', at: later(60), entity: 'settings', body: { budgetMode: 'monthly' } },
+		]);
+
+		expect(results[0].status).toBe('applied');
+	});
+
 	it('applies a create, which has no row to be stale against', async () => {
 		const results = await batch([
 			{

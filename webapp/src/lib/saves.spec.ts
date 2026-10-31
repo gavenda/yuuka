@@ -48,6 +48,53 @@ describe('saves', () => {
 		expect((await cache.readTransactionPage(SEPTEMBER, 50))!.transactions.map((transaction) => transaction.payee)).toEqual(['Coffee']);
 	});
 
+	it('move the balances of the accounts they touch', async () => {
+		const balances = async () => Object.fromEntries((await cache.readLedger())!.accounts.map((account) => [account.id, account.balance]));
+		await cache.saveAccount(row.account('a', { balance: 10_000 }));
+		await cache.saveAccount(row.account('b', { balance: 0 }));
+		await cache.writeTransactionPage(SEPTEMBER, [], 0, 8);
+
+		const { transaction } = await api.createTransaction({ accountId: 'a', amount: -500, occurredOn: '2026-09-12', payee: 'Coffee' });
+		await settled();
+		expect(await balances()).toEqual({ a: 9_500, b: 0 });
+
+		// An edit moves it by the difference, onto whichever account the row now names.
+		await api.updateTransaction(transaction.id, { accountId: 'b', amount: -800 });
+		await settled();
+		expect(await balances()).toEqual({ a: 10_000, b: -800 });
+
+		await api.deleteTransaction(transaction.id);
+		await settled();
+		expect(await balances()).toEqual({ a: 10_000, b: 0 });
+
+		// A transfer moves both, and deleting one leg takes both back.
+		const { transactions } = await api.createTransfer({ fromAccountId: 'a', toAccountId: 'b', amount: 2_000, occurredOn: '2026-09-13' });
+		await settled();
+		expect(await balances()).toEqual({ a: 8_000, b: 2_000 });
+
+		await api.deleteTransaction(transactions[0].id);
+		await settled();
+		expect(await balances()).toEqual({ a: 10_000, b: 0 });
+	});
+
+	it('move the balance with the starting balance', async () => {
+		const account = row.account('a', { startingBalance: 1_000, balance: 4_000 });
+		await cache.saveAccount(account);
+		// The edit works from the account as the screen holds it.
+		const { ledgerView, setLedgerView } = await import('./provisional');
+		const empty = ledgerView();
+		setLedgerView(() => ({ ...empty, accounts: [account] }));
+
+		await api.updateAccount('a', { startingBalance: 3_000 });
+		await settled();
+		setLedgerView(() => empty);
+
+		expect((await cache.readLedger())!.accounts.find((account) => account.id === 'a')).toMatchObject({
+			startingBalance: 3_000,
+			balance: 6_000,
+		});
+	});
+
 	it('apply the cascade the server would when they delete', async () => {
 		await cache.saveCategory(row.category('c'));
 		await cache.writeTransactionPage(SEPTEMBER, [row.transaction('t', { categoryId: 'c', categoryName: 'c' })], 1, 8);

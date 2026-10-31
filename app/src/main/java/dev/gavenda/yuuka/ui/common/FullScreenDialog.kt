@@ -257,7 +257,7 @@ private fun FullScreenDialogWindow(spec: FullScreenDialogSpec, leaving: Boolean,
                         }
                     }
                 }
-                OverlaySnackbarHost(modifier = Modifier.align(Alignment.BottomCenter))
+                // No snackbar host: one here would draw on the dialog itself. A save closes it before confirming.
             }
         }
     } else {

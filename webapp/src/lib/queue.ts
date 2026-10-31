@@ -120,10 +120,13 @@ export async function queued<T>(call: QueuedCall<T>): Promise<T> {
 	// to the way the app worked before there was one: send it now, and let the
 	// caller see the failure if there is no connection.
 	if (!entry) {
-		return await request<T>(call.path.replace(/^\/api/, ''), {
+		const answer = await request<T>(call.path.replace(/^\/api/, ''), {
 			method: call.method,
 			body: call.body === undefined ? undefined : JSON.stringify(call.body),
 		});
+		// No batch will land to refetch what it touched, so this does instead.
+		void refreshSlices(slicesForPath(call.path));
+		return answer;
 	}
 
 	await countUnsent();

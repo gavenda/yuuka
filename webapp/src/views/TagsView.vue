@@ -13,6 +13,7 @@ import { formatCount } from '@/lib/count';
 import { useHarmonised } from '@/lib/harmonise';
 import { nextColor, PALETTE } from '@/lib/palette';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { useEditDialog } from '@/lib/editDialog';
 import { colorProblem, nameProblem, sameName, useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
@@ -78,7 +79,7 @@ async function save(): Promise<void> {
 
 		dialogOpen.value = false;
 		showSnackbar(wasEditing ? t('tags.updated') : t('tags.added'));
-		await ledger.refreshTags();
+		await showSaved();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	} finally {
@@ -91,7 +92,7 @@ async function remove(tag: Tag): Promise<void> {
 	try {
 		await api.deleteTag(tag.id);
 		showSnackbar(t('tags.deleted'));
-		await ledger.refreshTags();
+		await showSaved();
 	} catch (caught) {
 		showSnackbar(caught instanceof ApiError ? caught.message : t('tags.couldNotDelete'));
 	}

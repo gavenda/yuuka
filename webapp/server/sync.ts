@@ -61,7 +61,11 @@ export interface SyncResult {
  * `perUser` rows are the singletons — one settings row, one round-up rule —
  * which are found by owner rather than by id.
  */
-const GUARDS: Record<string, { table: string; perUser?: boolean }> = {
+/**
+ * Where each entity's `updated_at` lives. A per-user row names the column that holds the user's id,
+ * since it differs: `users` is keyed by `id`, `round_up_rules` by `user_id`.
+ */
+const GUARDS: Record<string, { table: string; perUser?: 'id' | 'user_id' }> = {
 	account: { table: 'accounts' },
 	accountType: { table: 'account_types' },
 	category: { table: 'categories' },
@@ -69,8 +73,8 @@ const GUARDS: Record<string, { table: string; perUser?: boolean }> = {
 	transaction: { table: 'transactions' },
 	subscription: { table: 'subscriptions' },
 	budget: { table: 'budgets' },
-	settings: { table: 'users', perUser: true },
-	roundUpRule: { table: 'round_up_rules', perUser: true },
+	settings: { table: 'users', perUser: 'id' },
+	roundUpRule: { table: 'round_up_rules', perUser: 'user_id' },
 };
 
 /**
@@ -100,7 +104,7 @@ async function lastWrittenAt(db: D1Database, userId: string, operation: SyncOper
 	// The table name is never caller-supplied — `entity` is a closed enum and
 	// this map is the only thing that turns one into a table.
 	const row = guard.perUser
-		? await db.prepare(`SELECT updated_at FROM ${guard.table} WHERE id = ?`).bind(userId).first<{ updated_at: string }>()
+		? await db.prepare(`SELECT updated_at FROM ${guard.table} WHERE ${guard.perUser} = ?`).bind(userId).first<{ updated_at: string }>()
 		: operation.id
 			? await db
 					.prepare(`SELECT updated_at FROM ${guard.table} WHERE id = ? AND user_id = ?`)

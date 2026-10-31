@@ -242,6 +242,9 @@ internal fun AccountsScreenContent(
                         if (e.status == 409) {
                             deleteError = deleteAccountTransactionsConfirmTemplate.format(toDelete.name)
                         } else {
+                            // Closed first: the dialog has no snackbar host, so the message shows on the screen.
+                            pendingDelete = null
+                            deleteError = null
                             snackbarHostState.showSnackbar(e.message ?: couldNotDeleteAccountMessage)
                         }
                     }
@@ -441,40 +444,38 @@ private fun AccountAdjustDialog(account: Account, submitting: Boolean, onSave: (
         onDismissRequest = { if (!submitting) onCancel() },
         title = { Text(stringResource(R.string.adjust_balance)) },
         text = {
-            WithSnackbarOverlay {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+
+                YuukaTextField(
+                    value = balance,
+                    onValueChange = { balance = it },
+                    label = stringResource(R.string.label_new_balance),
+                    placeholder = stringResource(R.string.placeholder_amount_decimal),
+                    singleLine = true,
+                    field = balanceField,
+                )
+
+                if (difference != null && difference != 0L) {
                     Text(
-                        stringResource(R.string.adjust_balance_description, account.name, formatMoney(account.balance, account.currency)),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-
-                    YuukaTextField(
-                        value = balance,
-                        onValueChange = { balance = it },
-                        label = stringResource(R.string.label_new_balance),
-                        placeholder = stringResource(R.string.placeholder_amount_decimal),
-                        singleLine = true,
-                        field = balanceField,
-                    )
-
-                    if (difference != null && difference != 0L) {
-                        Text(
-                            stringResource(
-                                if (difference > 0) R.string.adjust_balance_logs_income else R.string.adjust_balance_logs_expense,
-                                formatMoney(difference, account.currency),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-
-                    YuukaTextField(
-                        value = payee,
-                        onValueChange = { payee = it },
-                        label = stringResource(R.string.label_payee_optional),
-                        singleLine = true,
-                        field = payeeField,
+                        stringResource(
+                            if (difference > 0) R.string.adjust_balance_logs_income else R.string.adjust_balance_logs_expense,
+                            formatMoney(difference, account.currency),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
+
+                YuukaTextField(
+                    value = payee,
+                    onValueChange = { payee = it },
+                    label = stringResource(R.string.label_payee_optional),
+                    singleLine = true,
+                    field = payeeField,
+                )
             }
         },
         confirmButton = {

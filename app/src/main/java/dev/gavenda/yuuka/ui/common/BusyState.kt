@@ -42,14 +42,21 @@ class BusyState internal constructor(
         if (isBusy(key)) return
         scope.launch {
             set(get() + key)
-            try {
+            val failure = try {
                 action()
+                null
+            } catch (e: ApiError) {
+                e
+            } finally {
+                // Released before any snackbar: showSnackbar suspends for as long as the message is
+                // on screen, and the button must not spin, refusing presses, all that while.
+                set(get() - key)
+            }
+            if (failure == null) {
                 onSuccess?.invoke()
                 if (successMessage != null) snackbarHostState.showSnackbar(successMessage)
-            } catch (e: ApiError) {
-                snackbarHostState.showSnackbar(e.message ?: genericErrorMessage)
-            } finally {
-                set(get() - key)
+            } else {
+                snackbarHostState.showSnackbar(failure.message ?: genericErrorMessage)
             }
         }
     }

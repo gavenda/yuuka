@@ -202,6 +202,7 @@ export const useLedgerStore = defineStore('ledger', () => {
 		defaultAccountId,
 		updateSettings,
 		updateRoundUpRule,
+		hydrate,
 		categories,
 		tags,
 		loaded,

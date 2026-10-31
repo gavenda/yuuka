@@ -21,6 +21,7 @@ import { currencyName, parseMoney, toDecimalString } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { useEditDialog } from '@/lib/editDialog';
 import { whenDiscardable } from '@/lib/formPane';
 import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
@@ -216,7 +217,7 @@ async function save(): Promise<void> {
 
 		dialogOpen.value = false;
 		showSnackbar(editing.value ? t('accounts.updated') : t('accounts.added'));
-		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
+		await showSaved();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}
@@ -242,7 +243,7 @@ async function saveAdjustment(): Promise<void> {
 		await api.adjustAccount(account.id, { balance, occurredOn: today(), payee: adjustForm.payee.trim() || undefined });
 		adjustDialogOpen.value = false;
 		showSnackbar(t('accounts.adjusted'));
-		await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
+		await showSaved();
 	} catch (caught) {
 		adjustError.value = caught instanceof ApiError ? caught.message : t('accounts.couldNotAdjust');
 	}
@@ -251,7 +252,7 @@ async function saveAdjustment(): Promise<void> {
 async function toggleArchived(account: Account): Promise<void> {
 	await api.updateAccount(account.id, { archived: !account.archived });
 	showSnackbar(account.archived ? t('accounts.restored') : t('accounts.archived'));
-	await ledger.refreshAccounts();
+	await showSaved();
 }
 
 /** The account a delete has been asked for, and what the API said the first time it was tried. */
@@ -277,9 +278,13 @@ async function remove(): Promise<void> {
 		return;
 	}
 
+	const queued = deleteHasHistory.value;
 	closeDelete();
 	showSnackbar(t('accounts.deleted'));
-	await Promise.all([ledger.refreshAccounts(), budget.refresh()]);
+	await showSaved();
+	// Without history the delete went straight to the API rather than through the queue, so no batch
+	// will land to bring the summary up to date; this does, behind the screen.
+	if (!queued) void budget.refresh();
 }
 
 onMounted(() => ledger.load());

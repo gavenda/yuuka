@@ -18,6 +18,7 @@ import { api } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
+import { showSaved } from '@/lib/sync';
 import { useHarmonised } from '@/lib/harmonise';
 import { useInView } from '@/lib/inView';
 import {
@@ -182,7 +183,7 @@ async function remove(): Promise<void> {
 	}
 	await api.deleteTransaction(target.id);
 	showSnackbar(target.transferId ? t('transactions.transferDeleted') : t('transactions.transactionDeleted'));
-	await Promise.all([store.refresh(), ledger.refreshAccounts(), budget.refresh()]);
+	await showSaved();
 }
 </script>
 
@@ -194,7 +195,12 @@ async function remove(): Promise<void> {
 		     has no bar, so there the search leads the strip below instead: one field in each place, and only
 		     one of them ever on show. -->
 		<Teleport defer to="#bar-search">
-			<SearchField v-model="search" class="gap-2 sm:hidden" :label="t('transactions.search')" :placeholder="t('transactions.searchPlaceholder')" />
+			<SearchField
+				v-model="search"
+				class="gap-2 sm:hidden"
+				:label="t('transactions.search')"
+				:placeholder="t('transactions.searchPlaceholder')"
+			/>
 		</Teleport>
 
 		<!-- What stays put while the list scrolls: the search, where there is no bar for it, and one row of

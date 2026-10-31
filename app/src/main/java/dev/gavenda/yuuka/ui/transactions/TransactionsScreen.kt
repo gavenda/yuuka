@@ -36,6 +36,7 @@ import dev.gavenda.yuuka.domain.formatTime
 import dev.gavenda.yuuka.ui.common.rememberFormSwitch
 import dev.gavenda.yuuka.ui.common.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.graphics.Color
@@ -84,6 +85,7 @@ internal fun TransactionsScreenContent(
     onDelete: suspend (Transaction) -> Unit = {},
 ) {
     val busy = rememberBusyState()
+    val scope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
     val genericErrorMessage = stringResource(R.string.error_generic)
     val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
@@ -229,7 +231,9 @@ internal fun TransactionsScreenContent(
                     try {
                         val message = onSave(target.editing, submission)
                         form = null
-                        snackbarHostState.showSnackbar(message)
+                        // Not waited on: showSnackbar suspends while the message shows, and the busy key
+                        // would keep the next form's Save spinning all that while.
+                        scope.launch { snackbarHostState.showSnackbar(message) }
                     } catch (e: ApiError) {
                         formError = e.message ?: genericErrorMessage
                     }

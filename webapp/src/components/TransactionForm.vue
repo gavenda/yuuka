@@ -15,9 +15,8 @@ import { supportId, useFormValidation } from '@/lib/validation';
 import { api, ApiError } from '@/lib/api';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
-import { useBudgetStore } from '@/stores/budget';
+import { showSaved } from '@/lib/sync';
 import { useLedgerStore } from '@/stores/ledger';
-import { useTransactionStore } from '@/stores/transactions';
 import type { Payee, Transaction } from '@/types';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
@@ -39,8 +38,6 @@ const props = defineProps<{ open: boolean; transaction?: Transaction | null; tra
 const emit = defineEmits<{ close: [] }>();
 
 const ledger = useLedgerStore();
-const transactions = useTransactionStore();
-const budget = useBudgetStore();
 const isEditing = computed(() => Boolean(props.transaction));
 /** Posted by a subscription's cron at 00:00 UTC — its time of day is not the user's to set. */
 const isAutomated = computed(() => props.transaction?.automated === true);
@@ -260,7 +257,7 @@ async function submit(): Promise<void> {
 					: t('transactions.transactionAdded'),
 		);
 		if (roundUp) announceRoundUp(roundUp);
-		await Promise.all([transactions.refresh(), ledger.refreshAccounts(), budget.refresh()]);
+		await showSaved();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
 	}

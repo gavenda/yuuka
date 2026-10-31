@@ -356,14 +356,38 @@ export function dropTransactionPages(except?: TransactionFilters): Promise<void>
 	});
 }
 
-/** Saves rows the user just made or changed, with the tags each now wears. */
-export const saveTransactions = (transactions: Transaction[]) => write(transactions.flatMap(transactionWrites));
+/**
+ * The accounts [before] and [after] touch, each moved by what changed on it — an account's balance is
+ * its starting balance plus its rows — so a balance and net worth read right before the server has
+ * answered. Its balances replace these once the change has landed.
+ */
+function balanceShifts(db: DatabaseView, before: StoredRow[], after: Transaction[]): Op[] {
+	const shifts = new Map<string, number>();
+	for (const row of before) shifts.set(String(row.accountId), (shifts.get(String(row.accountId)) ?? 0) - Number(row.amount));
+	for (const row of after) shifts.set(row.accountId, (shifts.get(row.accountId) ?? 0) + row.amount);
 
-/** Deletes a transaction — both legs, when it is one side of a transfer. */
+	return [...shifts].flatMap(([accountId, shift]) => {
+		const account = db('accounts').get(accountId);
+		if (!account || shift === 0) return [];
+		const current = entity<Account>(account);
+		return [put('accounts', { ...current, balance: current.balance + shift })];
+	});
+}
+
+/** Saves rows the user just made or changed, with the tags each now wears, and moves the balances they touch. */
+export const saveTransactions = (transactions: Transaction[]) =>
+	write((db) => {
+		const before = transactions.map((transaction) => db('transactions').get(transaction.id)).filter((row) => row !== undefined);
+		return [...balanceShifts(db, before, transactions), ...transactions.flatMap(transactionWrites)];
+	});
+
+/** Deletes a transaction — both legs, when it is one side of a transfer — and moves the balances back. */
 export function deleteTransaction(id: string): Promise<void> {
 	return write((db) => {
 		const row = db('transactions').get(id);
-		return row ? transactionRemovals(db, [row]) : [remove('transactions', id)];
+		if (!row) return [remove('transactions', id)];
+		const legs = row.transferId ? db('transactions').where('transferId', row.transferId as string) : [row];
+		return [...balanceShifts(db, legs, []), ...transactionRemovals(db, [row])];
 	});
 }
 

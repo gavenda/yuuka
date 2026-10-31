@@ -158,13 +158,12 @@ export const useBudgetStore = defineStore('budget', () => {
 	}
 
 	async function setBudget(categoryId: string, value: { amount: number } | { percent: number }): Promise<void> {
+		// The summary is not worked out locally; the queue refetches it once the change has landed.
 		await api.setBudget({ categoryId, month: month.value, ...value });
-		await refresh();
 	}
 
 	async function setIncomePlan(amount: number, mode: 'gross' | 'fixed' = 'fixed', grossAmount?: number): Promise<void> {
 		await api.setIncomePlan({ month: month.value, amount, mode, grossAmount });
-		await refresh();
 	}
 
 	function reset(): void {
