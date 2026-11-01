@@ -7,9 +7,13 @@ import dev.gavenda.yuuka.data.model.Summary
 import dev.gavenda.yuuka.data.model.Trend
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.DEFAULT_CURRENCY
+import dev.gavenda.yuuka.domain.InvestmentSummary
+import dev.gavenda.yuuka.domain.holdings
+import dev.gavenda.yuuka.domain.investmentSummary
 import dev.gavenda.yuuka.domain.addMonths
 import dev.gavenda.yuuka.domain.currentMonth
 import dev.gavenda.yuuka.repository.BudgetRepository
+import dev.gavenda.yuuka.repository.InvestmentRepository
 import dev.gavenda.yuuka.repository.LedgerRepository
 import dev.gavenda.yuuka.repository.SubscriptionRepository
 import dev.gavenda.yuuka.repository.SyncRepository
@@ -28,6 +32,8 @@ data class DashboardUiState(
     val subscriptions: List<Subscription> = emptyList(),
     /** The months up to the one on show, for the trend charts; null until known. */
     val trend: Trend? = null,
+    /** The holdings at their latest close, as Investments shows them; null with nothing held. */
+    val investments: InvestmentSummary? = null,
 )
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -35,6 +41,7 @@ class DashboardViewModel(
     private val ledgerRepository: LedgerRepository,
     private val budgetRepository: BudgetRepository,
     private val subscriptionRepository: SubscriptionRepository,
+    private val investmentRepository: InvestmentRepository,
     syncRepository: SyncRepository,
 ) : ViewModel() {
     private val month = MutableStateFlow(currentMonth())
@@ -60,13 +67,18 @@ class DashboardViewModel(
         monthState,
         subscriptionRepository.subscriptions,
         month.flatMapLatest { budgetRepository.observeTrend(it) },
-    ) { state, subscriptions, trend ->
-        state.copy(subscriptions = subscriptions, trend = trend)
+        combine(investmentRepository.trades, investmentRepository.securities) { trades, securities ->
+            // Only the totals and the stocks' names are shown, so no account names are needed.
+            investmentSummary(holdings(trades, securities.associateBy { it.symbol }, { null }))
+        },
+    ) { state, subscriptions, trend, investments ->
+        state.copy(subscriptions = subscriptions, trend = trend, investments = investments)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState())
 
     init {
         viewModelScope.launch { runCatching { ledgerRepository.refreshAll() } }
         viewModelScope.launch { runCatching { subscriptionRepository.refresh() } }
+        viewModelScope.launch { runCatching { investmentRepository.refresh() } }
         viewModelScope.launch { syncRepository.synced.collect { refresh() } }
         refresh()
     }

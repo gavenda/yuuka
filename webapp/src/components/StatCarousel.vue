@@ -19,14 +19,20 @@ export interface StatItem {
  * next one peeks in from the edge and the row scrolls sideways. It bleeds through the page's side padding,
  * so its cards scroll to the screen edge while the first still lines up with the rest of the content.
  */
-withDefaults(defineProps<{ stats: StatItem[]; currency?: string; tone?: 'surface' | 'secondary' | 'tertiary' }>(), {
-	currency: DEFAULT_CURRENCY,
-	tone: 'surface',
-});
+withDefaults(
+	defineProps<{
+		stats: StatItem[];
+		currency?: string;
+		tone?: 'surface' | 'secondary' | 'tertiary';
+		/** Off where the row stands in a column beside another, so it does not scroll into the gap between them. */
+		bleed?: boolean;
+	}>(),
+	{ currency: DEFAULT_CURRENCY, tone: 'surface', bleed: true },
+);
 </script>
 
 <template>
-	<div class="-mx-4 flex items-center gap-3 overflow-x-auto px-4 [scrollbar-width:none]">
+	<div class="flex items-center gap-3 overflow-x-auto [scrollbar-width:none]" :class="{ '-mx-4 px-4': bleed }">
 		<StatCard
 			v-for="stat in stats"
 			:key="stat.label"

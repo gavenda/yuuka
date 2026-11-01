@@ -143,6 +143,18 @@
         <item quantity="one">%1$s across %2$d subscription</item>
         <item quantity="other">%1$s across %2$d subscriptions</item>
     </plurals>
+    <string name="dashboard_section_attention">Needs attention</string>
+    <string name="dashboard_section_breakdown">Breakdown</string>
+    <string name="dashboard_section_overall">Overall</string>
+    <string name="dashboard_safe_to_spend">Safe to spend a day</string>
+    <plurals name="dashboard_safe_to_spend_left">
+        <item quantity="one">%1$s left for today</item>
+        <item quantity="other">%1$s left across %2$d days, today included</item>
+    </plurals>
+    <string name="dashboard_ahead_of_pace">Ahead of pace</string>
+    <string name="dashboard_day_of">Day %1$d of %2$d</string>
+    <string name="dashboard_largest_holdings">Largest holdings</string>
+    <string name="dashboard_prices_as_of">Closing prices of %1$s</string>
     <string name="dashboard_mixed_currencies">Net worth adds these as they stand. Currencies are not converted.</string>
     <string name="dashboard_needs_attention">I\'ll need an explanation.</string>
     <string name="dashboard_nothing_overspent">Every budget within its limit.</string>
@@ -442,13 +454,13 @@
     <string name="investments_allocation">Allocation</string>
     <string name="investments_tab_holdings">Holdings</string>
     <string name="investments_tab_activity">Activity</string>
+    <string name="investments_logo">%1$s logo</string>
     <string name="investments_shares_at">%1$s sh · %2$s</string>
     <string name="investments_new_trade">New trade</string>
     <string name="investments_edit_trade">Edit trade</string>
     <string name="investments_trade_buy">Buy</string>
     <string name="investments_trade_sell">Sell</string>
     <string name="investments_trade_dividend">Dividend</string>
-    <string name="investments_trade_line">%1$s · %2$s</string>
     <string name="investments_dividend_line">%1$s sh · %2$s a share</string>
     <string name="investments_today_change">%1$s (%2$s) today</string>
     <string name="investments_position">Position</string>
@@ -481,7 +493,6 @@
     <string name="investments_net_proceeds">Net proceeds</string>
     <string name="investments_net_dividend">Net dividend</string>
     <string name="investments_gain_on_sale">Gain on this sale</string>
-    <string name="investments_cash">Cash</string>
     <string name="investments_empty_title">No investments yet</string>
     <string name="investments_empty_description">Record a buy and I\'ll keep track of what it\'s worth at every close.</string>
     <string name="investments_prices_gathering">I\'m still gathering its past closes. Check back in a little while.</string>

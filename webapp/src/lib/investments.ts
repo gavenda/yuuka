@@ -167,6 +167,15 @@ export function positions(trades: readonly Trade[]): Position[] | null {
 	return [...byKey.values()];
 }
 
+/**
+ * The shares of `symbol` in `accountId` held at the start of `day` (`YYYY-MM-DD`), its own trades left out: what
+ * a dividend paid that day is most likely paid on. Zero for a history that does not stand.
+ */
+export function sharesHeldBefore(trades: readonly Trade[], accountId: string, symbol: string, day: string): number {
+	const before = trades.filter((trade) => trade.accountId === accountId && trade.symbol === symbol && trade.occurredOn.slice(0, 10) < day);
+	return positions(before)?.[0]?.shares ?? 0;
+}
+
 /** A position with what it is worth: one row of the Investments screen. */
 export interface Holding {
 	position: Position;

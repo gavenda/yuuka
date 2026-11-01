@@ -16,6 +16,7 @@ interface SecurityRow {
 	price_e4: number;
 	change_bp: number | null;
 	as_of: string;
+	logo_url: string | null;
 }
 
 interface TradeRow {
@@ -41,6 +42,7 @@ const toSecurity = (row: SecurityRow) => ({
 	price: row.price_e4,
 	changeBp: row.change_bp,
 	asOf: row.as_of,
+	logoUrl: row.logo_url,
 });
 
 const toTrade = (row: TradeRow) => ({

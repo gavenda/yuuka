@@ -172,7 +172,82 @@ export async function backfillPrices(env: Env, now: Date, budget = BACKFILL_PER_
 	return fetched;
 }
 
-/** The hourly tick: the latest close once a trading day, then a slice of history. */
+const PSE_EDGE = 'https://edge.pse.com.ph';
+
+/** How many held stocks one cron tick may look a logo up for: each takes two requests to PSE Edge. */
+const LOGOS_PER_TICK = 5;
+
+/** How long a logo found, or not found, stands before it is looked up again. */
+const LOGO_RECHECK_DAYS = 90;
+
+/**
+ * The PSE Edge company id of `symbol` in an answer of its directory search, which lists each match as a
+ * link calling `cmDetail('<company>','<security>')` with the symbol as its text. Null when it is not listed.
+ */
+export function companyIdOf(html: string, symbol: string): string | null {
+	const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const match = new RegExp(`cmDetail\\('(\\d+)','\\d+'\\);return false;">${escaped}</a>`).exec(html);
+	return match?.[1] ?? null;
+}
+
+/** The address of the logo on a PSE Edge company page, which serves it from `/clogo/`. Null with none. */
+export function logoUrlOf(html: string): string | null {
+	const match = /<img src="(\/clogo\/[^"]+)"/.exec(html);
+	return match ? new URL(match[1]!, PSE_EDGE).toString() : null;
+}
+
+/** Looks `symbol` up in the PSE Edge directory and reads its logo off its company page. */
+async function fetchLogo(symbol: string): Promise<string | null> {
+	const search = await fetch(`${PSE_EDGE}/companyDirectory/search.ax`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: new URLSearchParams({ keyword: symbol, pageNo: '1' }),
+	});
+	if (!search.ok) throw new Error(`PSE Edge search answered ${search.status}.`);
+	const company = companyIdOf(await search.text(), symbol);
+	if (!company) return null;
+
+	const page = await fetch(`${PSE_EDGE}/companyInformation/form.do?cmpy_id=${company}`);
+	if (!page.ok) throw new Error(`PSE Edge company page answered ${page.status}.`);
+	return logoUrlOf(await page.text());
+}
+
+/**
+ * Finds the logos of up to `budget` stocks someone holds that have not been looked up, or not for a
+ * while. A failed request leaves the stock to be asked about on a later tick; one PSE Edge has no logo
+ * for is remembered as none.
+ */
+export async function resolveLogos(env: Env, now: Date, budget = LOGOS_PER_TICK): Promise<number> {
+	const stale = new Date(now);
+	stale.setUTCDate(stale.getUTCDate() - LOGO_RECHECK_DAYS);
+	const { results } = await env.DB.prepare(
+		`SELECT s.symbol FROM securities s
+		 WHERE s.symbol IN (SELECT DISTINCT symbol FROM trades)
+		   AND (s.logo_checked_at IS NULL OR s.logo_checked_at < ?)
+		 ORDER BY s.logo_checked_at IS NOT NULL, s.symbol
+		 LIMIT ?`,
+	)
+		.bind(stale.toISOString(), budget)
+		.all<{ symbol: string }>();
+
+	let found = 0;
+	for (const { symbol } of results) {
+		let logo: string | null;
+		try {
+			logo = await fetchLogo(symbol);
+		} catch (error) {
+			console.error(`Looking up the logo of ${symbol} failed`, error);
+			continue;
+		}
+		await env.DB.prepare('UPDATE securities SET logo_url = ?, logo_checked_at = ? WHERE symbol = ?')
+			.bind(logo, now.toISOString(), symbol)
+			.run();
+		if (logo) found++;
+	}
+	return found;
+}
+
+/** The hourly tick: the latest close once a trading day, then a slice of history and of logos. */
 export async function runInvestmentTick(env: Env, now: Date): Promise<void> {
 	try {
 		await refreshSecurities(env, now);
@@ -183,6 +258,11 @@ export async function runInvestmentTick(env: Env, now: Date): Promise<void> {
 		await backfillPrices(env, now);
 	} catch (error) {
 		console.error('Backfilling PSE prices failed', error);
+	}
+	try {
+		await resolveLogos(env, now);
+	} catch (error) {
+		console.error('Looking up PSE logos failed', error);
 	}
 }
 

@@ -203,7 +203,11 @@ transaction. The trade itself is edited, by pressing it: whole, from the same fo
 moved rather than replaced. A trade records the time of day as a transaction does (`occurredOn` with an optional
 `THH:MM`, untimed sorting to the start of its day), and the leg carries the same, so a day's trades are worked
 through in the order they were made. A buy's and a sell's cash only turns money into shares and back, so like a transfer it is left
-out of income, spending, the daily chart and the payees; a dividend's (net of the 10% final tax) is income.
+out of income, spending, the daily chart and the payees; a dividend's (net of the 10% final tax) is income. A dividend is picked from the stocks already traded, each in the broker account it was traded in —
+which comes with it, so the form asks for no account, and names it beside the stock only where the same stock is
+in two accounts — and its shares are
+filled in with what the account held at the start of its day (`sharesHeldBefore`) — again whenever the stock, the
+account or the date changes — and left editable with no limit, since shares sold after the ex-date still earn it.
 Holdings are worked out from the trades, average cost, never stored: a sell takes shares out at the average
 so far and realises the rest, and a history that would sell more than it holds at any point is refused (a
 back-dated sell, or deleting a buy a later sell needs). Net worth adds the holdings at their latest close.
@@ -213,7 +217,12 @@ preset, DragonFi's is 0 — a broker is a preset, so this is code, not a column)
 Fees round to the nearest centavo unless the preset `roundsFeesUp`: DragonFi charges the commission with its
 VAT, and the PSE and SCCP fees together, each rounded up to the next centavo.
 Prices are market data, shared by everyone: the server keeps them from PHISIX (see
-[webapp/CLAUDE.md](webapp/CLAUDE.md)), and the client only reads them. On Android this is
+[webapp/CLAUDE.md](webapp/CLAUDE.md)), and the client only reads them. A stock's logo is market data too: PSE Edge shows one on
+each company's page under a file name that follows no pattern, so the cron reads it off the page of each stock
+someone holds (`resolveLogos`, a few a tick, looked at again after 90 days) and keeps only the address
+(`securities.logo_url`); the clients load the image from PSE Edge. A stock's screen stands it centred over the
+name, on a white card of its own since the logos are JPEGs on white, and without one — or while it cannot be
+loaded — the ticker's first letters on a tonal circle stand in. On Android this is
 `InvestmentRepository` and `ui/investments/`; on the web, `stores/investments.ts` and `lib/investments.ts`.
 
 - **Deleting a category never destroys history**: Transactions fall back to
@@ -423,16 +432,27 @@ account type, a selection — keeps a start-aligned headline, no icon, and Cance
 
 ## Dashboard
 
-- **The dashboard reads one month, and says what it is made of**: two rows of figures (net worth, income,
-spent, and — once a month has any — what was set aside into transfer categories and what Save the Change
-rounded up; then the net with the share of income kept, budget remaining and over budget), then the cards,
-each left out when it has nothing to say: against the plan (the expense budget used, with a mark for the day
-while the month runs, and income received against plan), the categories over budget, spending by day, where
-the money went (each row saying how far it moved from the month before) and came from (two sources or more),
-income and spending over the last six months, net worth over twelve, who the money went to (the summary's
-top five payees, transfers left out), the subscriptions still to post in the month under way, and every
-account in use with its balance in its own currency. What is worked out on the device lives in one place,
-`domain/Dashboard.kt` and `lib/dashboard.ts`, which mirror each other and are tested alike.
+- **The dashboard reads one month, and says what it is made of**: four sections under plain headings, each
+left out when it has nothing to say, and every card in them left out when it has nothing to say either.
+  - **The month on show** leads with one figure: what is safe to spend a day — what is left of the expense plan
+    shared over the days left, today included, rounded down — while the month runs with some of its plan left,
+    and its net otherwise. Its other figures follow in a row (income, spent, the net when it is not leading,
+    and — once a month has any — what was set aside into transfer categories and what Save the Change rounded
+    up), then the card against the plan (the expense budget used, with a mark for the day while the month runs,
+    and income received against plan).
+  - **Needs attention**: the categories over budget, the planned ones still within their plan but spending it
+    faster than the month is passing (only while it runs), and the subscriptions still to post in the month
+    under way.
+  - **Breakdown**: spending by day, where the money went (each row saying how far it moved from the month
+    before), who it went to (the summary's top five payees, transfers left out) and where it came from (two
+    sources or more).
+  - **Overall**: net worth, its twelve months, income and spending over the last six, the investments (their
+    worth at the latest close, the unrealised and the day's gain, the three largest stocks, pressing it opens
+    Investments), and every account in use with its balance in its own currency.
+
+  From an 840dp / 840px page the last section stands in a column of its own beside the other three. What is
+  worked out on the device lives in one place, `domain/Dashboard.kt` and `lib/dashboard.ts`, which mirror each
+  other and are tested alike.
 - **The trend is its own route**: `/api/trend` spans months, and the summary is cached per month and purged
 only for the months a write touches, so a trend inside it would go stale on a back-dated write. It is not
 cached on the server. Its net worth at a month's end is worked back from today's balances, which counts an

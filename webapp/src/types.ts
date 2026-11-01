@@ -284,6 +284,8 @@ export interface Security {
 	changeBp: number | null;
 	/** The trading day `price` is the close of. */
 	asOf: string;
+	/** The logo PSE Edge shows for the company, loaded from there; null, or absent in an older copy, with none found yet. */
+	logoUrl?: string | null;
 }
 
 export type TradeKind = 'buy' | 'sell' | 'dividend';

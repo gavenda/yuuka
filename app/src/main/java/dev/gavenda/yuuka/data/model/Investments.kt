@@ -15,6 +15,8 @@ data class Security(
     val changeBp: Long? = null,
     /** The trading day [price] is the close of. */
     val asOf: String,
+    /** The logo PSE Edge shows for the company, loaded from there; null with none found yet. */
+    val logoUrl: String? = null,
 )
 
 /** A buy, a sell or a cash dividend, and the cash it moved in its broker account (`GET /api/trades`). */

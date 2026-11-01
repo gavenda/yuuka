@@ -100,6 +100,69 @@ class DashboardTest {
         assertEquals(listOf("soon", "late"), list.map { it.id })
     }
 
+    @Test
+    fun safeToSpendSharesWhatIsLeftOverTheDaysLeftTodayIncluded() {
+        // Day 20 of 31 leaves 12 days, today among them; 10,000 of 22,000 spent leaves 12,000.
+        assertEquals(SafeToSpend(1000, 12_000, 12), safeToSpend(BudgetPace(10_000, 22_000, 45, 20, 31)))
+        // Rounds down, so keeping to it never runs past the plan.
+        assertEquals(SafeToSpend(333, 1000, 3), safeToSpend(BudgetPace(0, 1000, 0, 28, 30)))
+    }
+
+    @Test
+    fun safeToSpendHasNothingToSayPastThePlanOrOutsideTheMonth() {
+        assertNull(safeToSpend(BudgetPace(1000, 1000, 100, 10, 30)))
+        assertNull(safeToSpend(BudgetPace(500, 1000, 50, null, 30)))
+        assertNull(safeToSpend(null))
+    }
+
+    @Test
+    fun aheadOfPaceListsPlansSpentFasterThanTheMonthIsPassingFurthestFirst() {
+        // Day 10 of 31 is about a third of the month gone.
+        val list = aheadOfPace(
+            listOf(
+                entry("food", planned = 1000, actual = 500),
+                entry("fun", planned = 1000, actual = 900),
+                entry("rent", planned = 1000, actual = 200),
+                entry("over", planned = 1000, actual = 1200),
+                entry("unplanned", planned = 0, actual = 500),
+                entry("salary", planned = 1000, actual = 900, kind = CategoryKind.income),
+            ),
+            "2026-10",
+            "2026-10-10",
+        )
+        assertEquals(listOf("fun", "food"), list.map { it.categoryId })
+        assertEquals(emptyList<CategoryBreakdown>(), aheadOfPace(listOf(entry("food", 1000, 900)), "2026-09", "2026-10-10"))
+    }
+
+    @Test
+    fun investmentSummaryAddsTheHeldPositionsAndNamesTheLargestStocks() {
+        val summary = investmentSummary(
+            listOf(
+                holding("BDO", "acc-a", shares = 100, cost = 1_400_000, priceE4 = 1_500_000, asOf = "2026-10-30"),
+                holding("BDO", "acc-b", shares = 100, cost = 1_450_000, priceE4 = 1_500_000, asOf = "2026-10-30"),
+                holding("ALI", "acc-a", shares = 1000, cost = 3_000_000, priceE4 = 280_000, asOf = "2026-10-31"),
+                holding("JFC", "acc-a", shares = 10, cost = 250_000, priceE4 = 2_000_000, asOf = null),
+                holding("SM", "acc-a", shares = 0, cost = 0, priceE4 = 9_000_000, asOf = "2026-10-31"),
+            ),
+            top = 2,
+        )!!
+        // ₱150 × 200 BDO, ₱28 × 1,000 ALI and ₱200 × 10 JFC.
+        assertEquals(3_000_000 + 2_800_000 + 200_000L, summary.marketValue)
+        assertEquals(6_100_000L, summary.costBasis)
+        assertEquals(-100_000L, summary.unrealised)
+        assertEquals("2026-10-31", summary.asOf)
+        assertEquals(listOf("BDO" to 3_000_000L, "ALI" to 2_800_000L), summary.largest.map { it.symbol to it.marketValue })
+    }
+
+    @Test
+    fun investmentSummaryHasNothingToSayWithNothingHeld() {
+        assertNull(investmentSummary(emptyList()))
+        assertNull(investmentSummary(listOf(holding("SM", "acc", shares = 0, cost = 0, priceE4 = 9_000_000, asOf = null))))
+    }
+
+    private fun holding(symbol: String, account: String, shares: Long, cost: Long, priceE4: Long, asOf: String?) =
+        Holding(Position(account, symbol, shares, cost, 0, 0), name = symbol, accountName = account, priceE4 = priceE4, changeBp = null, asOf = asOf)
+
     private fun subscription(id: String, nextRunOn: String, enabled: Boolean = true) =
         Subscription(id = id, accountId = "acc", amount = -500, payee = id, startOn = nextRunOn, dayOfMonth = 1, nextRunOn = nextRunOn, enabled = enabled)
 

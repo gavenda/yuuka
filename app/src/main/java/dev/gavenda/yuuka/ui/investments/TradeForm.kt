@@ -23,6 +23,7 @@ import dev.gavenda.yuuka.domain.parseShares
 import dev.gavenda.yuuka.domain.positions
 import dev.gavenda.yuuka.domain.priceInput
 import dev.gavenda.yuuka.domain.pseFees
+import dev.gavenda.yuuka.domain.sharesHeldBefore
 import dev.gavenda.yuuka.domain.valueOf
 import dev.gavenda.yuuka.ui.common.*
 import java.time.Instant
@@ -82,6 +83,33 @@ fun TradeForm(
     // What can be sold now: what is held, plus what the sell being edited already takes out of it.
     val available = (held?.shares ?: 0) +
         if (editing != null && editing.kind == TradeKinds.SELL && editing.symbol == symbol && editing.accountId == account) editing.shares else 0
+    // A dividend is paid on what was held, so its shares are filled in from the history whenever the stock, the
+    // account or the date changes — and left as they are otherwise, since a sell after the ex-date still earns
+    // the dividend on the shares it sold. An edit opens on the shares it was saved with.
+    val heldBefore = if (symbol != null && account != null) sharesHeldBefore(state.trades, account!!, symbol!!, date.toString()) else 0
+    val fillKey = listOf(kind, symbol, account, date)
+    var filledFor by remember { mutableStateOf(if (editing != null) fillKey else null) }
+    LaunchedEffect(fillKey) {
+        if (kind == TradeKinds.DIVIDEND && filledFor != fillKey) shares = if (heldBefore > 0) heldBefore.toString() else ""
+        filledFor = fillKey
+    }
+    // What a dividend can be paid on: each stock in each broker account it was ever traded in, plus the one being
+    // edited. Picking one picks its account too, so the account is named beside a stock only where the same stock
+    // is in two accounts and the name is what tells them apart.
+    val dividendSources = remember(state.trades, state.securities, state.accounts, editing) {
+        val names = state.accounts.associate { it.id to it.name }
+        val bySymbol = state.securities.associateBy { it.symbol }
+        val pairs = (state.trades.map { it.accountId to it.symbol } + listOfNotNull(editing?.let { it.accountId to it.symbol }))
+            .distinct()
+            .filter { (accountId, symbol) -> accountId in names && symbol in bySymbol }
+        val shared = pairs.groupBy { it.second }.filterValues { it.size > 1 }.keys
+        pairs.sortedWith(compareBy({ it.second }, { names[it.first] })).map { (accountId, symbol) ->
+            val label = "$symbol · ${bySymbol.getValue(symbol).name}" + if (symbol in shared) " · ${names[accountId]}" else ""
+            SelectOption("$accountId|$symbol", label)
+        }
+    }
+    val dividendSource = "$account|$symbol"
+
     val sharesValue = parseShares(shares)
     val priceValue = parsePrice(price)
     val occurredOn = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + (time?.let { "T" + it.format(TIME_FORMAT) } ?: "")
@@ -104,13 +132,16 @@ fun TradeForm(
         ) != null
 
     val form = rememberFormValidation()
-    val stockField = form.field("stock", if (security == null) stringResource(R.string.error_choose_stock) else null)
+    val stockField = form.field(
+        "stock",
+        if (security == null || kind == TradeKinds.DIVIDEND && dividendSources.none { it.value == dividendSource }) stringResource(R.string.error_choose_stock) else null,
+    )
     val accountField = form.field("account", if (state.accounts.none { it.id == account }) stringResource(R.string.error_choose_broker) else null)
     val sharesField = form.field(
         "shares",
         when {
             sharesValue == null -> stringResource(R.string.error_shares_whole)
-            kind != TradeKinds.BUY && sharesValue > available -> stringResource(R.string.error_shares_over_held, sharesText(available))
+            kind == TradeKinds.SELL && sharesValue > available -> stringResource(R.string.error_shares_over_held, sharesText(available))
             !historyHolds -> stringResource(R.string.error_shares_over_history)
             else -> null
         },
@@ -146,19 +177,34 @@ fun TradeForm(
             label = { tradeKindLabel(it) },
         )
 
-        SecurityField(
-            securities = state.securities,
-            selected = security,
-            field = stockField,
-            onSelect = { picked ->
-                symbol = picked.symbol
-                // The stock fills in the account that already holds it, as a payee fills in the rest.
-                state.held.firstOrNull { it.symbol == picked.symbol }?.let { account = it.position.accountId }
-                if (kind != TradeKinds.DIVIDEND) price = priceInput(picked.price)
-            },
-        )
+        if (kind == TradeKinds.DIVIDEND) {
+            // Only a stock already traded can pay a dividend, so it is picked from those rather than searched for,
+            // and the account it is in comes with it.
+            DropdownField(
+                label = stringResource(R.string.investments_label_stock),
+                value = dividendSources.firstOrNull { it.value == dividendSource }?.label ?: "",
+                options = dividendSources,
+                onSelect = { picked ->
+                    account = picked.substringBefore('|')
+                    symbol = picked.substringAfter('|')
+                },
+                field = stockField,
+            )
+        } else {
+            SecurityField(
+                securities = state.securities,
+                selected = security,
+                field = stockField,
+                onSelect = { picked ->
+                    symbol = picked.symbol
+                    // The stock fills in the account that already holds it, as a payee fills in the rest.
+                    state.held.firstOrNull { it.symbol == picked.symbol }?.let { account = it.position.accountId }
+                    price = priceInput(picked.price)
+                },
+            )
+        }
 
-        DropdownField(
+        if (kind != TradeKinds.DIVIDEND) DropdownField(
             label = stringResource(R.string.investments_label_broker),
             value = state.accounts.firstOrNull { it.id == account }?.name ?: "",
             options = state.accounts.map { SelectOption(it.id, it.name) },
@@ -191,7 +237,7 @@ fun TradeForm(
             singleLine = true,
             field = sharesField,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            // A dividend is paid on whatever is held, so the board lot means nothing there.
+            // A dividend is paid on whatever was held, so the board lot means nothing there.
             hint = if (kind == TradeKinds.DIVIDEND || lot == null) null else when {
                 sharesValue != null && sharesValue % lot != 0L -> stringResource(R.string.investments_odd_lot_hint, "%,d".format(lot))
                 else -> stringResource(R.string.investments_board_lot_hint, "%,d".format(lot))

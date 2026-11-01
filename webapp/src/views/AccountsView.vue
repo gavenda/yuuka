@@ -349,7 +349,7 @@ onMounted(() => ledger.load());
 									:bank="account.bank"
 									:logo-url="account.logoUrl"
 									:invert-dark="account.logoInvertDark"
-									:size="28"
+									:size="22"
 								/>
 							</span>
 						</button>

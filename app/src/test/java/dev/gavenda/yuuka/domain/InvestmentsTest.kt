@@ -93,4 +93,18 @@ class InvestmentsTest {
         assertEquals(1_000L, boardLot(5_700))
         assertEquals(1_000_000L, boardLot(50))
     }
+
+    @Test
+    fun aDividendIsPaidOnWhatWasHeldBeforeItsDay() {
+        val trades = listOf(
+            trade(TradeKinds.BUY, "2026-01-05", 1000, 100_000),
+            trade(TradeKinds.SELL, "2026-02-10T10:00", 400, 110_000),
+            trade(TradeKinds.BUY, "2026-03-01", 200, 105_000),
+        )
+        assertEquals(0L, sharesHeldBefore(trades, "a", "X", "2026-01-05"))
+        assertEquals(1000L, sharesHeldBefore(trades, "a", "X", "2026-02-10"))
+        assertEquals(600L, sharesHeldBefore(trades, "a", "X", "2026-02-11"))
+        assertEquals(800L, sharesHeldBefore(trades, "a", "X", "2026-03-02"))
+        assertEquals(0L, sharesHeldBefore(trades, "b", "X", "2026-03-02"))
+    }
 }

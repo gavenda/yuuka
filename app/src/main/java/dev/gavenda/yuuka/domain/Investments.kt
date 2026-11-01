@@ -162,6 +162,13 @@ fun positions(trades: List<Trade>): List<Position>? {
     return running.map { (key, value) -> Position(key.first, key.second, value.shares, value.cost, value.realised, value.dividends) }
 }
 
+/**
+ * The shares of [symbol] in [accountId] held at the start of [day] (`YYYY-MM-DD`), its own trades left out: what
+ * a dividend paid that day is most likely paid on. Zero for a history that does not stand.
+ */
+fun sharesHeldBefore(trades: List<Trade>, accountId: String, symbol: String, day: String): Long =
+    positions(trades.filter { it.accountId == accountId && it.symbol == symbol && it.occurredOn.take(10) < day })?.firstOrNull()?.shares ?: 0
+
 /** A position with what it is worth: one row of the Investments screen. */
 data class Holding(
     val position: Position,

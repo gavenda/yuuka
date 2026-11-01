@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Trade } from '@/types';
-import { boardLot, parsePrice, positions, priceInput, pseFees, tradeCash, valueOf } from './investments';
+import { boardLot, parsePrice, positions, priceInput, pseFees, sharesHeldBefore, tradeCash, valueOf } from './investments';
 
 /** The same figures `test/investments.spec.ts` and Android's `InvestmentsTest` pin: all three must agree. */
 const trade = (kind: Trade['kind'], occurredOn: string, shares: number, price: number, fees = 0): Trade => ({
@@ -82,5 +82,20 @@ describe('investments', () => {
 		expect(boardLot(1_180_000)).toBe(10);
 		expect(boardLot(5_700)).toBe(1_000);
 		expect(boardLot(50)).toBe(1_000_000);
+	});
+});
+
+describe('sharesHeldBefore', () => {
+	it('is what was held at the start of the day, as a dividend is paid on', () => {
+		const trades = [
+			trade('buy', '2026-01-05', 1000, 100_000),
+			trade('sell', '2026-02-10T10:00', 400, 110_000),
+			trade('buy', '2026-03-01', 200, 105_000),
+		];
+		expect(sharesHeldBefore(trades, 'a', 'X', '2026-01-05')).toBe(0);
+		expect(sharesHeldBefore(trades, 'a', 'X', '2026-02-10')).toBe(1000);
+		expect(sharesHeldBefore(trades, 'a', 'X', '2026-02-11')).toBe(600);
+		expect(sharesHeldBefore(trades, 'a', 'X', '2026-03-02')).toBe(800);
+		expect(sharesHeldBefore(trades, 'b', 'X', '2026-03-02')).toBe(0);
 	});
 });

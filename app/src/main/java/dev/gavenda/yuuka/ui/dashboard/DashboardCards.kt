@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Account
@@ -23,12 +25,15 @@ import dev.gavenda.yuuka.data.model.Subscription
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.BudgetHealth
 import dev.gavenda.yuuka.domain.BudgetPace
+import dev.gavenda.yuuka.domain.InvestmentSummary
+import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.statusColor
 import dev.gavenda.yuuka.ui.common.MoneyText
 import dev.gavenda.yuuka.ui.common.MoneyTone
 import dev.gavenda.yuuka.ui.common.harmonisedColor
 import org.koin.compose.koinInject
+import kotlin.math.roundToInt
 
 /**
  * The categories behind the "Over budget" figure, the furthest over first. Each bar is what was spent: the
@@ -280,5 +285,95 @@ internal fun TopPayeesCard(payees: List<PayeeSpend>, currency: String, modifier:
                 }
             }
         }
+    }
+}
+
+/**
+ * The planned categories still within their plan but spending it faster than the month is passing: each one's
+ * share used, with the mark where the month has got to, so the bar running past the mark is the warning.
+ * Mirrors `AheadOfPaceCard.vue`.
+ */
+@Composable
+internal fun AheadOfPaceCard(entries: List<CategoryBreakdown>, day: Int, days: Int, currency: String, modifier: Modifier = Modifier) {
+    val visibility = koinInject<AmountVisibility>()
+
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column {
+                Text(stringResource(R.string.dashboard_ahead_of_pace), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.dashboard_day_of, day, days), style = MaterialTheme.typography.bodySmall)
+            }
+            entries.forEach { entry ->
+                PlanMeter(
+                    label = entry.name,
+                    percent = (entry.actual.toDouble() / entry.planned * 100).roundToInt(),
+                    color = statusColor(BudgetHealth.WARNING),
+                    marker = day.toFloat() / days,
+                    lines = listOf(
+                        stringResource(R.string.dashboard_spent_of_planned, visibility.displayMoney(entry.actual, currency), visibility.displayMoney(entry.planned, currency)),
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The holdings at their latest close: what they are worth, what they have gained since bought and on the day,
+ * and the largest stocks. Pressing it opens Investments. Mirrors `InvestmentsCard.vue`.
+ */
+@Composable
+internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+
+    Card(onClick = onOpen, modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(stringResource(R.string.destination_investments), style = MaterialTheme.typography.titleLarge)
+            summary.asOf?.let {
+                Text(stringResource(R.string.dashboard_prices_as_of, formatLongDate(it)), style = MaterialTheme.typography.bodySmall)
+            }
+
+            MoneyText(summary.marketValue, modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.headlineMedium)
+
+            Row(modifier = Modifier.padding(top = 12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Gain(stringResource(R.string.investments_unrealised), summary.unrealised, percentChange(summary.unrealised, summary.costBasis), Modifier.weight(1f))
+                Gain(
+                    stringResource(R.string.investments_today),
+                    summary.dayChange,
+                    percentChange(summary.dayChange, summary.marketValue - summary.dayChange),
+                    Modifier.weight(1f),
+                )
+            }
+
+            Text(
+                stringResource(R.string.dashboard_largest_holdings),
+                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp).semantics { heading() },
+                style = MaterialTheme.typography.labelLarge,
+                color = scheme.onSurfaceVariant,
+            )
+            summary.largest.forEach { stock ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stock.symbol, style = MaterialTheme.typography.bodyMedium)
+                        Text(stock.name, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
+                    }
+                    MoneyText(stock.marketValue, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+}
+
+/** A gain's label, its signed amount, and the share it is of what it was measured from. */
+@Composable
+private fun Gain(label: String, amount: Long, percent: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MoneyText(amount, tone = MoneyTone.SIGNED_ALERT, explicit = amount != 0L, style = MaterialTheme.typography.titleMedium)
+        Text(percent, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

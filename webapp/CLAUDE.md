@@ -346,6 +346,12 @@ stocks someone holds, newest weekday first, a year deep; a weekday PHISIX has no
 so a fresh deployment needs no tick. These tables carry no `user_id`: a close is public. A refresh purges the
 current month's summary for everyone holding a stock, because net worth counts holdings at the latest close.
 PHISIX amounts are JSON numbers with at most four decimals, so `toE4` rounding them is exact.
+The same tick then looks up the logos of up to `LOGOS_PER_TICK` held stocks on PSE Edge (`resolveLogos`): the
+directory search (`companyDirectory/search.ax`) gives the company id for the exact symbol (`companyIdOf`), and
+that company's page (`companyInformation/form.do`) the `/clogo/` image (`logoUrlOf`). It writes the address, or
+NULL for none, with `logo_checked_at`, and asks again only after `LOGO_RECHECK_DAYS`; a failed request writes
+nothing, so the next tick tries again. It is scraping, so a change to PSE Edge's markup leaves logos NULL rather
+than breaking anything.
 
 `trades` (`routes/investments.ts`) belong to a person like any ledger row. `POST /api/trades` takes the
 shares, the price and the fees and works out the cash leg itself (`tradeCash`), writing the leg and the trade

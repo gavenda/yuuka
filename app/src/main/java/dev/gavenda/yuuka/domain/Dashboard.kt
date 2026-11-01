@@ -84,3 +84,62 @@ fun monthName(month: String): String = YearMonth.parse(month).month.getDisplayNa
  */
 fun stillToPost(subscriptions: List<Subscription>, month: String): List<Subscription> =
     subscriptions.filter { it.enabled && it.nextRunOn.take(7) == month }.sortedBy { it.nextRunOn }
+
+/**
+ * What can still be spent each day for the plan to hold: what is left of it shared over the days left, today
+ * included. [perDay] rounds down, so keeping to it never quite reaches the plan.
+ */
+data class SafeToSpend(val perDay: Long, val left: Long, val daysLeft: Int)
+
+/** Null unless the month is under way with something of the plan left: past the plan there is nothing safe to spend. */
+fun safeToSpend(pace: BudgetPace?): SafeToSpend? {
+    val day = pace?.day ?: return null
+    val left = pace.planned - pace.spent
+    if (left <= 0) return null
+    val daysLeft = pace.days - day + 1
+    return SafeToSpend(left / daysLeft, left, daysLeft)
+}
+
+/**
+ * The planned expense categories still within their plan but spending it faster than the month is passing,
+ * the furthest ahead first. Only a question while the month runs; one past its plan is over budget instead.
+ */
+fun aheadOfPace(categories: List<CategoryBreakdown>, month: String, today: String = today()): List<CategoryBreakdown> {
+    if (today.take(7) != month) return emptyList()
+    val share = today.substring(8, 10).toInt().toDouble() / YearMonth.parse(month).lengthOfMonth()
+    return categories
+        .filter { it.kind == CategoryKind.expense && it.planned > 0 && it.actual <= it.planned && it.actual.toDouble() / it.planned > share }
+        .sortedByDescending { it.actual.toDouble() / it.planned }
+}
+
+/** One stock's worth across every broker account that holds it. */
+data class StockValue(val symbol: String, val name: String, val marketValue: Long)
+
+/** The holdings at a glance: what they are worth, what they have gained, and the largest of them. */
+data class InvestmentSummary(
+    val marketValue: Long,
+    val costBasis: Long,
+    val dayChange: Long,
+    /** The latest trading day a held stock was priced at. */
+    val asOf: String?,
+    val largest: List<StockValue>,
+) {
+    val unrealised: Long get() = marketValue - costBasis
+}
+
+/** The positions still holding shares, summed; null with none. A stock held in two accounts is one of the [top] largest, not two. */
+fun investmentSummary(holdings: List<Holding>, top: Int = 3): InvestmentSummary? {
+    val held = holdings.filter { it.shares > 0 }
+    if (held.isEmpty()) return null
+    val largest = held.groupBy { it.symbol }
+        .map { (symbol, rows) -> StockValue(symbol, rows.first().name, rows.sumOf { it.marketValue }) }
+        .sortedByDescending { it.marketValue }
+        .take(top)
+    return InvestmentSummary(
+        marketValue = held.sumOf { it.marketValue },
+        costBasis = held.sumOf { it.costBasis },
+        dayChange = held.sumOf { it.dayChange },
+        asOf = held.mapNotNull { it.asOf }.maxOrNull(),
+        largest = largest,
+    )
+}

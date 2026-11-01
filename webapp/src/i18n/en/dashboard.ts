@@ -17,6 +17,17 @@ export default {
 	topPayees: 'Who the money went to',
 	payeeTimes: '{amount} · {count} time | {amount} · {count} times',
 	stillToPostSummary: '{amount} across {count} subscription | {amount} across {count} subscriptions',
+	section: {
+		attention: 'Needs attention',
+		breakdown: 'Breakdown',
+		overall: 'Overall',
+	},
+	safeToSpend: 'Safe to spend a day',
+	safeToSpendLeft: '{amount} left for today | {amount} left across {count} days, today included',
+	aheadOfPace: 'Ahead of pace',
+	dayOf: 'Day {day} of {days}',
+	largestHoldings: 'Largest holdings',
+	pricesAsOf: 'Closing prices of {date}',
 	mixedCurrencies: 'Net worth adds these as they stand. Currencies are not converted.',
 	trend: {
 		incomeSpend: 'Income and spending',

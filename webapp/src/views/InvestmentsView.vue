@@ -60,24 +60,23 @@ const groups = computed(() => {
 		accountId,
 		name: rows[0]!.accountName,
 		total: rows.reduce((sum, holding) => sum + holding.marketValue, 0),
-		cash: store.brokerCash.get(accountId) ?? 0,
 		rows,
 	}));
 });
 
-/** The trades under the month they were made in, newest first. */
-const months = computed(() => {
-	const byMonth = new Map<string, Trade[]>();
+/**
+ * The trades under the day they were made, newest first, as Transactions lists its rows: the date as the day's
+ * heading with the cash the day's trades moved at its end.
+ */
+const days = computed(() => {
+	const byDay = new Map<string, Trade[]>();
 	for (const trade of store.trades) {
-		const key = trade.occurredOn.slice(0, 7);
-		const rows = byMonth.get(key);
+		const key = trade.occurredOn.slice(0, 10);
+		const rows = byDay.get(key);
 		if (rows) rows.push(trade);
-		else byMonth.set(key, [trade]);
+		else byDay.set(key, [trade]);
 	}
-	return [...byMonth.entries()].map(([month, rows]) => ({
-		label: new Date(`${month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
-		rows,
-	}));
+	return [...byDay.entries()].map(([date, rows]) => ({ date, total: rows.reduce((sum, trade) => sum + trade.amount, 0), rows }));
 });
 
 /** One bar split by what each stock is worth, largest first. */
@@ -203,11 +202,6 @@ watch(
 								@click="router.push(`/investments/${holding.symbol}`)"
 							>
 								<span class="flex items-center gap-4 px-4 py-3">
-									<span
-										class="type-label-large grid size-10 shrink-0 place-items-center rounded-full bg-secondary-container text-on-secondary-container"
-										aria-hidden="true"
-										>{{ holding.symbol.slice(0, 2) }}</span
-									>
 									<span class="flex min-w-0 flex-1 flex-col gap-0.5">
 										<span class="type-title-medium">{{ holding.symbol }}</span>
 										<span class="type-body-small truncate">{{ holding.name }}</span>
@@ -223,24 +217,17 @@ watch(
 								</span>
 							</button>
 						</li>
-						<li>
-							<div class="group-row">
-								<span class="flex items-center px-4 py-4">
-									<span class="type-title-medium flex-1">{{ t('investments.cash') }}</span>
-									<MoneyText :amount="group.cash" tone="signed-alert" class="type-title-medium" />
-								</span>
-							</div>
-						</li>
 					</ul>
 				</section>
 			</template>
 
 			<template v-else>
-				<section v-for="month in months" :key="month.label">
+				<section v-for="day in days" :key="day.date">
 					<div class="group-header">
-						<h2>{{ month.label }}</h2>
+						<h2>{{ formatLongDate(day.date) }}</h2>
+						<MoneyText :amount="day.total" tone="signed" />
 					</div>
-					<TradeList :trades="month.rows" show-symbol :selected-id="trading ? editing?.id : null" @edit="openEdit" />
+					<TradeList :trades="day.rows" show-symbol :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 				</section>
 			</template>
 		</template>

@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
@@ -81,30 +82,32 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
             verticalArrangement = Arrangement.spacedBy(SegmentedGap),
         ) {
             item(key = "header") {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    SymbolBadge(holding.symbol, size = 56)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(holding.name, style = MaterialTheme.typography.titleLarge)
-                        Text(formatPrice(holding.priceE4), style = MaterialTheme.typography.headlineMedium)
-                        if (holding.changeBp != null) {
-                            Text(
-                                stringResource(
-                                    R.string.investments_today_change,
-                                    (if (dayMove < 0) "−" else "+") + formatPrice(kotlin.math.abs(dayMove)),
-                                    "%+.2f%%".format(holding.changeBp / 100.0),
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = when {
-                                    dayMove > 0 -> MaterialTheme.colorScheme.primary
-                                    dayMove < 0 -> MaterialTheme.colorScheme.error
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                            )
-                        }
+                    StockLogo(holding.symbol, holding.name, state.securitiesBySymbol[holding.symbol]?.logoUrl)
+                    Text(
+                        holding.name,
+                        modifier = Modifier.padding(top = 16.dp),
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(formatPrice(holding.priceE4), style = MaterialTheme.typography.headlineMedium)
+                    if (holding.changeBp != null) {
+                        Text(
+                            stringResource(
+                                R.string.investments_today_change,
+                                (if (dayMove < 0) "−" else "+") + formatPrice(kotlin.math.abs(dayMove)),
+                                "%+.2f%%".format(holding.changeBp / 100.0),
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = when {
+                                dayMove > 0 -> MaterialTheme.colorScheme.primary
+                                dayMove < 0 -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
                     }
                 }
             }
@@ -154,6 +157,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                     onDelete = { pendingDelete = trade },
                     selected = trading && trade.id == editing?.id,
                     showSymbol = false,
+                    showDate = true,
                 )
             }
         }

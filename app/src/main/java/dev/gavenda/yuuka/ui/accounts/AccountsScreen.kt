@@ -299,7 +299,7 @@ private fun AccountCard(
                     Text(currencyName(account.currency), style = MaterialTheme.typography.bodySmall)
                     MoneyText(account.balance, tone = MoneyTone.SIGNED_ALERT, currency = account.currency, style = MaterialTheme.typography.titleMedium)
                 }
-                AccountLogo(account.name, account.bank, account.logoUrl, account.logoInvertDark, size = 28)
+                AccountLogo(account.name, account.bank, account.logoUrl, account.logoInvertDark, size = 22)
             }
         }
     }

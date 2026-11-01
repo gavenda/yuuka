@@ -37,7 +37,8 @@ import dev.gavenda.yuuka.data.local.entity.*
     // 10: accounts gained `bank`, a preset bank's key.
     // 11: tags gained `total`, what their transactions come to.
     // 12: PSE investments: securities, trades and their daily closes.
-    version = 12,
+    // 13: securities gained `logoUrl`, the company's logo on PSE Edge.
+    version = 13,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

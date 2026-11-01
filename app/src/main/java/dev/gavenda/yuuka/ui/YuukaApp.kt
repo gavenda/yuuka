@@ -67,6 +67,7 @@ import dev.gavenda.yuuka.auth.decodeIdTokenClaims
 import dev.gavenda.yuuka.data.remote.ApiError
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.RailPreference
+import dev.gavenda.yuuka.repository.LedgerRepository
 import dev.gavenda.yuuka.repository.SyncRepository
 import dev.gavenda.yuuka.ui.accounts.AccountsScreen
 import dev.gavenda.yuuka.ui.budget.BudgetScreen
@@ -134,6 +135,12 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val hidden by amountVisibility.hidden.collectAsStateWithLifecycle()
 
     val syncRepository = koinInject<SyncRepository>()
+    // Whichever screen the app opens on, the ledger every form picks from — accounts, categories, tags, settings —
+    // is brought up to date once at launch. The screens only read what is stored, so after the cache is dropped (a
+    // schema change) nothing else would fetch it until a screen that refreshes it is opened. Offline, the stored
+    // copy stands.
+    val ledgerRepository = koinInject<LedgerRepository>()
+    LaunchedEffect(Unit) { runCatching { ledgerRepository.refreshAll() } }
     val syncErrorMessage = stringResource(R.string.error_generic)
     var isSyncing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
@@ -192,7 +199,7 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     val entryProvider = entryProvider<NavKey> {
-        entry<Route.Dashboard> { DashboardScreen() }
+        entry<Route.Dashboard> { DashboardScreen(onOpenInvestments = { navigator.navigate(Route.Investments) }) }
         entry<Route.Transactions>(metadata = tabOrder(Route.Transactions)) { TransactionsScreen() }
         entry<Route.Budget> { BudgetScreen() }
         entry<Route.Accounts>(metadata = tabOrder(Route.Accounts)) { AccountsScreen() }

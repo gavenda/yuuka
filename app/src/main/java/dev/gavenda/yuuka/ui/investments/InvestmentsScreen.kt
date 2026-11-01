@@ -13,16 +13,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.Holding
 import dev.gavenda.yuuka.domain.MASK
 import dev.gavenda.yuuka.domain.TradeKinds
+import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatPrice
 import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.ui.common.*
@@ -121,7 +127,7 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
                 )
             }
             if (tab == 0) {
-                holdingsList(held, state.brokerCash, onOpenHolding)
+                holdingsList(held, onOpenHolding)
             } else {
                 activityList(
                     state.trades,
@@ -145,8 +151,8 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
     pendingDelete?.let { DeleteTradeDialog(it, viewModel, onDone = { pendingDelete = null }) }
 }
 
-/** The holdings under the broker account that holds them, each account with what it comes to and the cash beside them. */
-private fun LazyListScope.holdingsList(holdings: List<Holding>, cash: Map<String, Long>, onOpen: (String) -> Unit) {
+/** The holdings under the broker account that holds them, each account with what it comes to. Its cash is on Accounts. */
+private fun LazyListScope.holdingsList(holdings: List<Holding>, onOpen: (String) -> Unit) {
     holdings.groupBy { it.position.accountId }.forEach { (accountId, rows) ->
         val first = rows.first()
         item(key = "account:$accountId") {
@@ -160,32 +166,26 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, cash: Map<String
             }
         }
         itemsIndexed(rows, key = { _, holding -> "holding:$accountId:${holding.symbol}" }) { index, holding ->
-            HoldingRow(holding, positionInGroup(index == 0, false), onClick = { onOpen(holding.symbol) })
-        }
-        item(key = "cash:$accountId") {
-            GroupedItem(position = positionInGroup(false, true), modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(stringResource(R.string.investments_cash), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    MoneyText(cash[accountId] ?: 0, tone = MoneyTone.SIGNED_ALERT, style = MaterialTheme.typography.titleMedium)
-                }
-            }
+            HoldingRow(holding, positionInGroup(index, rows.lastIndex), onClick = { onOpen(holding.symbol) })
         }
     }
 }
 
-/** The trades, newest first, under the month they were made in. */
+/**
+ * The trades, newest first, under the day they were made, as Transactions lists its rows: the date as the day's
+ * heading with the cash the day's trades moved at its end, inset past the rows it names.
+ */
 private fun LazyListScope.activityList(trades: List<Trade>, selectedId: String?, onEdit: (Trade) -> Unit, onDelete: (Trade) -> Unit) {
-    val monthFormat = DateTimeFormatter.ofPattern("MMMM yyyy")
-    trades.groupBy { it.occurredOn.take(7) }.forEach { (month, rows) ->
-        item(key = "month:$month") {
-            Text(
-                LocalDate.parse("$month-01").format(monthFormat),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 8.dp),
-            )
+    trades.groupBy { it.occurredOn.take(10) }.forEach { (day, rows) ->
+        item(key = "day:$day") {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(formatLongDate(day), style = MaterialTheme.typography.titleMedium)
+                MoneyText(rows.sumOf { it.amount }, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.titleMedium)
+            }
         }
         itemsIndexed(rows, key = { _, trade -> "trade:${trade.id}" }) { index, trade ->
             TradeRow(
@@ -263,7 +263,6 @@ private fun HoldingRow(holding: Holding, position: ItemPosition, onClick: () -> 
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SymbolBadge(holding.symbol)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(holding.symbol, style = MaterialTheme.typography.titleMedium)
                 Text(holding.name, style = MaterialTheme.typography.bodySmall, maxLines = 1)
@@ -279,6 +278,32 @@ private fun HoldingRow(holding: Holding, position: ItemPosition, onClick: () -> 
                 Text(percentChange(holding.unrealised, holding.costBasis), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
+}
+
+/**
+ * The company's logo as PSE Edge shows it, or [SymbolBadge] without one or while it cannot be loaded. The
+ * logos are mostly JPEGs on white, so each stands on a white card of its own rather than on the theme's
+ * surface, where a dark one would read as a white box. Mirrors `StockLogo.vue`.
+ */
+@Composable
+internal fun StockLogo(symbol: String, name: String, logoUrl: String?) {
+    var failed by remember(logoUrl) { mutableStateOf(false) }
+    if (logoUrl == null || failed) {
+        SymbolBadge(symbol, size = 56)
+        return
+    }
+    Box(
+        modifier = Modifier.clip(MaterialTheme.shapes.large).background(Color.White).padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(logoUrl).crossfade(true).build(),
+            contentDescription = stringResource(R.string.investments_logo, name),
+            modifier = Modifier.heightIn(max = 64.dp).widthIn(max = 220.dp),
+            contentScale = ContentScale.Fit,
+            onError = { failed = true },
+        )
     }
 }
 
@@ -307,7 +332,11 @@ internal fun tradeKindLabel(kind: String): String = stringResource(
     },
 )
 
-/** A trade's own row: what and where, how many at what, and what it did to the account's cash. Pressing it edits it. */
+/**
+ * A trade's own row, laid out as a transaction's: what it was as the headline, the account and the time under it, and
+ * at the end the cash it moved over how many shares at what. Under a day's heading the day goes without saying; where the rows
+ * stand under no day (a stock's own screen, [showDate]), it leads the time. Pressing it edits it.
+ */
 @Composable
 internal fun TradeRow(
     trade: Trade,
@@ -316,49 +345,52 @@ internal fun TradeRow(
     onDelete: () -> Unit,
     selected: Boolean = false,
     showSymbol: Boolean = true,
+    showDate: Boolean = false,
 ) {
-    val dateFormat = DateTimeFormatter.ofPattern("d MMM")
     val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-    // `15 Oct, 9:45 AM`, or the day alone for a trade that names no time.
-    val whenMade = LocalDate.parse(trade.occurredOn.take(10)).format(dateFormat) + (timeOf(trade.occurredOn)?.let { ", " + it.format(timeFormat) } ?: "")
+    val time = timeOf(trade.occurredOn)?.format(timeFormat)
+    val whenMade = if (showDate) {
+        LocalDate.parse(trade.occurredOn.take(10)).format(DateTimeFormatter.ofPattern("d MMM")) + (time?.let { ", $it" } ?: "")
+    } else {
+        time
+    }
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, "${trade.symbol} ${tradeKindLabel(trade.kind)}"), onDelete, danger = true)
         },
     ) {
-    GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick, selected = selected) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val kind = tradeKindLabel(trade.kind)
-                Text(if (showSymbol) "$kind · ${trade.symbol}" else kind, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (trade.kind == TradeKinds.DIVIDEND) {
-                        stringResource(R.string.investments_dividend_line, sharesText(trade.shares), formatPrice(trade.price))
-                    } else {
-                        stringResource(R.string.investments_shares_at, sharesText(trade.shares), formatPrice(trade.price))
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    stringResource(R.string.investments_trade_line, whenMade, trade.accountName.orEmpty()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick, selected = selected) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val kind = tradeKindLabel(trade.kind)
+                    Text(if (showSymbol) "$kind · ${trade.symbol}" else kind, style = MaterialTheme.typography.titleMedium)
+                    Text(trade.accountName.orEmpty(), style = MaterialTheme.typography.bodySmall)
+                    whenMade?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+                // The cash at the end with how many at what under it, where a transaction keeps its running balance.
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // A buy or sell only turns cash into shares and back; a dividend is income.
+                    MoneyText(
+                        trade.amount,
+                        tone = if (trade.kind == TradeKinds.DIVIDEND) MoneyTone.SIGNED else MoneyTone.TRANSFER,
+                        explicit = true,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        if (trade.kind == TradeKinds.DIVIDEND) {
+                            stringResource(R.string.investments_dividend_line, sharesText(trade.shares), formatPrice(trade.price))
+                        } else {
+                            stringResource(R.string.investments_shares_at, sharesText(trade.shares), formatPrice(trade.price))
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
-            // A buy or sell only turns cash into shares and back; a dividend is income.
-            MoneyText(
-                trade.amount,
-                tone = if (trade.kind == TradeKinds.DIVIDEND) MoneyTone.SIGNED else MoneyTone.TRANSFER,
-                explicit = true,
-                style = MaterialTheme.typography.bodyLarge,
-            )
         }
-    }
     }
 }
 

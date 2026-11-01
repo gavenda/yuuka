@@ -10,7 +10,17 @@ import TextField from '@/components/TextField.vue';
 import { ApiError } from '@/lib/api';
 import { minCommission, roundsFeesUp } from '@/lib/banks';
 import { currentTime, today } from '@/lib/dates';
-import { boardLot, dividendTax, parsePrice, parseShares, positions, priceInput, pseFees, valueOf } from '@/lib/investments';
+import {
+	boardLot,
+	dividendTax,
+	parsePrice,
+	parseShares,
+	positions,
+	priceInput,
+	pseFees,
+	sharesHeldBefore,
+	valueOf,
+} from '@/lib/investments';
 import { currencySymbol } from '@/lib/money';
 import { MASK, useAmountVisibility } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
@@ -62,6 +72,49 @@ const available = computed(() => {
 	const back = editing && editing.kind === 'sell' && editing.symbol === form.symbol && editing.accountId === form.accountId;
 	return (held.value?.shares ?? 0) + (back ? editing.shares : 0);
 });
+/** What was held at the start of the day: what a dividend paid that day is most likely paid on. */
+const heldBefore = computed(() =>
+	form.symbol && form.accountId ? sharesHeldBefore(store.trades, form.accountId, form.symbol, form.occurredOn) : 0,
+);
+
+/**
+ * What a dividend can be paid on: each stock in each broker account it was ever traded in, plus the one being
+ * edited. Picking one picks its account too, so the account is named beside a stock only where the same stock is
+ * in two accounts and the name is what tells them apart.
+ */
+const dividendSources = computed(() => {
+	const names = new Map(store.accounts.map((account) => [account.id, account.name]));
+	const keys = new Set([
+		...store.trades.map((trade) => `${trade.accountId}|${trade.symbol}`),
+		...(props.editing ? [`${props.editing.accountId}|${props.editing.symbol}`] : []),
+	]);
+	const pairs = [...keys]
+		.map((key) => key.split('|') as [string, string])
+		.filter(([accountId, symbol]) => names.has(accountId) && store.securitiesBySymbol.has(symbol));
+	const counts = new Map<string, number>();
+	for (const [, symbol] of pairs) counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+	return pairs
+		.sort(([a, x], [b, y]) => x.localeCompare(y) || (names.get(a) ?? '').localeCompare(names.get(b) ?? ''))
+		.map(([accountId, symbol]) => {
+			const name = store.securitiesBySymbol.get(symbol)!.name;
+			const shared = (counts.get(symbol) ?? 0) > 1;
+			return { value: `${accountId}|${symbol}`, label: `${symbol} · ${name}${shared ? ` · ${names.get(accountId)}` : ''}` };
+		});
+});
+const dividendChoices = computed(() => [{ value: '', label: t('investments.chooseStock'), disabled: true }, ...dividendSources.value]);
+
+/** The stock and the account a dividend is paid in, as one choice. */
+const dividendSource = computed({
+	get: () =>
+		dividendSources.value.some((entry) => entry.value === `${form.accountId}|${form.symbol}`) ? `${form.accountId}|${form.symbol}` : '',
+	set: (value: string) => {
+		const [accountId, symbol] = value.split('|');
+		if (!accountId || !symbol) return;
+		form.accountId = accountId;
+		form.symbol = symbol;
+	},
+});
+
 const occurredOn = computed(() => (form.occurredTime ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn));
 const shares = computed(() => parseShares(form.shares));
 const price = computed(() => parsePrice(form.price));
@@ -75,11 +128,11 @@ const tax = computed(() => (gross.value === null ? 0 : dividendTax(gross.value))
 const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
 
 const validation = useFormValidation({
-	'trade-stock': () => (security.value ? null : t('investments.chooseStock')),
+	'trade-stock': () => (security.value && (form.kind !== 'dividend' || dividendSource.value !== '') ? null : t('investments.chooseStock')),
 	'trade-account': () => (store.accounts.some((account) => account.id === form.accountId) ? null : t('investments.chooseBroker')),
 	'trade-shares': () => {
 		if (shares.value === null) return t('investments.sharesWhole');
-		if (form.kind !== 'buy' && shares.value > available.value)
+		if (form.kind === 'sell' && shares.value > available.value)
 			return t('investments.sharesOverHeld', { shares: sharesShown(available.value) });
 		return historyHolds() ? null : t('investments.sharesOverHistory');
 	},
@@ -149,12 +202,28 @@ watch(
 	{ immediate: true },
 );
 
+/**
+ * A dividend is paid on what was held, so its shares are filled in from the history whenever the stock, the
+ * account or the date changes — and left as they are otherwise, since a sell after the ex-date still earns the
+ * dividend on the shares it sold. While those still read as the form opened with them, an edit keeps the shares it
+ * was saved with.
+ */
+watch(
+	() => [form.kind, form.symbol, form.accountId, form.occurredOn] as const,
+	([kind, symbol, accountId, day]) => {
+		if (kind !== 'dividend') return;
+		const start = JSON.parse(opened.value || '{}') as Partial<typeof form>;
+		if (start.kind === kind && start.symbol === symbol && start.accountId === accountId && start.occurredOn === day) return;
+		form.shares = heldBefore.value > 0 ? String(heldBefore.value) : '';
+	},
+);
+
 /** The stock fills in the account that already holds it, as a payee fills in the rest. */
 function pick(picked: Security): void {
 	form.symbol = picked.symbol;
 	const holding = store.held.find((entry) => entry.symbol === picked.symbol);
 	if (holding) form.accountId = holding.position.accountId;
-	if (form.kind !== 'dividend') form.price = priceInput(picked.price);
+	form.price = priceInput(picked.price);
 	touch('trade-stock');
 }
 
@@ -221,7 +290,20 @@ async function submit(): Promise<void> {
 		<div class="contents" @input="validation.onInput">
 			<ConnectedButtonGroup v-model="form.kind" :label="t('investments.tradeKind')" :options="KINDS" />
 
+			<div v-if="form.kind === 'dividend'">
+				<SelectField
+					id="trade-stock"
+					v-model="dividendSource"
+					:label="t('investments.stock')"
+					:options="dividendChoices"
+					:invalid="Boolean(fieldError('trade-stock'))"
+					:describedby="supportId('trade-stock')"
+					@blur="touch('trade-stock')"
+				/>
+				<FieldSupport id="trade-stock" :error="fieldError('trade-stock')" />
+			</div>
 			<SecurityInput
+				v-else
 				:label="t('investments.stock')"
 				:securities="store.securities"
 				:selected="security"
@@ -230,7 +312,8 @@ async function submit(): Promise<void> {
 				@blur="touch('trade-stock')"
 			/>
 
-			<div>
+			<!-- A dividend's account comes with its stock. -->
+			<div v-if="form.kind !== 'dividend'">
 				<SelectField
 					id="trade-account"
 					v-model="form.accountId"

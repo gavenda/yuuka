@@ -1,5 +1,6 @@
 import type { Account, CategoryBreakdown, Subscription } from '@/types';
 import { today } from '@/lib/dates';
+import type { Holding } from '@/lib/investments';
 import type { STATUS } from '@/lib/palette';
 
 /**
@@ -100,4 +101,81 @@ export function stillToPost(subscriptions: Subscription[], month: string): Subsc
 	return subscriptions
 		.filter((subscription) => subscription.enabled && subscription.nextRunOn.slice(0, 7) === month)
 		.sort((a, b) => a.nextRunOn.localeCompare(b.nextRunOn));
+}
+
+/**
+ * What can still be spent each day for the plan to hold: what is left of it shared over the days left, today
+ * included. `perDay` rounds down, so keeping to it never quite reaches the plan.
+ */
+export interface SafeToSpend {
+	perDay: number;
+	left: number;
+	daysLeft: number;
+}
+
+/** Null unless the month is under way with something of the plan left: past the plan there is nothing safe to spend. */
+export function safeToSpend(pace: BudgetPace | null): SafeToSpend | null {
+	if (!pace || pace.day === null) return null;
+	const left = pace.planned - pace.spent;
+	if (left <= 0) return null;
+	const daysLeft = pace.days - pace.day + 1;
+	return { perDay: Math.floor(left / daysLeft), left, daysLeft };
+}
+
+/**
+ * The planned expense categories still within their plan but spending it faster than the month is passing,
+ * the furthest ahead first. Only a question while the month runs; one past its plan is over budget instead.
+ */
+export function aheadOfPace(categories: CategoryBreakdown[], month: string, now: string = today()): CategoryBreakdown[] {
+	if (now.slice(0, 7) !== month) return [];
+	const [year, monthIndex] = month.split('-').map(Number);
+	const share = Number(now.slice(8, 10)) / new Date(year, monthIndex, 0).getDate();
+	return categories
+		.filter(
+			(entry) => entry.kind === 'expense' && entry.planned > 0 && entry.actual <= entry.planned && entry.actual / entry.planned > share,
+		)
+		.sort((a, b) => b.actual / b.planned - a.actual / a.planned);
+}
+
+/** One stock's worth across every broker account that holds it. */
+export interface StockValue {
+	symbol: string;
+	name: string;
+	marketValue: number;
+}
+
+/** The holdings at a glance: what they are worth, what they have gained, and the largest of them. */
+export interface InvestmentSummary {
+	marketValue: number;
+	costBasis: number;
+	unrealised: number;
+	dayChange: number;
+	/** The latest trading day a held stock was priced at. */
+	asOf: string | null;
+	largest: StockValue[];
+}
+
+/** The positions still holding shares, summed; null with none. A stock held in two accounts is one of the `top` largest, not two. */
+export function investmentSummary(holdings: readonly Holding[], top = 3): InvestmentSummary | null {
+	const held = holdings.filter((holding) => holding.shares > 0);
+	if (!held.length) return null;
+	const bySymbol = new Map<string, StockValue>();
+	for (const holding of held) {
+		const stock = bySymbol.get(holding.symbol) ?? { symbol: holding.symbol, name: holding.name, marketValue: 0 };
+		stock.marketValue += holding.marketValue;
+		bySymbol.set(holding.symbol, stock);
+	}
+	const marketValue = held.reduce((sum, holding) => sum + holding.marketValue, 0);
+	const costBasis = held.reduce((sum, holding) => sum + holding.costBasis, 0);
+	return {
+		marketValue,
+		costBasis,
+		unrealised: marketValue - costBasis,
+		dayChange: held.reduce((sum, holding) => sum + holding.dayChange, 0),
+		asOf: held.reduce<string | null>(
+			(latest, holding) => (holding.asOf && (!latest || holding.asOf > latest) ? holding.asOf : latest),
+			null,
+		),
+		largest: [...bySymbol.values()].sort((a, b) => b.marketValue - a.marketValue).slice(0, top),
+	};
 }

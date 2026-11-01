@@ -14,6 +14,7 @@ data class SecurityEntity(
     val price: Long,
     val changeBp: Long?,
     val asOf: String,
+    val logoUrl: String?,
 )
 
 @Entity(tableName = "trades")
@@ -42,8 +43,8 @@ data class StockPriceEntity(
     val close: Long,
 )
 
-fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf)
-fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf)
+fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf, logoUrl)
+fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf, logoUrl)
 
 fun Trade.toEntity() = TradeEntity(
     id, accountId, accountName, symbol, name, kind, occurredOn, shares, price, fees, amount, transactionId, createdAt, updatedAt,

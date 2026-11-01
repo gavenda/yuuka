@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { CategoryBreakdown } from '@/types';
 import { account, subscription } from '@/testing/fixtures';
+import { holdingOf } from '@/lib/investments';
 import {
+	aheadOfPace,
 	accountGroups,
 	budgetPace,
 	categoryChanges,
 	incomeProgress,
+	investmentSummary,
 	mixedCurrencies,
 	overBudget,
 	paceHealth,
+	safeToSpend,
 	savingsRate,
 	stillToPost,
 } from './dashboard';
@@ -143,5 +147,81 @@ describe('stillToPost', () => {
 		);
 
 		expect(list.map((row) => row.id)).toEqual(['soon', 'late']);
+	});
+});
+
+describe('safeToSpend', () => {
+	it('shares what is left of the plan over the days left, today included', () => {
+		// Day 20 of 31 leaves 12 days, today among them; 10,000 of 22,000 spent leaves 12,000.
+		expect(safeToSpend({ spent: 10_000, planned: 22_000, percent: 45, day: 20, days: 31 })).toEqual({
+			perDay: 1000,
+			left: 12_000,
+			daysLeft: 12,
+		});
+		// Rounds down, so keeping to it never runs past the plan.
+		expect(safeToSpend({ spent: 0, planned: 1000, percent: 0, day: 28, days: 30 })).toEqual({ perDay: 333, left: 1000, daysLeft: 3 });
+	});
+
+	it('has nothing to say past the plan or outside the month', () => {
+		expect(safeToSpend({ spent: 1000, planned: 1000, percent: 100, day: 10, days: 30 })).toBeNull();
+		expect(safeToSpend({ spent: 500, planned: 1000, percent: 50, day: null, days: 30 })).toBeNull();
+		expect(safeToSpend(null)).toBeNull();
+	});
+});
+
+describe('aheadOfPace', () => {
+	it('lists plans spent faster than the month is passing, the furthest first', () => {
+		// Day 10 of 31 is about a third of the month gone.
+		const list = aheadOfPace(
+			[
+				entry('food', { planned: 1000, actual: 500, remaining: 500 }),
+				entry('fun', { planned: 1000, actual: 900, remaining: 100 }),
+				entry('rent', { planned: 1000, actual: 200, remaining: 800 }),
+				entry('over', { planned: 1000, actual: 1200, remaining: -200 }),
+				entry('unplanned', { actual: 500, remaining: -500 }),
+				entry('salary', { planned: 1000, actual: 900, remaining: 100, kind: 'income' }),
+			],
+			'2026-10',
+			'2026-10-10',
+		);
+
+		expect(list.map((row) => row.categoryId)).toEqual(['fun', 'food']);
+		expect(aheadOfPace([entry('food', { planned: 1000, actual: 900 })], '2026-09', '2026-10-10')).toEqual([]);
+	});
+});
+
+describe('investmentSummary', () => {
+	const holding = (symbol: string, accountId: string, shares: number, costBasis: number, priceE4: number, asOf: string | null) =>
+		holdingOf(
+			{ accountId, symbol, shares, costBasis, realised: 0, dividends: 0 },
+			{ name: symbol, accountName: accountId, priceE4, changeBp: null, asOf },
+		);
+
+	it('adds the held positions and names the largest stocks', () => {
+		const summary = investmentSummary(
+			[
+				holding('BDO', 'acc-a', 100, 1_400_000, 1_500_000, '2026-10-30'),
+				holding('BDO', 'acc-b', 100, 1_450_000, 1_500_000, '2026-10-30'),
+				holding('ALI', 'acc-a', 1000, 3_000_000, 280_000, '2026-10-31'),
+				holding('JFC', 'acc-a', 10, 250_000, 2_000_000, null),
+				holding('SM', 'acc-a', 0, 0, 9_000_000, '2026-10-31'),
+			],
+			2,
+		);
+
+		// ₱150 × 200 BDO, ₱28 × 1,000 ALI and ₱200 × 10 JFC.
+		expect(summary?.marketValue).toBe(3_000_000 + 2_800_000 + 200_000);
+		expect(summary?.costBasis).toBe(6_100_000);
+		expect(summary?.unrealised).toBe(-100_000);
+		expect(summary?.asOf).toBe('2026-10-31');
+		expect(summary?.largest.map((stock) => [stock.symbol, stock.marketValue])).toEqual([
+			['BDO', 3_000_000],
+			['ALI', 2_800_000],
+		]);
+	});
+
+	it('has nothing to say with nothing held', () => {
+		expect(investmentSummary([])).toBeNull();
+		expect(investmentSummary([holding('SM', 'acc', 0, 0, 9_000_000, null)])).toBeNull();
 	});
 });

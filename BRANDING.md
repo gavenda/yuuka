@@ -153,7 +153,7 @@ The print on her pyjamas, a round head with two pointed ears, redrawn as a vecto
 | The sync banner | One small mark, centred over its line |
 | Pull to refresh (Android) | The indicator: it slides down as the pull grows and turns while the sync runs |
 | The open rail, and Android's phone drawer | A strip at the top (behind the mark and name in the rail, bare in the drawer), and behind the account card |
-| The card a screen leads with | One large mark as a watermark in its corner: net worth on the dashboard, Planned on Budget |
+| The card a screen leads with | One large mark as a watermark in its corner: the month's leading figure on the dashboard, Planned on Budget |
 
 It never goes behind a list, a form, a chart or a column of amounts, and it no longer stands in an empty state: Yuuka does.
 

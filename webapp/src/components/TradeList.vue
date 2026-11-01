@@ -19,7 +19,8 @@ import { t } from '@/i18n';
  * delete is behind its swipe. Deleting takes the trade's cash with it, so it asks first; a buy a later sell
  * depends on cannot go, and the dialog says so instead.
  */
-const props = defineProps<{ trades: Trade[]; showSymbol?: boolean; selectedId?: string | null }>();
+/** `showDate` for rows that stand under no day's heading (a stock's own screen), where the day leads the time. */
+const props = defineProps<{ trades: Trade[]; showSymbol?: boolean; showDate?: boolean; selectedId?: string | null }>();
 const emit = defineEmits<{ edit: [trade: Trade] }>();
 
 const store = useInvestmentStore();
@@ -30,8 +31,9 @@ const error = ref<string | null>(null);
 
 const kindLabel = (trade: Trade) => t(`investments.${trade.kind}`);
 const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
-/** `15 Oct, 9:45 AM`, or the day alone for a trade that names no time. */
-const whenOf = (occurredOn: string) => [formatDate(occurredOn), formatTime(occurredOn)].filter(Boolean).join(', ');
+/** The time a trade was made, led by its day (`15 Oct, 9:45 AM`) where no day's heading says it; nothing for an untimed trade under one. */
+const whenOf = (occurredOn: string) =>
+	[props.showDate ? formatDate(occurredOn) : null, formatTime(occurredOn)].filter(Boolean).join(', ') || null;
 
 async function remove(): Promise<void> {
 	const trade = pending.value;
@@ -66,26 +68,29 @@ async function remove(): Promise<void> {
 					:aria-current="props.selectedId === trade.id ? 'true' : undefined"
 					@click="emit('edit', trade)"
 				>
-					<span class="flex items-center gap-4 px-4 py-3">
-						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+					<!-- Laid out as a transaction's row: the headline, the account and the time under it, the cash and the shares at the end. -->
+					<span class="flex gap-4 px-4 py-3">
+						<span class="flex min-w-0 flex-1 flex-col gap-1">
 							<span class="type-title-medium truncate">{{ showSymbol ? `${kindLabel(trade)} · ${trade.symbol}` : kindLabel(trade) }}</span>
+							<span class="type-body-small truncate">{{ trade.accountName ?? '' }}</span>
+							<span v-if="whenOf(trade.occurredOn)" class="type-body-small">{{ whenOf(trade.occurredOn) }}</span>
+						</span>
+						<!-- The cash at the end with how many at what under it, where a transaction keeps its running balance. -->
+						<span class="flex shrink-0 flex-col items-end gap-1">
+							<!-- A buy or sell only turns cash into shares and back; a dividend is income. -->
+							<MoneyText
+								:amount="trade.amount"
+								:tone="trade.kind === 'dividend' ? 'signed' : 'transfer'"
+								explicit
+								class="type-title-medium"
+							/>
 							<span class="type-body-small">{{
 								t(trade.kind === 'dividend' ? 'investments.dividendLine' : 'investments.sharesAt', {
 									shares: sharesShown(trade.shares),
 									price: formatPrice(trade.price),
 								})
 							}}</span>
-							<span class="type-body-small text-on-surface-variant">{{
-								t('investments.tradeLine', { date: whenOf(trade.occurredOn), account: trade.accountName ?? '' })
-							}}</span>
 						</span>
-						<!-- A buy or sell only turns cash into shares and back; a dividend is income. -->
-						<MoneyText
-							:amount="trade.amount"
-							:tone="trade.kind === 'dividend' ? 'signed' : 'transfer'"
-							explicit
-							class="type-body-large shrink-0"
-						/>
 					</span>
 				</button>
 			</SwipeReveal>

@@ -2,6 +2,7 @@
 import AppIcon from '@/components/AppIcon.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import MoneyText from '@/components/MoneyText.vue';
+import StockLogo from '@/components/StockLogo.vue';
 import TradeForm from '@/components/TradeForm.vue';
 import TradeList from '@/components/TradeList.vue';
 import { whenDiscardable } from '@/lib/formPane';
@@ -139,13 +140,9 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 
 <template>
 	<div v-if="holding" class="flex flex-col gap-0.5 px-4 pt-3 pb-8">
-		<div class="flex items-center gap-4 px-2 py-2">
-			<span
-				class="type-title-medium grid size-14 shrink-0 place-items-center rounded-full bg-secondary-container text-on-secondary-container"
-				aria-hidden="true"
-				>{{ holding.symbol.slice(0, 2) }}</span
-			>
-			<div class="min-w-0 flex-1">
+		<div class="flex flex-col items-center px-2 py-2 text-center">
+			<StockLogo :symbol="holding.symbol" :name="holding.name" :logo-url="store.securitiesBySymbol.get(holding.symbol)?.logoUrl ?? null" />
+			<div class="mt-4 min-w-0">
 				<p class="type-title-large">{{ holding.name }}</p>
 				<p class="type-headline-medium">{{ formatPrice(holding.priceE4) }}</p>
 				<p
@@ -249,7 +246,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 		<div class="group-header">
 			<h2>{{ t('investments.trades') }}</h2>
 		</div>
-		<TradeList :trades="trades" :selected-id="trading ? editing?.id : null" @edit="openEdit" />
+		<TradeList :trades="trades" show-date :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 
 		<TradeForm :open="trading" :editing="editing" :initial-symbol="holding.symbol" :initial-account="accountFor" @close="trading = false" />
 	</div>

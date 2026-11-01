@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { latestCloseDay, positions, tradeCash, valueOf } from '../server/investments';
+import { companyIdOf, latestCloseDay, logoUrlOf, positions, tradeCash, valueOf } from '../server/investments';
 import { authedClient, json, makeAccount, otherClient, type Call } from './helpers';
 
 let call: Call;
@@ -211,7 +211,9 @@ describe('prices', () => {
 	it('lists every stock at its latest close', async () => {
 		const { securities } = await json<{ securities: { symbol: string; price: number }[] }>(await call('/securities'));
 		expect(securities).toEqual(
-			expect.arrayContaining([expect.objectContaining({ symbol: 'BDO', price: 1_200_000, changeBp: 51, asOf: '2999-12-31' })]),
+			expect.arrayContaining([
+				expect.objectContaining({ symbol: 'BDO', price: 1_200_000, changeBp: 51, asOf: '2999-12-31', logoUrl: null }),
+			]),
 		);
 	});
 
@@ -292,5 +294,29 @@ describe('the arithmetic', () => {
 		// Sunday and Monday morning both look back to Friday.
 		expect(latestCloseDay(new Date('2026-11-01T04:00:00Z'))).toBe('2026-10-30');
 		expect(latestCloseDay(new Date('2026-11-02T01:00:00Z'))).toBe('2026-10-30');
+	});
+});
+
+describe('a stock’s logo', () => {
+	// Cut from what PSE Edge answered: its directory search, then a company page.
+	const search = `<tr>
+		<td><a href="#company" onclick="cmDetail('260','468');return false;">BDO Unibank, Inc.</a></td>
+		<td><a href="#company" onclick="cmDetail('260','468');return false;">BDO</a></td>
+	</tr><tr>
+		<td><a href="#company" onclick="cmDetail('612','901');return false;">BDO Leasing</a></td>
+		<td><a href="#company" onclick="cmDetail('612','901');return false;">BDOL</a></td>
+	</tr>`;
+
+	it('is found under the company id the directory lists for that exact symbol', () => {
+		expect(companyIdOf(search, 'BDO')).toBe('260');
+		expect(companyIdOf(search, 'BDOL')).toBe('612');
+		expect(companyIdOf(search, 'BD')).toBeNull();
+	});
+
+	it('is read off the company page as an address on PSE Edge', () => {
+		expect(logoUrlOf('<div><img src="/clogo/180/cl53741ab0r275.JPG" alt="Logo" height="85" /></div>')).toBe(
+			'https://edge.pse.com.ph/clogo/180/cl53741ab0r275.JPG',
+		);
+		expect(logoUrlOf('<img src="/images/common/top_logo.png" alt="PSE Edge"/>')).toBeNull();
 	});
 });
