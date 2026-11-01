@@ -310,25 +310,27 @@ onBeforeUnmount(() => observer?.disconnect());
 			</ul>
 
 			<!-- The table is the non-visual route to the same numbers. -->
-			<table class="sr-only">
-				<caption>
-					{{
-						t('dashboard.chart.title')
-					}}
-				</caption>
-				<thead>
-					<tr>
-						<th scope="col">{{ t('dashboard.chart.date') }}</th>
-						<th scope="col">{{ t('common.spent') }}</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="entry in spentDays" :key="entry.date">
-						<td>{{ formatLongDate(entry.date) }}</td>
-						<td>{{ displayMoney(entry.amount, currency) }}</td>
-					</tr>
-				</tbody>
-			</table>
+			<div class="sr-only">
+				<table>
+					<caption>
+						{{
+							t('dashboard.chart.title')
+						}}
+					</caption>
+					<thead>
+						<tr>
+							<th scope="col">{{ t('dashboard.chart.date') }}</th>
+							<th scope="col">{{ t('common.spent') }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="entry in spentDays" :key="entry.date">
+							<td>{{ formatLongDate(entry.date) }}</td>
+							<td>{{ displayMoney(entry.amount, currency) }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</template>
 	</section>
 </template>

@@ -300,10 +300,8 @@ private fun CategoryRow(
             onClick = onClick.takeUnless { locked },
             shapes = groupedListItemShapes(position, selected),
             // An open family, parent and subcategories alike, is told apart by a higher surface rather than by indenting.
-            colors = if (selected) {
-                // The category whose form stands beside the list, marked over its family's colour.
-                groupedListItemColors(selected = true)
-            } else if (expanded || indent) {
+            // The category whose form stands beside the list is marked on the highest neutral surface, in the selected shape.
+            colors = if (selected || expanded || indent) {
                 ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
             } else {
                 ListItemDefaults.colors(containerColor = groupedItemColor)

@@ -228,7 +228,7 @@ onMounted(() => ledger.load());
 
 						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
 						<div
-							class="group-row flex items-center pr-4"
+							class="group-row selected-neutral flex items-center pr-4"
 							:class="[
 								family.parent.system ? '' : 'state-layer',
 								family.children.length || family.parent.system ? 'min-h-[72px]' : 'min-h-[60px]',
@@ -292,7 +292,7 @@ onMounted(() => ledger.load());
 							<component
 								:is="child.system ? 'div' : 'button'"
 								:type="child.system ? undefined : 'button'"
-								class="group-row focus-ring flex min-h-[72px] items-center gap-3 bg-surface-container-highest pr-4 pl-4 text-left"
+								class="group-row selected-neutral focus-ring flex min-h-[72px] items-center gap-3 bg-surface-container-highest pr-4 pl-4 text-left"
 								:class="child.system ? '' : 'state-layer cursor-pointer'"
 								:aria-current="dialogOpen && editing?.id === child.id ? 'true' : undefined"
 								@click="child.system || openEdit(child)"

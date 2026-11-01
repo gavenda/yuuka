@@ -200,28 +200,30 @@ watch(
 		</ul>
 
 		<!-- The table is the non-visual route to the same numbers. -->
-		<table class="sr-only">
-			<caption>
-				{{
-					t('dashboard.trend.incomeSpend')
-				}}
-			</caption>
-			<thead>
-				<tr>
-					<th scope="col">{{ t('dashboard.trend.month') }}</th>
-					<th scope="col">{{ t('common.income') }}</th>
-					<th scope="col">{{ t('common.spent') }}</th>
-					<th scope="col">{{ t('dashboard.trend.net') }}</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="entry in months" :key="entry.month">
-					<td>{{ formatMonth(entry.month) }}</td>
-					<td>{{ displayMoney(entry.income, currency) }}</td>
-					<td>{{ displayMoney(entry.expenses, currency) }}</td>
-					<td>{{ displayMoney(entry.net, currency) }}</td>
-				</tr>
-			</tbody>
-		</table>
+		<div class="sr-only">
+			<table>
+				<caption>
+					{{
+						t('dashboard.trend.incomeSpend')
+					}}
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">{{ t('dashboard.trend.month') }}</th>
+						<th scope="col">{{ t('common.income') }}</th>
+						<th scope="col">{{ t('common.spent') }}</th>
+						<th scope="col">{{ t('dashboard.trend.net') }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="entry in months" :key="entry.month">
+						<td>{{ formatMonth(entry.month) }}</td>
+						<td>{{ displayMoney(entry.income, currency) }}</td>
+						<td>{{ displayMoney(entry.expenses, currency) }}</td>
+						<td>{{ displayMoney(entry.net, currency) }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	</section>
 </template>

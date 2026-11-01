@@ -203,24 +203,26 @@ watch(
 		</div>
 
 		<!-- The table is the non-visual route to the same numbers. -->
-		<table class="sr-only">
-			<caption>
-				{{
-					t('dashboard.trend.netWorth')
-				}}
-			</caption>
-			<thead>
-				<tr>
-					<th scope="col">{{ t('dashboard.trend.month') }}</th>
-					<th scope="col">{{ t('common.netWorth') }}</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="entry in months" :key="entry.month">
-					<td>{{ formatMonth(entry.month) }}</td>
-					<td>{{ displayMoney(entry.netWorth, currency) }}</td>
-				</tr>
-			</tbody>
-		</table>
+		<div class="sr-only">
+			<table>
+				<caption>
+					{{
+						t('dashboard.trend.netWorth')
+					}}
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">{{ t('dashboard.trend.month') }}</th>
+						<th scope="col">{{ t('common.netWorth') }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="entry in months" :key="entry.month">
+						<td>{{ formatMonth(entry.month) }}</td>
+						<td>{{ displayMoney(entry.netWorth, currency) }}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	</section>
 </template>

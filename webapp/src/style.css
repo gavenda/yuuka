@@ -1156,3 +1156,11 @@
 	color: var(--color-on-secondary-container);
 	border-radius: var(--radius-lg);
 }
+
+/* Categories mark the row being edited on the highest neutral surface rather than a tinted one. */
+.group-row.selected-neutral[aria-current='true'],
+.group-row.selected-neutral:has([aria-current='true']) {
+	--surface-under: var(--color-surface-container-highest);
+	background-color: var(--color-surface-container-highest);
+	color: var(--color-on-surface);
+}
