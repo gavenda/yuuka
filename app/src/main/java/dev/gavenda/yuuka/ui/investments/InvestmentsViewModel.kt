@@ -81,7 +81,7 @@ class InvestmentsViewModel(
         InvestmentsUiState(
             trades = trades,
             securities = securities,
-            holdings = holdings(trades, bySymbol, { byId[it]?.name }, { byId[it]?.bank }),
+            holdings = holdings(trades, bySymbol, { byId[it]?.name }),
             accounts = accounts.filter { !it.archived && it.currency == "PHP" },
             brokerCash = brokers.associateWith { byId[it]?.balance ?: 0L },
             loaded = true,
@@ -101,6 +101,10 @@ class InvestmentsViewModel(
 
     suspend fun createTrade(submission: TradeSubmission) = with(submission) {
         repository.createTrade(accountId, symbol, kind, occurredOn, shares, price, fees)
+    }
+
+    suspend fun updateTrade(id: String, submission: TradeSubmission) = with(submission) {
+        repository.updateTrade(id, accountId, symbol, kind, occurredOn, shares, price, fees)
     }
 
     suspend fun deleteTrade(id: String) = repository.deleteTrade(id)

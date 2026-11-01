@@ -11,6 +11,7 @@ interface Trade {
 	accountId: string;
 	symbol: string;
 	kind: string;
+	occurredOn: string;
 	shares: number;
 	price: number;
 	fees: number;
@@ -39,6 +40,21 @@ beforeEach(async () => {
 const trade = (body: Record<string, unknown>, caller: Call = call) =>
 	caller('/trades', {
 		method: 'POST',
+		body: JSON.stringify({
+			accountId: broker,
+			symbol: 'BDO',
+			kind: 'buy',
+			occurredOn: TODAY,
+			shares: 100,
+			price: 1_180_000,
+			fees: 3_000,
+			...body,
+		}),
+	});
+
+const edit = (id: string, body: Record<string, unknown>, caller: Call = call) =>
+	caller(`/trades/${id}`, {
+		method: 'PATCH',
 		body: JSON.stringify({
 			accountId: broker,
 			symbol: 'BDO',
@@ -134,6 +150,56 @@ describe('a trade', () => {
 		expect((await call(`/trades/${buy.id}`, { method: 'DELETE' })).status).toBe(204);
 	});
 
+	it('records the time it was made, on itself and its cash leg', async () => {
+		const { trade: created } = await json<{ trade: Trade }>(await trade({ occurredOn: `${TODAY}T09:45` }));
+		expect(created.occurredOn).toBe(`${TODAY}T09:45`);
+
+		const { transactions } = await json<{ transactions: { id: string; occurredOn: string }[] }>(
+			await call(`/transactions?month=${MONTH}&limit=50&offset=0`),
+		);
+		expect(transactions.find((row) => row.id === created.transactionId)?.occurredOn).toBe(`${TODAY}T09:45`);
+	});
+
+	it('sells in time order within a day', async () => {
+		await trade({ occurredOn: `${TODAY}T10:00` });
+		// A sell before the buy that day has nothing to sell yet.
+		expect((await trade({ kind: 'sell', shares: 10, occurredOn: `${TODAY}T09:30` })).status).toBe(409);
+		expect((await trade({ kind: 'sell', shares: 10, occurredOn: `${TODAY}T10:30` })).status).toBe(201);
+	});
+
+	it('is edited whole, its cash leg worked out again', async () => {
+		const { trade: buy } = await json<{ trade: Trade }>(await trade({}));
+		const second = await makeAccount(call, { name: 'COL', startingBalance: 5_000_000 });
+
+		const response = await edit(buy.id, { accountId: second, shares: 200, fees: 6_000, occurredOn: `${TODAY}T14:05` });
+		expect(response.status).toBe(200);
+		const { trade: edited } = await json<{ trade: Trade }>(response);
+		// 200 × ₱118.00 = ₱23,600.00, plus ₱60.00 of fees, now out of the second account.
+		expect(edited).toMatchObject({ id: buy.id, accountId: second, shares: 200, amount: -2_366_000, occurredOn: `${TODAY}T14:05` });
+		expect(edited.transactionId).toBe(buy.transactionId);
+		expect(await balance()).toBe(10_000_000);
+
+		const { transactions } = await json<{ transactions: { id: string; accountId: string; amount: number; notes: string }[] }>(
+			await call(`/transactions?month=${MONTH}&limit=50&offset=0`),
+		);
+		expect(transactions.find((row) => row.id === buy.transactionId)).toMatchObject({
+			accountId: second,
+			amount: -2_366_000,
+			notes: 'Buy 200 BDO',
+		});
+	});
+
+	it('cannot be edited into a history that sells more than it holds', async () => {
+		const { trade: buy } = await json<{ trade: Trade }>(await trade({}));
+		await trade({ kind: 'sell', shares: 80 });
+		expect((await edit(buy.id, { shares: 50 })).status).toBe(409);
+		expect((await edit(buy.id, { shares: 80 })).status).toBe(200);
+	});
+
+	it('answers an edit of a trade that is not there with 404', async () => {
+		expect((await edit('trd_0123456789abcdef', {})).status).toBe(404);
+	});
+
 	it('keeps its cash leg from being edited as a transaction', async () => {
 		const { trade: buy } = await json<{ trade: Trade }>(await trade({}));
 		const response = await call(`/transactions/${buy.transactionId}`, { method: 'PATCH', body: JSON.stringify({ amount: -1 }) });
@@ -178,6 +244,19 @@ describe('trades are private', () => {
 		await other(`/trades/${buy.id}`, { method: 'DELETE' });
 		const mine = await json<{ trades: Trade[] }>(await call('/trades'));
 		expect(mine.trades).toHaveLength(1);
+	});
+
+	it('cannot be edited by another user, nor moved into another user’s account', async () => {
+		const { trade: buy } = await json<{ trade: Trade }>(await trade({}));
+		const other = await otherClient();
+		expect((await edit(buy.id, { shares: 1 }, other)).status).toBe(404);
+
+		const theirs = await makeAccount(other, { name: 'Theirs', startingBalance: 0 });
+		expect((await edit(buy.id, { accountId: theirs })).status).toBe(404);
+
+		const mine = await json<{ trades: Trade[] }>(await call('/trades'));
+		expect(mine.trades[0]).toMatchObject({ shares: 100, accountId: broker });
+		expect(await balance()).toBe(10_000_000 - 1_183_000);
 	});
 });
 

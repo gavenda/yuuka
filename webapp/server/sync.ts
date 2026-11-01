@@ -75,6 +75,7 @@ const GUARDS: Record<string, { table: string; perUser?: 'id' | 'user_id' }> = {
 	budget: { table: 'budgets' },
 	settings: { table: 'users', perUser: 'id' },
 	roundUpRule: { table: 'round_up_rules', perUser: 'user_id' },
+	trade: { table: 'trades' },
 };
 
 /**

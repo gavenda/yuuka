@@ -199,15 +199,20 @@ one PSE stock in a broker account (any PHP account): whole shares, a price in te
 (`price_e4`, since the smallest tick is ₱0.0001) and fees in centavos. Each writes one ordinary,
 uncategorised transaction in that account — its cash leg, the stock as payee — and the trade goes with it:
 deleting the leg from the transaction list deletes the trade, and the leg cannot be edited as a
-transaction. A buy's and a sell's cash only turns money into shares and back, so like a transfer it is left
+transaction. The trade itself is edited, by pressing it: whole, from the same form, its leg worked out again and
+moved rather than replaced. A trade records the time of day as a transaction does (`occurredOn` with an optional
+`THH:MM`, untimed sorting to the start of its day), and the leg carries the same, so a day's trades are worked
+through in the order they were made. A buy's and a sell's cash only turns money into shares and back, so like a transfer it is left
 out of income, spending, the daily chart and the payees; a dividend's (net of the 10% final tax) is income.
 Holdings are worked out from the trades, average cost, never stored: a sell takes shares out at the average
 so far and realises the rest, and a history that would sell more than it holds at any point is refused (a
 back-dated sell, or deleting a buy a later sell needs). Net worth adds the holdings at their latest close.
-The broker's fees are worked out by the form from the PSE schedule (`pseFees`, `domain/Investments.kt`).
+The broker's fees are worked out by the form from the PSE schedule (`pseFees`, `domain/Investments.kt`): 0.25%
+commission with a ₱20 minimum, unless the account's preset bank waives the minimum (`minCommission` on the
+preset, DragonFi's is 0 — a broker is a preset, so this is code, not a column); a custom account keeps the ₱20.
 Prices are market data, shared by everyone: the server keeps them from PHISIX (see
 [webapp/CLAUDE.md](webapp/CLAUDE.md)), and the client only reads them. On Android this is
-`InvestmentRepository` and `ui/investments/`; the web app has no investment screens yet.
+`InvestmentRepository` and `ui/investments/`; on the web, `stores/investments.ts` and `lib/investments.ts`.
 
 - **Deleting a category never destroys history**: Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account

@@ -64,10 +64,16 @@ data class PseFees(val commission: Long, val vat: Long, val pseFee: Long, val sc
 
 private fun share(amount: Long, numerator: Long, denominator: Long) = (amount * numerator + denominator / 2) / denominator
 
-/** Commission 0.25% (₱20 at least), 12% VAT on it, the PSE's 0.005%, SCCP's 0.01%, and on a sell the 0.1% stock transaction tax. */
-fun pseFees(gross: Long, sell: Boolean): PseFees {
+/** The least commission most PSE brokers charge on a trade, in centavos: ₱20. */
+const val MIN_COMMISSION = 2_000L
+
+/**
+ * Commission 0.25% (at least [minCommission], ₱20 unless the broker waives it), 12% VAT on it, the PSE's 0.005%,
+ * SCCP's 0.01%, and on a sell the 0.1% stock transaction tax.
+ */
+fun pseFees(gross: Long, sell: Boolean, minCommission: Long = MIN_COMMISSION): PseFees {
     if (gross <= 0) return PseFees(0, 0, 0, 0, 0)
-    val commission = max(share(gross, 25, 10_000), 2_000)
+    val commission = max(share(gross, 25, 10_000), minCommission)
     return PseFees(
         commission = commission,
         vat = share(commission, 12, 100),
@@ -136,7 +142,6 @@ data class Holding(
     val position: Position,
     val name: String,
     val accountName: String,
-    val bank: String?,
     /** The latest close, or the average cost when the stock has no price yet. */
     val priceE4: Long,
     val changeBp: Long?,
@@ -163,14 +168,12 @@ fun holdings(
     trades: List<Trade>,
     securities: Map<String, Security>,
     accountName: (String) -> String?,
-    bank: (String) -> String?,
 ): List<Holding> = (positions(trades) ?: emptyList()).map { position ->
     val security = securities[position.symbol]
     Holding(
         position = position,
         name = security?.name ?: trades.firstOrNull { it.symbol == position.symbol }?.name ?: position.symbol,
         accountName = accountName(position.accountId) ?: trades.firstOrNull { it.accountId == position.accountId }?.accountName.orEmpty(),
-        bank = bank(position.accountId),
         priceE4 = security?.price ?: if (position.shares > 0) (position.costBasis * 100.0 / position.shares).roundToLong() else 0,
         changeBp = security?.changeBp,
         asOf = security?.asOf,

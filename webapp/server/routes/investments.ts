@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { badRequest, conflict, notFound } from '../errors';
 import { alreadyOwned, newId } from '../ids';
 import { invalidateSummaries } from '../cache';
-import { currentMonth } from '../dates';
+import { currentMonth, joinOccurrence, splitOccurrence } from '../dates';
+import { NOW_SQL } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
 import { positions, refreshSecurities, tradeCash, type TradeKind, type TradeLike } from '../investments';
-import { pricesQuerySchema, tradeCreateSchema } from '../schemas';
+import { pricesQuerySchema, tradeCreateSchema, tradeUpdateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
 interface SecurityRow {
@@ -25,6 +26,7 @@ interface TradeRow {
 	name: string | null;
 	kind: TradeKind;
 	occurred_on: string;
+	occurred_time: string | null;
 	shares: number;
 	price_e4: number;
 	fees: number;
@@ -48,7 +50,7 @@ const toTrade = (row: TradeRow) => ({
 	symbol: row.symbol,
 	name: row.name,
 	kind: row.kind,
-	occurredOn: row.occurred_on,
+	occurredOn: joinOccurrence(row.occurred_on, row.occurred_time),
 	shares: row.shares,
 	price: row.price_e4,
 	fees: row.fees,
@@ -91,7 +93,9 @@ export const securityRoutes = new Hono<AppEnv>()
 
 async function userTrades(db: D1Database, userId: string): Promise<TradeLike[]> {
 	const { results } = await db
-		.prepare('SELECT id, account_id, symbol, kind, occurred_on, created_at, shares, price_e4, fees FROM trades WHERE user_id = ?')
+		.prepare(
+			'SELECT id, account_id, symbol, kind, occurred_on, occurred_time, created_at, shares, price_e4, fees FROM trades WHERE user_id = ?',
+		)
 		.bind(userId)
 		.all<TradeLike & { id: string }>();
 	return results;
@@ -99,14 +103,25 @@ async function userTrades(db: D1Database, userId: string): Promise<TradeLike[]> 
 
 const POSITION_MESSAGE = 'That would sell more shares than are held at that point.';
 
+/** What the cash leg's notes say the trade was: `Buy 1,000 BDO`. */
+const legNotes = (kind: TradeKind, shares: number, symbol: string) =>
+	`${kind[0]!.toUpperCase()}${kind.slice(1)} ${shares.toLocaleString('en-US')} ${symbol}`;
+
+/** Refuses fees that eat the whole trade: a buy always pays out, a sell and a dividend always bring something in. */
+function checkCash(kind: TradeKind, amount: number): void {
+	if (amount === 0 || (kind !== 'buy' && amount < 0)) throw badRequest('The fees cannot be as much as the trade.');
+}
+
 /**
- * A trade is created with its cash leg, an ordinary transaction in the broker account, and deleted
- * with it. There is no edit: a trade is put right by deleting it and entering it again.
+ * A trade is created with its cash leg, an ordinary transaction in the broker account, and edited and
+ * deleted with it: the leg is never edited on its own, so the two cannot disagree.
  */
 export const tradeRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
 	.get('/', async (c) => {
-		const { results } = await c.env.DB.prepare(`${SELECT_TRADE} WHERE tr.user_id = ? ORDER BY tr.occurred_on DESC, tr.created_at DESC`)
+		const { results } = await c.env.DB.prepare(
+			`${SELECT_TRADE} WHERE tr.user_id = ? ORDER BY tr.occurred_on DESC, tr.occurred_time DESC, tr.created_at DESC`,
+		)
 			.bind(c.get('userId'))
 			.all<TradeRow>();
 		return c.json({ trades: results.map(toTrade) });
@@ -124,39 +139,42 @@ export const tradeRoutes = new Hono<AppEnv>()
 		const security = await c.env.DB.prepare('SELECT symbol FROM securities WHERE symbol = ?').bind(input.symbol).first();
 		if (!security) throw notFound('Stock not found.');
 
+		const { date, time } = splitOccurrence(input.occurredOn);
 		const trade: TradeLike = {
 			account_id: input.accountId,
 			symbol: input.symbol,
 			kind: input.kind,
-			occurred_on: input.occurredOn,
+			occurred_on: date,
+			occurred_time: time,
 			created_at: new Date().toISOString(),
 			shares: input.shares,
 			price_e4: input.price,
 			fees: input.fees,
 		};
 		const amount = tradeCash(trade);
-		if (amount === 0 || (input.kind !== 'buy' && amount < 0)) throw badRequest('The fees cannot be as much as the trade.');
+		checkCash(input.kind, amount);
 
 		if (input.kind === 'sell' && !positions([...(await userTrades(c.env.DB, userId)), trade])) throw conflict(POSITION_MESSAGE);
 
 		const transactionId = input.transactionId ?? newId('txn');
-		const notes = `${input.kind[0].toUpperCase()}${input.kind.slice(1)} ${input.shares.toLocaleString('en-US')} ${input.symbol}`;
+		const notes = legNotes(input.kind, input.shares, input.symbol);
 		const [inserted] = await c.env.DB.batch([
 			// The account is checked in the statement that writes, as everywhere else.
 			c.env.DB.prepare(
-				`INSERT INTO transactions (id, user_id, account_id, amount, occurred_on, payee, notes)
-				 SELECT ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)`,
-			).bind(transactionId, userId, input.accountId, amount, input.occurredOn, input.symbol, notes, input.accountId, userId),
+				`INSERT INTO transactions (id, user_id, account_id, amount, occurred_on, occurred_time, payee, notes)
+				 SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)`,
+			).bind(transactionId, userId, input.accountId, amount, date, time, input.symbol, notes, input.accountId, userId),
 			c.env.DB.prepare(
-				`INSERT INTO trades (id, user_id, account_id, symbol, kind, occurred_on, shares, price_e4, fees, transaction_id)
-				 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM transactions WHERE id = ? AND user_id = ?)`,
+				`INSERT INTO trades (id, user_id, account_id, symbol, kind, occurred_on, occurred_time, shares, price_e4, fees, transaction_id)
+				 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM transactions WHERE id = ? AND user_id = ?)`,
 			).bind(
 				id,
 				userId,
 				input.accountId,
 				input.symbol,
 				input.kind,
-				input.occurredOn,
+				date,
+				time,
 				input.shares,
 				input.price,
 				input.fees,
@@ -167,10 +185,79 @@ export const tradeRoutes = new Hono<AppEnv>()
 		]);
 		if (!inserted.meta.changes) throw notFound('Account not found.');
 
-		await invalidateSummaries(c.env.CACHE, userId, [monthOf(input.occurredOn), currentMonth()]);
+		await invalidateSummaries(c.env.CACHE, userId, [monthOf(date), currentMonth()]);
 
 		const row = await c.env.DB.prepare(`${SELECT_TRADE} WHERE tr.id = ? AND tr.user_id = ?`).bind(id, userId).first<TradeRow>();
 		return c.json({ trade: toTrade(row!) }, 201);
+	})
+	/** Puts a trade right, whole: what it is, where, when, and the cash leg worked out again from it. */
+	.patch('/:id', async (c) => {
+		const id = c.req.param('id');
+		const userId = c.get('userId');
+		const input = await parseJson(c, tradeUpdateSchema);
+
+		const existing = await c.env.DB.prepare('SELECT occurred_on, created_at, transaction_id FROM trades WHERE id = ? AND user_id = ?')
+			.bind(id, userId)
+			.first<{ occurred_on: string; created_at: string; transaction_id: string }>();
+		if (!existing) throw notFound('Trade not found.');
+
+		const security = await c.env.DB.prepare('SELECT symbol FROM securities WHERE symbol = ?').bind(input.symbol).first();
+		if (!security) throw notFound('Stock not found.');
+
+		const { date, time } = splitOccurrence(input.occurredOn);
+		const trade: TradeLike = {
+			account_id: input.accountId,
+			symbol: input.symbol,
+			kind: input.kind,
+			occurred_on: date,
+			occurred_time: time,
+			// It keeps its place among trades made at the same moment.
+			created_at: existing.created_at,
+			shares: input.shares,
+			price_e4: input.price,
+			fees: input.fees,
+		};
+		const amount = tradeCash(trade);
+		checkCash(input.kind, amount);
+
+		// Any edit can strand a later sell: fewer shares bought, a buy moved after the sell, another account.
+		const rest = (await userTrades(c.env.DB, userId)).filter((row) => (row as TradeLike & { id: string }).id !== id);
+		if (!positions([...rest, trade])) throw conflict(POSITION_MESSAGE);
+
+		const notes = legNotes(input.kind, input.shares, input.symbol);
+		const owned = 'EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)';
+		const [moved] = await c.env.DB.batch([
+			// The account is checked in the statements that write, as everywhere else.
+			c.env.DB.prepare(
+				`UPDATE transactions
+				 SET account_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+				 WHERE id = ? AND user_id = ? AND ${owned}`,
+			).bind(input.accountId, amount, date, time, input.symbol, notes, existing.transaction_id, userId, input.accountId, userId),
+			c.env.DB.prepare(
+				`UPDATE trades
+				 SET account_id = ?, symbol = ?, kind = ?, occurred_on = ?, occurred_time = ?, shares = ?, price_e4 = ?, fees = ?, updated_at = ${NOW_SQL}
+				 WHERE id = ? AND user_id = ? AND ${owned}`,
+			).bind(
+				input.accountId,
+				input.symbol,
+				input.kind,
+				date,
+				time,
+				input.shares,
+				input.price,
+				input.fees,
+				id,
+				userId,
+				input.accountId,
+				userId,
+			),
+		]);
+		if (!moved.meta.changes) throw notFound('Account not found.');
+
+		await invalidateSummaries(c.env.CACHE, userId, [monthOf(existing.occurred_on), monthOf(date), currentMonth()]);
+
+		const row = await c.env.DB.prepare(`${SELECT_TRADE} WHERE tr.id = ? AND tr.user_id = ?`).bind(id, userId).first<TradeRow>();
+		return c.json({ trade: toTrade(row!) });
 	})
 	.delete('/:id', async (c) => {
 		const id = c.req.param('id');

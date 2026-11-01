@@ -52,8 +52,11 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
 
     var range by rememberSaveable { mutableStateOf(PriceRange.QUARTER) }
     var trading by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Trade?>(null) }
     var pendingDelete by remember { mutableStateOf<Trade?>(null) }
     val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the trade it was editing, wherever that was deleted.
+    LaunchedEffect(state.trades) { if (editing?.let { open -> state.trades.none { it.id == open.id } } == true) trading = false }
 
     val holding = remember(state, symbol) { combined(symbol, state.holdings) }
     val trades = state.trades.filter { it.symbol == symbol }
@@ -129,7 +132,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                 }
             }
             item(key = "actions") {
-                FilledTonalButton(onClick = { switchForm { trading = true } }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                FilledTonalButton(onClick = { switchForm { editing = null; trading = true } }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                     Icon(painterResource(R.drawable.add_48px), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                     Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                     Text(stringResource(R.string.investments_new_trade))
@@ -144,14 +147,29 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                 )
             }
             itemsIndexed(trades, key = { _, trade -> trade.id }) { index, trade ->
-                TradeRow(trade, positionInGroup(index, trades.lastIndex), onDelete = { pendingDelete = trade }, showSymbol = false)
+                TradeRow(
+                    trade,
+                    positionInGroup(index, trades.lastIndex),
+                    onClick = { switchForm { editing = trade; trading = true } },
+                    onDelete = { pendingDelete = trade },
+                    selected = trading && trade.id == editing?.id,
+                    showSymbol = false,
+                )
             }
         }
     }
 
-    if (trading) {
+    if (trading) key(editing?.id) {
+        val target = editing
         val account = holding?.let { state.held.firstOrNull { it.symbol == symbol }?.position?.accountId }
-        TradeForm(state = state, onSave = viewModel::createTrade, onDismiss = { trading = false }, initialSymbol = symbol, initialAccount = account)
+        TradeForm(
+            state = state,
+            onSave = { if (target != null) viewModel.updateTrade(target.id, it) else viewModel.createTrade(it) },
+            onDismiss = { trading = false },
+            editing = target,
+            initialSymbol = symbol,
+            initialAccount = account,
+        )
     }
     pendingDelete?.let { DeleteTradeDialog(it, viewModel, onDone = { pendingDelete = null }) }
 }

@@ -8,24 +8,26 @@ import SecurityInput from '@/components/SecurityInput.vue';
 import SelectField from '@/components/SelectField.vue';
 import TextField from '@/components/TextField.vue';
 import { ApiError } from '@/lib/api';
-import { today } from '@/lib/dates';
-import { boardLot, dividendTax, parsePrice, parseShares, priceInput, pseFees, valueOf } from '@/lib/investments';
+import { minCommission } from '@/lib/banks';
+import { currentTime, today } from '@/lib/dates';
+import { boardLot, dividendTax, parsePrice, parseShares, positions, priceInput, pseFees, valueOf } from '@/lib/investments';
 import { currencySymbol } from '@/lib/money';
 import { MASK, useAmountVisibility } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { useInvestmentStore } from '@/stores/investments';
-import type { Security, TradeKind } from '@/types';
+import type { Security, Trade, TradeKind } from '@/types';
 import { computed, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
 /**
  * A buy, a sell or a cash dividend (`TradeForm` on Android). The stock comes first and fills in the broker account
  * that holds it and its last close; the fees a PSE broker charges (or a dividend's final tax) are worked out as
- * the shares and price are typed, so what the trade costs or brings in is known before it is saved.
+ * the shares and price are typed, so what the trade costs or brings in is known before it is saved. Given
+ * `editing`, it opens on that trade and puts it right, its cash leg with it.
  */
-const props = defineProps<{ open: boolean; initialSymbol?: string | null; initialAccount?: string | null }>();
+const props = defineProps<{ open: boolean; editing?: Trade | null; initialSymbol?: string | null; initialAccount?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
 
 const store = useInvestmentStore();
@@ -37,7 +39,15 @@ const KINDS: { value: TradeKind; label: string }[] = [
 	{ value: 'dividend', label: t('investments.dividend') },
 ];
 
-const form = reactive({ kind: 'buy' as TradeKind, symbol: '', accountId: '', occurredOn: today(), shares: '', price: '' });
+const form = reactive({
+	kind: 'buy' as TradeKind,
+	symbol: '',
+	accountId: '',
+	occurredOn: today(),
+	occurredTime: currentTime(),
+	shares: '',
+	price: '',
+});
 const opened = ref('');
 const error = ref<string | null>(null);
 const dirty = computed(() => JSON.stringify(form) !== opened.value);
@@ -46,10 +56,18 @@ const security = computed(() => store.securitiesBySymbol.get(form.symbol) ?? nul
 const held = computed(() =>
 	store.holdings.find((holding) => holding.symbol === form.symbol && holding.position.accountId === form.accountId),
 );
+/** What can be sold now: what is held, plus what the sell being edited already takes out of it. */
+const available = computed(() => {
+	const editing = props.editing;
+	const back = editing && editing.kind === 'sell' && editing.symbol === form.symbol && editing.accountId === form.accountId;
+	return (held.value?.shares ?? 0) + (back ? editing.shares : 0);
+});
+const occurredOn = computed(() => (form.occurredTime ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn));
 const shares = computed(() => parseShares(form.shares));
 const price = computed(() => parsePrice(form.price));
 const gross = computed(() => (shares.value !== null && price.value !== null ? valueOf(shares.value, price.value) : null));
-const fees = computed(() => (gross.value === null ? null : pseFees(gross.value, form.kind === 'sell')));
+const commissionFloor = computed(() => minCommission(store.accounts.find((account) => account.id === form.accountId)?.bank));
+const fees = computed(() => (gross.value === null ? null : pseFees(gross.value, form.kind === 'sell', commissionFloor.value)));
 const tax = computed(() => (gross.value === null ? 0 : dividendTax(gross.value)));
 
 const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
@@ -59,27 +77,69 @@ const validation = useFormValidation({
 	'trade-account': () => (store.accounts.some((account) => account.id === form.accountId) ? null : t('investments.chooseBroker')),
 	'trade-shares': () => {
 		if (shares.value === null) return t('investments.sharesWhole');
-		const holding = held.value?.shares ?? 0;
-		return form.kind !== 'buy' && shares.value > holding ? t('investments.sharesOverHeld', { shares: sharesShown(holding) }) : null;
+		if (form.kind !== 'buy' && shares.value > available.value)
+			return t('investments.sharesOverHeld', { shares: sharesShown(available.value) });
+		return historyHolds() ? null : t('investments.sharesOverHistory');
 	},
 	'trade-price': () => (price.value === null ? t('investments.priceNumber') : null),
 });
 const { error: fieldError, touch } = validation;
 
+/**
+ * Whether the trades still stand with this one as the form has it: a back-dated sell, or a buy edited down or
+ * moved after a sell that needs it, would sell more than is held at some point.
+ */
+function historyHolds(): boolean {
+	if (shares.value === null || price.value === null || !form.accountId || !form.symbol) return true;
+	const editing = props.editing;
+	const now = new Date().toISOString();
+	const trade: Trade = {
+		id: editing?.id ?? '',
+		accountId: form.accountId,
+		accountName: null,
+		symbol: form.symbol,
+		name: null,
+		kind: form.kind,
+		occurredOn: occurredOn.value,
+		shares: shares.value,
+		price: price.value,
+		fees: 0,
+		amount: 0,
+		transactionId: '',
+		createdAt: editing?.createdAt ?? now,
+		updatedAt: now,
+	};
+	return positions([...store.trades.filter((entry) => entry.id !== editing?.id), trade]) !== null;
+}
+
 watch(
-	() => props.open,
-	(open) => {
+	() => [props.open, props.editing?.id] as const,
+	([open]) => {
 		if (!open) return;
-		const symbol = props.initialSymbol ?? '';
-		const start = store.securitiesBySymbol.get(symbol);
-		Object.assign(form, {
-			kind: 'buy',
-			symbol,
-			accountId: props.initialAccount ?? [...store.brokerCash.keys()][0] ?? '',
-			occurredOn: today(),
-			shares: '',
-			price: start ? priceInput(start.price) : '',
-		});
+		const editing = props.editing;
+		if (editing) {
+			Object.assign(form, {
+				kind: editing.kind,
+				symbol: editing.symbol,
+				accountId: editing.accountId,
+				occurredOn: editing.occurredOn.slice(0, 10),
+				occurredTime: editing.occurredOn.slice(11, 16),
+				shares: String(editing.shares),
+				price: priceInput(editing.price),
+			});
+		} else {
+			const symbol = props.initialSymbol ?? '';
+			const start = store.securitiesBySymbol.get(symbol);
+			Object.assign(form, {
+				kind: 'buy',
+				symbol,
+				accountId: props.initialAccount ?? [...store.brokerCash.keys()][0] ?? '',
+				occurredOn: today(),
+				occurredTime: currentTime(),
+				shares: '',
+				price: start ? priceInput(start.price) : '',
+			});
+		}
 		error.value = null;
 		validation.reset();
 		opened.value = JSON.stringify(form);
@@ -127,17 +187,19 @@ async function submit(): Promise<void> {
 	if (!validation.isValid.value || shares.value === null || price.value === null || gross.value === null) return;
 	error.value = null;
 	try {
-		await store.createTrade({
+		const input = {
 			accountId: form.accountId,
 			symbol: form.symbol,
 			name: security.value?.name ?? null,
 			kind: form.kind,
-			occurredOn: form.occurredOn,
+			occurredOn: occurredOn.value,
 			shares: shares.value,
 			price: price.value,
 			fees: form.kind === 'dividend' ? tax.value : (fees.value?.total ?? 0),
-		});
-		showSnackbar(t('investments.tradeAdded'));
+		};
+		if (props.editing) await store.updateTrade(props.editing, input);
+		else await store.createTrade(input);
+		showSnackbar(t(props.editing ? 'investments.tradeUpdated' : 'investments.tradeAdded'));
 		emit('close');
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : t('common.couldNotSave');
@@ -148,7 +210,7 @@ async function submit(): Promise<void> {
 <template>
 	<FormDialog
 		:open="open"
-		:title="t('investments.newTrade')"
+		:title="editing ? t('investments.editTrade') : t('investments.newTrade')"
 		:save-enabled="validation.isValid.value"
 		:dirty="dirty"
 		@close="emit('close')"
@@ -179,7 +241,17 @@ async function submit(): Promise<void> {
 				<FieldSupport id="trade-account" :error="fieldError('trade-account')" :hint="heldHint" />
 			</div>
 
-			<PickerField id="trade-date" v-model="form.occurredOn" :label="t('common.date')" type="date" />
+			<div class="flex gap-3">
+				<PickerField id="trade-date" v-model="form.occurredOn" class="min-w-0 flex-1" :label="t('common.date')" type="date" />
+				<PickerField
+					id="trade-time"
+					v-model="form.occurredTime"
+					class="min-w-0 flex-1"
+					:label="t('common.time')"
+					type="time"
+					:placeholder="t('common.optional')"
+				/>
+			</div>
 
 			<TextField
 				id="trade-shares"

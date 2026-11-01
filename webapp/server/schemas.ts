@@ -409,6 +409,7 @@ export const SYNC_ENTITIES = [
 	'budget',
 	'settings',
 	'roundUpRule',
+	'trade',
 ] as const;
 
 /** Methods a queued operation may use. A GET is never queued: reading is what a sync already does. */
@@ -444,24 +445,34 @@ export const deviceRegisterSchema = z.object({
 	platform: z.enum(['android', 'web']),
 });
 
-/** A PSE trade. Its cash leg is worked out from the shares, the price and the fees, never taken from the caller. */
-export const tradeCreateSchema = z.object({
-	id: clientId('trd'),
-	/** The id its cash transaction takes, so a client's provisional row keeps its name. */
-	transactionId: clientId('txn'),
+const realDateTime = dateTimeString.refine((value) => isRealDate(value.slice(0, 10)), 'Must be a real calendar date.');
+
+/** What a trade is: the same whether it is being made or put right. */
+const tradeFields = z.object({
 	accountId: z.string().min(1),
 	symbol: z
 		.string()
 		.trim()
 		.regex(/^[A-Z0-9]{1,12}$/, 'Must be a PSE symbol.'),
 	kind: z.enum(['buy', 'sell', 'dividend']),
-	occurredOn: realDate,
+	/** A date, optionally with the `THH:MM` it was made at, as a transaction's. */
+	occurredOn: realDateTime,
 	shares: z.number().int().positive().max(1_000_000_000_000),
 	/** Ten-thousandths of a peso a share; a dividend's is what it paid a share. */
 	price: z.number().int().positive().max(100_000_000_000),
 	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
 	fees: money.min(0).default(0),
 });
+
+/** A PSE trade. Its cash leg is worked out from the shares, the price and the fees, never taken from the caller. */
+export const tradeCreateSchema = tradeFields.extend({
+	id: clientId('trd'),
+	/** The id its cash transaction takes, so a client's provisional row keeps its name. */
+	transactionId: clientId('txn'),
+});
+
+/** A trade put right: the whole of it again, its cash leg worked out afresh. */
+export const tradeUpdateSchema = tradeFields;
 
 export const pricesQuerySchema = z.object({
 	from: dateString.optional(),

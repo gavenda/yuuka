@@ -12,6 +12,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Security
+import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.domain.Holding
 import dev.gavenda.yuuka.domain.TradeKinds
 import dev.gavenda.yuuka.domain.boardLot
@@ -19,47 +20,88 @@ import dev.gavenda.yuuka.domain.currencySymbol
 import dev.gavenda.yuuka.domain.dividendTax
 import dev.gavenda.yuuka.domain.parsePrice
 import dev.gavenda.yuuka.domain.parseShares
+import dev.gavenda.yuuka.domain.positions
 import dev.gavenda.yuuka.domain.priceInput
 import dev.gavenda.yuuka.domain.pseFees
 import dev.gavenda.yuuka.domain.valueOf
 import dev.gavenda.yuuka.ui.common.*
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 private val KINDS = listOf(TradeKinds.BUY, TradeKinds.SELL, TradeKinds.DIVIDEND)
 
+private val TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
+
+/** The time of day an `occurredOn` names, or null when it names only the day. */
+internal fun timeOf(occurredOn: String): LocalTime? =
+    if (occurredOn.length > 10) runCatching { LocalTime.parse(occurredOn.substring(11, 16)) }.getOrNull() else null
+
 /**
  * A buy, a sell or a cash dividend, as a full-screen form. The stock comes first and fills in the broker account
  * that holds it and its last close; the fees a PSE broker charges (or a dividend's final tax) are worked out as
- * the shares and price are typed, so what the trade costs or brings in is known before it is saved.
+ * the shares and price are typed, so what the trade costs or brings in is known before it is saved. Given
+ * [editing], it opens on that trade and puts it right, its cash leg with it.
  */
 @Composable
 fun TradeForm(
     state: InvestmentsUiState,
     onSave: suspend (TradeSubmission) -> Unit,
     onDismiss: () -> Unit,
+    editing: Trade? = null,
     initialSymbol: String? = null,
     initialAccount: String? = null,
 ) {
     val busy = rememberBusyState()
     val snackbarHostState = LocalSnackbarHostState.current
-    val addedMessage = stringResource(R.string.investments_trade_added)
+    val savedMessage = stringResource(if (editing != null) R.string.investments_trade_updated else R.string.investments_trade_added)
 
-    var kind by remember { mutableStateOf(TradeKinds.BUY) }
-    var symbol by remember { mutableStateOf(initialSymbol) }
-    var account by remember { mutableStateOf(initialAccount ?: state.brokerCash.keys.firstOrNull()) }
-    var date by remember { mutableStateOf(LocalDate.now()) }
-    var shares by remember { mutableStateOf("") }
+    var kind by remember { mutableStateOf(editing?.kind ?: TradeKinds.BUY) }
+    var symbol by remember { mutableStateOf(editing?.symbol ?: initialSymbol) }
+    var account by remember { mutableStateOf(editing?.accountId ?: initialAccount ?: state.brokerCash.keys.firstOrNull()) }
+    var date by remember { mutableStateOf(editing?.let { LocalDate.parse(it.occurredOn.take(10)) } ?: LocalDate.now()) }
+    // A trade entered before times were kept has none, and stays without one unless it is given one.
+    var time by remember {
+        mutableStateOf(if (editing != null) timeOf(editing.occurredOn) else LocalTime.now().withSecond(0).withNano(0))
+    }
+    var shares by remember { mutableStateOf(editing?.shares?.toString() ?: "") }
     var price by remember {
-        mutableStateOf(initialSymbol?.let { state.securitiesBySymbol[it] }?.let { priceInput(it.price) } ?: "")
+        mutableStateOf(
+            editing?.let { priceInput(it.price) }
+                ?: initialSymbol?.let { state.securitiesBySymbol[it] }?.let { priceInput(it.price) }
+                ?: "",
+        )
     }
     var pickingDate by remember { mutableStateOf(false) }
-    val opened = remember { listOf(kind, symbol, account, date, shares, price) }
+    var pickingTime by remember { mutableStateOf(false) }
+    val opened = remember { listOf(kind, symbol, account, date, time, shares, price) }
 
     val security = symbol?.let { state.securitiesBySymbol[it] }
     val held = state.holdings.firstOrNull { it.symbol == symbol && it.position.accountId == account }
+    // What can be sold now: what is held, plus what the sell being edited already takes out of it.
+    val available = (held?.shares ?: 0) +
+        if (editing != null && editing.kind == TradeKinds.SELL && editing.symbol == symbol && editing.accountId == account) editing.shares else 0
     val sharesValue = parseShares(shares)
     val priceValue = parsePrice(price)
+    val occurredOn = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + (time?.let { "T" + it.format(TIME_FORMAT) } ?: "")
+    // A back-dated sell, or a buy edited down or moved after a sell that needs it, would sell more than is held.
+    val historyHolds = sharesValue == null || priceValue == null || symbol == null || account == null ||
+        positions(
+            state.trades.filter { it.id != editing?.id } + Trade(
+                id = editing?.id ?: "",
+                accountId = account!!,
+                symbol = symbol!!,
+                kind = kind,
+                occurredOn = occurredOn,
+                shares = sharesValue,
+                price = priceValue,
+                fees = 0,
+                amount = 0,
+                transactionId = "",
+                createdAt = editing?.createdAt ?: Instant.now().toString(),
+            ),
+        ) != null
 
     val form = rememberFormValidation()
     val stockField = form.field("stock", if (security == null) stringResource(R.string.error_choose_stock) else null)
@@ -68,30 +110,32 @@ fun TradeForm(
         "shares",
         when {
             sharesValue == null -> stringResource(R.string.error_shares_whole)
-            kind != TradeKinds.BUY && sharesValue > (held?.shares ?: 0) -> stringResource(R.string.error_shares_over_held, sharesText(held?.shares ?: 0))
+            kind != TradeKinds.BUY && sharesValue > available -> stringResource(R.string.error_shares_over_held, sharesText(available))
+            !historyHolds -> stringResource(R.string.error_shares_over_history)
             else -> null
         },
     )
     val priceField = form.field("price", if (priceValue == null) stringResource(R.string.error_price_number) else null)
 
     val gross = if (sharesValue != null && priceValue != null) valueOf(sharesValue, priceValue) else null
-    val fees = gross?.let { if (kind == TradeKinds.DIVIDEND) dividendTax(it) else pseFees(it, kind == TradeKinds.SELL).total }
+    val minCommission = Banks.minCommission(state.accounts.firstOrNull { it.id == account }?.bank)
+    val fees = gross?.let { if (kind == TradeKinds.DIVIDEND) dividendTax(it) else pseFees(it, kind == TradeKinds.SELL, minCommission).total }
 
     FullScreenDialog(
-        title = stringResource(R.string.investments_new_trade),
+        title = stringResource(if (editing != null) R.string.investments_edit_trade else R.string.investments_new_trade),
         onDismiss = onDismiss,
         onSave = submit@{
             val chosenSymbol = symbol ?: return@submit
             val chosenAccount = account ?: return@submit
             val count = sharesValue ?: return@submit
             val each = priceValue ?: return@submit
-            busy.run("trade", snackbarHostState, successMessage = addedMessage, onSuccess = onDismiss) {
-                onSave(TradeSubmission(chosenAccount, chosenSymbol, kind, date.toString(), count, each, fees ?: 0))
+            busy.run("trade", snackbarHostState, successMessage = savedMessage, onSuccess = onDismiss) {
+                onSave(TradeSubmission(chosenAccount, chosenSymbol, kind, occurredOn, count, each, fees ?: 0))
             }
         },
         saveEnabled = form.valid(stockField, accountField, sharesField, priceField),
         submitting = busy.isBusy("trade"),
-        dirty = listOf(kind, symbol, account, date, shares, price) != opened,
+        dirty = listOf(kind, symbol, account, date, time, shares, price) != opened,
     ) {
         ConnectedButtonGroup(
             options = KINDS,
@@ -121,12 +165,21 @@ fun TradeForm(
             hint = held?.takeIf { it.shares > 0 }?.let { stringResource(R.string.investments_held_hint, sharesText(it.shares)) },
         )
 
-        PickerField(
-            value = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
-            label = stringResource(R.string.label_date),
-            onClick = { pickingDate = true },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PickerField(
+                value = date.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                label = stringResource(R.string.label_date),
+                onClick = { pickingDate = true },
+                modifier = Modifier.weight(1f),
+            )
+            PickerField(
+                value = time?.format(TIME_FORMAT) ?: "",
+                label = stringResource(R.string.label_time),
+                placeholder = stringResource(R.string.placeholder_optional),
+                onClick = { pickingTime = true },
+                modifier = Modifier.weight(1f),
+            )
+        }
 
         val lot = priceValue?.let { boardLot(it) }
         YuukaTextField(
@@ -153,11 +206,14 @@ fun TradeForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
 
-        if (gross != null && sharesValue != null) Breakdown(kind, gross, held, sharesValue)
+        if (gross != null && sharesValue != null) Breakdown(kind, gross, held, sharesValue, minCommission)
     }
 
     if (pickingDate) {
         YuukaDatePickerDialog(initial = date, onDismiss = { pickingDate = false }, onPicked = { date = it; pickingDate = false })
+    }
+    if (pickingTime) {
+        YuukaTimePickerDialog(initial = time ?: LocalTime.now(), onDismiss = { pickingTime = false }, onPicked = { time = it; pickingTime = false })
     }
 }
 
@@ -211,7 +267,7 @@ private fun SecurityField(securities: List<Security>, selected: Security?, field
 
 /** What the trade comes to, fee by fee, ending on the figure that moves the account's cash. */
 @Composable
-private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long) {
+private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long, minCommission: Long) {
     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FigureRow(stringResource(R.string.investments_gross)) { MoneyText(gross, style = MaterialTheme.typography.bodyLarge) }
@@ -222,7 +278,7 @@ private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long) {
                 Total(stringResource(R.string.investments_net_dividend), gross - tax)
             } else {
                 val sell = kind == TradeKinds.SELL
-                val fees = pseFees(gross, sell)
+                val fees = pseFees(gross, sell, minCommission)
                 FigureRow(stringResource(R.string.investments_commission)) { MoneyText(fees.commission, style = MaterialTheme.typography.bodyLarge) }
                 FigureRow(stringResource(R.string.investments_vat)) { MoneyText(fees.vat, style = MaterialTheme.typography.bodyLarge) }
                 FigureRow(stringResource(R.string.investments_pse_fee)) { MoneyText(fees.pseFee, style = MaterialTheme.typography.bodyLarge) }

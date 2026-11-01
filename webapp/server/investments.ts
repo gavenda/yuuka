@@ -193,6 +193,8 @@ export interface TradeLike {
 	symbol: string;
 	kind: TradeKind;
 	occurred_on: string;
+	/** `HH:MM`, or null when the trade names no time; an untimed trade sorts to the start of its day. */
+	occurred_time?: string | null;
 	created_at?: string;
 	shares: number;
 	price_e4: number;
@@ -216,14 +218,17 @@ export interface Position {
 }
 
 /**
- * Works a set of trades through in date order, average cost: a buy adds its shares and its cost
+ * Works a set of trades through in date and time order, average cost: a buy adds its shares and its cost
  * with fees, a sell takes its shares out at the average cost so far and realises the rest of its
  * proceeds, a dividend adds its net cash. Answers null when a sell would take more than is held at
  * that point — a back-dated sell, or a deleted buy, that the history cannot carry.
  */
 export function positions(trades: TradeLike[]): Position[] | null {
 	const ordered = [...trades].sort(
-		(a, b) => a.occurred_on.localeCompare(b.occurred_on) || (a.created_at ?? '').localeCompare(b.created_at ?? ''),
+		(a, b) =>
+			a.occurred_on.localeCompare(b.occurred_on) ||
+			(a.occurred_time ?? '').localeCompare(b.occurred_time ?? '') ||
+			(a.created_at ?? '').localeCompare(b.created_at ?? ''),
 	);
 	const byKey = new Map<string, Position>();
 	for (const trade of ordered) {
@@ -258,7 +263,7 @@ export function positions(trades: TradeLike[]): Position[] | null {
 export async function holdingsValue(db: D1Database, userId: string, onOrBefore?: string): Promise<number> {
 	const { results } = await db
 		.prepare(
-			`SELECT account_id, symbol, kind, occurred_on, created_at, shares, price_e4, fees FROM trades
+			`SELECT account_id, symbol, kind, occurred_on, occurred_time, created_at, shares, price_e4, fees FROM trades
 			 WHERE user_id = ? ${onOrBefore ? 'AND occurred_on <= ?' : ''}`,
 		)
 		.bind(...(onOrBefore ? [userId, onOrBefore] : [userId]))

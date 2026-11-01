@@ -4,6 +4,7 @@ import AlertDialog from '@/components/AlertDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import { ApiError } from '@/lib/api';
+import { formatDate, formatTime } from '@/lib/dates';
 import { DELETE } from '@/lib/icons';
 import { formatPrice } from '@/lib/investments';
 import { MASK, useAmountVisibility } from '@/lib/privacy';
@@ -14,11 +15,12 @@ import { computed, ref } from 'vue';
 import { t } from '@/i18n';
 
 /**
- * Trades as a segmented list, each one's delete behind its swipe (`TradeRow` and `DeleteTradeDialog` on
- * Android). Deleting takes the trade's cash with it, so it asks first; a buy a later sell depends on cannot go,
- * and the dialog says so instead.
+ * Trades as a segmented list (`TradeRow` and `DeleteTradeDialog` on Android): pressing one edits it, and its
+ * delete is behind its swipe. Deleting takes the trade's cash with it, so it asks first; a buy a later sell
+ * depends on cannot go, and the dialog says so instead.
  */
-const props = defineProps<{ trades: Trade[]; showSymbol?: boolean }>();
+const props = defineProps<{ trades: Trade[]; showSymbol?: boolean; selectedId?: string | null }>();
+const emit = defineEmits<{ edit: [trade: Trade] }>();
 
 const store = useInvestmentStore();
 const { hidden } = useAmountVisibility();
@@ -28,7 +30,8 @@ const error = ref<string | null>(null);
 
 const kindLabel = (trade: Trade) => t(`investments.${trade.kind}`);
 const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
-const dayOf = (day: string) => new Date(`${day}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+/** `15 Oct, 9:45 AM`, or the day alone for a trade that names no time. */
+const whenOf = (occurredOn: string) => [formatDate(occurredOn), formatTime(occurredOn)].filter(Boolean).join(', ');
 
 async function remove(): Promise<void> {
 	const trade = pending.value;
@@ -56,7 +59,13 @@ async function remove(): Promise<void> {
 						@click="pending = trade"
 					/>
 				</template>
-				<div class="group-row">
+				<!-- The whole row opens the edit form. Spans, not blocks, because it is a button. -->
+				<button
+					type="button"
+					class="group-row state-layer focus-ring w-full cursor-pointer text-start"
+					:aria-current="props.selectedId === trade.id ? 'true' : undefined"
+					@click="emit('edit', trade)"
+				>
 					<span class="flex items-center gap-4 px-4 py-3">
 						<span class="flex min-w-0 flex-1 flex-col gap-0.5">
 							<span class="type-title-medium truncate">{{ showSymbol ? `${kindLabel(trade)} · ${trade.symbol}` : kindLabel(trade) }}</span>
@@ -67,7 +76,7 @@ async function remove(): Promise<void> {
 								})
 							}}</span>
 							<span class="type-body-small text-on-surface-variant">{{
-								t('investments.tradeLine', { date: dayOf(trade.occurredOn), account: trade.accountName ?? '' })
+								t('investments.tradeLine', { date: whenOf(trade.occurredOn), account: trade.accountName ?? '' })
 							}}</span>
 						</span>
 						<!-- A buy or sell only turns cash into shares and back; a dividend is income. -->
@@ -78,7 +87,7 @@ async function remove(): Promise<void> {
 							class="type-body-large shrink-0"
 						/>
 					</span>
-				</div>
+				</button>
 			</SwipeReveal>
 		</li>
 	</ul>

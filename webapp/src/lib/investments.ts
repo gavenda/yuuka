@@ -66,10 +66,16 @@ export interface PseFees {
 const share = (amount: number, numerator: number, denominator: number) =>
 	Math.floor((amount * numerator + Math.floor(denominator / 2)) / denominator);
 
-/** Commission 0.25% (₱20 at least), 12% VAT on it, the PSE's 0.005%, SCCP's 0.01%, and on a sell the 0.1% stock transaction tax. */
-export function pseFees(gross: number, sell: boolean): PseFees {
+/** The least commission most PSE brokers charge on a trade, in centavos: ₱20. */
+export const MIN_COMMISSION = 2_000;
+
+/**
+ * Commission 0.25% (at least `minCommission`, ₱20 unless the broker waives it), 12% VAT on it, the PSE's 0.005%,
+ * SCCP's 0.01%, and on a sell the 0.1% stock transaction tax.
+ */
+export function pseFees(gross: number, sell: boolean, minCommission: number = MIN_COMMISSION): PseFees {
 	if (gross <= 0) return { commission: 0, vat: 0, pseFee: 0, sccp: 0, salesTax: 0, total: 0 };
-	const commission = Math.max(share(gross, 25, 10_000), 2_000);
+	const commission = Math.max(share(gross, 25, 10_000), minCommission);
 	const fees = {
 		commission,
 		vat: share(commission, 12, 100),
@@ -141,7 +147,6 @@ export interface Holding {
 	symbol: string;
 	name: string;
 	accountName: string;
-	bank: string | null;
 	/** The latest close, or the average cost when the stock has no price yet. */
 	priceE4: number;
 	changeBp: number | null;
@@ -158,7 +163,7 @@ export interface Holding {
 /** Fills in what a position is worth at `priceE4`. */
 export function holdingOf(
 	position: Position,
-	details: { name: string; accountName: string; bank: string | null; priceE4: number; changeBp: number | null; asOf: string | null },
+	details: { name: string; accountName: string; priceE4: number; changeBp: number | null; asOf: string | null },
 ): Holding {
 	const marketValue = valueOf(position.shares, details.priceE4);
 	const previousCloseE4 =
@@ -181,7 +186,7 @@ export function holdingOf(
 export function holdings(
 	trades: readonly Trade[],
 	securities: ReadonlyMap<string, Security>,
-	account: (id: string) => { name: string; bank: string | null } | undefined,
+	account: (id: string) => { name: string } | undefined,
 ): Holding[] {
 	return (positions(trades) ?? []).map((position) => {
 		const security = securities.get(position.symbol);
@@ -189,7 +194,6 @@ export function holdings(
 		return holdingOf(position, {
 			name: security?.name ?? trades.find((trade) => trade.symbol === position.symbol)?.name ?? position.symbol,
 			accountName: owner?.name ?? trades.find((trade) => trade.accountId === position.accountId)?.accountName ?? '',
-			bank: owner?.bank ?? null,
 			priceE4: security?.price ?? (position.shares > 0 ? Math.round((position.costBasis * 100) / position.shares) : 0),
 			changeBp: security?.changeBp ?? null,
 			asOf: security?.asOf ?? null,

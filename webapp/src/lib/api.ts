@@ -96,6 +96,33 @@ function queryString(filters: Record<string, string | number | undefined>): stri
  * (`entity`, `id`) so the server can drop an edit that a newer one has already
  * overtaken.
  */
+/** What a trade is, as the form makes it: the same whether it is new or put right. */
+export interface TradeInput {
+	accountId: string;
+	symbol: string;
+	name: string | null;
+	kind: TradeKind;
+	/** A date, optionally with the `THH:MM` it was made at. */
+	occurredOn: string;
+	shares: number;
+	price: number;
+	fees: number;
+}
+
+/** A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes. */
+function tradeLeg(id: string, input: TradeInput, amount: number) {
+	const verb = `${input.kind[0]!.toUpperCase()}${input.kind.slice(1)}`;
+	return {
+		id,
+		accountId: input.accountId,
+		categoryId: null,
+		amount,
+		occurredOn: input.occurredOn,
+		payee: input.symbol,
+		notes: `${verb} ${input.shares.toLocaleString('en-US')} ${input.symbol}`,
+	};
+}
+
 export const api = {
 	me: () => request<{ subject: string; issuer: string | null; expiresAt: number | null; permissions: string[] }>('/auth/me'),
 
@@ -592,31 +619,13 @@ export const api = {
 	 * A trade and its cash leg, both named here so the server adopts them: the leg is an ordinary
 	 * transaction in the broker account, the stock as its payee, and moves its balance at once.
 	 */
-	createTrade: (input: {
-		accountId: string;
-		symbol: string;
-		name: string | null;
-		kind: TradeKind;
-		occurredOn: string;
-		shares: number;
-		price: number;
-		fees: number;
-	}) => {
+	createTrade: (input: TradeInput) => {
 		const ledger = ledgerView();
 		const id = newId('trade');
 		const transactionId = newId('transaction');
 		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
 		const now = new Date().toISOString();
-		const verb = `${input.kind[0]!.toUpperCase()}${input.kind.slice(1)}`;
-		const leg = provisionalTransaction(ledger, {
-			id: transactionId,
-			accountId: input.accountId,
-			categoryId: null,
-			amount,
-			occurredOn: input.occurredOn,
-			payee: input.symbol,
-			notes: `${verb} ${input.shares.toLocaleString('en-US')} ${input.symbol}`,
-		});
+		const leg = provisionalTransaction(ledger, tradeLeg(transactionId, input, amount));
 		const { name, ...body } = input;
 		const trade: Trade = {
 			...body,
@@ -630,6 +639,21 @@ export const api = {
 		};
 		return saved(queued({ method: 'POST', path: '/api/trades', body: { ...body, id, transactionId }, optimistic: { trade } }), (answer) =>
 			local.saveTrade(answer.trade, leg),
+		);
+	},
+	/**
+	 * A trade put right, whole, with its cash leg worked out again — the same leg, so it moves rather than
+	 * being replaced, and the balances it touches move with it.
+	 */
+	updateTrade: (existing: Trade, input: TradeInput) => {
+		const ledger = ledgerView();
+		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
+		const leg = provisionalTransaction(ledger, tradeLeg(existing.transactionId, input, amount));
+		const { name, ...body } = input;
+		const trade: Trade = { ...existing, ...body, name, accountName: leg.accountName, amount, updatedAt: new Date().toISOString() };
+		return saved(
+			queued({ method: 'PATCH', path: `/api/trades/${existing.id}`, body, entity: 'trade', id: existing.id, optimistic: { trade } }),
+			(answer) => local.saveTrade(answer.trade, leg),
 		);
 	},
 	deleteTrade: (id: string) =>

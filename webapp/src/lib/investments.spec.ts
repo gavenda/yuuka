@@ -47,9 +47,16 @@ describe('investments', () => {
 		expect(positions([trade('sell', '2026-01-01', 1, 100_000), trade('buy', '2026-02-01', 100, 100_000)])).toBeNull();
 	});
 
+	it("works a day's trades through in time order, an untimed one first", () => {
+		expect(positions([trade('buy', '2026-01-01T10:00', 100, 100_000), trade('sell', '2026-01-01T09:30', 10, 100_000)])).toBeNull();
+		expect(positions([trade('sell', '2026-01-01T09:30', 10, 100_000), trade('buy', '2026-01-01', 100, 100_000)])?.[0]?.shares).toBe(90);
+	});
+
 	it('charges the PSE schedule, with the ₱20 minimum commission', () => {
 		expect(pseFees(1_180_000, false)).toEqual({ commission: 2_950, vat: 354, pseFee: 59, sccp: 118, salesTax: 0, total: 3_481 });
 		expect(pseFees(100_000, true)).toEqual({ commission: 2_000, vat: 240, pseFee: 5, sccp: 10, salesTax: 100, total: 2_355 });
+		// A broker that waives the minimum (DragonFi) charges the 0.25% alone: ₱2.50 on ₱1,000.00.
+		expect(pseFees(100_000, true, 0)).toEqual({ commission: 250, vat: 30, pseFee: 5, sccp: 10, salesTax: 100, total: 395 });
 	});
 
 	it('parses a price to four decimals, split on the point', () => {

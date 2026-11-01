@@ -444,6 +444,7 @@
     <string name="investments_tab_activity">Activity</string>
     <string name="investments_shares_at">%1$s sh · %2$s</string>
     <string name="investments_new_trade">New trade</string>
+    <string name="investments_edit_trade">Edit trade</string>
     <string name="investments_trade_buy">Buy</string>
     <string name="investments_trade_sell">Sell</string>
     <string name="investments_trade_dividend">Dividend</string>
@@ -485,6 +486,7 @@
     <string name="investments_empty_description">Record a buy and I\'ll keep track of what it\'s worth at every close.</string>
     <string name="investments_prices_gathering">I\'m still gathering its past closes. Check back in a little while.</string>
     <string name="investments_trade_added">Trade added</string>
+    <string name="investments_trade_updated">Trade updated</string>
     <string name="investments_trade_deleted">Trade deleted</string>
     <string name="investments_delete_trade_title">Delete this %1$s of %2$s?</string>
     <string name="investments_delete_trade_body">Its cash in %1$s goes with it. This can\'t be undone.</string>
@@ -494,5 +496,6 @@
     <string name="error_choose_broker">Choose a broker account</string>
     <string name="error_shares_whole">Shares must be a whole number above zero</string>
     <string name="error_shares_over_held">You only hold %1$s</string>
+    <string name="error_shares_over_history">A later sell would have more shares than were held</string>
     <string name="error_price_number">Price must be a number above zero</string>
 </resources>

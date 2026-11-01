@@ -1,4 +1,4 @@
-import { api, isNetworkError } from '@/lib/api';
+import { api, isNetworkError, type TradeInput } from '@/lib/api';
 import { readPrices, readSecurities, readTrades, replaceSecurities, replaceTrades, savePrices } from '@/lib/cache';
 import { holdings as holdingsOf, positions, type Holding } from '@/lib/investments';
 import { useLedgerStore } from '@/stores/ledger';
@@ -30,7 +30,7 @@ export const useInvestmentStore = defineStore('investments', () => {
 	const holdings = computed<Holding[]>(() =>
 		holdingsOf(trades.value, securitiesBySymbol.value, (id) => {
 			const account = ledger.accounts.find((entry) => entry.id === id);
-			return account ? { name: account.name, bank: account.bank } : undefined;
+			return account ? { name: account.name } : undefined;
 		}),
 	);
 
@@ -139,8 +139,13 @@ export const useInvestmentStore = defineStore('investments', () => {
 		}
 	}
 
-	async function createTrade(input: Parameters<typeof api.createTrade>[0]): Promise<void> {
+	async function createTrade(input: TradeInput): Promise<void> {
 		await api.createTrade(input);
+		await showSaved();
+	}
+
+	async function updateTrade(existing: Trade, input: TradeInput): Promise<void> {
+		await api.updateTrade(existing, input);
 		await showSaved();
 	}
 
@@ -197,6 +202,7 @@ export const useInvestmentStore = defineStore('investments', () => {
 		refreshTrades,
 		loadPrices,
 		createTrade,
+		updateTrade,
 		deleteTrade,
 		canDelete,
 		showSaved,

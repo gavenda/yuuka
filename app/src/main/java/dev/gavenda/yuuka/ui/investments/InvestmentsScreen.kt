@@ -41,8 +41,11 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var trading by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<Trade?>(null) }
     var pendingDelete by remember { mutableStateOf<Trade?>(null) }
     val switchForm = rememberFormSwitch()
+    // A form standing beside the list closes with the trade it was editing, wherever that was deleted.
+    LaunchedEffect(state.trades) { if (editing?.let { open -> state.trades.none { it.id == open.id } } == true) trading = false }
     val held = state.held
     val visibility = koinInject<AmountVisibility>()
 
@@ -54,7 +57,7 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
             ScreenFab(
                 label = stringResource(R.string.investments_new_trade),
                 icon = R.drawable.add_48px,
-                onClick = { switchForm { trading = true } },
+                onClick = { switchForm { editing = null; trading = true } },
             )
         },
     ) { padding ->
@@ -117,12 +120,27 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
                     modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
                 )
             }
-            if (tab == 0) holdingsList(held, state.brokerCash, onOpenHolding) else activityList(state.trades) { pendingDelete = it }
+            if (tab == 0) {
+                holdingsList(held, state.brokerCash, onOpenHolding)
+            } else {
+                activityList(
+                    state.trades,
+                    selectedId = editing?.id?.takeIf { trading },
+                    onEdit = { trade -> switchForm { editing = trade; trading = true } },
+                    onDelete = { pendingDelete = it },
+                )
+            }
         }
     }
 
-    if (trading) {
-        TradeForm(state = state, onSave = viewModel::createTrade, onDismiss = { trading = false })
+    if (trading) key(editing?.id) {
+        val target = editing
+        TradeForm(
+            state = state,
+            onSave = { if (target != null) viewModel.updateTrade(target.id, it) else viewModel.createTrade(it) },
+            onDismiss = { trading = false },
+            editing = target,
+        )
     }
     pendingDelete?.let { DeleteTradeDialog(it, viewModel, onDone = { pendingDelete = null }) }
 }
@@ -137,7 +155,6 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, cash: Map<String
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AccountLogo(first.accountName, first.bank, null, false, size = 24)
                 Text(first.accountName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 MoneyText(rows.sumOf { it.marketValue }, style = MaterialTheme.typography.titleMedium)
             }
@@ -160,7 +177,7 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, cash: Map<String
 }
 
 /** The trades, newest first, under the month they were made in. */
-private fun LazyListScope.activityList(trades: List<Trade>, onDelete: (Trade) -> Unit) {
+private fun LazyListScope.activityList(trades: List<Trade>, selectedId: String?, onEdit: (Trade) -> Unit, onDelete: (Trade) -> Unit) {
     val monthFormat = DateTimeFormatter.ofPattern("MMMM yyyy")
     trades.groupBy { it.occurredOn.take(7) }.forEach { (month, rows) ->
         item(key = "month:$month") {
@@ -171,7 +188,13 @@ private fun LazyListScope.activityList(trades: List<Trade>, onDelete: (Trade) ->
             )
         }
         itemsIndexed(rows, key = { _, trade -> "trade:${trade.id}" }) { index, trade ->
-            TradeRow(trade, positionInGroup(index, rows.lastIndex), onDelete = { onDelete(trade) })
+            TradeRow(
+                trade,
+                positionInGroup(index, rows.lastIndex),
+                selected = trade.id == selectedId,
+                onClick = { onEdit(trade) },
+                onDelete = { onDelete(trade) },
+            )
         }
     }
 }
@@ -284,17 +307,27 @@ internal fun tradeKindLabel(kind: String): String = stringResource(
     },
 )
 
-/** A trade's own row: what and where, how many at what, and what it did to the account's cash. */
+/** A trade's own row: what and where, how many at what, and what it did to the account's cash. Pressing it edits it. */
 @Composable
-internal fun TradeRow(trade: Trade, position: ItemPosition, onDelete: () -> Unit, showSymbol: Boolean = true) {
+internal fun TradeRow(
+    trade: Trade,
+    position: ItemPosition,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    selected: Boolean = false,
+    showSymbol: Boolean = true,
+) {
     val dateFormat = DateTimeFormatter.ofPattern("d MMM")
+    val timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+    // `15 Oct, 9:45 AM`, or the day alone for a trade that names no time.
+    val whenMade = LocalDate.parse(trade.occurredOn.take(10)).format(dateFormat) + (timeOf(trade.occurredOn)?.let { ", " + it.format(timeFormat) } ?: "")
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
             ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, "${trade.symbol} ${tradeKindLabel(trade.kind)}"), onDelete, danger = true)
         },
     ) {
-    GroupedItem(position = position, modifier = Modifier.fillMaxWidth()) {
+    GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick, selected = selected) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -312,7 +345,7 @@ internal fun TradeRow(trade: Trade, position: ItemPosition, onDelete: () -> Unit
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
-                    stringResource(R.string.investments_trade_line, LocalDate.parse(trade.occurredOn).format(dateFormat), trade.accountName.orEmpty()),
+                    stringResource(R.string.investments_trade_line, whenMade, trade.accountName.orEmpty()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

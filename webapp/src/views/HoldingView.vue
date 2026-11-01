@@ -10,7 +10,7 @@ import { formatPrice, holdingOf, percentChange } from '@/lib/investments';
 import { MASK, useAmountVisibility } from '@/lib/privacy';
 import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
-import type { PricePoint } from '@/types';
+import type { PricePoint, Trade } from '@/types';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { t } from '@/i18n';
@@ -26,6 +26,7 @@ const { hidden } = useAmountVisibility();
 
 const symbol = computed(() => String(route.params.symbol ?? ''));
 const trading = ref(false);
+const editing = ref<Trade | null>(null);
 
 type Range = 1 | 3 | 12;
 const range = ref<Range>(3);
@@ -63,7 +64,6 @@ const holding = computed(() => {
 		{
 			name: first.name,
 			accountName: rows.map((row) => row.accountName).join(', '),
-			bank: null,
 			priceE4: first.priceE4,
 			changeBp: first.changeBp,
 			asOf: first.asOf,
@@ -114,9 +114,25 @@ const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleStri
 
 function openTrade(): void {
 	whenDiscardable(() => {
+		editing.value = null;
 		trading.value = true;
 	});
 }
+
+function openEdit(trade: Trade): void {
+	whenDiscardable(() => {
+		editing.value = trade;
+		trading.value = true;
+	});
+}
+
+// A form standing beside the list closes with the trade it was editing, wherever that was deleted.
+watch(
+	() => store.trades,
+	(trades) => {
+		if (trading.value && editing.value && !trades.some((trade) => trade.id === editing.value?.id)) trading.value = false;
+	},
+);
 
 const accountFor = computed(() => store.held.find((entry) => entry.symbol === symbol.value)?.position.accountId ?? null);
 </script>
@@ -233,8 +249,8 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 		<div class="group-header">
 			<h2>{{ t('investments.trades') }}</h2>
 		</div>
-		<TradeList :trades="trades" />
+		<TradeList :trades="trades" :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 
-		<TradeForm :open="trading" :initial-symbol="holding.symbol" :initial-account="accountFor" @close="trading = false" />
+		<TradeForm :open="trading" :editing="editing" :initial-symbol="holding.symbol" :initial-account="accountFor" @close="trading = false" />
 	</div>
 </template>

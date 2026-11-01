@@ -2,6 +2,7 @@ package dev.gavenda.yuuka.ui.common
 
 import androidx.annotation.DrawableRes
 import dev.gavenda.yuuka.R
+import dev.gavenda.yuuka.domain.MIN_COMMISSION
 
 /**
  * A bank an account can be filed under without a logo URL of its own. Only [key] is stored on the account;
@@ -18,6 +19,8 @@ data class Bank(
     @param:DrawableRes val logoDark: Int? = null,
     /** Whether [logo] inverts in dark mode, for a dark mark with no dark-mode logo of its own. */
     val invertDark: Boolean = false,
+    /** The least commission the broker charges on a PSE trade, in centavos; most charge ₱20, some waive it. */
+    val minCommission: Long = MIN_COMMISSION,
 ) {
     @DrawableRes
     fun logoFor(dark: Boolean): Int = if (dark) logoDark ?: logo else logo
@@ -31,7 +34,7 @@ data class Bank(
 object Banks {
     val presets: List<Bank> = listOf(
         Bank("bpi", "BPI", R.drawable.bank_bpi),
-        Bank("dragonfi", "DragonFi", R.drawable.bank_dragonfi),
+        Bank("dragonfi", "DragonFi", R.drawable.bank_dragonfi, minCommission = 0),
         Bank("gcash", "GCash", R.drawable.bank_gcash),
         Bank("gotyme", "GoTyme", R.drawable.bank_gotyme_light, logoDark = R.drawable.bank_gotyme_dark),
         Bank("maya", "Maya", R.drawable.bank_maya_light, logoDark = R.drawable.bank_maya_dark),
@@ -40,4 +43,7 @@ object Banks {
     )
 
     fun byKey(key: String?): Bank? = key?.let { wanted -> presets.firstOrNull { it.key == wanted } }
+
+    /** The least commission an account's broker charges: its preset's, or the usual ₱20 for a custom one. */
+    fun minCommission(key: String?): Long = byKey(key)?.minCommission ?: MIN_COMMISSION
 }

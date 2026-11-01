@@ -5,6 +5,7 @@ import dev.gavenda.yuuka.data.local.Provisional
 import dev.gavenda.yuuka.data.local.dao.AccountDao
 import dev.gavenda.yuuka.data.local.dao.InvestmentDao
 import dev.gavenda.yuuka.data.local.dao.TransactionDao
+import dev.gavenda.yuuka.data.local.entity.AccountEntity
 import dev.gavenda.yuuka.data.local.entity.TradeEntity
 import dev.gavenda.yuuka.data.local.entity.toDomain
 import dev.gavenda.yuuka.data.local.entity.toEntity
@@ -63,18 +64,7 @@ class InvestmentRepository(
         val account = accountDao.byId(accountId)
         val now = Provisional.touchedAt()
 
-        // The cash leg reads as the server writes it: the stock as the payee, what was done in the notes.
-        val leg = Provisional.transaction(
-            id = transactionId,
-            accountId = accountId,
-            account = account,
-            category = null,
-            amount = amount,
-            occurredOn = occurredOn,
-            payee = symbol,
-            notes = "${kind.replaceFirstChar { it.uppercase() }} ${"%,d".format(shares)} $symbol",
-        )
-        transactionDao.saveLocal(listOf(leg), emptyList())
+        transactionDao.saveLocal(listOf(leg(transactionId, accountId, account, kind, symbol, occurredOn, shares, amount)), emptyList())
         dao.upsertTrade(
             TradeEntity(
                 id = id,
@@ -107,6 +97,65 @@ class InvestmentRepository(
         }
         outbox.enqueue("POST", "/api/trades", body)
     }
+
+    /**
+     * A trade put right, whole, with its cash leg worked out again — the same leg, so it moves rather than being
+     * replaced, and the balances it touches move with it.
+     */
+    suspend fun updateTrade(id: String, accountId: String, symbol: String, kind: String, occurredOn: String, shares: Long, price: Long, fees: Long) {
+        val existing = dao.trade(id) ?: return
+        val amount = tradeCash(kind, shares, price, fees)
+        val account = accountDao.byId(accountId)
+
+        transactionDao.saveLocal(listOf(leg(existing.transactionId, accountId, account, kind, symbol, occurredOn, shares, amount)), emptyList())
+        dao.upsertTrade(
+            existing.copy(
+                accountId = accountId,
+                accountName = account?.name,
+                symbol = symbol,
+                name = dao.security(symbol)?.name,
+                kind = kind,
+                occurredOn = occurredOn,
+                shares = shares,
+                price = price,
+                fees = fees,
+                amount = amount,
+                updatedAt = Provisional.touchedAt(),
+            ),
+        )
+
+        val body = buildJsonObject {
+            put("accountId", accountId)
+            put("symbol", symbol)
+            put("kind", kind)
+            put("occurredOn", occurredOn)
+            put("shares", shares)
+            put("price", price)
+            put("fees", fees)
+        }
+        outbox.enqueue("PATCH", "/api/trades/$id", body, entity = "trade", rowId = id)
+    }
+
+    /** A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes. */
+    private fun leg(
+        id: String,
+        accountId: String,
+        account: AccountEntity?,
+        kind: String,
+        symbol: String,
+        occurredOn: String,
+        shares: Long,
+        amount: Long,
+    ) = Provisional.transaction(
+        id = id,
+        accountId = accountId,
+        account = account,
+        category = null,
+        amount = amount,
+        occurredOn = occurredOn,
+        payee = symbol,
+        notes = "${kind.replaceFirstChar { it.uppercase() }} ${"%,d".format(shares)} $symbol",
+    )
 
     /** The trade goes with its cash leg, here as on the server. */
     suspend fun deleteTrade(id: String) {

@@ -44,11 +44,22 @@ class InvestmentsTest {
     }
 
     @Test
+    fun `works a day's trades through in time order, an untimed one first`() {
+        assertNull(positions(listOf(trade(TradeKinds.BUY, "2026-01-01T10:00", 100, 100_000), trade(TradeKinds.SELL, "2026-01-01T09:30", 10, 100_000))))
+        assertEquals(
+            90L,
+            positions(listOf(trade(TradeKinds.SELL, "2026-01-01T09:30", 10, 100_000), trade(TradeKinds.BUY, "2026-01-01", 100, 100_000)))?.single()?.shares,
+        )
+    }
+
+    @Test
     fun `charges the PSE schedule, with the ₱20 minimum commission`() {
         // ₱11,800.00 bought: 0.25% is ₱29.50, VAT ₱3.54, PSE ₱0.59, SCCP ₱1.18.
         assertEquals(PseFees(2_950, 354, 59, 118, 0), pseFees(1_180_000, sell = false))
         // ₱1,000.00 sold: the commission floors at ₱20.00, and the 0.1% sales tax applies.
         assertEquals(PseFees(2_000, 240, 5, 10, 100), pseFees(100_000, sell = true))
+        // A broker that waives the minimum (DragonFi) charges the 0.25% alone: ₱2.50 on ₱1,000.00.
+        assertEquals(PseFees(250, 30, 5, 10, 100), pseFees(100_000, sell = true, minCommission = 0))
     }
 
     @Test

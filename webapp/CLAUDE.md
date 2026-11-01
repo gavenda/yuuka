@@ -350,7 +350,11 @@ PHISIX amounts are JSON numbers with at most four decimals, so `toE4` rounding t
 `trades` (`routes/investments.ts`) belong to a person like any ledger row. `POST /api/trades` takes the
 shares, the price and the fees and works out the cash leg itself (`tradeCash`), writing the leg and the trade
 in one batch with the account checked in the statement; it takes a client-chosen `id` and `transactionId`,
-and answers a replay with the trade already there. There is no edit. Summary, trend and payee queries leave a
+and answers a replay with the trade already there. `PATCH /api/trades/:id` takes the whole trade again and
+rewrites the trade and its leg in one batch, both checked against the account in the statement; it is the
+`trade` sync entity, so a stale edit is dropped. Every write re-runs `positions()` over the history with the
+change in it, which is what refuses an edit that strands a later sell. A trade's time is `trades.occurred_time`,
+split and joined like a transaction's. Summary, trend and payee queries leave a
 buy's or sell's leg out with `notTradeCash(...)`, and `PATCH`/`DELETE /transactions/:id` go through
 `guardTradeLeg`. `positions()` is the average-cost walk both the sell check and `holdingsValue` use, and
 `domain/Investments.kt` on Android is its twin. The trend counts holdings at each month's end at the close on

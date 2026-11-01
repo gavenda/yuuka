@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AccountLogo from '@/components/AccountLogo.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
@@ -14,7 +13,7 @@ import { displayMoney, MASK, useAmountVisibility } from '@/lib/privacy';
 import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Trade } from '@/types';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { t } from '@/i18n';
 
@@ -34,6 +33,7 @@ const TABS = [
 	{ value: 'activity' as const, label: t('investments.tabActivity') },
 ];
 const trading = ref(false);
+const editing = ref<Trade | null>(null);
 
 onMounted(async () => {
 	await Promise.all([ledger.load(), store.load()]);
@@ -59,7 +59,6 @@ const groups = computed(() => {
 	return [...byAccount.entries()].map(([accountId, rows]) => ({
 		accountId,
 		name: rows[0]!.accountName,
-		bank: rows[0]!.bank,
 		total: rows.reduce((sum, holding) => sum + holding.marketValue, 0),
 		cash: store.brokerCash.get(accountId) ?? 0,
 		rows,
@@ -106,9 +105,25 @@ const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleStri
 
 function openTrade(): void {
 	whenDiscardable(() => {
+		editing.value = null;
 		trading.value = true;
 	});
 }
+
+function openEdit(trade: Trade): void {
+	whenDiscardable(() => {
+		editing.value = trade;
+		trading.value = true;
+	});
+}
+
+// A form standing beside the list closes with the trade it was editing, wherever that was deleted.
+watch(
+	() => store.trades,
+	(trades) => {
+		if (trading.value && editing.value && !trades.some((trade) => trade.id === editing.value?.id)) trading.value = false;
+	},
+);
 </script>
 
 <template>
@@ -176,10 +191,7 @@ function openTrade(): void {
 			<template v-if="tab === 'holdings'">
 				<section v-for="group in groups" :key="group.accountId">
 					<div class="group-header">
-						<span class="flex items-center gap-3">
-							<AccountLogo :name="group.name" :bank="group.bank" :size="24" />
-							<h2>{{ group.name }}</h2>
-						</span>
+						<h2>{{ group.name }}</h2>
 						<MoneyText :amount="group.total" />
 					</div>
 					<ul class="group-rows">
@@ -228,12 +240,12 @@ function openTrade(): void {
 					<div class="group-header">
 						<h2>{{ month.label }}</h2>
 					</div>
-					<TradeList :trades="month.rows" show-symbol />
+					<TradeList :trades="month.rows" show-symbol :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 				</section>
 			</template>
 		</template>
 
-		<TradeForm :open="trading" @close="trading = false" />
+		<TradeForm :open="trading" :editing="editing" @close="trading = false" />
 		<FabButton :label="t('investments.newTrade')" @click="openTrade" />
 	</div>
 </template>
