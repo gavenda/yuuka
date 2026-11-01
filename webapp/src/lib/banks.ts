@@ -19,12 +19,14 @@ export interface Bank {
 	invertDark?: boolean;
 	/** The least commission the broker charges on a PSE trade, in centavos, where it waives the usual ₱20. */
 	minCommission?: number;
+	/** Whether the broker rounds its fees up to the next centavo rather than to the nearest (see `pseFees`). */
+	roundsFeesUp?: boolean;
 }
 
 /** In the order the form lists them; Custom always follows. */
 export const BANKS: readonly Bank[] = [
 	{ key: 'bpi', name: 'BPI', logo: '/banks/bpi.svg' },
-	{ key: 'dragonfi', name: 'DragonFi', logo: '/banks/dragonfi.svg', minCommission: 0 },
+	{ key: 'dragonfi', name: 'DragonFi', logo: '/banks/dragonfi.svg', minCommission: 0, roundsFeesUp: true },
 	{ key: 'gcash', name: 'GCash', logo: '/banks/gcash.svg' },
 	{ key: 'gotyme', name: 'GoTyme', logo: '/banks/gotyme_light.svg', logoDark: '/banks/gotyme_dark.svg' },
 	{ key: 'maya', name: 'Maya', logo: '/banks/maya_light.svg', logoDark: '/banks/maya_dark.svg' },
@@ -39,4 +41,9 @@ export function bankByKey(key: string | null | undefined): Bank | null {
 /** The least commission an account's broker charges: its preset's, or the usual ₱20 for a custom one. */
 export function minCommission(key: string | null | undefined): number {
 	return bankByKey(key)?.minCommission ?? MIN_COMMISSION;
+}
+
+/** Whether an account's broker rounds its fees up: only a preset can say so. */
+export function roundsFeesUp(key: string | null | undefined): boolean {
+	return bankByKey(key)?.roundsFeesUp ?? false;
 }

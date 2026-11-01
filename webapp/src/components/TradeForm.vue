@@ -8,7 +8,7 @@ import SecurityInput from '@/components/SecurityInput.vue';
 import SelectField from '@/components/SelectField.vue';
 import TextField from '@/components/TextField.vue';
 import { ApiError } from '@/lib/api';
-import { minCommission } from '@/lib/banks';
+import { minCommission, roundsFeesUp } from '@/lib/banks';
 import { currentTime, today } from '@/lib/dates';
 import { boardLot, dividendTax, parsePrice, parseShares, positions, priceInput, pseFees, valueOf } from '@/lib/investments';
 import { currencySymbol } from '@/lib/money';
@@ -66,8 +66,10 @@ const occurredOn = computed(() => (form.occurredTime ? `${form.occurredOn}T${for
 const shares = computed(() => parseShares(form.shares));
 const price = computed(() => parsePrice(form.price));
 const gross = computed(() => (shares.value !== null && price.value !== null ? valueOf(shares.value, price.value) : null));
-const commissionFloor = computed(() => minCommission(store.accounts.find((account) => account.id === form.accountId)?.bank));
-const fees = computed(() => (gross.value === null ? null : pseFees(gross.value, form.kind === 'sell', commissionFloor.value)));
+const bank = computed(() => store.accounts.find((account) => account.id === form.accountId)?.bank);
+const fees = computed(() =>
+	gross.value === null ? null : pseFees(gross.value, form.kind === 'sell', minCommission(bank.value), roundsFeesUp(bank.value)),
+);
 const tax = computed(() => (gross.value === null ? 0 : dividendTax(gross.value)));
 
 const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));

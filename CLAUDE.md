@@ -210,6 +210,8 @@ back-dated sell, or deleting a buy a later sell needs). Net worth adds the holdi
 The broker's fees are worked out by the form from the PSE schedule (`pseFees`, `domain/Investments.kt`): 0.25%
 commission with a ₱20 minimum, unless the account's preset bank waives the minimum (`minCommission` on the
 preset, DragonFi's is 0 — a broker is a preset, so this is code, not a column); a custom account keeps the ₱20.
+Fees round to the nearest centavo unless the preset `roundsFeesUp`: DragonFi charges the commission with its
+VAT, and the PSE and SCCP fees together, each rounded up to the next centavo.
 Prices are market data, shared by everyone: the server keeps them from PHISIX (see
 [webapp/CLAUDE.md](webapp/CLAUDE.md)), and the client only reads them. On Android this is
 `InvestmentRepository` and `ui/investments/`; on the web, `stores/investments.ts` and `lib/investments.ts`.

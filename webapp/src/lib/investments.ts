@@ -72,9 +72,15 @@ export const MIN_COMMISSION = 2_000;
 /**
  * Commission 0.25% (at least `minCommission`, ₱20 unless the broker waives it), 12% VAT on it, the PSE's 0.005%,
  * SCCP's 0.01%, and on a sell the 0.1% stock transaction tax.
+ *
+ * Each fee is rounded to the nearest centavo, unless the broker `roundsUp` as DragonFi does: it charges the
+ * commission with its VAT, and the PSE and SCCP fees together, each rounded up to the next centavo. The lines
+ * still add up to what is charged — the commission and the PSE fee are shown to the nearest centavo, and the VAT
+ * and the SCCP fee take what is left of their group.
  */
-export function pseFees(gross: number, sell: boolean, minCommission: number = MIN_COMMISSION): PseFees {
+export function pseFees(gross: number, sell: boolean, minCommission: number = MIN_COMMISSION, roundsUp = false): PseFees {
 	if (gross <= 0) return { commission: 0, vat: 0, pseFee: 0, sccp: 0, salesTax: 0, total: 0 };
+	if (roundsUp) return pseFeesRoundedUp(gross, sell, minCommission);
 	const commission = Math.max(share(gross, 25, 10_000), minCommission);
 	const fees = {
 		commission,
@@ -82,6 +88,26 @@ export function pseFees(gross: number, sell: boolean, minCommission: number = MI
 		pseFee: share(gross, 5, 100_000),
 		sccp: share(gross, 1, 10_000),
 		salesTax: sell ? share(gross, 1, 1_000) : 0,
+	};
+	return { ...fees, total: fees.commission + fees.vat + fees.pseFee + fees.sccp + fees.salesTax };
+}
+
+/** A hundred-thousandth of a centavo: fine enough that every fee on a whole-centavo gross is exact in it. */
+const FINE = 100_000;
+
+function pseFeesRoundedUp(gross: number, sell: boolean, minCommission: number): PseFees {
+	const commission = Math.max(gross * 250, minCommission * FINE);
+	const vat = (commission * 12) / 100;
+	const pseFee = gross * 5;
+	const sccp = gross * 10;
+	const nearest = (fine: number) => Math.floor((fine + FINE / 2) / FINE);
+	const up = (fine: number) => Math.ceil(fine / FINE);
+	const fees = {
+		commission: nearest(commission),
+		vat: up(commission + vat) - nearest(commission),
+		pseFee: nearest(pseFee),
+		sccp: up(pseFee + sccp) - nearest(pseFee),
+		salesTax: sell ? up(gross * 100) : 0,
 	};
 	return { ...fees, total: fees.commission + fees.vat + fees.pseFee + fees.sccp + fees.salesTax };
 }

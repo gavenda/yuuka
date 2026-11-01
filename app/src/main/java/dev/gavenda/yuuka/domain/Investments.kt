@@ -70,9 +70,15 @@ const val MIN_COMMISSION = 2_000L
 /**
  * Commission 0.25% (at least [minCommission], ₱20 unless the broker waives it), 12% VAT on it, the PSE's 0.005%,
  * SCCP's 0.01%, and on a sell the 0.1% stock transaction tax.
+ *
+ * Each fee is rounded to the nearest centavo, unless the broker [roundsUp] as DragonFi does: it charges the
+ * commission with its VAT, and the PSE and SCCP fees together, each rounded up to the next centavo. The lines
+ * still add up to what is charged — the commission and the PSE fee are shown to the nearest centavo, and the VAT
+ * and the SCCP fee take what is left of their group.
  */
-fun pseFees(gross: Long, sell: Boolean, minCommission: Long = MIN_COMMISSION): PseFees {
+fun pseFees(gross: Long, sell: Boolean, minCommission: Long = MIN_COMMISSION, roundsUp: Boolean = false): PseFees {
     if (gross <= 0) return PseFees(0, 0, 0, 0, 0)
+    if (roundsUp) return pseFeesRoundedUp(gross, sell, minCommission)
     val commission = max(share(gross, 25, 10_000), minCommission)
     return PseFees(
         commission = commission,
@@ -80,6 +86,25 @@ fun pseFees(gross: Long, sell: Boolean, minCommission: Long = MIN_COMMISSION): P
         pseFee = share(gross, 5, 100_000),
         sccp = share(gross, 1, 10_000),
         salesTax = if (sell) share(gross, 1, 1_000) else 0,
+    )
+}
+
+/** A hundred-thousandth of a centavo: fine enough that every fee on a whole-centavo gross is exact in it. */
+private const val FINE = 100_000L
+
+private fun pseFeesRoundedUp(gross: Long, sell: Boolean, minCommission: Long): PseFees {
+    val commission = max(gross * 250, minCommission * FINE)
+    val vat = commission * 12 / 100
+    val pseFee = gross * 5
+    val sccp = gross * 10
+    val nearest = { fine: Long -> (fine + FINE / 2) / FINE }
+    val up = { fine: Long -> (fine + FINE - 1) / FINE }
+    return PseFees(
+        commission = nearest(commission),
+        vat = up(commission + vat) - nearest(commission),
+        pseFee = nearest(pseFee),
+        sccp = up(pseFee + sccp) - nearest(pseFee),
+        salesTax = if (sell) up(gross * 100) else 0,
     )
 }
 

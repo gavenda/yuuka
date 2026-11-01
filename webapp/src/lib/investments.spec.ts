@@ -59,6 +59,11 @@ describe('investments', () => {
 		expect(pseFees(100_000, true, 0)).toEqual({ commission: 250, vat: 30, pseFee: 5, sccp: 10, salesTax: 100, total: 395 });
 	});
 
+	it('rounds fees up by group for a broker that does, as a DragonFi statement reads', () => {
+		// 400 RCR at ₱6.03: commission with VAT ₱6.7536 is charged ₱6.76, PSE and SCCP ₱0.3618 is charged ₱0.37.
+		expect(pseFees(241_200, false, 0, true)).toEqual({ commission: 603, vat: 73, pseFee: 12, sccp: 25, salesTax: 0, total: 713 });
+	});
+
 	it('parses a price to four decimals, split on the point', () => {
 		expect(parsePrice('118')).toBe(1_180_000);
 		expect(parsePrice('0.57')).toBe(5_700);

@@ -21,6 +21,8 @@ data class Bank(
     val invertDark: Boolean = false,
     /** The least commission the broker charges on a PSE trade, in centavos; most charge ₱20, some waive it. */
     val minCommission: Long = MIN_COMMISSION,
+    /** Whether the broker rounds its fees up to the next centavo rather than to the nearest (see `pseFees`). */
+    val roundsFeesUp: Boolean = false,
 ) {
     @DrawableRes
     fun logoFor(dark: Boolean): Int = if (dark) logoDark ?: logo else logo
@@ -34,7 +36,7 @@ data class Bank(
 object Banks {
     val presets: List<Bank> = listOf(
         Bank("bpi", "BPI", R.drawable.bank_bpi),
-        Bank("dragonfi", "DragonFi", R.drawable.bank_dragonfi, minCommission = 0),
+        Bank("dragonfi", "DragonFi", R.drawable.bank_dragonfi, minCommission = 0, roundsFeesUp = true),
         Bank("gcash", "GCash", R.drawable.bank_gcash),
         Bank("gotyme", "GoTyme", R.drawable.bank_gotyme_light, logoDark = R.drawable.bank_gotyme_dark),
         Bank("maya", "Maya", R.drawable.bank_maya_light, logoDark = R.drawable.bank_maya_dark),
@@ -46,4 +48,7 @@ object Banks {
 
     /** The least commission an account's broker charges: its preset's, or the usual ₱20 for a custom one. */
     fun minCommission(key: String?): Long = byKey(key)?.minCommission ?: MIN_COMMISSION
+
+    /** Whether an account's broker rounds its fees up: only a preset can say so. */
+    fun roundsFeesUp(key: String?): Boolean = byKey(key)?.roundsFeesUp ?: false
 }

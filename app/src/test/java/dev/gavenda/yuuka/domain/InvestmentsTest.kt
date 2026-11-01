@@ -63,6 +63,15 @@ class InvestmentsTest {
     }
 
     @Test
+    fun `rounds fees up by group for a broker that does, as a DragonFi statement reads`() {
+        // 400 RCR at ₱6.03: commission with VAT ₱6.7536 is charged ₱6.76, PSE and SCCP ₱0.3618 is charged ₱0.37.
+        val fees = pseFees(241_200, sell = false, minCommission = 0, roundsUp = true)
+        assertEquals(PseFees(603, 73, 12, 25, 0), fees)
+        assertEquals(676L, fees.commission + fees.vat)
+        assertEquals(37L, fees.pseFee + fees.sccp)
+    }
+
+    @Test
     fun `parses a price to four decimals, split on the point`() {
         assertEquals(1_180_000L, parsePrice("118"))
         assertEquals(5_700L, parsePrice("0.57"))

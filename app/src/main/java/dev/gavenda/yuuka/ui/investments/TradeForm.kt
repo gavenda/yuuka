@@ -118,8 +118,10 @@ fun TradeForm(
     val priceField = form.field("price", if (priceValue == null) stringResource(R.string.error_price_number) else null)
 
     val gross = if (sharesValue != null && priceValue != null) valueOf(sharesValue, priceValue) else null
-    val minCommission = Banks.minCommission(state.accounts.firstOrNull { it.id == account }?.bank)
-    val fees = gross?.let { if (kind == TradeKinds.DIVIDEND) dividendTax(it) else pseFees(it, kind == TradeKinds.SELL, minCommission).total }
+    val bank = state.accounts.firstOrNull { it.id == account }?.bank
+    val minCommission = Banks.minCommission(bank)
+    val roundsUp = Banks.roundsFeesUp(bank)
+    val fees = gross?.let { if (kind == TradeKinds.DIVIDEND) dividendTax(it) else pseFees(it, kind == TradeKinds.SELL, minCommission, roundsUp).total }
 
     FullScreenDialog(
         title = stringResource(if (editing != null) R.string.investments_edit_trade else R.string.investments_new_trade),
@@ -206,7 +208,7 @@ fun TradeForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
 
-        if (gross != null && sharesValue != null) Breakdown(kind, gross, held, sharesValue, minCommission)
+        if (gross != null && sharesValue != null) Breakdown(kind, gross, held, sharesValue, minCommission, roundsUp)
     }
 
     if (pickingDate) {
@@ -267,7 +269,7 @@ private fun SecurityField(securities: List<Security>, selected: Security?, field
 
 /** What the trade comes to, fee by fee, ending on the figure that moves the account's cash. */
 @Composable
-private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long, minCommission: Long) {
+private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long, minCommission: Long, roundsUp: Boolean) {
     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FigureRow(stringResource(R.string.investments_gross)) { MoneyText(gross, style = MaterialTheme.typography.bodyLarge) }
@@ -278,7 +280,7 @@ private fun Breakdown(kind: String, gross: Long, held: Holding?, shares: Long, m
                 Total(stringResource(R.string.investments_net_dividend), gross - tax)
             } else {
                 val sell = kind == TradeKinds.SELL
-                val fees = pseFees(gross, sell, minCommission)
+                val fees = pseFees(gross, sell, minCommission, roundsUp)
                 FigureRow(stringResource(R.string.investments_commission)) { MoneyText(fees.commission, style = MaterialTheme.typography.bodyLarge) }
                 FigureRow(stringResource(R.string.investments_vat)) { MoneyText(fees.vat, style = MaterialTheme.typography.bodyLarge) }
                 FigureRow(stringResource(R.string.investments_pse_fee)) { MoneyText(fees.pseFee, style = MaterialTheme.typography.bodyLarge) }
