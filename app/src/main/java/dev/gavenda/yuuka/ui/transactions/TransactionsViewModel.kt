@@ -21,7 +21,6 @@ import kotlin.time.Duration.Companion.milliseconds
 private const val PAGE_SIZE = 50
 
 data class TransactionsUiState(
-    val month: String = currentMonth(),
     val currency: String = DEFAULT_CURRENCY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
@@ -82,8 +81,8 @@ class TransactionsViewModel(
     private val limit = MutableStateFlow(PAGE_SIZE)
     private val searchInput = MutableStateFlow("")
 
+    /** Every transaction, newest first, however far back they go: the list is not scoped to a month. */
     private fun currentFilters() = TransactionFilters(
-        month = _uiState.value.month,
         accountIds = _uiState.value.accountFilter,
         categoryIds = _uiState.value.categoryFilter,
         tagIds = _uiState.value.tagFilter,
@@ -133,11 +132,6 @@ class TransactionsViewModel(
         }
     }
 
-    fun setMonth(next: String) {
-        _uiState.update { it.copy(month = next) }
-        reload()
-    }
-
     fun setAccountFilter(accountIds: Set<String>) {
         _uiState.update { it.copy(accountFilter = accountIds) }
         reload()
@@ -161,7 +155,7 @@ class TransactionsViewModel(
     private fun reload() {
         val f = currentFilters()
         filterKey.value = f
-        limit.value = f.rowLimit(PAGE_SIZE)
+        limit.value = PAGE_SIZE
         // A page of the filters this replaces must not land on the list they make.
         nextPageJob?.cancel()
         _uiState.update { it.copy(loadedCount = PAGE_SIZE, moreError = null) }
@@ -183,7 +177,7 @@ class TransactionsViewModel(
             try {
                 val (total, count) = transactionRepository.resync(f, _uiState.value.loadedCount)
                 syncRepository.markTransactionsFresh()
-                limit.value = f.rowLimit(count)
+                limit.value = count
                 // The API has answered, so a page that could not be had before is worth asking for again.
                 _uiState.update { it.copy(total = total, loadedCount = count, moreError = null) }
             } catch (_: ApiError) {
@@ -198,23 +192,10 @@ class TransactionsViewModel(
             _uiState.update { it.copy(status = ScreenStatus.Loading) }
             try {
                 val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = 0)
-                _uiState.update { it.copy(total = page.total) }
-                if (f.narrowsCache) loadRest(f, page.total)
-                _uiState.update { it.copy(status = ScreenStatus.Idle) }
+                _uiState.update { it.copy(total = page.total, status = ScreenStatus.Idle) }
             } catch (e: ApiError) {
                 _uiState.update { it.copy(status = ScreenStatus.Error(e.message ?: "Could not load transactions.")) }
             }
-        }
-    }
-
-    /** A filter that narrows the cache only sees what is cached, so it needs the rest of the month's pages, not just the first. */
-    private suspend fun loadRest(f: TransactionFilters, total: Int) {
-        var loaded = _uiState.value.loadedCount
-        while (loaded < total) {
-            val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = loaded)
-            if (page.transactions.isEmpty()) break
-            loaded += page.transactions.size
-            _uiState.update { it.copy(total = page.total, loadedCount = loaded) }
         }
     }
 
@@ -235,7 +216,7 @@ class TransactionsViewModel(
             try {
                 val page = transactionRepository.refreshPage(f, limit = PAGE_SIZE, offset = offset)
                 val nextLoaded = offset + page.transactions.size
-                limit.value = f.rowLimit(nextLoaded)
+                limit.value = nextLoaded
                 _uiState.update { it.copy(total = page.total, loadedCount = nextLoaded) }
             } catch (e: ApiError) {
                 _uiState.update { it.copy(moreError = e.message ?: "Could not load more.") }

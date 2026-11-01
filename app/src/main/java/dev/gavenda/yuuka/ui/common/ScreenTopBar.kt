@@ -174,8 +174,8 @@ fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: 
 }
 
 /**
- * [MonthTopBar] with the screen's search in it (Transactions): Material's app bar with search — the drawer
- * button, the search bar, then the hide-amounts switch and the month button. Material's bar is not typed in
+ * [MonthTopBar] with the screen's search in it: Material's app bar with search — the drawer button, the
+ * search bar, then the hide-amounts switch and, for a month-scoped screen, the month button. Material's bar is not typed in
  * where it stands: pressing it opens the full-screen search view, where [search] is typed and [results] is
  * what shows beneath the field as it is. Back, or the keyboard's search key, returns to the screen with the
  * bar still holding what was typed. [scrollBehavior] — an `enterAlways` one — takes the bar off the screen as
@@ -183,7 +183,8 @@ fun MonthTopBar(month: String, onMonthChange: (String) -> Unit, scrollBehavior: 
  *
  * A rail window has no bar, so there the search bar is all that is left of this one: Material's search bar on
  * its own at the top of the page, opening into the same full-screen view, with the month handed to the rail.
- * A screen that is not month-scoped (Accounts) leaves out [month] and gets the bar without the month button.
+ * A screen that is not month-scoped (Transactions, Accounts) leaves out [month] and gets the bar without the
+ * month button.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

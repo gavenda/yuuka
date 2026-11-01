@@ -1,6 +1,7 @@
 /** The Transactions screen and its form. */
 export default {
 	newTransaction: 'New transaction',
+	backToTop: 'Back to top',
 	editTransaction: 'Edit transaction',
 	search: 'Search',
 	searchPlaceholder: 'Search transactions',

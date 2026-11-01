@@ -82,25 +82,30 @@ class TransactionRepository(
 
     /**
      * Fetches a page from the network and folds it into the local cache; returns the API's own total for pagination.
-     * Only the month and search are asked of the API: the account, category and tag filters are applied to the cache by [observePage].
      */
     suspend fun refreshPage(filters: TransactionFilters, limit: Int, offset: Int): TransactionPage {
         val page = apiCall {
-            api.listTransactions(
-                month = filters.month,
-                search = filters.search?.takeIf { it.isNotBlank() },
-                limit = limit,
-                offset = offset,
-            )
+            fetchPage(filters, limit = limit, offset = offset)
         }
         store(page.transactions)
         return page
     }
 
+    /** The API is asked for exactly what the list shows, so a page of a narrowed list is a page of what matches. */
+    private suspend fun fetchPage(filters: TransactionFilters, limit: Int, offset: Int): TransactionPage =
+        api.listTransactions(
+            month = filters.month,
+            accountId = filters.accountIds.joinToString(",").ifEmpty { null },
+            categoryId = filters.categoryIds.joinToString(",").ifEmpty { null },
+            tagId = filters.tagIds.joinToString(",").ifEmpty { null },
+            search = filters.search?.takeIf { it.isNotBlank() },
+            limit = limit,
+            offset = offset,
+        )
+
     /**
-     * The refetch after a sync: pulls back as much as was on screen (everything, when a filter narrows the cache),
-     * and only then replaces the cache with it in one step. Clearing first and refilling as the pages arrive is
-     * what made the list empty out and flicker; here the last-seen rows stay up until the new ones are ready, and
+     * The refetch after a sync: pulls back as much as was on screen, and only then replaces the cache with it in
+     * one step. Clearing first and refilling as the pages arrive is what made the list empty out and flicker; here the last-seen rows stay up until the new ones are ready, and
      * a failed fetch leaves them alone. Returns the API's total and how many rows it now holds.
      */
     suspend fun resync(filters: TransactionFilters, loaded: Int): Pair<Int, Int> {
@@ -108,16 +113,11 @@ class TransactionRepository(
         var total: Int
         do {
             val page = apiCall {
-                api.listTransactions(
-                    month = filters.month,
-                    search = filters.search?.takeIf { it.isNotBlank() },
-                    limit = RESYNC_PAGE,
-                    offset = rows.size,
-                )
+                fetchPage(filters, limit = RESYNC_PAGE, offset = rows.size)
             }
             rows += page.transactions
             total = page.total
-        } while (page.transactions.isNotEmpty() && rows.size < total && (filters.narrowsCache || rows.size < loaded))
+        } while (page.transactions.isNotEmpty() && rows.size < total && rows.size < loaded)
         dao.replaceAll(rows.map { it.toEntity() }, rows.flatMap { it.tagLinks() })
         return total to rows.size
     }

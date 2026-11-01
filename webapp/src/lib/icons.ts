@@ -13,6 +13,7 @@ export type IconPath = string | { d: string; viewBox: string };
 const symbol = (d: string): IconPath => ({ d, viewBox: '0 -960 960 960' });
 
 export const ARROW_BACK = symbol('m313-440 224 224-57 56-320-320 320-320 57 56-224 224h487v80H313Z');
+export const ARROW_UPWARD = symbol('M450-160v-526L202-438l-42-42 320-320 320 320-42 42-248-248v526h-60Z');
 export const ARROW_RIGHT_ALT = symbol('m560-240-56-58 142-142H160v-80h486L504-662l56-58 240 240-240 240Z');
 export const KEYBOARD_ARROW_LEFT = symbol('M560-240 320-480l240-240 56 56-184 184 184 184-56 56Z');
 export const KEYBOARD_ARROW_RIGHT = symbol('M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z');

@@ -371,6 +371,7 @@
 
     <!-- Transactions screen -->
     <string name="new_transaction">New transaction</string>
+    <string name="back_to_top">Back to top</string>
     <string name="edit_transaction">Edit transaction</string>
     <string name="search_accounts">Search accounts</string>
     <string name="search_payee_notes">Search transactions</string>

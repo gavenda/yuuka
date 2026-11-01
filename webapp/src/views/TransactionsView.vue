@@ -6,7 +6,6 @@ import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FilterChipRow from '@/components/FilterChipRow.vue';
 import MoneyText from '@/components/MoneyText.vue';
-import MonthAction from '@/components/MonthAction.vue';
 import SearchField from '@/components/SearchField.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TopBar from '@/components/TopBar.vue';
@@ -20,12 +19,15 @@ import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
 import { showSaved } from '@/lib/sync';
 import { useHarmonised } from '@/lib/harmonise';
+import { useBackToTop } from '@/lib/backToTop';
 import { useInView } from '@/lib/inView';
 import {
 	ACCOUNT_BALANCE_WALLET,
 	ACCOUNT_BALANCE_WALLET_FILL,
 	ARROW_DROP_DOWN,
 	ARROW_RIGHT_ALT,
+	ARROW_UPWARD,
+	ADD,
 	DELETE,
 	EDIT_NOTE,
 	FILTER_LIST,
@@ -35,7 +37,6 @@ import {
 	LABEL_FILL,
 } from '@/lib/icons';
 import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
-import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
 import type { Transaction } from '@/types';
@@ -44,7 +45,6 @@ import { t } from '@/i18n';
 
 const store = useTransactionStore();
 const ledger = useLedgerStore();
-const budget = useBudgetStore();
 
 const dialogOpen = ref(false);
 const editing = ref<Transaction | null>(null);
@@ -58,7 +58,6 @@ type FilterKind = 'accounts' | 'categories' | 'tags';
 const openFilter = ref<FilterKind | null>(null);
 /** What was last open, which stays drawn while the row slides shut. */
 const shownFilter = ref<FilterKind>('accounts');
-const month = ref(budget.month);
 /** The row a delete has been asked for, while the question is still open. */
 const pendingDelete = ref<Transaction | null>(null);
 const harmonised = useHarmonised();
@@ -122,8 +121,8 @@ function toggleFilter(kind: FilterKind): void {
 	if (openFilter.value) shownFilter.value = openFilter.value;
 }
 
+/** Every transaction, newest first, however far back they go: the list is not scoped to a month. */
 const filters = computed(() => ({
-	month: month.value,
 	accountId: accountFilter.value.join(',') || undefined,
 	categoryId: categoryFilter.value.join(',') || undefined,
 	tagId: tagFilter.value.join(',') || undefined,
@@ -153,6 +152,14 @@ const endInReach = useInView(listEnd, '0px 0px 100% 0px');
 watch([endInReach, () => store.hasMore, () => store.loading, () => store.loadingMore, () => store.moreError], () => {
 	if (endInReach.value && !store.moreError) void store.loadMore();
 });
+
+/** Scrolling back up from deep in the list turns the screen's button into a way straight to the top. */
+const { active: backToTop, scroll: scrollToTop } = useBackToTop();
+
+function runFab(): void {
+	if (backToTop.value) scrollToTop();
+	else openCreate();
+}
 
 function openCreate(): void {
 	whenDiscardable(() => {
@@ -189,8 +196,6 @@ async function remove(): Promise<void> {
 
 <template>
 	<div class="pb-24">
-		<MonthAction v-model="month" />
-
 		<!-- A phone's bar has the search in it, as the app bar with search does on Android. A window with a rail
 		     has no bar, so there the search leads the strip below instead: one field in each place, and only
 		     one of them ever on show. -->
@@ -419,6 +424,10 @@ async function remove(): Promise<void> {
 			</template>
 		</AlertDialog>
 
-		<FabButton :label="t('transactions.newTransaction')" @click="openCreate" />
+		<FabButton
+			:label="backToTop ? t('transactions.backToTop') : t('transactions.newTransaction')"
+			:icon="backToTop ? ARROW_UPWARD : ADD"
+			@click="runFab"
+		/>
 	</div>
 </template>

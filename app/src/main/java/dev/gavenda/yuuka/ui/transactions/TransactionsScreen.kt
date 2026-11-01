@@ -48,6 +48,57 @@ private const val LOAD_AHEAD = 10
 
 private const val FORM_KEY = "form"
 
+/** How many screens down the list has to be before scrolling back up offers the way to the top. */
+private const val BACK_TO_TOP_SCREENS = 2
+
+/** How near the top it goes off again: lower than where it comes on, so it cannot flicker at the edge. */
+private const val BACK_TO_TOP_OFF_SCREENS = 1
+
+/**
+ * Whether the screen's button should take the list back to the top: it comes on while the list is scrolled up
+ * from more than [BACK_TO_TOP_SCREENS] screens down, and goes off on scrolling down or within
+ * [BACK_TO_TOP_OFF_SCREENS] of the top. Once pressed it holds until the list has got there, since the trip
+ * itself would otherwise turn it off and on again on the way.
+ */
+@Stable
+private class BackToTopState(private val listState: LazyListState) {
+    private var shown by mutableStateOf(false)
+    private var returning by mutableStateOf(false)
+
+    val active: Boolean get() = shown || returning
+
+    suspend fun follow() {
+        snapshotFlow {
+            Triple(listState.lastScrolledBackward, listState.firstVisibleItemIndex, listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1))
+        }.collect { (backward, index, screen) ->
+            if (returning) return@collect
+            shown = when {
+                !backward || index <= screen * BACK_TO_TOP_OFF_SCREENS -> false
+                index > screen * BACK_TO_TOP_SCREENS -> true
+                else -> shown
+            }
+        }
+    }
+
+    /** A drag cancels the scroll, and with it the hold. */
+    suspend fun scrollToTop() {
+        returning = true
+        try {
+            listState.animateScrollToItem(0)
+        } finally {
+            returning = false
+            shown = false
+        }
+    }
+}
+
+@Composable
+private fun rememberBackToTop(listState: LazyListState): BackToTopState {
+    val state = remember(listState) { BackToTopState(listState) }
+    LaunchedEffect(state) { state.follow() }
+    return state
+}
+
 /** What the form was opened on: the row being edited, or nothing for a new one. */
 private class FormTarget(val editing: Transaction?, val transferToAccountId: String?)
 
@@ -57,7 +108,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
     TransactionsScreenContent(
         state = state,
         modifier = modifier,
-        onMonthChange = viewModel::setMonth,
         onSearchTextChange = viewModel::setSearchText,
         onAccountFilterChange = viewModel::setAccountFilter,
         onCategoryFilterChange = viewModel::setCategoryFilter,
@@ -74,7 +124,6 @@ fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsVie
 internal fun TransactionsScreenContent(
     state: TransactionsUiState,
     modifier: Modifier = Modifier,
-    onMonthChange: (String) -> Unit = {},
     onSearchTextChange: (String) -> Unit = {},
     onAccountFilterChange: (Set<String>) -> Unit = {},
     onCategoryFilterChange: (Set<String>) -> Unit = {},
@@ -131,6 +180,10 @@ internal fun TransactionsScreenContent(
     // Scrolling down gives the list the bar's height back; the first scroll up returns it.
     val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
 
+    val listState = rememberLazyListState()
+    val backToTopState = rememberBackToTop(listState)
+    val backToTop = backToTopState.active
+
     val openEdit = { row: TransactionRow ->
         when (row) {
             is TransactionRow.Transfer -> openForm(row.leg, row.toAccountId)
@@ -147,8 +200,6 @@ internal fun TransactionsScreenContent(
         modifier = modifier.appBarScroll(scrollBehavior),
         topBar = {
             MonthSearchTopBar(
-                month = state.month,
-                onMonthChange = onMonthChange,
                 search = searchFieldState,
                 searchHint = stringResource(R.string.search_payee_notes),
                 scrollBehavior = scrollBehavior,
@@ -160,15 +211,18 @@ internal fun TransactionsScreenContent(
             }
         },
         floatingActionButton = {
+            // Scrolling back up from deep in the list turns the button into a way straight to the top.
+            // One button whose action changes, so the rail keeps its slot rather than folding it away and back.
             ScreenFab(
-                label = stringResource(R.string.new_transaction),
-                icon = R.drawable.add_48px,
-                onClick = { openForm(null, null) },
+                label = stringResource(if (backToTop) R.string.back_to_top else R.string.new_transaction),
+                icon = if (backToTop) R.drawable.arrow_upward_48px else R.drawable.add_48px,
+                onClick = { if (backToTop) scope.launch { backToTopState.scrollToTop() } else openForm(null, null) },
             )
         },
     ) { padding ->
         TransactionList(
             state = state,
+            listState = listState,
             // Room for the last row to clear the button that floats over the list.
             contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
             openId = form?.editing?.id,
@@ -278,6 +332,7 @@ internal fun TransactionsScreenContent(
 @Composable
 private fun TransactionList(
     state: TransactionsUiState,
+    listState: LazyListState,
     contentPadding: PaddingValues,
     /** The transaction whose form stands beside the list, which its row is marked as. */
     openId: String?,
@@ -289,7 +344,6 @@ private fun TransactionList(
 ) {
     val error = (state.status as? ScreenStatus.Error)?.message
     val grouped = remember(state.rows) { groupByDate(state.rows) }
-    val listState = rememberLazyListState()
     LoadMoreAtEnd(listState, state, onLoadMore)
 
     LazyColumn(modifier = modifier, state = listState, contentPadding = contentPadding) {
@@ -832,7 +886,6 @@ private fun TransactionsScreenPreview() {
     ScreenPreview {
         TransactionsScreenContent(
             TransactionsUiState(
-                month = PreviewData.MONTH,
                 accounts = PreviewData.accounts,
                 categories = PreviewData.categories,
                 tags = PreviewData.tags,

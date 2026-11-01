@@ -93,9 +93,8 @@ table — `accounts`, `account_types`, `categories`, `tags`, `transaction_tags`
 `summaries` (keyed by `month`), `payees`, `subscriptions`, and the single-row
 `settings` and `round_up_rule`. One store Room has no twin for:
 `transaction_pages`, the first pages this browser has seen per filter set, with
-the API's total — Android filters a page out of its table on the device, while
-the web asks the API for each filter set's page, so it keeps which ones it can
-answer for and bounds them. `lib/cacheDb.ts` is the database (the layout, the
+the API's total — Android keeps one table and reads every filter set back out of
+it, while the web keeps which filter sets it can answer for and bounds them. `lib/cacheDb.ts` is the database (the layout, the
 in-memory mirror, the owner, the lifecycle) and `lib/cache.ts` its DAOs; nothing
 else touches the first. Everything there is best-effort and never throws or
 rejects — a browser that refuses IndexedDB, a failed write or a row a reader
@@ -611,7 +610,7 @@ a second `SearchField` into the bar's `#bar-search` (the space a bottom-bar dest
 would be), bound to the same query, and `sm:hidden` / `max-sm:hidden` leave one of the two on show. A browser
 has no search view to open, so the bar's field is typed in where it stands and has the whole bar while it
 is: the mark and the actions are hidden for as long as the focus is inside `#bar-search`. The month is
-not page content either: Dashboard, Transactions and Budget each place a `MonthAction`, which registers
+not page content either: Dashboard and Budget each place a `MonthAction`, which registers
 the screen's month in `lib/monthAction.ts` (as `FabButton` does its action) and holds the picker, and the
 shell draws the button that opens it straight after the hide-amounts switch — in the phone's bar
 (`App.vue`) and at the rail's foot (`NavRail`), as `MonthTopBar` does on Android.
@@ -679,7 +678,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-734 tests: 440 against the API in `test/`, 294 over the browser helpers as
+766 tests: 448 against the API in `test/`, 318 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

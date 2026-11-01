@@ -42,6 +42,7 @@ interface YuukaApi {
         @Query("to") to: String? = null,
         @Query("accountId") accountId: String? = null,
         @Query("categoryId") categoryId: String? = null,
+        @Query("tagId") tagId: String? = null,
         @Query("search") search: String? = null,
         @Query("limit") limit: Int,
         @Query("offset") offset: Int,

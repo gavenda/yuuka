@@ -325,8 +325,8 @@ Android this is Material 3 Adaptive's `ListDetailSceneStrategy` in `YuukaApp`'s 
 marked `listPane()` and `detailPane()` and the detail named in `DETAIL_ROUTES`: until one of those is opened the list is stretched across the page (the scaffold's `PaneExpansionState`), and opening it draws the list in beside it within the same scene rather than sliding a new one in; on the web a route names its list as a second, `list` view, which
 `App.vue` draws beside it under a container query. A new list-detail pair is marked the same way in both.
 
-- **The month is changed from an icon button after the hide-amounts switch**: Dashboard, Transactions and
-Budget each look at one month, and the button that changes it — a calendar — goes wherever the hide-amounts
+- **The month is changed from an icon button after the hide-amounts switch**: Dashboard and Budget each look
+at one month, and the button that changes it — a calendar — goes wherever the hide-amounts
 switch is, straight after it: in the phone's app bar, and under it at the rail's foot in a window with a rail,
 where the open rail labels it with the month on show. Pressing it opens the month picker, a year over its
 twelve months with the current one outlined. It is never page content, so there is no switcher card and no
@@ -336,7 +336,7 @@ Android this is `MonthTopBar` (`ui/common/ScreenTopBar.kt`), which hands the mon
 `MonthAction` and the shell draws the button (`lib/monthAction.ts`).
 
 - **Transactions keeps its search in the app bar**: On a phone the bar is Material's app bar with search — the
-drawer button, the search bar, then the hide-amounts switch and the month button. A window with a rail has no
+drawer button, the search bar, then the hide-amounts switch. A window with a rail has no
 bar, so there Material's search bar stands on its own at the top of the page. Neither is typed in where it
 stands: pressing it opens the full-screen search view, where the query is typed and what matches is listed
 under the field as Material's plain list items — the day, what it was, where it was and what is noted on it,
@@ -352,17 +352,28 @@ has no search view, so on the web the search is a `SearchField` typed in where i
 where it has the whole bar while it is typed in — the mark and the actions step aside until it is left — and
 from the rail's breakpoint up at the head of the screen's `TopBar`.
 
-- **The transaction list pages itself**: A month's transactions come fifty at a time, and nothing is pressed
+- **The transaction list pages itself**: It is not scoped to a month — every transaction, newest first, however
+far back they go — and they come fifty at a time, and nothing is pressed
 for the next fifty: it is asked for as the end of the list comes within reach — a few rows ahead of it, so it is
 usually there before the end is — and again when a page lands with the end still in reach. For as long as there
 is more to come the foot of the list says "Calculating…"; once there is not, Yuuka is asleep under the last
 row. A page that could not be had leaves the rows above it alone and is said at the foot instead, with "Try
 again", and it is not asked for again until that is pressed, a sync lands or the list is replaced by another
-month or filter — so being offline costs one failed request, not one for as long as the end stays in reach. A
-page still on its way when the month or a filter changes is dropped rather than added to the list that
+filter — so being offline costs one failed request, not one for as long as the end stays in reach. A
+page still on its way when a filter changes is dropped rather than added to the list that
 replaced its own. The search view's results page the same way. On Android this is `LoadMoreAtEnd` and
 `NextPageFooter` in `TransactionsScreen.kt` over `TransactionsViewModel.loadMore`; on the web `useInView`
 (`lib/inView.ts`) watches the foot of the list in `TransactionsView.vue` for the store's `loadMore`.
+
+- **Deep in the list, scrolling up turns the leading action into "Back to top"**: Once Transactions is more
+than two screens down and is being scrolled up, its FAB — on the phone or in the rail — becomes "Back to top"
+with an upward arrow, and pressing it takes the list to its first row. Scrolling down again, or getting back
+within one screen of the top, gives it "New transaction" back — lower than where it came on, so it cannot
+flicker at the edge. Once pressed it holds until the list is at the top, because the trip up would otherwise
+turn it off and on again on the way; scrolling down meanwhile lets go. It is the same button with its action
+changed, so the rail keeps its slot rather than folding it away. On Android this is `BackToTopState` in
+`TransactionsScreen.kt`, over the list's `lastScrolledBackward`; on the web `useBackToTop`
+(`lib/backToTop.ts`), over the window's scroll.
 
 - **An app bar keeps one colour**: Material lifts a bar a tonal step once content has scrolled beneath it;
 here a bar stays on the colour it rests on wherever the page is, and so does the search field in it. On
