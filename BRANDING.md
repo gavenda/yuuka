@@ -8,7 +8,7 @@ This file records what is used, where, and the rules that hold it together, as b
 
 1. **The theme is the app's own.** Three colours, two of them sampled from her clothes. The wallpaper's colours are not taken up, and there is no setting for them.
 2. **Yuuka speaks as "I", to "you".** She never says "Sensei", and she makes no cat puns: the cats are on her pyjamas, not in her mouth.
-3. **Her face is for a screen with nothing to show, the end of the transaction list, About, the foot of the form for a new transaction, account, category, tag or subscription, and the sign-out dialog, where she is 144 wide and uneasy, as if asking you to stay.** It is never beside a figure, in any other form, a chart or any other dialog.
+3. **Her face is for a screen with nothing to show, the end of the transaction list and of the investment activity, About, the foot of the form for a new transaction, account, category, tag or subscription, and the sign-out dialog, where she is 144 wide and uneasy, as if asking you to stay.** It is never beside a figure, in any other form, a chart or any other dialog.
 4. **A badge masks her.** She is cut off at the scalloped edge of a badge in her pyjamas' blue, and her head, bow and halo stand clear above it.
 5. **The cat print is a backdrop**, behind the screens that have nothing else on them and faintly in a few fixed places.
 6. **Every image comes from one script**, `scripts/brand_assets.py`, so the two apps cannot drift and no image is edited by hand.
@@ -103,7 +103,7 @@ She is in a few kinds of place and nowhere else.
 
 **A screen with nothing to show.** `EmptyState` requires a `mood`. A smaller message inside a card, such as a month with nothing recorded on the dashboard, is plain text with no face.
 
-**The end of the transaction list.** Once there are no more to load she is asleep under the last row, 96 wide, with "That's every last one, all accounted for." in a speech bubble beside her, so the last row is not mistaken for a page that stopped short.
+**The end of the transaction list.** Once there are no more to load she is asleep under the last row (`ListEnd`, and the same at the end of the investment activity), 96 wide, with "That's every last one, all accounted for." in a speech bubble beside her, so the last row is not mistaken for a page that stopped short.
 
 **A new item's form.** The forms for a new transaction, account, category, tag or subscription end with her (`YuukaSays`: her portrait at 96 wide with a line in a speech bubble). Editing shows nothing there, and the account type's small dialog has no room for her.
 
@@ -115,7 +115,7 @@ She is in a few kinds of place and nowhere else.
 | Tag | `Pleased` | Tags don't change my sums. They only help you find things. |
 | Subscription | `Stern` | Another one? I'm keeping a running total, and I'm not impressed. |
 
-**About.** The last thing in Settings, with no card and no heading: her `Gentle` face at 96, a speech bubble beside it with her line, and "yuuka" with the version underneath. Under the version are two plain lines in the third person: "Kept by Yuuka, the Seminar's accountant", with her name alone in `primary`, and, quieter, "Character design by Owa, illustration by Paruru, from Blue Archive" with Owa in `secondary` and Paruru in `tertiary`. On 14 March the bubble says "It's my birthday today. A month within budget would be present enough." instead. Her speech bubble (`SpeechBubble`) is used only here, at the end of the transaction list and and in the form for a new transaction, account, category, tag or subscription.
+**About.** The last thing in Settings, with no card and no heading: her `Gentle` face at 96, a speech bubble beside it with her line, and "yuuka" with the version underneath. Under the version are two plain lines in the third person: "Kept by Yuuka, the Seminar's accountant", with her name alone in `primary`, and, quieter, "Character design by Owa, illustration by Paruru, from Blue Archive" with Owa in `secondary` and Paruru in `tertiary`. On 14 March the bubble says "It's my birthday today. A month within budget would be present enough." instead. Her speech bubble (`SpeechBubble`) is used only here, at the end of the transaction list and the investment activity, and in the form for a new transaction, account, category, tag or subscription.
 
 Eight faces are cut, and a new empty state picks from them first. The source number is the `<n>` of `branding/expressions/Yuuka_Pajamas_Portrait_Expression_<n>.webp`.
 
@@ -128,7 +128,7 @@ Eight faces are cut, and a new empty state picks from them first. The source num
 | `Gentle` | A slight smile | 7 | Subscriptions, with none yet; About |
 | `Pleased` | A smile, eyes open | 13 | Tags, with none yet, and a new tag's form |
 | `Uneasy` | A wavering mouth | 15 | Transactions, with nothing matching |
-| `Asleep` | Eyes closed and calm | 99 | The end of the transaction list |
+| `Asleep` | Eyes closed and calm | 99 | The end of the transaction list and the investment activity |
 
 Thirteen more are in the sources and not cut: 3 a closed-eye smile, 4 flustered with a bead of sweat, 8 a small "o", 9 gritted teeth, 10 laughing, 11 a comic yell, 12 dejected, 14 a shy pout, 16 shouting with her eyes shut, 17 a smile under shadowed eyes, 18 smug, 19 panicked and sweating, and 20 embarrassed.
 

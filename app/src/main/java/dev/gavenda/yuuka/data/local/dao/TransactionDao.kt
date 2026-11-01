@@ -19,7 +19,7 @@ interface TransactionDao {
      * Each `filter…` flag says whether that filter applies at all, so an empty id list
      * means "everything" rather than "nothing". A row matches any id of a filter, and must
      * satisfy every filter that applies. `categoryNone` adds the uncategorised to the
-     * categories; see [dev.gavenda.yuuka.repository.TransactionRepository] for how these are set.
+     * categories, and a parent category takes its subcategories with it; see [dev.gavenda.yuuka.repository.TransactionRepository] for how these are set.
      *
      * A search also matches the names of a transaction's tags, as the API's does.
      */
@@ -29,7 +29,12 @@ interface TransactionDao {
         SELECT * FROM transactions
         WHERE (:month IS NULL OR occurredOn LIKE (:month || '%'))
           AND (:filterAccounts = 0 OR accountId IN (:accountIds))
-          AND (:filterCategories = 0 OR categoryId IN (:categoryIds) OR (:categoryNone = 1 AND categoryId IS NULL))
+          AND (
+            :filterCategories = 0
+            OR categoryId IN (:categoryIds)
+            OR categoryId IN (SELECT id FROM categories WHERE parentId IN (:categoryIds))
+            OR (:categoryNone = 1 AND categoryId IS NULL)
+          )
           AND (
             :filterTags = 0
             OR EXISTS (SELECT 1 FROM transaction_tags ft WHERE ft.transactionId = transactions.id AND ft.tagId IN (:tagIds))

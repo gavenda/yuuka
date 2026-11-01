@@ -30,11 +30,17 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 	const existing = await db.prepare('SELECT 1 AS present FROM users WHERE id = ?').bind(subject).first<{ present: number }>();
 	if (existing) return;
 
+	// Keyed by kind as well as name: Investments is both an income and a transfer category.
+	const categoryKey = (category: { kind: string; name: string }) => `${category.kind}/${category.name}`;
 	const categoryIds = new Map(
 		await Promise.all(
-			DEFAULT_CATEGORIES.map(async (category) => [category.name, await stableId('cat', subject, category.kind, category.name)] as const),
+			DEFAULT_CATEGORIES.map(
+				async (category) => [categoryKey(category), await stableId('cat', subject, category.kind, category.name)] as const,
+			),
 		),
 	);
+	/** A sample row names its category alone, and every one it names is the only one by that name. */
+	const sampleCategoryId = (name: string) => categoryIds.get(categoryKey(DEFAULT_CATEGORIES.find((category) => category.name === name)!))!;
 
 	// Children are keyed by parent as well as name, so two parents may each have
 	// an "Other" without colliding.
@@ -66,10 +72,18 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 		...DEFAULT_CATEGORIES.map((category) =>
 			db
 				.prepare(
-					`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order)
-					 VALUES (?, ?, ?, ?, ?, ?)`,
+					`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order, system)
+					 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 				)
-				.bind(categoryIds.get(category.name)!, subject, category.name, category.kind, category.color, category.sortOrder),
+				.bind(
+					categoryIds.get(categoryKey(category))!,
+					subject,
+					category.name,
+					category.kind,
+					category.color,
+					category.sortOrder,
+					category.system ?? null,
+				),
 		),
 
 		// Children come after their parents in the same batch, so the foreign key
@@ -81,7 +95,15 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 						`INSERT OR IGNORE INTO categories (id, user_id, name, kind, color, sort_order, parent_id)
 						 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 					)
-					.bind(childIds.get(`${parent.name}/${child}`)!, subject, child, parent.kind, parent.color, index, categoryIds.get(parent.name)!),
+					.bind(
+						childIds.get(`${parent.name}/${child}`)!,
+						subject,
+						child,
+						parent.kind,
+						parent.color,
+						index,
+						categoryIds.get(categoryKey(parent))!,
+					),
 			),
 		),
 	];
@@ -135,7 +157,7 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 						transaction.id,
 						subject,
 						accountIds.get(transaction.accountSlug)!,
-						categoryIds.get(transaction.categoryName)!,
+						sampleCategoryId(transaction.categoryName),
 						transaction.amount,
 						`${month}-${String(transaction.dayOfMonth).padStart(2, '0')}`,
 						transaction.payee,
@@ -145,7 +167,7 @@ export async function ensureUser(env: Env, subject: string): Promise<void> {
 			...budgets.map((budget) =>
 				db
 					.prepare('INSERT OR IGNORE INTO budgets (id, user_id, category_id, month, amount) VALUES (?, ?, ?, ?, ?)')
-					.bind(budget.id, subject, categoryIds.get(budget.categoryName)!, FIXED_BUDGET_MONTH, budget.amount),
+					.bind(budget.id, subject, sampleCategoryId(budget.categoryName), FIXED_BUDGET_MONTH, budget.amount),
 			),
 		);
 	}

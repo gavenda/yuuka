@@ -92,6 +92,10 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(category: CategoryEntity)
 
+    /** The system category with this key (`SystemCategories`), which a trade's cash is filed under. */
+    @Query("SELECT * FROM categories WHERE system = :system LIMIT 1")
+    suspend fun bySystem(system: String): CategoryEntity?
+
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun byId(id: String): CategoryEntity?
 

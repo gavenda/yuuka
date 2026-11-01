@@ -24,6 +24,9 @@ sealed interface Route : NavKey {
     /** One stock, opened from [Investments] and standing beside it where the page has room. */
     @Serializable data class Holding(val symbol: String) : Route
 
+    /** Every trade, opened from [Investments]' "See all" and standing beside it where the page has room. */
+    @Serializable data object InvestmentActivity : Route
+
     /** Reached from the navigation drawer rather than a tab, same as the web app's settings link. */
     @Serializable data object Settings : Route
 
@@ -53,7 +56,7 @@ enum class YuukaDestination(val route: Route, @StringRes val labelRes: Int, @Dra
 
 /** Marked on the rail while it, or a screen opened from it, is on show. */
 fun YuukaDestination.isCurrent(route: NavKey?): Boolean =
-    route == this.route || (this == YuukaDestination.INVESTMENTS && route is Route.Holding)
+    route == this.route || (this == YuukaDestination.INVESTMENTS && (route is Route.Holding || route == Route.InvestmentActivity))
 
 /** The rail's row of daily destinations: the ones the phone's bottom bar holds. */
 val RAIL_DESTINATIONS = listOf(YuukaDestination.TRANSACTIONS, YuukaDestination.INVESTMENTS, YuukaDestination.ACCOUNTS)

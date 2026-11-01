@@ -34,7 +34,7 @@ describe('the Cashflow category', () => {
 		expect(cashflow.parentId).toBeNull();
 
 		const children = (await categories()).filter((category) => category.parentId === cashflow.id);
-		expect(children.map((child) => child.name).sort()).toEqual(['Debt Repayment', 'Investments', 'Savings']);
+		expect(children.map((child) => child.name).sort()).toEqual(['Debt Repayment', 'Savings']);
 	});
 
 	it('is not offered to spending or income', async () => {
@@ -51,16 +51,16 @@ describe('the Cashflow category', () => {
 	});
 
 	it('categorises a transfer, on both legs', async () => {
-		const investments = await byName('Investments');
-		const response = await transfer({ categoryId: investments.id });
+		const savings = await byName('Savings');
+		const response = await transfer({ categoryId: savings.id });
 
 		expect(response.status).toBe(201);
 		const { transactions } = await json<{ transactions: { categoryId: string; categoryName: string; amount: number }[] }>(response);
 
 		expect(transactions).toHaveLength(2);
 		for (const leg of transactions) {
-			expect(leg.categoryId).toBe(investments.id);
-			expect(leg.categoryName).toBe('Investments');
+			expect(leg.categoryId).toBe(savings.id);
+			expect(leg.categoryName).toBe('Savings');
 		}
 	});
 
@@ -84,8 +84,8 @@ describe('the Cashflow category', () => {
 
 describe('cashflow in the summary', () => {
 	it('measures the outflow leg, not both sides netting to zero', async () => {
-		const investments = await byName('Investments');
-		await transfer({ categoryId: investments.id });
+		const savings = await byName('Savings');
+		await transfer({ categoryId: savings.id });
 
 		const body = await json<{
 			cashflow: number;
@@ -99,12 +99,12 @@ describe('cashflow in the summary', () => {
 		const cashflow = body.categories.find((entry) => entry.name === 'Cashflow')!;
 		expect(cashflow.kind).toBe('transfer');
 		expect(cashflow.actual).toBe(100000);
-		expect(cashflow.children.find((child) => child.name === 'Investments')!.actual).toBe(100000);
+		expect(cashflow.children.find((child) => child.name === 'Savings')!.actual).toBe(100000);
 	});
 
 	it('stays out of income and spending', async () => {
-		const investments = await byName('Investments');
-		await transfer({ categoryId: investments.id });
+		const savings = await byName('Savings');
+		await transfer({ categoryId: savings.id });
 
 		const body = await json<{ income: number; expenses: number; netWorth: number }>(await call('/summary?month=2026-09'));
 
@@ -117,14 +117,14 @@ describe('cashflow in the summary', () => {
 
 	it('can be budgeted like any other parent', async () => {
 		const cashflow = await byName('Cashflow');
-		const investments = await byName('Investments');
+		const savings = await byName('Savings');
 
 		expect(
 			(await call('/budgets', { method: 'PUT', body: JSON.stringify({ categoryId: cashflow.id, month: '2026-09', amount: 150_000 }) }))
 				.status,
 		).toBe(200);
 
-		await transfer({ categoryId: investments.id });
+		await transfer({ categoryId: savings.id });
 
 		const { categories: breakdown } = await json<{
 			categories: { name: string; planned: number; actual: number; remaining: number }[];
@@ -144,8 +144,8 @@ describe('cashflow in the summary', () => {
 	});
 
 	it('does not appear in the daily spend chart', async () => {
-		const investments = await byName('Investments');
-		await transfer({ categoryId: investments.id });
+		const savings = await byName('Savings');
+		await transfer({ categoryId: savings.id });
 
 		const { dailySpend } = await json<{ dailySpend: unknown[] }>(await call('/summary?month=2026-09'));
 		expect(dailySpend).toEqual([]);

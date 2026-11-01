@@ -6,6 +6,14 @@
  * under colour-vision deficiency.
  */
 
+/**
+ * The categories every person has and nobody can change, which the server files a trade's cash
+ * under: `investments` (a top-level transfer category) a buy's and a sell's, `investment_income` a
+ * dividend's. Matches the `categories.system` check in `migrations/0007_system_categories.sql`.
+ */
+export const SYSTEM_CATEGORIES = ['investments', 'investment_income'] as const;
+export type SystemCategory = (typeof SYSTEM_CATEGORIES)[number];
+
 export interface DefaultCategory {
 	name: string;
 	/** 'transfer' categorises movements between the user's own accounts. */
@@ -14,6 +22,8 @@ export interface DefaultCategory {
 	sortOrder: number;
 	/** Subcategories, one level deep. They inherit their parent's kind. */
 	children?: string[];
+	/** Set on a system category. */
+	system?: SystemCategory;
 }
 
 export const DEFAULT_CATEGORIES: DefaultCategory[] = [
@@ -33,6 +43,8 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
 	{ name: 'Miscellaneous', kind: 'expense', color: '#e34948', sortOrder: 7 },
 	{ name: 'Salary', kind: 'income', color: '#2a78d6', sortOrder: 0 },
 	{ name: 'Interest', kind: 'income', color: '#eb6834', sortOrder: 1 },
+	// A dividend's cash, filed here by the server.
+	{ name: 'Investments', kind: 'income', color: '#008300', sortOrder: 2, system: 'investment_income' },
 
 	/**
 	 * Money moved between the user's own accounts rather than spent. An
@@ -47,8 +59,11 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
 		kind: 'transfer',
 		color: '#4a3aa7',
 		sortOrder: 0,
-		children: ['Investments', 'Savings', 'Debt Repayment'],
+		children: ['Savings', 'Debt Repayment'],
 	},
+	// A buy's and a sell's cash, filed here by the server: beside Cashflow rather than under it, so
+	// nothing someone does to Cashflow can reach it.
+	{ name: 'Investments', kind: 'transfer', color: '#2a78d6', sortOrder: 1, system: 'investments' },
 ];
 
 /**

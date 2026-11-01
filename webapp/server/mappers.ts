@@ -1,6 +1,7 @@
 import type { BudgetMode } from './budget-mode';
 import { joinOccurrence } from './dates';
 import type { CATEGORY_KINDS } from './schemas';
+import type { SystemCategory } from './defaults';
 
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
@@ -57,6 +58,8 @@ export interface CategoryRow {
 	sort_order: number;
 	archived: number;
 	parent_id: string | null;
+	/** Set on a category nobody can change: see `SYSTEM_CATEGORIES`. */
+	system: SystemCategory | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -188,6 +191,7 @@ export const toCategory = (row: CategoryRow) => ({
 	sortOrder: row.sort_order,
 	archived: row.archived === 1,
 	parentId: row.parent_id,
+	system: row.system ?? null,
 	createdAt: row.created_at,
 	updatedAt: row.updated_at,
 });

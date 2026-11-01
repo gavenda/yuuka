@@ -88,6 +88,7 @@ describe('signed in', () => {
 			['/', 'transactions'],
 			['/overview', 'dashboard'],
 			['/investments', 'investments'],
+			['/investments/activity', 'investmentActivity'],
 			['/transactions', 'transactions'],
 			['/budget', 'budget'],
 			['/accounts', 'accounts'],

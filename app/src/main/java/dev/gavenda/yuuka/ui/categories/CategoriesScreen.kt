@@ -288,38 +288,16 @@ private fun CategoryRow(
     onAddSub: (() -> Unit)? = null,
     onToggle: () -> Unit = {},
 ) {
+    // A system category is kept for investments: it has nothing to swipe for and no form to open.
+    val locked = category.system != null
     val chevron by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
         label = "family-chevron",
     )
-    SwipeToRevealActions(
-        modifier = modifier.fillMaxWidth(),
-        actions = {
-            if (onAddSub != null) ActionIconButton(
-                ActionIcon.ADD,
-                stringResource(R.string.cd_add_sub_to, category.name),
-                onAddSub,
-            )
-            ActionIconButton(
-                if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
-                stringResource(R.string.cd_archive_item, category.name),
-                onArchive,
-                loading = archiving,
-            )
-            ActionIconButton(
-                ActionIcon.DELETE,
-                stringResource(R.string.cd_delete_item, category.name),
-                onDelete,
-                danger = true,
-                loading = deleting
-            )
-        },
-    ) {
-        ListItem(
-            // A subcategory stands as tall as the parent above it, which carries a count beneath its name.
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
+    val row: @Composable () -> Unit = {
+        CategoryListItem(
+            onClick = onClick.takeUnless { locked },
             shapes = groupedListItemShapes(position, selected),
             // An open family, parent and subcategories alike, is told apart by a higher surface rather than by indenting.
             colors = if (selected) {
@@ -338,10 +316,14 @@ private fun CategoryRow(
                     tint = harmonisedColor(category.color, MaterialTheme.colorScheme.onSurfaceVariant),
                 )
             },
-            supportingContent = if (subCount > 0) {
-                { Text(pluralStringResource(R.plurals.subcategories_count, subCount, subCount)) }
-            } else {
-                null
+            supportingContent = when {
+                locked -> {
+                    { Text(stringResource(R.string.category_system_hint)) }
+                }
+                subCount > 0 -> {
+                    { Text(pluralStringResource(R.plurals.subcategories_count, subCount, subCount)) }
+                }
+                else -> null
             },
             trailingContent = if (subCount > 0) {
                 {
@@ -376,6 +358,69 @@ private fun CategoryRow(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             },
+        )
+    }
+    if (locked) {
+        Box(modifier.fillMaxWidth()) { row() }
+        return
+    }
+    SwipeToRevealActions(
+        modifier = modifier.fillMaxWidth(),
+        actions = {
+            if (onAddSub != null) ActionIconButton(
+                ActionIcon.ADD,
+                stringResource(R.string.cd_add_sub_to, category.name),
+                onAddSub,
+            )
+            ActionIconButton(
+                if (category.archived) ActionIcon.RESTORE else ActionIcon.ARCHIVE,
+                stringResource(R.string.cd_archive_item, category.name),
+                onArchive,
+                loading = archiving,
+            )
+            ActionIconButton(
+                ActionIcon.DELETE,
+                stringResource(R.string.cd_delete_item, category.name),
+                onDelete,
+                danger = true,
+                loading = deleting
+            )
+        },
+    ) { row() }
+}
+
+/** Material's list item, pressable unless [onClick] is null — a system category, which has no form to open. */
+@Composable
+private fun CategoryListItem(
+    onClick: (() -> Unit)?,
+    shapes: ListItemShapes,
+    colors: ListItemColors,
+    leadingContent: @Composable () -> Unit,
+    supportingContent: (@Composable () -> Unit)?,
+    trailingContent: (@Composable () -> Unit)?,
+    content: @Composable () -> Unit,
+) {
+    // A subcategory stands as tall as the parent above it, which carries a count beneath its name.
+    if (onClick == null) {
+        ListItem(
+            modifier = Modifier.fillMaxWidth(),
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leadingContent,
+            supportingContent = supportingContent,
+            trailingContent = trailingContent,
+            content = content,
+        )
+    } else {
+        ListItem(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shapes = shapes,
+            colors = colors,
+            leadingContent = leadingContent,
+            supportingContent = supportingContent,
+            trailingContent = trailingContent,
+            content = content,
         )
     }
 }

@@ -1,6 +1,7 @@
 package dev.gavenda.yuuka.ui
 
 import dev.gavenda.yuuka.ui.common.catPattern
+import dev.gavenda.yuuka.ui.investments.ActivityScreen
 import dev.gavenda.yuuka.ui.investments.HoldingScreen
 import dev.gavenda.yuuka.ui.investments.InvestmentsScreen
 import dev.gavenda.yuuka.ui.common.CatPrint
@@ -206,11 +207,16 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
         entry<Route.Categories> { CategoriesScreen() }
         entry<Route.Tags> { TagsScreen() }
         entry<Route.Subscriptions> { SubscriptionsScreen() }
-        // Investments and the holding it opens are a list and its detail, as Settings and Account types are.
+        // Investments and the holding or the activity it opens are a list and its detail, as Settings and
+        // Account types are.
         entry<Route.Investments>(metadata = ListDetailSceneStrategy.listPane() + tabOrder(Route.Investments)) {
-            InvestmentsScreen(onOpenHolding = { navigator.navigate(Route.Holding(it)) })
+            InvestmentsScreen(
+                onOpenHolding = { navigator.navigate(Route.Holding(it)) },
+                onOpenActivity = { navigator.navigate(Route.InvestmentActivity) },
+            )
         }
         entry<Route.Holding>(metadata = ListDetailSceneStrategy.detailPane()) { HoldingScreen(it.symbol) }
+        entry<Route.InvestmentActivity>(metadata = ListDetailSceneStrategy.detailPane()) { ActivityScreen() }
         // Settings and the Account types it opens are a list and its detail: side by side where the page
         // has room for both (see TWO_PANE_MIN_WIDTH), one over the other where it has not.
         entry<Route.Settings>(metadata = ListDetailSceneStrategy.listPane()) {
@@ -561,7 +567,7 @@ private val FORM_PANE_SLOT = FORM_PANE_GAP + FORM_PANE_WIDTH + FORM_PANE_MARGIN
 private val FORM_PANE_MIN_WIDTH = LIST_PANE_WIDTH + FORM_PANE_SLOT
 
 /** The destinations entered as a `detailPane()`: only with one of these on top does its list make room for it. */
-private val DETAIL_ROUTES: Set<NavKey> = setOf(Route.AccountTypes)
+private val DETAIL_ROUTES: Set<NavKey> = setOf(Route.AccountTypes, Route.InvestmentActivity)
 
 /** Where a destination sits in the bottom bar, so a switch between two tabs slides the way the bar reads. */
 private data object TabOrder : NavMetadataKey<Int>

@@ -5,13 +5,13 @@ import AppIcon from '@/components/AppIcon.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import FilterChipRow from '@/components/FilterChipRow.vue';
+import ListEnd from '@/components/ListEnd.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import SearchField from '@/components/SearchField.vue';
 import SwipeReveal from '@/components/SwipeReveal.vue';
 import TopBar from '@/components/TopBar.vue';
+import TradeForm from '@/components/TradeForm.vue';
 import TransactionForm from '@/components/TransactionForm.vue';
-import SpeechBubble from '@/components/SpeechBubble.vue';
-import YuukaPortrait from '@/components/YuukaPortrait.vue';
 import { whenDiscardable } from '@/lib/formPane';
 import { api } from '@/lib/api';
 import { formatLongDate, formatTime } from '@/lib/dates';
@@ -37,9 +37,10 @@ import {
 	LABEL_FILL,
 } from '@/lib/icons';
 import { dailyAccrued, describeRow, mergeTransferRows, type TransactionRow } from '@/lib/transactionRows';
+import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
 import { useTransactionStore } from '@/stores/transactions';
-import type { Transaction } from '@/types';
+import type { Trade, Transaction } from '@/types';
 import { computed, onMounted, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
@@ -48,6 +49,11 @@ const ledger = useLedgerStore();
 
 const dialogOpen = ref(false);
 const editing = ref<Transaction | null>(null);
+/** A trade whose cash row was pressed: the row is not edited as a transaction, but the trade is, here as on Investments. */
+const trading = ref(false);
+const editingTrade = ref<Trade | null>(null);
+const investments = useInvestmentStore();
+const tradesByLeg = computed(() => new Map(investments.trades.map((trade) => [trade.transactionId, trade])));
 const editingTransferToAccountId = ref<string | null>(null);
 const search = ref('');
 const accountFilter = ref<string[]>([]);
@@ -138,7 +144,7 @@ watch(filters, (next) => {
 });
 
 // Together, so the list's saved copy is not held back by the ledger's round trip.
-onMounted(() => Promise.all([ledger.load(), store.load(filters.value)]));
+onMounted(() => Promise.all([ledger.load(), store.load(filters.value), investments.load()]));
 
 /** The foot of the list for as long as there is more of it to load. */
 const listEnd = ref<HTMLElement | null>(null);
@@ -163,6 +169,7 @@ function runFab(): void {
 
 function openCreate(): void {
 	whenDiscardable(() => {
+		trading.value = false;
 		editing.value = null;
 		editingTransferToAccountId.value = null;
 		dialogOpen.value = true;
@@ -171,7 +178,16 @@ function openCreate(): void {
 
 /** A transfer edit seeds the form with the outflow leg plus the inflow's account, so both sides stay linked. */
 function openEdit(transaction: Transaction, transferToAccountId: string | null = null): void {
+	const trade = tradesByLeg.value.get(transaction.id);
 	whenDiscardable(() => {
+		if (trade) {
+			// A trade's cash opens the trade, whose form works its cash out again.
+			dialogOpen.value = false;
+			editingTrade.value = trade;
+			trading.value = true;
+			return;
+		}
+		trading.value = false;
 		editing.value = transaction;
 		editingTransferToAccountId.value = transferToAccountId;
 		dialogOpen.value = true;
@@ -188,6 +204,7 @@ async function remove(): Promise<void> {
 	if (dialogOpen.value && open && (open.id === target.id || (target.transferId && open.transferId === target.transferId))) {
 		dialogOpen.value = false;
 	}
+	if (trading.value && editingTrade.value?.transactionId === target.id) trading.value = false;
 	await api.deleteTransaction(target.id);
 	showSnackbar(target.transferId ? t('transactions.transferDeleted') : t('transactions.transactionDeleted'));
 	await showSaved();
@@ -316,7 +333,10 @@ async function remove(): Promise<void> {
 								type="button"
 								class="group-row state-layer focus-ring cursor-pointer"
 								:aria-current="
-									dialogOpen && editing?.id === (row.kind === 'transfer' ? row.leg.id : row.transaction.id) ? 'true' : undefined
+									(dialogOpen && editing?.id === (row.kind === 'transfer' ? row.leg.id : row.transaction.id)) ||
+									(trading && row.kind !== 'transfer' && editingTrade?.transactionId === row.transaction.id)
+										? 'true'
+										: undefined
 								"
 								@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
 							>
@@ -390,15 +410,7 @@ async function remove(): Promise<void> {
 				</template>
 				<p v-else class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
 			</div>
-			<!-- The end of the list, and only once there is no more of it to load: Yuuka, asleep over closed
-			     books, saying so, so the last row is not mistaken for a page that stopped short. -->
-			<div v-else class="flex items-end justify-center gap-1 px-4 pt-6 pb-2">
-				<YuukaPortrait mood="asleep" class="w-24!" />
-				<!-- As tall as the badge she is in, so the tail is level with her face. -->
-				<div class="flex min-h-24 min-w-0 items-center">
-					<SpeechBubble>{{ t('transactions.end') }}</SpeechBubble>
-				</div>
-			</div>
+			<ListEnd v-else />
 		</template>
 
 		<TransactionForm
@@ -407,6 +419,7 @@ async function remove(): Promise<void> {
 			:transfer-to-account-id="editingTransferToAccountId"
 			@close="dialogOpen = false"
 		/>
+		<TradeForm :open="trading" :editing="editingTrade" @close="trading = false" />
 
 		<AlertDialog
 			:open="pendingDelete !== null"

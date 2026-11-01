@@ -210,32 +210,39 @@ onMounted(() => ledger.load());
 					<!-- A parent's row. The row paints itself, which is what keeps the swipe's actions hidden behind it. -->
 					<SwipeReveal>
 						<template #actions>
-							<ActionIcon
-								icon="add"
-								:label="t('categories.addSubTo', { name: family.parent.name })"
-								@click="openCreate(section.kind, family.parent.id)"
-							/>
-							<ActionIcon
-								:icon="family.parent.archived ? 'restore' : 'archive'"
-								:label="t(family.parent.archived ? 'common.restore' : 'common.archive', { name: family.parent.name })"
-								@click="toggleArchived(family.parent)"
-							/>
-							<ActionIcon icon="delete" :label="t('common.delete', { name: family.parent.name })" danger @click="remove(family.parent)" />
+							<!-- A system category has nothing to swipe for. -->
+							<template v-if="!family.parent.system">
+								<ActionIcon
+									icon="add"
+									:label="t('categories.addSubTo', { name: family.parent.name })"
+									@click="openCreate(section.kind, family.parent.id)"
+								/>
+								<ActionIcon
+									:icon="family.parent.archived ? 'restore' : 'archive'"
+									:label="t(family.parent.archived ? 'common.restore' : 'common.archive', { name: family.parent.name })"
+									@click="toggleArchived(family.parent)"
+								/>
+								<ActionIcon icon="delete" :label="t('common.delete', { name: family.parent.name })" danger @click="remove(family.parent)" />
+							</template>
 						</template>
 
 						<!-- The row wears the state layer and the button's ::before is stretched over it, so the whole row answers to the pointer. -->
 						<div
-							class="group-row state-layer flex items-center pr-4"
+							class="group-row flex items-center pr-4"
 							:class="[
-								family.children.length ? 'min-h-[72px]' : 'min-h-[60px]',
+								family.parent.system ? '' : 'state-layer',
+								family.children.length || family.parent.system ? 'min-h-[72px]' : 'min-h-[60px]',
 								expanded.has(family.parent.id) ? 'bg-surface-container-highest' : '',
 							]"
 						>
-							<button
-								type="button"
-								class="focus-ring flex min-w-0 flex-1 cursor-pointer items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
+							<!-- A system category has no form to open, so its row is not a button. -->
+							<component
+								:is="family.parent.system ? 'div' : 'button'"
+								:type="family.parent.system ? undefined : 'button'"
+								class="focus-ring flex min-w-0 flex-1 items-center gap-3 self-stretch pl-4 text-left before:absolute before:inset-0"
+								:class="family.parent.system ? '' : 'cursor-pointer'"
 								:aria-current="dialogOpen && editing?.id === family.parent.id ? 'true' : undefined"
-								@click="openEdit(family.parent)"
+								@click="family.parent.system || openEdit(family.parent)"
 							>
 								<span class="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
 									<span class="flex" :style="{ color: harmonised(family.parent.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
@@ -244,11 +251,14 @@ onMounted(() => ledger.load());
 									<span class="type-body-large block truncate">{{
 										family.parent.archived ? t('common.archivedName', { name: family.parent.name }) : family.parent.name
 									}}</span>
-									<span v-if="family.children.length" class="type-body-medium block text-on-surface-variant">
+									<span v-if="family.parent.system" class="type-body-medium block text-on-surface-variant">
+										{{ t('categories.systemHint') }}
+									</span>
+									<span v-else-if="family.children.length" class="type-body-medium block text-on-surface-variant">
 										{{ t('categories.subcategories', family.children.length) }}
 									</span>
 								</span>
-							</button>
+							</component>
 
 							<button
 								v-if="family.children.length"
@@ -270,7 +280,7 @@ onMounted(() => ledger.load());
 					<!-- Its subcategories, on the same higher surface as their parent. Pressing one edits it. -->
 					<template v-if="expanded.has(family.parent.id)">
 						<SwipeReveal v-for="child in family.children" :key="child.id">
-							<template #actions>
+							<template v-if="!child.system" #actions>
 								<ActionIcon
 									:icon="child.archived ? 'restore' : 'archive'"
 									:label="t(child.archived ? 'common.restore' : 'common.archive', { name: child.name })"
@@ -279,19 +289,24 @@ onMounted(() => ledger.load());
 								<ActionIcon icon="delete" :label="t('common.delete', { name: child.name })" danger @click="remove(child)" />
 							</template>
 
-							<button
-								type="button"
-								class="group-row state-layer focus-ring flex min-h-[72px] cursor-pointer items-center gap-3 bg-surface-container-highest pr-4 pl-4"
+							<component
+								:is="child.system ? 'div' : 'button'"
+								:type="child.system ? undefined : 'button'"
+								class="group-row focus-ring flex min-h-[72px] items-center gap-3 bg-surface-container-highest pr-4 pl-4 text-left"
+								:class="child.system ? '' : 'state-layer cursor-pointer'"
 								:aria-current="dialogOpen && editing?.id === child.id ? 'true' : undefined"
-								@click="openEdit(child)"
+								@click="child.system || openEdit(child)"
 							>
 								<span class="flex size-6 shrink-0 items-center justify-center" aria-hidden="true">
 									<span class="flex" :style="{ color: harmonised(child.color) }"><AppIcon :icon="LABEL_FILL" :size="18" /></span>
 								</span>
-								<span class="type-body-large min-w-0 flex-1 truncate">{{
-									child.archived ? t('common.archivedName', { name: child.name }) : child.name
-								}}</span>
-							</button>
+								<span class="min-w-0 flex-1">
+									<span class="type-body-large block truncate">{{
+										child.archived ? t('common.archivedName', { name: child.name }) : child.name
+									}}</span>
+									<span v-if="child.system" class="type-body-medium block text-on-surface-variant">{{ t('categories.systemHint') }}</span>
+								</span>
+							</component>
 						</SwipeReveal>
 					</template>
 				</template>

@@ -3,14 +3,17 @@ package dev.gavenda.yuuka.repository
 import dev.gavenda.yuuka.data.Ids
 import dev.gavenda.yuuka.data.local.Provisional
 import dev.gavenda.yuuka.data.local.dao.AccountDao
+import dev.gavenda.yuuka.data.local.dao.CategoryDao
 import dev.gavenda.yuuka.data.local.dao.InvestmentDao
 import dev.gavenda.yuuka.data.local.dao.TransactionDao
 import dev.gavenda.yuuka.data.local.entity.AccountEntity
+import dev.gavenda.yuuka.data.local.entity.CategoryEntity
 import dev.gavenda.yuuka.data.local.entity.TradeEntity
 import dev.gavenda.yuuka.data.local.entity.toDomain
 import dev.gavenda.yuuka.data.local.entity.toEntity
 import dev.gavenda.yuuka.data.model.PricePoint
 import dev.gavenda.yuuka.data.model.Security
+import dev.gavenda.yuuka.data.model.SystemCategories
 import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
@@ -33,6 +36,7 @@ class InvestmentRepository(
     private val dao: InvestmentDao,
     private val transactionDao: TransactionDao,
     private val accountDao: AccountDao,
+    private val categoryDao: CategoryDao,
 ) {
     val securities: Flow<List<Security>> = dao.observeSecurities().map { list -> list.map { it.toDomain() } }
     val trades: Flow<List<Trade>> = dao.observeTrades().map { list -> list.map { it.toDomain() } }
@@ -64,7 +68,7 @@ class InvestmentRepository(
         val account = accountDao.byId(accountId)
         val now = Provisional.touchedAt()
 
-        transactionDao.saveLocal(listOf(leg(transactionId, accountId, account, kind, symbol, occurredOn, shares, amount)), emptyList())
+        transactionDao.saveLocal(listOf(leg(transactionId, accountId, account, kind, symbol, occurredOn, shares, amount, systemCategory(kind))), emptyList())
         dao.upsertTrade(
             TradeEntity(
                 id = id,
@@ -107,7 +111,10 @@ class InvestmentRepository(
         val amount = tradeCash(kind, shares, price, fees)
         val account = accountDao.byId(accountId)
 
-        transactionDao.saveLocal(listOf(leg(existing.transactionId, accountId, account, kind, symbol, occurredOn, shares, amount)), emptyList())
+        transactionDao.saveLocal(
+            listOf(leg(existing.transactionId, accountId, account, kind, symbol, occurredOn, shares, amount, systemCategory(kind))),
+            emptyList(),
+        )
         dao.upsertTrade(
             existing.copy(
                 accountId = accountId,
@@ -137,6 +144,9 @@ class InvestmentRepository(
     }
 
     /** A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes. */
+    /** The system category the server files a trade's cash under, so the leg shows under it at once. */
+    private suspend fun systemCategory(kind: String) = categoryDao.bySystem(SystemCategories.forTrade(kind))
+
     private fun leg(
         id: String,
         accountId: String,
@@ -146,11 +156,12 @@ class InvestmentRepository(
         occurredOn: String,
         shares: Long,
         amount: Long,
+        category: CategoryEntity?,
     ) = Provisional.transaction(
         id = id,
         accountId = accountId,
         account = account,
-        category = null,
+        category = category,
         amount = amount,
         occurredOn = occurredOn,
         payee = symbol,

@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +27,6 @@ import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.Holding
 import dev.gavenda.yuuka.domain.MASK
 import dev.gavenda.yuuka.domain.TradeKinds
-import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatPrice
 import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.ui.common.*
@@ -38,14 +36,16 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
+/** How many of the latest trades Investments shows; the rest are a "See all" away, on [ActivityScreen]. */
+private const val RECENT_TRADES = 5
+
 /**
  * Every PSE holding across the broker accounts: what it is worth at the last close, how far that is from what it
- * cost, what it is made of, and the trades behind it.
+ * cost, what it is made of, and the latest trades behind it.
  */
 @Composable
-fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modifier, viewModel: InvestmentsViewModel = koinViewModel()) {
+fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Unit, modifier: Modifier = Modifier, viewModel: InvestmentsViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableIntStateOf(0) }
     var trading by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Trade?>(null) }
     var pendingDelete by remember { mutableStateOf<Trade?>(null) }
@@ -117,23 +117,25 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, modifier: Modifier = Modi
                 }
             }
             if (held.isNotEmpty()) item(key = "allocation") { AllocationCard(held, Modifier.padding(top = 8.dp)) }
-            item(key = "tabs") {
-                ConnectedButtonGroup(
-                    options = listOf(0, 1),
-                    selected = tab,
-                    onSelect = { tab = it },
-                    label = { stringResource(if (it == 0) R.string.investments_tab_holdings else R.string.investments_tab_activity) },
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-                )
+            holdingsList(held, onOpenHolding)
+            item(key = "activity-header") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 16.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.investments_activity), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onOpenActivity) { Text(stringResource(R.string.investments_see_all)) }
+                }
             }
-            if (tab == 0) {
-                holdingsList(held, onOpenHolding)
-            } else {
-                activityList(
-                    state.trades,
-                    selectedId = editing?.id?.takeIf { trading },
-                    onEdit = { trade -> switchForm { editing = trade; trading = true } },
-                    onDelete = { pendingDelete = it },
+            val recent = state.trades.take(RECENT_TRADES)
+            itemsIndexed(recent, key = { _, trade -> "trade:${trade.id}" }) { index, trade ->
+                TradeRow(
+                    trade,
+                    positionInGroup(index, recent.lastIndex),
+                    onClick = { switchForm { editing = trade; trading = true } },
+                    onDelete = { pendingDelete = trade },
+                    selected = trading && trade.id == editing?.id,
+                    showDate = true,
                 )
             }
         }
@@ -167,34 +169,6 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, onOpen: (String)
         }
         itemsIndexed(rows, key = { _, holding -> "holding:$accountId:${holding.symbol}" }) { index, holding ->
             HoldingRow(holding, positionInGroup(index, rows.lastIndex), onClick = { onOpen(holding.symbol) })
-        }
-    }
-}
-
-/**
- * The trades, newest first, under the day they were made, as Transactions lists its rows: the date as the day's
- * heading with the cash the day's trades moved at its end, inset past the rows it names.
- */
-private fun LazyListScope.activityList(trades: List<Trade>, selectedId: String?, onEdit: (Trade) -> Unit, onDelete: (Trade) -> Unit) {
-    trades.groupBy { it.occurredOn.take(10) }.forEach { (day, rows) ->
-        item(key = "day:$day") {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(formatLongDate(day), style = MaterialTheme.typography.titleMedium)
-                MoneyText(rows.sumOf { it.amount }, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.titleMedium)
-            }
-        }
-        itemsIndexed(rows, key = { _, trade -> "trade:${trade.id}" }) { index, trade ->
-            TradeRow(
-                trade,
-                positionInGroup(index, rows.lastIndex),
-                selected = trade.id == selectedId,
-                onClick = { onEdit(trade) },
-                onDelete = { onDelete(trade) },
-            )
         }
     }
 }

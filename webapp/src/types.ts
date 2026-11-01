@@ -74,9 +74,16 @@ export interface Category {
 	archived: boolean;
 	/** Null for a top-level category. Nesting is one level deep. */
 	parentId: string | null;
+	/**
+	 * Set on a category nobody can change, which a trade's cash is filed under: `investments`
+	 * (the transfer Investments) a buy's and a sell's, `investment_income` a dividend's.
+	 */
+	system: SystemCategory | null;
 	createdAt: string;
 	updatedAt: string;
 }
+
+export type SystemCategory = 'investments' | 'investment_income';
 
 /** A user-defined label. Unlike a category it changes no figure — it is only there to read by. */
 export interface Tag {

@@ -246,6 +246,8 @@ function matching(db: DatabaseView, filters: TransactionFilters): StoredRow[] {
 	const categories = idList(filters.categoryId);
 	const uncategorised = categories.includes('none');
 	const categoryIds = new Set(categories.filter((id) => id !== 'none'));
+	// A parent category takes its subcategories with it, as its figures do.
+	for (const row of db('categories').all()) if (row.parentId && categoryIds.has(row.parentId as string)) categoryIds.add(row.id as string);
 	const tagIds = new Set(idList(filters.tagId));
 	const search = filters.search?.trim().toLowerCase();
 

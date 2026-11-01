@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -19,7 +18,7 @@ import { t } from '@/i18n';
 
 /**
  * Every PSE holding across the broker accounts (`InvestmentsScreen` on Android): what it is worth at the last
- * close, how far that is from what it cost, what it is made of, and the trades behind it.
+ * close, how far that is from what it cost, what it is made of, and the latest trades behind it.
  */
 const store = useInvestmentStore();
 const ledger = useLedgerStore();
@@ -27,11 +26,8 @@ const route = useRoute();
 const router = useRouter();
 const { hidden } = useAmountVisibility();
 
-const tab = ref<'holdings' | 'activity'>('holdings');
-const TABS = [
-	{ value: 'holdings' as const, label: t('investments.tabHoldings') },
-	{ value: 'activity' as const, label: t('investments.tabActivity') },
-];
+/** How many of the latest trades Investments shows; the rest are a "See all" away, on the activity. */
+const RECENT_TRADES = 5;
 const trading = ref(false);
 const editing = ref<Trade | null>(null);
 
@@ -64,20 +60,7 @@ const groups = computed(() => {
 	}));
 });
 
-/**
- * The trades under the day they were made, newest first, as Transactions lists its rows: the date as the day's
- * heading with the cash the day's trades moved at its end.
- */
-const days = computed(() => {
-	const byDay = new Map<string, Trade[]>();
-	for (const trade of store.trades) {
-		const key = trade.occurredOn.slice(0, 10);
-		const rows = byDay.get(key);
-		if (rows) rows.push(trade);
-		else byDay.set(key, [trade]);
-	}
-	return [...byDay.entries()].map(([date, rows]) => ({ date, total: rows.reduce((sum, trade) => sum + trade.amount, 0), rows }));
-});
+const recent = computed(() => store.trades.slice(0, RECENT_TRADES));
 
 /** One bar split by what each stock is worth, largest first. */
 const SLICE_CLASSES = [
@@ -185,51 +168,43 @@ watch(
 				</div>
 			</div>
 
-			<ConnectedButtonGroup v-model="tab" :label="t('investments.tabs')" :options="TABS" class="mt-4 mb-1" />
-
-			<template v-if="tab === 'holdings'">
-				<section v-for="group in groups" :key="group.accountId">
-					<div class="group-header">
-						<h2>{{ group.name }}</h2>
-						<MoneyText :amount="group.total" />
-					</div>
-					<ul class="group-rows">
-						<li v-for="holding in group.rows" :key="holding.symbol">
-							<button
-								type="button"
-								class="group-row state-layer focus-ring cursor-pointer"
-								:aria-current="route.params.symbol === holding.symbol ? 'true' : undefined"
-								@click="router.push(`/investments/${holding.symbol}`)"
-							>
-								<span class="flex items-center gap-4 px-4 py-3">
-									<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-										<span class="type-title-medium">{{ holding.symbol }}</span>
-										<span class="type-body-small truncate">{{ holding.name }}</span>
-										<span class="type-body-small text-on-surface-variant">{{
-											t('investments.sharesAt', { shares: sharesShown(holding.shares), price: formatPrice(holding.priceE4) })
-										}}</span>
-									</span>
-									<span class="flex shrink-0 flex-col items-end gap-0.5">
-										<MoneyText :amount="holding.marketValue" class="type-title-medium" />
-										<MoneyText :amount="holding.unrealised" tone="signed-alert" explicit class="type-body-small" />
-										<span class="type-body-small text-on-surface-variant">{{ percentChange(holding.unrealised, holding.costBasis) }}</span>
-									</span>
+			<section v-for="group in groups" :key="group.accountId">
+				<div class="group-header">
+					<h2>{{ group.name }}</h2>
+					<MoneyText :amount="group.total" />
+				</div>
+				<ul class="group-rows">
+					<li v-for="holding in group.rows" :key="holding.symbol">
+						<button
+							type="button"
+							class="group-row state-layer focus-ring cursor-pointer"
+							:aria-current="route.params.symbol === holding.symbol ? 'true' : undefined"
+							@click="router.push(`/investments/${holding.symbol}`)"
+						>
+							<span class="flex items-center gap-4 px-4 py-3">
+								<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+									<span class="type-title-medium">{{ holding.symbol }}</span>
+									<span class="type-body-small truncate">{{ holding.name }}</span>
+									<span class="type-body-small text-on-surface-variant">{{
+										t('investments.sharesAt', { shares: sharesShown(holding.shares), price: formatPrice(holding.priceE4) })
+									}}</span>
 								</span>
-							</button>
-						</li>
-					</ul>
-				</section>
-			</template>
+								<span class="flex shrink-0 flex-col items-end gap-0.5">
+									<MoneyText :amount="holding.marketValue" class="type-title-medium" />
+									<MoneyText :amount="holding.unrealised" tone="signed-alert" explicit class="type-body-small" />
+									<span class="type-body-small text-on-surface-variant">{{ percentChange(holding.unrealised, holding.costBasis) }}</span>
+								</span>
+							</span>
+						</button>
+					</li>
+				</ul>
+			</section>
 
-			<template v-else>
-				<section v-for="day in days" :key="day.date">
-					<div class="group-header">
-						<h2>{{ formatLongDate(day.date) }}</h2>
-						<MoneyText :amount="day.total" tone="signed" />
-					</div>
-					<TradeList :trades="day.rows" show-symbol :selected-id="trading ? editing?.id : null" @edit="openEdit" />
-				</section>
-			</template>
+			<div class="group-header pt-4! pb-1!">
+				<h2>{{ t('investments.activity') }}</h2>
+				<RouterLink to="/investments/activity" class="btn-text">{{ t('investments.seeAll') }}</RouterLink>
+			</div>
+			<TradeList :trades="recent" show-symbol show-date :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 		</template>
 
 		<TradeForm :open="trading" :editing="editing" @close="trading = false" />

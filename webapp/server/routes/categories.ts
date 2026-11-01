@@ -10,6 +10,13 @@ import { categoryCreateSchema, categoryUpdateSchema, listQuerySchema } from '../
 import type { AppEnv } from '../types';
 
 const DUPLICATE_MESSAGE = 'A category with that name already exists for this kind.';
+const SYSTEM_MESSAGE = 'This category is kept for investments and cannot be changed or deleted.';
+
+/** Why a guarded write to an existing category changed nothing: it is a system one, or someone else's. */
+async function refusal(db: D1Database, id: string, userId: string) {
+	const row = await db.prepare('SELECT 1 AS present FROM categories WHERE id = ? AND user_id = ?').bind(id, userId).first();
+	return row ? conflict(SYSTEM_MESSAGE) : notFound('Category not found.');
+}
 
 export const categoryRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
@@ -59,13 +66,15 @@ export const categoryRoutes = new Hono<AppEnv>()
 		let kind = input.kind;
 
 		if (input.parentId) {
-			const parent = await c.env.DB.prepare('SELECT kind, parent_id FROM categories WHERE id = ? AND user_id = ?')
+			const parent = await c.env.DB.prepare('SELECT kind, parent_id, system FROM categories WHERE id = ? AND user_id = ?')
 				.bind(input.parentId, userId)
-				.first<{ kind: typeof kind; parent_id: string | null }>();
+				.first<{ kind: typeof kind; parent_id: string | null; system: string | null }>();
 
 			if (!parent) throw badRequest('Unknown parent category.');
 			// One level only: a subcategory cannot itself be a parent.
 			if (parent.parent_id) throw badRequest('Categories can only nest one level deep.');
+			// A system category is kept as it is, subcategories included.
+			if (parent.system) throw conflict(SYSTEM_MESSAGE);
 
 			kind = parent.kind;
 		}
@@ -78,7 +87,7 @@ export const categoryRoutes = new Hono<AppEnv>()
 				`INSERT INTO categories (id, user_id, name, kind, color, sort_order, parent_id)
 				 SELECT ?, ?, ?, ?, ?, ?, ?
 				 WHERE ? IS NULL
-				    OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND parent_id IS NULL)`,
+				    OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND parent_id IS NULL AND system IS NULL)`,
 			)
 				.bind(id, userId, input.name, kind, input.color, input.sortOrder, input.parentId, input.parentId, input.parentId, userId)
 				.run();
@@ -107,7 +116,11 @@ export const categoryRoutes = new Hono<AppEnv>()
 
 		let changes = 0;
 		try {
-			const result = await c.env.DB.prepare(`UPDATE categories SET ${clause}, updated_at = ${NOW_SQL} WHERE id = ? AND user_id = ?`)
+			// A system category is never changed: the guard is in the statement that writes, so nothing
+			// can slip in between.
+			const result = await c.env.DB.prepare(
+				`UPDATE categories SET ${clause}, updated_at = ${NOW_SQL} WHERE id = ? AND user_id = ? AND system IS NULL`,
+			)
 				.bind(...values, id, userId)
 				.run();
 			changes = result.meta.changes ?? 0;
@@ -116,7 +129,7 @@ export const categoryRoutes = new Hono<AppEnv>()
 			throw error;
 		}
 
-		if (!changes) throw notFound('Category not found.');
+		if (!changes) throw await refusal(c.env.DB, id, userId);
 		await invalidateAllSummaries(c.env.CACHE, userId);
 
 		const row = await c.env.DB.prepare('SELECT * FROM categories WHERE id = ? AND user_id = ?').bind(id, userId).first<CategoryRow>();
@@ -128,8 +141,10 @@ export const categoryRoutes = new Hono<AppEnv>()
 		// Transactions survive: the schema nulls their category_id rather than
 		// cascading, so deleting a category never destroys spending history.
 		// Subcategories do cascade — they belong to the parent, not the ledger.
-		const result = await c.env.DB.prepare('DELETE FROM categories WHERE id = ? AND user_id = ?').bind(c.req.param('id'), userId).run();
-		if (!result.meta.changes) throw notFound('Category not found.');
+		// A system category is never deleted.
+		const id = c.req.param('id');
+		const result = await c.env.DB.prepare('DELETE FROM categories WHERE id = ? AND user_id = ? AND system IS NULL').bind(id, userId).run();
+		if (!result.meta.changes) throw await refusal(c.env.DB, id, userId);
 
 		await invalidateAllSummaries(c.env.CACHE, userId);
 		return c.body(null, 204);

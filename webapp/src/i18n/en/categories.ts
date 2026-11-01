@@ -12,6 +12,7 @@ export default {
 	expand: 'Expand {name}',
 	collapse: 'Collapse {name}',
 	subcategories: '{count} subcategory | {count} subcategories',
+	systemHint: 'Kept for investments',
 	added: 'Category added',
 	updated: 'Category updated',
 	archived: 'Category archived',

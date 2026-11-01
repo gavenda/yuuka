@@ -51,6 +51,7 @@ data class CategoryEntity(
     val parentId: String?,
     val createdAt: String,
     val updatedAt: String,
+    val system: String? = null,
 )
 
 /** A single row, pinned at id 0 — there is exactly one settings record per signed-in user. */

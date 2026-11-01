@@ -36,11 +36,11 @@ describe('subcategories', () => {
 
 	it('inherit their parent’s kind', async () => {
 		const cashflow = await byName('Cashflow');
-		const investments = await byName('Investments');
+		const savings = await byName('Savings');
 
-		expect(investments.parentId).toBe(cashflow.id);
-		expect(investments.kind).toBe(cashflow.kind);
-		expect(investments.kind).toBe('transfer');
+		expect(savings.parentId).toBe(cashflow.id);
+		expect(savings.kind).toBe(cashflow.kind);
+		expect(savings.kind).toBe('transfer');
 	});
 
 	it('can be created under an existing parent', async () => {
@@ -182,6 +182,24 @@ describe('budgets roll subcategories into the parent', () => {
 
 		expect(breakdown.some((entry) => entry.categoryId === supermarket.id)).toBe(false);
 		expect(breakdown.reduce((sum, entry) => sum + entry.actual, 0)).toBe(expenses);
+	});
+
+	it('filters a parent category together with its subcategories', async () => {
+		const groceries = await byName('Groceries');
+		const supermarket = await byName('Supermarket');
+		const transport = await byName('Transport');
+
+		const spend = (categoryId: string) =>
+			call('/transactions', { method: 'POST', body: JSON.stringify({ accountId, categoryId, amount: -1000, occurredOn: '2026-09-04' }) });
+		await spend(groceries.id);
+		await spend(supermarket.id);
+		await spend(transport.id);
+
+		const total = async (query: string) => (await json<{ total: number }>(await call(`/transactions?month=2026-09&${query}`))).total;
+		expect(await total(`categoryId=${groceries.id}`)).toBe(2);
+		// A subcategory on its own is only itself.
+		expect(await total(`categoryId=${supermarket.id}`)).toBe(1);
+		expect(await total(`categoryId=${groceries.id},${supermarket.id}`)).toBe(2);
 	});
 
 	it('refuses a budget on a subcategory', async () => {

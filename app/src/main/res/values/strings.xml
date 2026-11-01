@@ -453,8 +453,9 @@
     <string name="investments_realised">Realised this year</string>
     <string name="investments_dividends">Dividends this year</string>
     <string name="investments_allocation">Allocation</string>
-    <string name="investments_tab_holdings">Holdings</string>
-    <string name="investments_tab_activity">Activity</string>
+    <string name="investments_activity">Activity</string>
+    <string name="category_system_hint">Kept for investments</string>
+    <string name="investments_see_all">See all</string>
     <string name="investments_logo">%1$s logo</string>
     <string name="investments_shares_at">%1$s sh · %2$s</string>
     <string name="investments_new_trade">New trade</string>

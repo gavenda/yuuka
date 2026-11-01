@@ -23,6 +23,7 @@ import * as local from './cache';
 import { request } from './http';
 import { newId } from './ids';
 import {
+	type LedgerView,
 	ledgerView,
 	patched,
 	provisionalAccount,
@@ -109,13 +110,18 @@ export interface TradeInput {
 	fees: number;
 }
 
-/** A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes. */
-function tradeLeg(id: string, input: TradeInput, amount: number) {
+/**
+ * A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes, and
+ * filed under a system category — a buy's or a sell's under the transfer Investments, a dividend's under
+ * the income Investments.
+ */
+function tradeLeg(ledger: LedgerView, id: string, input: TradeInput, amount: number) {
 	const verb = `${input.kind[0]!.toUpperCase()}${input.kind.slice(1)}`;
+	const system = input.kind === 'dividend' ? 'investment_income' : 'investments';
 	return {
 		id,
 		accountId: input.accountId,
-		categoryId: null,
+		categoryId: ledger.categories.find((category) => category.system === system)?.id ?? null,
 		amount,
 		occurredOn: input.occurredOn,
 		payee: input.symbol,
@@ -625,7 +631,7 @@ export const api = {
 		const transactionId = newId('transaction');
 		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
 		const now = new Date().toISOString();
-		const leg = provisionalTransaction(ledger, tradeLeg(transactionId, input, amount));
+		const leg = provisionalTransaction(ledger, tradeLeg(ledger, transactionId, input, amount));
 		const { name, ...body } = input;
 		const trade: Trade = {
 			...body,
@@ -648,7 +654,7 @@ export const api = {
 	updateTrade: (existing: Trade, input: TradeInput) => {
 		const ledger = ledgerView();
 		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
-		const leg = provisionalTransaction(ledger, tradeLeg(existing.transactionId, input, amount));
+		const leg = provisionalTransaction(ledger, tradeLeg(ledger, existing.transactionId, input, amount));
 		const { name, ...body } = input;
 		const trade: Trade = { ...existing, ...body, name, accountName: leg.accountName, amount, updatedAt: new Date().toISOString() };
 		return saved(

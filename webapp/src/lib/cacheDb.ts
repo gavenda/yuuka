@@ -26,9 +26,9 @@
  * The database's version. Bump it when a store, an index or the shape of a stored row changes: the
  * upgrade drops every store and creates them afresh, as Room's destructive migration does, so a row
  * written under another version is never read. 1 was a single key-value `entries` store; 3 added the PSE
- * investments' `securities`, `trades` and `stock_prices`.
+ * investments' `securities`, `trades` and `stock_prices`; 4 a category's `system`.
  */
-const VERSION = 3;
+const VERSION = 4;
 const DATABASE = 'yuuka-cache';
 
 interface TableSpec {

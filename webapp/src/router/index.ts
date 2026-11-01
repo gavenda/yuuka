@@ -27,6 +27,13 @@ const routes: RouteRecordRaw[] = [
 		meta: { titleKey: 'nav.investments' },
 	},
 	{
+		path: '/investments/activity',
+		name: 'investmentActivity',
+		// Investments is its list, as it is a holding's.
+		components: { default: () => import('@/views/ActivityView.vue'), list: () => import('@/views/InvestmentsView.vue') },
+		meta: { titleKey: 'nav.investmentActivity', parent: '/investments' },
+	},
+	{
 		path: '/investments/:symbol',
 		name: 'holding',
 		// Investments is its list: where the page has room, `App.vue` shows it beside the holding.

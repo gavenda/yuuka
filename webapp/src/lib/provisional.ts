@@ -306,6 +306,7 @@ export function provisionalCategory(
 		sortOrder: input.sortOrder ?? 0,
 		archived: false,
 		parentId: input.parentId ?? null,
+		system: null,
 		...stamps(),
 	};
 }

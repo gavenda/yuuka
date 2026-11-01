@@ -112,6 +112,20 @@ data class Category(
     val archived: Boolean,
     /** Null for a top-level category. Nesting is one level deep. */
     val parentId: String? = null,
+    /**
+     * Set on a category nobody can change, which a trade's cash is filed under: [SystemCategories.INVESTMENTS]
+     * (the transfer Investments) a buy's and a sell's, [SystemCategories.INVESTMENT_INCOME] a dividend's.
+     */
+    val system: String? = null,
     val createdAt: String = "",
     val updatedAt: String = "",
 )
+
+/** The keys of the system categories, as the API names them (`SYSTEM_CATEGORIES`). */
+object SystemCategories {
+    const val INVESTMENTS = "investments"
+    const val INVESTMENT_INCOME = "investment_income"
+
+    /** Where a trade of this kind files its cash. */
+    fun forTrade(kind: String): String = if (kind == "dividend") INVESTMENT_INCOME else INVESTMENTS
+}

@@ -113,7 +113,7 @@ describe('local database', () => {
 			await cache.warmCache();
 
 			const db = await openDatabase();
-			expect(db.version).toBe(3);
+			expect(db.version).toBe(4);
 			expect(Array.from(db.objectStoreNames)).not.toContain('entries');
 			db.close();
 		});
@@ -225,6 +225,22 @@ describe('local database', () => {
 			await cache.saveTransactions([matching, other]);
 
 			expect(row.ids((await cache.readTransactionPage(filters, 50))!.transactions)).toEqual(['in']);
+		});
+
+		it('answers a parent category with its subcategories too', async () => {
+			await cache.replaceLedger({
+				...row.ledger('x'),
+				categories: [row.category('p'), row.category('child', { parentId: 'p' }), row.category('q')],
+			});
+			const filters = { ...SEPTEMBER, categoryId: 'p' };
+			await cache.writeTransactionPage(filters, [], 0, 8);
+			await cache.saveTransactions([
+				row.transaction('parent', { categoryId: 'p', occurredOn: '2026-09-02' }),
+				row.transaction('child', { categoryId: 'child', occurredOn: '2026-09-01' }),
+				row.transaction('other', { categoryId: 'q' }),
+			]);
+
+			expect(row.ids((await cache.readTransactionPage(filters, 50))!.transactions)).toEqual(['parent', 'child']);
 		});
 
 		it('shows a row saved since, in its place, in a filter set seen before', async () => {

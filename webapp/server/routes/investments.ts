@@ -6,9 +6,17 @@ import { currentMonth, joinOccurrence, splitOccurrence } from '../dates';
 import { NOW_SQL } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
+import type { SystemCategory } from '../defaults';
 import { positions, refreshSecurities, tradeCash, type TradeKind, type TradeLike } from '../investments';
 import { pricesQuerySchema, tradeCreateSchema, tradeUpdateSchema } from '../schemas';
 import type { AppEnv } from '../types';
+
+/**
+ * A trade's cash is filed under a system category: a buy's or a sell's under the transfer Investments,
+ * a dividend's under the income Investments. Bound as the owner, then `systemCategoryFor(kind)`.
+ */
+const SYSTEM_CATEGORY_ID = 'SELECT id FROM categories WHERE user_id = ? AND system = ?';
+export const systemCategoryFor = (kind: TradeKind): SystemCategory => (kind === 'dividend' ? 'investment_income' : 'investments');
 
 interface SecurityRow {
 	symbol: string;
@@ -163,9 +171,22 @@ export const tradeRoutes = new Hono<AppEnv>()
 		const [inserted] = await c.env.DB.batch([
 			// The account is checked in the statement that writes, as everywhere else.
 			c.env.DB.prepare(
-				`INSERT INTO transactions (id, user_id, account_id, amount, occurred_on, occurred_time, payee, notes)
-				 SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)`,
-			).bind(transactionId, userId, input.accountId, amount, date, time, input.symbol, notes, input.accountId, userId),
+				`INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes)
+				 SELECT ?, ?, ?, (${SYSTEM_CATEGORY_ID}), ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)`,
+			).bind(
+				transactionId,
+				userId,
+				input.accountId,
+				userId,
+				systemCategoryFor(input.kind),
+				amount,
+				date,
+				time,
+				input.symbol,
+				notes,
+				input.accountId,
+				userId,
+			),
 			c.env.DB.prepare(
 				`INSERT INTO trades (id, user_id, account_id, symbol, kind, occurred_on, occurred_time, shares, price_e4, fees, transaction_id)
 				 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM transactions WHERE id = ? AND user_id = ?)`,
@@ -232,9 +253,23 @@ export const tradeRoutes = new Hono<AppEnv>()
 			// The account is checked in the statements that write, as everywhere else.
 			c.env.DB.prepare(
 				`UPDATE transactions
-				 SET account_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?, updated_at = ${NOW_SQL}
+				 SET account_id = ?, category_id = (${SYSTEM_CATEGORY_ID}), amount = ?, occurred_on = ?, occurred_time = ?, payee = ?, notes = ?,
+				     updated_at = ${NOW_SQL}
 				 WHERE id = ? AND user_id = ? AND ${owned}`,
-			).bind(input.accountId, amount, date, time, input.symbol, notes, existing.transaction_id, userId, input.accountId, userId),
+			).bind(
+				input.accountId,
+				userId,
+				systemCategoryFor(input.kind),
+				amount,
+				date,
+				time,
+				input.symbol,
+				notes,
+				existing.transaction_id,
+				userId,
+				input.accountId,
+				userId,
+			),
 			c.env.DB.prepare(
 				`UPDATE trades
 				 SET account_id = ?, symbol = ?, kind = ?, occurred_on = ?, occurred_time = ?, shares = ?, price_e4 = ?, fees = ?, updated_at = ${NOW_SQL}

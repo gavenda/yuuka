@@ -97,7 +97,8 @@ either side deletes the pair, so the two accounts can never disagree.
 its parent's kind, so an "Investments" under "Cashflow" is always a
 transfer category. Its spending counts towards the parent's plan, and
 `/api/summary` returns top-level categories only — each carrying its children's
-figures — so summing the list cannot double-count. A transaction holds a single
+figures — so summing the list cannot double-count. Filtering the transactions by a parent takes its
+subcategories with it, on the server and in both apps' caches alike; a subcategory picked on its own is only itself. A transaction holds a single
 category column, which makes "the main or the sub, never both" true by
 construction rather than by validation.
 
@@ -196,10 +197,10 @@ display currency — amounts are not converted between currencies.
 
 - **PSE investments are trades plus the cash they moved**: A trade is a buy, a sell or a cash dividend of
 one PSE stock in a broker account (any PHP account): whole shares, a price in ten-thousandths of a peso
-(`price_e4`, since the smallest tick is ₱0.0001) and fees in centavos. Each writes one ordinary,
-uncategorised transaction in that account — its cash leg, the stock as payee — and the trade goes with it:
+(`price_e4`, since the smallest tick is ₱0.0001) and fees in centavos. Each writes one ordinary
+transaction in that account — its cash leg, the stock as payee, filed under a system category (below) — and the trade goes with it:
 deleting the leg from the transaction list deletes the trade, and the leg cannot be edited as a
-transaction. The trade itself is edited, by pressing it: whole, from the same form, its leg worked out again and
+transaction: pressing it in Transactions opens the trade's own form. The trade itself is edited, by pressing it: whole, from the same form, its leg worked out again and
 moved rather than replaced. A trade records the time of day as a transaction does (`occurredOn` with an optional
 `THH:MM`, untimed sorting to the start of its day), and the leg carries the same, so a day's trades are worked
 through in the order they were made. A buy's and a sell's cash only turns money into shares and back, so like a transfer it is left
@@ -222,8 +223,24 @@ each company's page under a file name that follows no pattern, so the cron reads
 someone holds (`resolveLogos`, a few a tick, looked at again after 90 days) and keeps only the address
 (`securities.logo_url`); the clients load the image from PSE Edge. A stock's screen stands it centred over the
 name, on a white card of its own since the logos are JPEGs on white, and without one — or while it cannot be
-loaded — the ticker's first letters on a tonal circle stand in. On Android this is
+loaded — the ticker's first letters on a tonal circle stand in. Investments shows the holdings and the five latest trades; "See all" beside the Activity heading opens every trade
+on a screen of its own (`Route.InvestmentActivity`, `/investments/activity`), standing beside Investments as a holding
+does. Every trade is already on the device, since the holdings are worked out from all of them, so that list is
+never asked of the server a page at a time: it shows fifty and the next as its end comes within reach, as
+Transactions does, and ends with Yuuka asleep (`ListEnd`, shared with Transactions). On Android this is
 `InvestmentRepository` and `ui/investments/`; on the web, `stores/investments.ts` and `lib/investments.ts`.
+
+- **Investments is a system category, twice over**: every person has two top-level categories named Investments,
+one `transfer` and one `income` (`categories.system`, `'investments'` and `'investment_income'`), and the server
+files a trade's cash under them — a buy's and a sell's under the first, a dividend's under the second, worked out
+again when an edit changes its kind. Both apps do the same for the leg they write offline. Neither can be renamed,
+recoloured, archived or deleted, nor take a subcategory; they stand at the top level, beside Cashflow rather than
+under it, so nothing done to another category can reach them. On the Categories screen a system category is not
+pressed and has nothing behind a swipe, and says "Kept for investments". Both stay pickable for an ordinary
+transaction or transfer. A buy's or a sell's leg is not a transfer leg, so the cashflow figure still leaves it out;
+a dividend counts under its income category. `migrations/0007_system_categories.sql` made them and filed every
+existing trade's cash; `0008_top_level_investments.sql` moved the transfer one out from under Cashflow, merged it
+into a top-level Investments someone already had, and took away a Cashflow 0007 had made only to hold it.
 
 - **Deleting a category never destroys history**: Transactions fall back to
 uncategorised (`ON DELETE SET NULL`); only budgets cascade. Deleting an account
@@ -487,7 +504,7 @@ generated from them. There is no dynamic colour, and a setting for it is not to 
 again. `ConnectedButtonGroup` does it in both apps; a caller never passes a colour.
 - **Copy with any character in it is Yuuka's**: "I", to "you", never "Sensei", and no cat puns. Labels,
 validation messages and confirmations stay plain.
-- **Her face is for a screen with nothing to show, the end of the transaction list, About, and the sign-out dialog, and the foot of a new transaction, account, category, tag or subscription's form**: through
+- **Her face is for a screen with nothing to show, the end of the transaction list and the investment activity, About, and the sign-out dialog, and the foot of a new transaction, account, category, tag or subscription's form**: through
 `YuukaPortrait`, which `EmptyState` requires a mood for. Never beside a figure, in any other form, a chart or a dialog.
 - **Every image comes from `scripts/brand_assets.py`**: the source art in `branding/` is deliberately not in
 the repository, and nothing the script writes is edited by hand.

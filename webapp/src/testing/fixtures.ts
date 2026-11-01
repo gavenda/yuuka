@@ -42,6 +42,7 @@ export const category = (id: string, extra: Partial<Category> = {}): Category =>
 	sortOrder: 0,
 	archived: false,
 	parentId: null,
+	system: null,
 	...stamps,
 	...extra,
 });

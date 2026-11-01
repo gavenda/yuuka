@@ -4,6 +4,7 @@ export default {
 	dashboard: 'Overview',
 	investments: 'Investments',
 	holding: 'Holding',
+	investmentActivity: 'Activity',
 	transactions: 'Transactions',
 	budget: 'Budget',
 	accounts: 'Accounts',

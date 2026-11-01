@@ -23,11 +23,12 @@ fun CategoryEntity.toDomain() = Category(
     sortOrder = sortOrder,
     archived = archived,
     parentId = parentId,
+    system = system,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
 
-fun Category.toEntity() = CategoryEntity(id, name, kind.name, color, sortOrder, archived, parentId, createdAt, updatedAt)
+fun Category.toEntity() = CategoryEntity(id, name, kind.name, color, sortOrder, archived, parentId, createdAt, updatedAt, system)
 
 fun TagEntity.toDomain() = Tag(id, name, color, transactionCount, total, createdAt, updatedAt)
 

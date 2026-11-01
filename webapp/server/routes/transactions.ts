@@ -269,11 +269,17 @@ export const transactionRoutes = new Hono<AppEnv>()
 		if (query.categoryId) {
 			const ids = query.categoryId.filter((id) => id !== 'none');
 			const clauses = [
-				...(ids.length ? [`t.category_id IN (${ids.map(() => '?').join(', ')})`] : []),
+				// A parent category takes its subcategories with it, as its figures do.
+				...(ids.length
+					? [
+							`t.category_id IN (${ids.map(() => '?').join(', ')})`,
+							`t.category_id IN (SELECT id FROM categories WHERE parent_id IN (${ids.map(() => '?').join(', ')}))`,
+						]
+					: []),
 				...(ids.length < query.categoryId.length ? ['t.category_id IS NULL'] : []),
 			];
 			conditions.push(`(${clauses.join(' OR ')})`);
-			values.push(...ids);
+			values.push(...ids, ...ids);
 		}
 		if (query.tagId) {
 			conditions.push(

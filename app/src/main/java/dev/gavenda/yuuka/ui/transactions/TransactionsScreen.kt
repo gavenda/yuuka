@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
+import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionTag
 import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
@@ -34,6 +35,8 @@ import dev.gavenda.yuuka.domain.TransactionRow
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.formatTime
 import dev.gavenda.yuuka.ui.common.rememberFormSwitch
+import dev.gavenda.yuuka.ui.investments.InvestmentsViewModel
+import dev.gavenda.yuuka.ui.investments.TradeForm
 import dev.gavenda.yuuka.ui.common.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -103,9 +106,24 @@ private fun rememberBackToTop(listState: LazyListState): BackToTopState {
 private class FormTarget(val editing: Transaction?, val transferToAccountId: String?)
 
 @Composable
-fun TransactionsScreen(modifier: Modifier = Modifier, viewModel: TransactionsViewModel = koinViewModel()) {
+fun TransactionsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: TransactionsViewModel = koinViewModel(),
+    investments: InvestmentsViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val investmentState by investments.uiState.collectAsStateWithLifecycle()
+    val tradesByLeg = remember(investmentState.trades) { investmentState.trades.associateBy { it.transactionId } }
     TransactionsScreenContent(
+        tradeFor = { tradesByLeg[it] },
+        tradeForm = { trade, onDismiss ->
+            TradeForm(
+                state = investmentState,
+                onSave = { investments.updateTrade(trade.id, it) },
+                onDismiss = onDismiss,
+                editing = trade,
+            )
+        },
         state = state,
         modifier = modifier,
         onSearchTextChange = viewModel::setSearchText,
@@ -132,6 +150,10 @@ internal fun TransactionsScreenContent(
     onRefreshPayees: () -> Unit = {},
     onSave: suspend (editing: Transaction?, TransactionSubmission) -> String = { _, _ -> "" },
     onDelete: suspend (Transaction) -> Unit = {},
+    /** The trade a row is the cash of, if it is one. */
+    tradeFor: (transactionId: String) -> Trade? = { null },
+    /** A trade's own form: its cash is not edited as a transaction, but the trade is, from here as from Investments. */
+    tradeForm: @Composable (Trade, onDismiss: () -> Unit) -> Unit = { _, _ -> },
 ) {
     val busy = rememberBusyState()
     val scope = rememberCoroutineScope()
@@ -143,6 +165,7 @@ internal fun TransactionsScreenContent(
     var form by remember { mutableStateOf<FormTarget?>(null) }
     var formError by remember { mutableStateOf<String?>(null) }
     var pendingDelete by remember { mutableStateOf<Transaction?>(null) }
+    var tradeEditing by remember { mutableStateOf<Trade?>(null) }
 
     // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
     val switchForm = rememberFormSwitch()
@@ -150,9 +173,12 @@ internal fun TransactionsScreenContent(
         switchForm {
             onRefreshPayees()
             formError = null
+            tradeEditing = null
             form = FormTarget(editing, transferToAccountId)
         }
     }
+    // A trade's cash row opens the trade, whose form works its cash out again; the server refuses an edit of the row itself.
+    val openTrade = { trade: Trade -> switchForm { form = null; tradeEditing = trade } }
 
     val uncategorizedLabel = stringResource(R.string.category_uncategorized)
     val accountOptions = remember(state.accounts) { state.accounts.map { FilterOption(it.id, it.name) } }
@@ -187,7 +213,7 @@ internal fun TransactionsScreenContent(
     val openEdit = { row: TransactionRow ->
         when (row) {
             is TransactionRow.Transfer -> openForm(row.leg, row.toAccountId)
-            is TransactionRow.Single -> openForm(row.transaction, null)
+            is TransactionRow.Single -> tradeFor(row.transaction.id)?.let(openTrade) ?: openForm(row.transaction, null)
         }
     }
     val askDelete = { row: TransactionRow ->
@@ -225,7 +251,7 @@ internal fun TransactionsScreenContent(
             listState = listState,
             // Room for the last row to clear the button that floats over the list.
             contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp),
-            openId = form?.editing?.id,
+            openId = form?.editing?.id ?: tradeEditing?.transactionId,
             onOpen = openEdit,
             onDelete = askDelete,
             onLoadMore = onLoadMore,
@@ -297,6 +323,8 @@ internal fun TransactionsScreenContent(
         )
     } }
 
+    tradeEditing?.let { trade -> key(trade.id) { tradeForm(trade) { tradeEditing = null } } }
+
     val toDelete = pendingDelete
     if (toDelete != null) {
         val deleteKey = "delete:${toDelete.id}"
@@ -317,6 +345,7 @@ internal fun TransactionsScreenContent(
                         // A form standing beside the list closes with what it was editing — either side of a transfer.
                         val open = form?.editing
                         if (open != null && (open.id == toDelete.id || (isTransfer && open.transferId == toDelete.transferId))) form = null
+                        if (tradeEditing?.transactionId == toDelete.id) tradeEditing = null
                     },
                 ) { onDelete(toDelete) }
             },
@@ -394,25 +423,7 @@ private fun TransactionList(
             if (state.hasMore) {
                 item { NextPageFooter(state.moreError, onRetry = onLoadMore) }
             } else {
-                // The end of the list, and only once there is no more of it to load: Yuuka, asleep
-                // over closed books, saying so, so the last row is not mistaken for a page that
-                // stopped short.
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        YuukaPortrait(YuukaMood.Asleep, width = 96.dp)
-                        // As tall as the badge she is in, so the tail is level with her face.
-                        Box(
-                            modifier = Modifier.weight(1f, fill = false).heightIn(min = 96.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            SpeechBubble(stringResource(R.string.transactions_end))
-                        }
-                    }
-                }
+                item { ListEnd() }
             }
         }
     }
@@ -534,35 +545,6 @@ private fun LoadMoreAtEnd(listState: LazyListState, state: TransactionsUiState, 
 
     LaunchedEffect(endInReach, state.hasMore, state.loadedCount, state.status, state.moreError) {
         if (endInReach && state.hasMore && state.moreError == null) onLoadMore()
-    }
-}
-
-/**
- * The foot of either list for as long as there is more of it to load. Reaching it has already asked for the next
- * page, so it only says one is on its way — or, when it could not be had, why, with a way to ask again.
- */
-@Composable
-private fun NextPageFooter(error: String?, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        if (error != null) {
-            Text(
-                error,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-            )
-            TextButton(onClick = onRetry) { Text(stringResource(R.string.action_try_again)) }
-        } else {
-            Text(
-                stringResource(R.string.loading_ellipsis),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

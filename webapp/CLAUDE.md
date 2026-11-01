@@ -281,6 +281,11 @@ silently corrupt.
   in SQL is `kind = 'transfer'` against `kind <> 'transfer'`.
 - **Categories nest one level and children inherit.** Enforced by the
   `categories_hierarchy_*` triggers, not only by `routes/categories.ts`.
+- **A system category is guarded in the statement that writes.** `categories.system` (unique per user)
+  marks the two Investments; `PATCH` and `DELETE /categories/:id` carry `system IS NULL` and answer the refusal
+  with a `409` only after looking the row up for the owner, so someone else's id is still a `404`, and `POST`
+  refuses one as a parent. `POST`/`PATCH /trades` set the leg's category from `SYSTEM_CATEGORY_ID`
+  (`systemCategoryFor(kind)`); `test/system-categories.spec.ts` covers it.
 
 **Budget mode is stored per user, not per budget.** `budget_mode` on `users` is
 `'fixed'` (the default) or `'monthly'`. A fixed budget is stored with `month`
@@ -678,7 +683,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-766 tests: 448 against the API in `test/`, 318 over the browser helpers as
+777 tests: 458 against the API in `test/`, 319 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a
