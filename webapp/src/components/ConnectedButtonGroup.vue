@@ -4,8 +4,8 @@ import type { IconPath } from '@/lib/icons';
 
 /**
  * Material 3 Expressive's connected button group (`ConnectedButtonGroup.kt`): a full-width row of toggle
- * buttons where exactly one of the options is selected. Each is a radio button to assistive tech. A
- * button's place in the row gives it its colour — primary, secondary, tertiary, and round again — which
+ * buttons where exactly one of the options is selected. Each is a radio button to assistive tech. Every
+ * button takes Material's own toggle colours — the surface container at rest, primary when selected — which
  * is the stylesheet's doing (`.connected-group`), so no caller passes one. An option's `icon` leads its label;
  * with `iconOnly` it stands alone, the button is only as wide as that takes, and the label is read out instead.
  */

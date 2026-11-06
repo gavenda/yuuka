@@ -500,8 +500,9 @@ change. What it asks of any screen:
 
 - **The theme is the brand's and nobody's wallpaper**: three seeds in `ui/theme/Color.kt`, the web's roles
 generated from them. There is no dynamic colour, and a setting for it is not to come back.
-- **A connected button group takes its colours from position**: primary, secondary, tertiary, and round
-again. `ConnectedButtonGroup` does it in both apps; a caller never passes a colour.
+- **A connected button group is one colour**: as Material 3 Expressive asks, every button takes Material's
+own toggle colours — the surface container at rest, primary when selected — whatever its place in the row.
+`ConnectedButtonGroup` does it in both apps; a caller never passes a colour.
 - **Copy with any character in it is Yuuka's**: "I", to "you", never "Sensei", and no cat puns. Labels,
 validation messages and confirmations stay plain.
 - **Her face is for a screen with nothing to show, the end of the transaction list and the investment activity, About, and the sign-out dialog, and the foot of a new transaction, account, category, tag or subscription's form**: through

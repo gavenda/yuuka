@@ -563,8 +563,8 @@ classes, not one-offs:
   `SearchField` that with its clear button.
 
 A few more components carry markup a class can't: `ConnectedButtonGroup` (Material's connected button
-group: choose one of a few, each button coloured by its place in the row — primary, secondary, tertiary —
-which `.connected-group` does, not the caller; an option may lead its label with an icon, or with `iconOnly`
+group: choose one of a few, every button in Material's toggle colours — the surface container, primary
+when selected — which `.connected-group` does, not the caller; an option may lead its label with an icon, or with `iconOnly`
 be the icon alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
 `EmptyState` leads with — see [BRANDING.md](../BRANDING.md)), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
 sideways when the window is too narrow for it), `MonthAction` (a month-scoped screen's month picker, whose

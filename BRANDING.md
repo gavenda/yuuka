@@ -64,10 +64,8 @@ The web app has no generator. Its roles in `webapp/src/style.css` are this outpu
 - **Blue (primary)** is the default accent: filled buttons, an amount coming in, the outline of the cat print.
 - **Pyjama blue (secondary)** is an amount moving between the user's own accounts (the dashboard's set-aside and rounded-up figures are drawn on it), a filter that is on, the card the spending chart is drawn on, and the badge behind Yuuka's portrait. The launcher and web icons sit on the input itself.
 - **Pink (tertiary)** is for what is worth a glance without being good or bad: a budget near its limit, a day of spending above the average, the subscriptions still to post this month, the count on a filter button. It is also the ears of the cat print, as on the fabric.
-- **A connected button group** takes all three by position: the first button is primary, the second secondary, the third tertiary, and round again. A button rests in its colour's container and fills with the colour when selected. The component does it (`ConnectedButtonGroup`), so no caller passes a colour.
+- **A connected button group** is primary alone, as Material 3 Expressive asks: every button rests on the surface container and fills with primary when selected, whatever its place in the row. The component does it (`ConnectedButtonGroup`), so no caller passes a colour.
 - **The display mode buttons** in Settings are such a group: following the system is the first and is its icon alone, then Light and Dark with an icon and a word each.
-
-In the dark theme `tertiary` and `tertiaryContainer` are nearly the same pink, so a selected third button there is told from its neighbours by its shape, which rounds off into a pill, more than by its colour.
 
 Every colour drawn comes from the theme. Two are written out as Android resources, and the web has their counterparts:
 

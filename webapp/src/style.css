@@ -625,33 +625,16 @@
 		@apply flex gap-0.5;
 	}
 
+	/* Material's toggle colours for every button, whatever its place: the surface container, primary when selected. */
 	.connected-group > button {
-		--role: var(--color-primary);
-		--on-role: var(--color-on-primary);
-		--role-container: var(--color-primary-container);
-		--on-role-container: var(--color-on-primary-container);
 		@apply state-layer focus-ring type-label-large flex min-h-10 flex-1 cursor-pointer items-center justify-center gap-2 px-4;
 		border-radius: var(--button-inner);
-		background-color: var(--role-container);
-		color: var(--on-role-container);
+		background-color: var(--color-surface-container);
+		color: var(--color-on-surface-variant);
 		transition:
 			border-radius 250ms var(--ease-standard),
 			background-color 200ms var(--ease-standard),
 			color 200ms var(--ease-standard);
-	}
-
-	.connected-group > button:nth-child(3n + 2) {
-		--role: var(--color-secondary);
-		--on-role: var(--color-on-secondary);
-		--role-container: var(--color-secondary-container);
-		--on-role-container: var(--color-on-secondary-container);
-	}
-
-	.connected-group > button:nth-child(3n) {
-		--role: var(--color-tertiary);
-		--on-role: var(--color-on-tertiary);
-		--role-container: var(--color-tertiary-container);
-		--on-role-container: var(--color-on-tertiary-container);
 	}
 
 	/* An option that is its icon alone is only as wide as that takes; the rest share what is left. */
@@ -671,8 +654,8 @@
 
 	.connected-group > button[aria-checked='true'] {
 		border-radius: var(--button-full);
-		background-color: var(--role);
-		color: var(--on-role);
+		background-color: var(--color-primary);
+		color: var(--color-on-primary);
 	}
 
 	.connected-group > button:disabled {

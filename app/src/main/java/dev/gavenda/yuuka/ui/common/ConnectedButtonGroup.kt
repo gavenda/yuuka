@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonColors
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,9 +23,8 @@ import androidx.compose.ui.semantics.semantics
  * exactly one of [options] is selected — the successor to the segmented button row.
  *
  * The end buttons get fully rounded outer corners and the selected one morphs to a pill.
- * A button's place in the row gives it its colour: the first is primary, the second secondary, the
- * third tertiary, and round again. It rests in that role's container and takes the role itself when
- * selected, so a group is the brand's three colours side by side. [label] gives each option's text, and
+ * Every button takes Material's own toggle colours, as Material 3 Expressive asks of a group: it rests
+ * on the surface container and fills with primary when selected. [label] gives each option's text, and
  * [icon], when given, the icon that leads it. An option in [iconOnly] shows its icon alone, is only as wide as
  * that takes, and has its label read out instead. Mirrors `ConnectedButtonGroup.vue`.
  */
@@ -51,7 +48,6 @@ fun <T> ConnectedButtonGroup(
                 checked = option == selected,
                 onCheckedChange = { onSelect(option) },
                 enabled = enabled,
-                colors = roleColors(index),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
@@ -71,31 +67,5 @@ fun <T> ConnectedButtonGroup(
                 }
             }
         }
-    }
-}
-
-/** The colours of the button at [index]: its role's container at rest, the role when checked. Disabled is Material's own. */
-@Composable
-private fun roleColors(index: Int): ToggleButtonColors {
-    val scheme = MaterialTheme.colorScheme
-    return when (index % 3) {
-        0 -> ToggleButtonDefaults.colors(
-            containerColor = scheme.primaryContainer,
-            contentColor = scheme.onPrimaryContainer,
-            checkedContainerColor = scheme.primary,
-            checkedContentColor = scheme.onPrimary,
-        )
-        1 -> ToggleButtonDefaults.colors(
-            containerColor = scheme.secondaryContainer,
-            contentColor = scheme.onSecondaryContainer,
-            checkedContainerColor = scheme.secondary,
-            checkedContentColor = scheme.onSecondary,
-        )
-        else -> ToggleButtonDefaults.colors(
-            containerColor = scheme.tertiaryContainer,
-            contentColor = scheme.onTertiaryContainer,
-            checkedContainerColor = scheme.tertiary,
-            checkedContentColor = scheme.onTertiary,
-        )
     }
 }
