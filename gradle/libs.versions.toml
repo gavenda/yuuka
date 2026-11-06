@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.0"
+agp = "9.5.1"
 coreKtx = "1.19.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -8,31 +8,31 @@ lifecycleRuntimeKtx = "2.11.0"
 lifecycleViewmodelCompose = "2.11.0"
 lifecycleRuntimeCompose = "2.11.0"
 activityCompose = "1.13.0"
-kotlin = "2.4.20"
-ksp = "2.3.12"
+kotlin = "2.4.21"
+ksp = "2.3.13"
 composeBom = "2026.09.00"
 # Pinned above the BOM's 1.4.0 for the Material 3 Expressive APIs (still
 # @ExperimentalMaterial3ExpressiveApi). Free to move on its own: MaterialKolor is only its core,
 # which has no Material 3 dependency.
-material3 = "1.5.0-beta01"
+material3 = "1.5.0-rc01"
 # Material 3 Adaptive: the window's size class, and the list-detail scene Navigation 3 shows Settings
 # and Account types side by side in once the window is Expanded.
 materialAdaptive = "1.4.0-alpha03"
 # View-system Material library, here only for Theme.Material3.DayNight (the window/splash theme).
 material = "1.14.0"
-auth0 = "4.1.0"
-nav3 = "1.2.0"
+auth0 = "4.3.0"
+nav3 = "1.2.1"
 lifecycleViewmodelNav3 = "2.11.0"
 koin = "4.2.2"
 room = "3.0.3"
 retrofit = "3.0.0"
 retrofitKotlinxSerializationConverter = "1.0.0"
-kotlinxSerializationJson = "1.11.0"
-okhttp = "5.5.0"
+kotlinxSerializationJson = "1.12.0"
+okhttp = "5.5.1"
 coil = "3.6.3"
 # Firebase Cloud Messaging: how the app is told that the web app (or another
 # device) changed something, so it refetches only what moved.
-firebaseBom = "34.19.0"
+firebaseBom = "35.1.0"
 googleServices = "4.5.0"
 # Runs the outbox flush on a network constraint, so a queue built offline is
 # sent as soon as there is a connection — with or without the app open.
