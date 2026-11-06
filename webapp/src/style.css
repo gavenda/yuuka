@@ -613,10 +613,8 @@
 
 	/*
 	 * A connected button group (`ConnectedButtonGroup.kt`): toggle buttons two dp apart, pill-ended at the
-	 * outside with small inner corners. A button's place in the row gives it its colour — the first is
-	 * primary, the second secondary, the third tertiary, and round again — resting in that role's
-	 * container and filling with the role itself when selected, when it also rounds off completely, so
-	 * the choice reads by shape as well as colour. Its "full" radius is half the height rather than a
+	 * outside with small inner corners. A selected button also rounds off completely, so the choice
+	 * reads by shape as well as colour. Its "full" radius is half the height rather than a
 	 * huge value, so the corners can animate between the two.
 	 */
 	.connected-group {
