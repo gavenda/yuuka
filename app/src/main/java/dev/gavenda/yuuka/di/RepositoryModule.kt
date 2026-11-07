@@ -6,6 +6,7 @@ import dev.gavenda.yuuka.sync.NetworkMonitor
 import dev.gavenda.yuuka.sync.Outbox
 import dev.gavenda.yuuka.sync.PushRegistrar
 import dev.gavenda.yuuka.sync.SyncWorker
+import dev.gavenda.yuuka.update.AppUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.workmanager.dsl.workerOf
 import org.koin.dsl.module
@@ -26,6 +27,9 @@ val repositoryModule = module {
     single { SubscriptionRepository(get(), get(), get(), get(), get()) }
     single { InvestmentRepository(get(), get(), get(), get(), get(), get()) }
     single { SyncRepository(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+
+    // Offers and installs a newer release from GitHub on a fresh open.
+    single { AppUpdater(androidContext()) }
 
     // Takes the outbox as a constructor argument, which the default factory
     // cannot supply — hence Koin's, installed in `YuukaApplication`.

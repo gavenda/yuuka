@@ -70,10 +70,13 @@ with the cached `index.html`, except under `/api/`, which is not a page and is
 never cached. Figures reach the screen only through the local copy below, so
 there is one place to reason about staleness.
 
-`registerType` is `'prompt'`: a new build downloads and waits, and `App.vue`
-offers a "Reload" strip (`lib/pwa.ts`). Taking it over reloads the page, which
-would throw away a half-filled form, so it is never done on its own; until it is
-taken a tab keeps running the build it started with, files and all. The
+`registerType` is `'prompt'`: a new build downloads and waits, and `lib/pwa.ts`
+takes it on its own at the next moment nobody will notice — right after a route
+change, or while the tab is hidden — but only while it is safe: no dialog open
+(`modalOpen`, `lib/modal.ts`), no form in the pane and no discard question
+pending, since a reload would throw away a half-filled form. Queued changes live
+in IndexedDB and survive it. Until then `App.vue` offers a "Reload" snackbar to
+take it sooner, and the tab keeps running the build it started with, files and all. The
 stale-chunk reload above is still needed — it covers a tab whose chunk was
 deleted by a deploy before its worker ever updated. Do not put a long
 `Cache-Control` on `sw.js`: Static Assets serves it with `max-age=0,

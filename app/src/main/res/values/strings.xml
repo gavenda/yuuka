@@ -37,6 +37,16 @@
     <string name="action_yes_sign_out">Yes, sign out</string>
     <string name="action_no_stay_signed_in">No, stay signed in</string>
 
+    <!-- App update -->
+    <string name="update_confirm_title">Update to version %1$s?</string>
+    <string name="update_body">A newer version of Yuuka is out. It downloads here, then Android asks you to confirm the install. Your ledger and unsent changes stay as they are.</string>
+    <string name="update_permission_body">A newer version of Yuuka is out. Android will first ask you to allow installs from Yuuka; come back and update once you have.</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_failed_body">The update could not be downloaded or installed.</string>
+    <string name="action_yes_update">Yes, update now</string>
+    <string name="action_yes_try_again">Yes, try again</string>
+    <string name="action_no_later">No, later</string>
+
     <!-- Shared field labels -->
     <string name="label_name">Name</string>
     <string name="label_type">Type</string>

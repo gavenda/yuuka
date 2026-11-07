@@ -1,7 +1,10 @@
-import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue';
 
 /** Dialogs that are open, so the page is let go of only when the last one closes. */
-let openCount = 0;
+const openCount = ref(0);
+
+/** Whether any dialog is up — something a reload would close under the person. */
+export const modalOpen = computed(() => openCount.value > 0);
 
 /**
  * What every dialog shares: Escape closes it, the page underneath stops scrolling while it is up,
@@ -14,8 +17,8 @@ export function useModal(open: () => boolean, close: () => void, panel: Ref<HTML
 	function count(isOpen: boolean): void {
 		if (isOpen === counted) return;
 		counted = isOpen;
-		openCount += isOpen ? 1 : -1;
-		document.body.style.overflow = openCount > 0 ? 'hidden' : '';
+		openCount.value += isOpen ? 1 : -1;
+		document.body.style.overflow = openCount.value > 0 ? 'hidden' : '';
 	}
 
 	function onKeydown(event: KeyboardEvent): void {

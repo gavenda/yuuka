@@ -16,7 +16,7 @@ import { currentMonthAction } from '@/lib/monthAction';
 import { isOnline } from '@/lib/online';
 import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
-import { applyUpdate, updateReady } from '@/lib/pwa';
+import { applyUpdate, installAutoUpdate, updateReady } from '@/lib/pwa';
 import { clearSnackbars, showSnackbar } from '@/lib/snackbar';
 import { fullSync, installSliceRefresher } from '@/lib/sync';
 import { discardQueue, flush, hasUnsentChanges, isSyncing, startQueue, unsentChanges } from '@/lib/queue';
@@ -215,8 +215,9 @@ watch(
 	{ immediate: true },
 );
 
-// A new build waits until it is taken, so it is offered as a message that stays until
-// the person acts on it or waves it away.
+// A new build is taken on its own at the next safe moment (see lib/pwa.ts); until then it is
+// offered as a message that stays until the person acts on it or waves it away.
+installAutoUpdate(router);
 watch(
 	updateReady,
 	(ready) => {

@@ -547,6 +547,9 @@ fun YuukaApp(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
                 },
             )
         }
+
+        // A newer release from GitHub, offered once per fresh open.
+        UpdateDialog()
     }
 }
 

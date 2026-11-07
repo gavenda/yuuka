@@ -317,6 +317,19 @@ refresh — what a push or a landed batch asks for — is the same mechanism aim
 at less of the ledger. Both apps do this to the same tables (`SyncRepository` on
 Android, `lib/sync.ts` on the web).
 
+## Updates
+
+- **Each app brings itself up to date, without losing anything typed**: The web app's service worker
+downloads a new build and `lib/pwa.ts` reloads onto it at the next safe moment — right after a screen change
+or while the tab is hidden, never with a form or dialog open — with a "Reload" snackbar to take it sooner.
+The Android app is not installed from a store, so it updates from its GitHub releases (`update/AppUpdater.kt`):
+on a fresh open (once per process; a debug build never asks) it reads the latest release, and one newer than
+`versionName` is offered in a dialog — "Update to version X?", "Yes, update now" / "No, later", no portrait.
+Updating streams the release's `yuuka-v*.apk` into a `PackageInstaller` session and hands over to Android's
+confirmation (`UpdateInstallReceiver`); the first time, Android asks to allow installs from Yuuka. GitHub is
+called with a client of its own, never the API's, which carries the access token. This depends on the
+release workflow's asset name, so renaming the APK there means changing the match here.
+
 ## Provisioning
 
 Signing in for the first time provisions the account: the default account types

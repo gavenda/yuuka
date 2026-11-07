@@ -12,6 +12,11 @@
       it, and works without it being granted.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!--
+      The app is installed from its GitHub releases rather than a store, so it updates itself: a fresh open
+      offers a newer release and installs it through PackageInstaller. See `update/AppUpdater.kt`.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
     <application
             android:name=".YuukaApplication"
@@ -48,6 +53,11 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+
+        <!-- What Android answers an update's install session with. See `update/UpdateInstallReceiver.kt`. -->
+        <receiver
+                android:name=".update.UpdateInstallReceiver"
+                android:exported="false"/>
 
         <!--
           WorkManager's own initialiser is removed so Koin can supply the worker
