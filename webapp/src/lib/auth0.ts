@@ -27,6 +27,13 @@ export const isConfigured = Boolean(domain && clientId && audience);
  * Tokens are cached in localStorage with refresh-token rotation: browsers now
  * block the third-party cookies that silent iframe renewal depended on, so this
  * is what keeps a session alive across reloads.
+ *
+ * The Auth0 application's rotation needs a reuse interval (leeway) above zero.
+ * The SDK retries a failed token request up to three times with the same
+ * refresh token, so a response lost to a network blip, typically on waking from
+ * sleep, makes the retry look like a stolen token. With no leeway Auth0 then
+ * revokes the whole family, and the user is signed out the first time the
+ * access token (24h) needs renewing.
  */
 export const auth0 = createAuth0({
 	domain,

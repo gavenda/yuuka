@@ -5,7 +5,7 @@ interface __BaseEnv_Env {
 	CACHE: KVNamespace;
 	DB: D1Database;
 	AUTH0_DOMAIN: "auth.gavenda.dev";
-	AUTH0_AUDIENCE: "https://api.yuuka.gavenda.dev";
+	AUTH0_AUDIENCE: "https://yuuka.gavenda.dev/api";
 	SEED_DEMO_DATA: "true";
 	VITE_AUTH0_DOMAIN: string;
 	VITE_AUTH0_CLIENT_ID: string;

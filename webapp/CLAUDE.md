@@ -459,6 +459,12 @@ disagree about the current page. The navigation guard waits on the SDK's
 still being exchanged, so deciding early would bounce an arriving user straight
 back to sign-in.
 
+**Refresh-token rotation needs a reuse interval.** The SPA application in Auth0
+rotates refresh tokens, and its `leeway` must stay above zero (30s). The SDK
+retries a failed token request with the same refresh token, so with no leeway a
+response lost in transit reads as token theft: Auth0 revokes the family
+(`ferrt` in the tenant logs) and the session ends as the 24h access token expires.
+
 ## Provisioning
 
 What a new user is given — default types and categories, demo data — is described
