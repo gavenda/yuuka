@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button, Card } from 'tailwind-material3';
 import AlertDialog from '@/components/AlertDialog.vue';
 import BudgetCard from '@/components/BudgetCard.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
@@ -178,12 +179,12 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 		<p v-if="budget.error" class="type-body-medium text-error" role="alert">{{ budget.error }}</p>
 
 		<!-- Planned income: what a percentage-based budget is a share of. Pressing the figure edits it in a dialog. -->
-		<section class="card flex flex-col items-center p-5">
+		<Card as="section" :padded="false" class="flex flex-col items-center p-5">
 			<h2 class="type-label-medium pt-3 uppercase">{{ t('budget.plannedIncome') }}</h2>
 
-			<button type="button" class="btn-text type-headline-medium min-h-13 w-full" @click="startEditingIncome">
+			<Button variant="text" size="m" class="type-headline-medium! w-full" @click="startEditingIncome">
 				{{ incomeLabel }}
-			</button>
+			</Button>
 
 			<!-- PH-specific: what is typed is gross pay, and the take-home net is what actually gets budgeted from. -->
 			<ConnectedButtonGroup
@@ -219,7 +220,7 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 					</li>
 				</ul>
 			</template>
-		</section>
+		</Card>
 
 		<StatCarousel :stats="stats" :currency="currency" tone="tertiary" />
 
@@ -257,8 +258,8 @@ onMounted(() => Promise.all([ledger.load(), budget.load()]));
 			</form>
 
 			<template #actions>
-				<button type="button" class="btn-text" :disabled="savingIncome" @click="cancelEditingIncome">{{ t('common.cancel') }}</button>
-				<button type="submit" form="planned-income-form" class="btn-primary" :disabled="savingIncome">{{ t('common.save') }}</button>
+				<Button variant="text" :disabled="savingIncome" @click="cancelEditingIncome">{{ t('common.cancel') }}</Button>
+				<Button type="submit" form="planned-income-form" :disabled="savingIncome">{{ t('common.save') }}</Button>
 			</template>
 		</AlertDialog>
 	</div>

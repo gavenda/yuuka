@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button, IconButton } from 'tailwind-material3';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
@@ -244,18 +245,18 @@ onMounted(() => ledger.load());
 							}}</span>
 							<span class="type-body-small shrink-0 text-on-surface-variant">{{ countLabel(type) }}</span>
 						</button>
-						<button
+						<IconButton
+							variant="standard"
 							v-if="!type.archived"
-							type="button"
-							class="btn-icon relative ml-1 size-12 cursor-grab touch-none text-on-surface-variant"
+							class="ml-1 size-12! cursor-grab touch-none"
 							:class="drag?.id === type.id ? 'cursor-grabbing' : ''"
-							:aria-label="t('accounts.types.reorder', { name: type.name })"
+							:label="t('accounts.types.reorder', { name: type.name })"
 							:title="t('accounts.types.reorder', { name: type.name })"
 							@pointerdown.stop="onHandleDown($event, index)"
 							@keydown="onHandleKey($event, index)"
 						>
 							<AppIcon :icon="DRAG_INDICATOR" />
-						</button>
+						</IconButton>
 					</div>
 				</SwipeReveal>
 			</li>
@@ -264,9 +265,9 @@ onMounted(() => ledger.load());
 		<p v-if="listError" class="type-body-small text-error" role="alert">{{ listError }}</p>
 
 		<div v-if="archivedCount > 0">
-			<button type="button" class="btn-text" @click="showArchived = !showArchived">
+			<Button variant="text" @click="showArchived = !showArchived">
 				{{ t(showArchived ? 'common.hideArchived' : 'common.showArchived', { count: archivedCount }) }}
-			</button>
+			</Button>
 		</div>
 
 		<!-- A type is only its name, so adding one and renaming one are the same single field in a basic dialog. -->
@@ -290,10 +291,10 @@ onMounted(() => ledger.load());
 			</form>
 
 			<template #actions>
-				<button type="button" class="btn-text" :disabled="busy" @click="nameOpen = false">{{ t('common.cancel') }}</button>
-				<button type="submit" form="account-type-form" class="btn-primary" :disabled="busy || !validation.isValid.value">
+				<Button variant="text" :disabled="busy" @click="nameOpen = false">{{ t('common.cancel') }}</Button>
+				<Button type="submit" form="account-type-form" :disabled="busy || !validation.isValid.value">
 					{{ renaming ? t('common.save') : t('common.add') }}
-				</button>
+				</Button>
 			</template>
 		</AlertDialog>
 

@@ -33,7 +33,7 @@ function mount(initial = '', options = OPTIONS, extra: Record<string, unknown> =
 	);
 	app.mount(host);
 
-	const trigger = () => host!.querySelector<HTMLButtonElement>('button[role="combobox"]')!;
+	const trigger = () => host!.querySelector<HTMLInputElement>('[role="combobox"]')!;
 	const listbox = () => document.body.querySelector<HTMLElement>('[role="listbox"]');
 	const closed = () => trigger().getAttribute('aria-expanded') === 'false';
 	const options$ = () => [...document.body.querySelectorAll<HTMLElement>('[role="option"]')];
@@ -54,13 +54,13 @@ afterEach(() => {
 describe('SelectField', () => {
 	it('shows the chosen option, and nothing at all when nothing is chosen', () => {
 		const chosen = mount('b');
-		expect(chosen.trigger().textContent).toContain('Savings');
+		expect(chosen.trigger().value).toContain('Savings');
 		app?.unmount();
 		host?.remove();
 
 		const empty = mount('');
 		// The field's label rests where the value would be, so a placeholder option is not drawn over it.
-		expect(empty.trigger().textContent?.trim()).toBe('');
+		expect(empty.trigger().value.trim()).toBe('');
 		expect(empty.trigger().getAttribute('aria-expanded')).toBe('false');
 	});
 

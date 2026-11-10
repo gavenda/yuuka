@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
 import type { PayeeSpend } from '@/types';
@@ -16,7 +17,7 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 </script>
 
 <template>
-	<section class="card p-5">
+	<Card as="section" :padded="false" class="p-5">
 		<h2 class="type-title-large">{{ t('dashboard.topPayees') }}</h2>
 
 		<ul class="mt-3 flex flex-col gap-2.5">
@@ -38,5 +39,5 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 				</div>
 			</li>
 		</ul>
-	</section>
+	</Card>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import PlanMeter from '@/components/PlanMeter.vue';
 import { paceHealth, type BudgetPace } from '@/lib/dashboard';
 import { DEFAULT_CURRENCY } from '@/lib/money';
@@ -35,7 +36,7 @@ const paceLines = computed(() => {
 </script>
 
 <template>
-	<section class="card flex flex-col gap-4 p-5">
+	<Card as="section" :padded="false" class="flex flex-col gap-4 p-5">
 		<h2 class="type-title-large">{{ t('dashboard.againstPlan') }}</h2>
 
 		<PlanMeter
@@ -54,5 +55,5 @@ const paceLines = computed(() => {
 			:color="STATUS.good"
 			:lines="[t('dashboard.spentOfPlanned', { spent: displayMoney(income, currency), planned: displayMoney(plannedIncome, currency) })]"
 		/>
-	</section>
+	</Card>
 </template>

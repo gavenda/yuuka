@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
 import { api } from '@/lib/api';
 import { readPayees, replacePayees } from '@/lib/cache';
 import { ERROR } from '@/lib/icons';
 import { isExhausted, PAYEE_LIMIT, rankPayees } from '@/lib/payees';
-import { supportId } from '@/lib/validation';
 import type { Payee } from '@/types';
+import { TextField } from 'tailwind-material3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
@@ -91,8 +90,8 @@ watch(
 );
 
 /** Typing brings back a list that was put away. */
-function onInput(event: Event): void {
-	model.value = (event.target as HTMLInputElement).value;
+function onInput(value: string | number | null): void {
+	model.value = String(value ?? '');
 	open.value = true;
 }
 
@@ -115,48 +114,49 @@ function hint(entry: Payee): string {
 </script>
 
 <template>
-	<div ref="root">
-		<div class="field">
-			<input
-				id="payee"
-				:value="model"
-				class="input"
-				:class="{ 'pr-12': error }"
-				autocomplete="off"
-				role="combobox"
-				aria-autocomplete="list"
-				:aria-expanded="showList"
-				:aria-invalid="error ? 'true' : undefined"
-				:aria-describedby="error ? supportId('payee') : undefined"
-				aria-controls="payee-suggestions"
-				:placeholder="placeholder ?? ' '"
-				@input="onInput"
-				@focus="open = true"
-				@blur="emit('blur')"
-				@keydown="onKeydown"
-			/>
-			<label class="label" for="payee">{{ label }}</label>
-			<AppIcon v-if="error" :icon="ERROR" class="pointer-events-none absolute top-4 right-3 text-error" />
+	<!-- tailwind-material3's outlined `TextField`; `data-field` is the key the form's validation knows it by. -->
+	<div ref="root" class="relative">
+		<TextField
+			:model-value="model"
+			variant="outlined"
+			class="w-full"
+			data-field="payee"
+			:label="label"
+			:placeholder="placeholder"
+			:error="Boolean(error)"
+			autocomplete="off"
+			role="combobox"
+			aria-autocomplete="list"
+			:aria-expanded="showList"
+			aria-controls="payee-suggestions"
+			@update:model-value="onInput"
+			@focus="open = true"
+			@blur="emit('blur')"
+			@keydown="onKeydown"
+		>
+			<template v-if="error" #trailing-icon><AppIcon :icon="ERROR" /></template>
+			<template v-if="error" #supporting-text
+				><span role="alert">{{ error }}</span></template
+			>
+		</TextField>
 
-			<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute inset-x-0 z-20 max-h-64 overflow-y-auto">
-				<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
-					<!-- mousedown, not click: the input's blur would otherwise close the
-					     list before the click landed. -->
-					<button
-						type="button"
-						class="menu-item py-1"
-						:class="index === active ? 'bg-on-surface/10' : ''"
-						@mousedown.prevent="choose(entry)"
-						@mouseenter="active = index"
-					>
-						<span class="min-w-0 flex-1">
-							<span class="block truncate">{{ entry.payee }}</span>
-							<span v-if="hint(entry)" class="type-body-small block truncate">{{ hint(entry) }}</span>
-						</span>
-					</button>
-				</li>
-			</ul>
-		</div>
-		<FieldSupport id="payee" :error="error" />
+		<ul v-if="showList" id="payee-suggestions" role="listbox" class="menu absolute inset-x-0 top-15 z-20 max-h-64 overflow-y-auto">
+			<li v-for="(entry, index) in matches" :key="entry.id" role="option" :aria-selected="index === active">
+				<!-- mousedown, not click: the input's blur would otherwise close the
+				     list before the click landed. -->
+				<button
+					type="button"
+					class="menu-item"
+					:data-active="index === active"
+					@mousedown.prevent="choose(entry)"
+					@mouseenter="active = index"
+				>
+					<span class="min-w-0 flex-1">
+						<span class="block truncate">{{ entry.payee }}</span>
+						<span v-if="hint(entry)" class="type-body-small block truncate">{{ hint(entry) }}</span>
+					</span>
+				</button>
+			</li>
+		</ul>
 	</div>
 </template>

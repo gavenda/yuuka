@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import MoneyText from '@/components/MoneyText.vue';
 import type { InvestmentSummary } from '@/lib/dashboard';
 import { formatLongDate } from '@/lib/dates';
 import { percentChange } from '@/lib/investments';
 import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
 import { t } from '@/i18n';
 
 /**
@@ -27,7 +29,7 @@ const gains = computed(() => [
 </script>
 
 <template>
-	<RouterLink to="/investments" class="card state-layer focus-ring block p-5">
+	<Card :as="RouterLink" interactive :padded="false" to="/investments" class="block p-5">
 		<h2 class="type-title-large">{{ t('nav.investments') }}</h2>
 		<p v-if="summary.asOf" class="type-body-small">{{ t('dashboard.pricesAsOf', { date: formatLongDate(summary.asOf) }) }}</p>
 
@@ -51,5 +53,5 @@ const gains = computed(() => [
 				<MoneyText :amount="stock.marketValue" class="type-body-medium" />
 			</li>
 		</ul>
-	</RouterLink>
+	</Card>
 </template>

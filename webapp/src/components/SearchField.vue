@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { IconButton } from 'tailwind-material3';
 import AppIcon from '@/components/AppIcon.vue';
 import { CLOSE, SEARCH } from '@/lib/icons';
 import { t } from '@/i18n';
@@ -17,8 +18,8 @@ const model = defineModel<string>({ required: true });
 		<AppIcon :icon="SEARCH" />
 		<input v-model="model" type="search" :aria-label="label" :placeholder="placeholder" />
 		<!-- Pressing it leaves the focus where it was, so the typing carries on in the emptied field. -->
-		<button v-if="model" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @mousedown.prevent @click="model = ''">
+		<IconButton variant="standard" v-if="model" class="-mr-2" :label="t('common.clear')" @mousedown.prevent @click="model = ''">
 			<AppIcon :icon="CLOSE" />
-		</button>
+		</IconButton>
 	</label>
 </template>

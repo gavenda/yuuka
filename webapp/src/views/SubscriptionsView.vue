@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { Button } from 'tailwind-material3';
 import { DELETE } from '@/lib/icons';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
 import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -24,7 +24,7 @@ import { showSaved } from '@/lib/sync';
 import { useEditDialog } from '@/lib/editDialog';
 import { whenDiscardable } from '@/lib/formPane';
 import { monthlyTotal, nextDay, scheduleLabel, utcToday } from '@/lib/subscriptions';
-import { supportId, useFormValidation } from '@/lib/validation';
+import { useFormValidation } from '@/lib/validation';
 import { useLedgerStore } from '@/stores/ledger';
 import { useSubscriptionStore } from '@/stores/subscriptions';
 import type { Payee, Subscription } from '@/types';
@@ -85,7 +85,6 @@ const validation = useFormValidation({
 	},
 });
 const { error: fieldError, touch } = validation;
-const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
 
 const categoryGroups = computed(() =>
 	ledger.groupForPicker(form.direction === 'income' ? ledger.incomeCategories : ledger.expenseCategories),
@@ -350,11 +349,9 @@ const amountPrefix = computed(() => {
 						v-model="form.accountId"
 						:label="t('common.account')"
 						:options="accountChoices"
-						:invalid="Boolean(fieldError('subscription-account'))"
-						:describedby="describe('subscription-account')"
+						:error="fieldError('subscription-account')"
 						@blur="touch('subscription-account')"
 					/>
-					<FieldSupport id="subscription-account" :error="fieldError('subscription-account')" />
 				</div>
 
 				<SelectField id="subscription-category" v-model="form.categoryId" :label="t('common.category')" :options="categoryChoices" />
@@ -367,14 +364,9 @@ const amountPrefix = computed(() => {
 						:label="editing ? t('subscriptions.nextPostsOn') : t('subscriptions.startsOn')"
 						type="date"
 						:min="editing && initialStartOn < earliest ? undefined : earliest"
-						:invalid="Boolean(fieldError('subscription-start'))"
-						describedby="subscription-start-support"
-						@blur="touch('subscription-start')"
-					/>
-					<FieldSupport
-						id="subscription-start"
-						:error="fieldError('subscription-start')"
 						:hint="editing ? `${t('subscriptions.startHint')} ${t('subscriptions.restartHint')}` : t('subscriptions.startHint')"
+						:error="fieldError('subscription-start')"
+						@blur="touch('subscription-start')"
 					/>
 				</div>
 
@@ -397,8 +389,8 @@ const amountPrefix = computed(() => {
 		<AlertDialog :open="pendingDelete !== null" :title="t('subscriptions.deleteTitle')" :icon="DELETE" @close="pendingDelete = null">
 			{{ t('subscriptions.deleteBody', { name: pendingDelete?.payee ?? '' }) }}
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-danger" @click="remove">{{ t('common.yesDelete') }}</button>
+				<Button variant="text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</Button>
+				<Button class="tone-error" @click="remove">{{ t('common.yesDelete') }}</Button>
 			</template>
 		</AlertDialog>
 

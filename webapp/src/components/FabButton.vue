@@ -2,6 +2,7 @@
 import AppIcon from '@/components/AppIcon.vue';
 import { registerFab } from '@/lib/fab';
 import { ADD, type IconPath } from '@/lib/icons';
+import { Fab } from 'tailwind-material3';
 import { onBeforeUnmount, reactive, toRefs } from 'vue';
 
 /**
@@ -19,9 +20,9 @@ onBeforeUnmount(unregister);
 
 <template>
 	<div class="fixed right-4 bottom-24 z-20 sm:hidden">
-		<button type="button" class="fab relative" @click="emit('click')">
-			<AppIcon :icon="icon" />
+		<Fab @click="emit('click')">
+			<template #icon><AppIcon :icon="icon" /></template>
 			{{ label }}
-		</button>
+		</Fab>
 	</div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { IconButton } from 'tailwind-material3';
 import AppIcon from '@/components/AppIcon.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FormDialog from '@/components/FormDialog.vue';
@@ -283,9 +284,9 @@ onMounted(() => ledger.load());
 					:aria-label="t('settings.searchCurrencies')"
 					:placeholder="t('settings.searchPlaceholder')"
 				/>
-				<button v-if="currencySearch" type="button" class="btn-icon -mr-2" :aria-label="t('common.clear')" @click="currencySearch = ''">
+				<IconButton variant="standard" v-if="currencySearch" class="-mr-2" :label="t('common.clear')" @click="currencySearch = ''">
 					<AppIcon :icon="CLOSE" />
-				</button>
+				</IconButton>
 			</label>
 
 			<div class="selection-list">

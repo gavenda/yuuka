@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import { rankAndFold } from '@/lib/chart';
 import { useHarmonised } from '@/lib/harmonise';
 import { DEFAULT_CURRENCY } from '@/lib/money';
@@ -48,7 +49,7 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 </script>
 
 <template>
-	<section class="card p-5">
+	<Card as="section" :padded="false" class="p-5">
 		<h2 class="type-title-large">{{ title }}</h2>
 
 		<p v-if="!rows.length" class="type-body-small mt-3">{{ t('dashboard.nothingRecorded') }}</p>
@@ -74,5 +75,5 @@ const fraction = (amount: number) => (largest.value > 0 ? Math.min(1, Math.max(0
 				</p>
 			</li>
 		</ul>
-	</section>
+	</Card>
 </template>

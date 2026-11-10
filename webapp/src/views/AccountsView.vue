@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { Button } from 'tailwind-material3';
 import { DELETE } from '@/lib/icons';
 import AccountLogo from '@/components/AccountLogo.vue';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
 import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -24,7 +24,7 @@ import { showSnackbar } from '@/lib/snackbar';
 import { showSaved } from '@/lib/sync';
 import { useEditDialog } from '@/lib/editDialog';
 import { whenDiscardable } from '@/lib/formPane';
-import { currencyProblem, logoUrlProblem, nameProblem, supportId, useFormValidation } from '@/lib/validation';
+import { currencyProblem, logoUrlProblem, nameProblem, useFormValidation } from '@/lib/validation';
 import { useBudgetStore } from '@/stores/budget';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Account } from '@/types';
@@ -58,7 +58,6 @@ const validation = useFormValidation({
 	'account-logo': () => (form.bank ? null : logoUrlProblem(form.logoUrl)),
 });
 const { error: fieldError, touch } = validation;
-const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
 
 const adjustDialogOpen = ref(false);
 const adjusting = ref<Account | null>(null);
@@ -359,9 +358,9 @@ onMounted(() => ledger.load());
 		</section>
 
 		<div v-if="archivedCount > 0" class="pt-1">
-			<button type="button" class="btn-text" @click="showArchived = !showArchived">
+			<Button variant="text" @click="showArchived = !showArchived">
 				{{ t(showArchived ? 'common.hideArchived' : 'common.showArchived', { count: archivedCount }) }}
-			</button>
+			</Button>
 		</div>
 
 		<FormDialog
@@ -387,11 +386,9 @@ onMounted(() => ledger.load());
 						v-model="form.typeId"
 						:label="t('common.type')"
 						:options="typeChoices"
-						:invalid="Boolean(fieldError('account-type'))"
-						:describedby="describe('account-type')"
+						:error="fieldError('account-type')"
 						@blur="touch('account-type')"
 					/>
-					<FieldSupport id="account-type" :error="fieldError('account-type')" />
 				</div>
 
 				<SelectField id="account-bank" v-model="form.bank" :label="t('accounts.bank')" :options="bankChoices" />
@@ -486,10 +483,10 @@ onMounted(() => ledger.load());
 
 			<!-- Outside the form, as a dialog's buttons are, so Save names the form it submits. -->
 			<template #actions>
-				<button type="button" class="btn-text" @click="adjustDialogOpen = false">{{ t('common.cancel') }}</button>
-				<button type="submit" form="adjust-form" class="btn-primary" :disabled="!adjustValidation.isValid.value">
+				<Button variant="text" @click="adjustDialogOpen = false">{{ t('common.cancel') }}</Button>
+				<Button type="submit" form="adjust-form" :disabled="!adjustValidation.isValid.value">
 					{{ t('accounts.saveAdjustment') }}
-				</button>
+				</Button>
 			</template>
 		</AlertDialog>
 
@@ -504,10 +501,10 @@ onMounted(() => ledger.load());
 			</template>
 			<template v-else>{{ t('accounts.deleteBody') }}</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="closeDelete">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-danger" @click="remove">
+				<Button variant="text" @click="closeDelete">{{ t('common.noGoBack') }}</Button>
+				<Button class="tone-error" @click="remove">
 					{{ deleteHasHistory ? t('accounts.deleteEverything') : t('common.yesDelete') }}
-				</button>
+				</Button>
 			</template>
 		</AlertDialog>
 

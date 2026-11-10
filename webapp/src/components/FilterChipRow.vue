@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import AppIcon from '@/components/AppIcon.vue';
-import { CHECK } from '@/lib/icons';
+import { Button, Chip } from 'tailwind-material3';
 import { t } from '@/i18n';
 
 /**
@@ -37,20 +36,20 @@ function toggle(id: string): void {
 						class="-ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto py-1.5 pl-4 [scrollbar-width:none]"
 						:class="selected.length ? 'pr-2' : '-mr-4 pr-4'"
 					>
-						<button
+						<!-- tailwind-material3's filter chip, at the app's 8dp corners: it fills and carries a check once it is on. -->
+						<Chip
 							v-for="option in options"
 							:key="option.id"
-							type="button"
-							class="chip max-w-none shrink-0 whitespace-nowrap"
-							:aria-pressed="selected.includes(option.id)"
-							@click="toggle(option.id)"
+							type="filter"
+							class="rounded-sm!"
+							:selected="selected.includes(option.id)"
+							@update:selected="toggle(option.id)"
 						>
-							<AppIcon v-if="selected.includes(option.id)" :icon="CHECK" :size="18" />
-							<span>{{ option.label }}</span>
-						</button>
+							{{ option.label }}
+						</Chip>
 					</div>
 
-					<button v-if="selected.length" type="button" class="btn-text shrink-0" @click="selected = []">{{ t('common.clear') }}</button>
+					<Button variant="text" v-if="selected.length" class="shrink-0" @click="selected = []">{{ t('common.clear') }}</Button>
 				</template>
 			</div>
 		</div>

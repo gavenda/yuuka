@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import { axisScale, compactAmount, dailyAverage, monthSeries, scallopPath } from '@/lib/chart';
 import { formatLongDate } from '@/lib/dates';
 import { currencySymbol, DEFAULT_CURRENCY } from '@/lib/money';
@@ -180,7 +181,7 @@ onBeforeUnmount(() => observer?.disconnect());
 
 <template>
 	<!-- On a secondary container, as on Android: the one card on the dashboard that is a picture rather than a figure. -->
-	<section class="card-secondary p-5">
+	<Card as="section" :padded="false" class="bg-secondary-container! text-on-secondary-container! p-5">
 		<h2 class="type-title-large">{{ t('dashboard.chart.title') }}</h2>
 
 		<p v-if="!hasData" class="type-body-small">{{ t('dashboard.chart.empty') }}</p>
@@ -332,5 +333,5 @@ onBeforeUnmount(() => observer?.disconnect());
 				</table>
 			</div>
 		</template>
-	</section>
+	</Card>
 </template>

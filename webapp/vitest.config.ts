@@ -17,6 +17,6 @@ export default defineConfig({
 		environment: 'happy-dom',
 		// Material's colour utilities ship ES modules that import each other without file extensions, which
 		// Node will not resolve on its own; passing them through Vite, as the build does, is what loads them.
-		server: { deps: { inline: ['@material/material-color-utilities'] } },
+		server: { deps: { inline: ['@material/material-color-utilities', 'tailwind-material3'] } },
 	},
 });

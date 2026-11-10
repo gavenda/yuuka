@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button, IconButton } from 'tailwind-material3';
 import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import { currentMonth } from '@/lib/dates';
@@ -50,13 +51,13 @@ function pick(month: string): void {
 	<AlertDialog :open="picking" @close="picking = false">
 		<div class="w-[min(100%,20rem)] text-on-surface sm:w-80">
 			<div class="flex items-center">
-				<button type="button" class="btn-icon m-1" :aria-label="t('common.months.previousYear')" @click="year--">
+				<IconButton variant="standard" class="m-1" :label="t('common.months.previousYear')" @click="year--">
 					<AppIcon :icon="KEYBOARD_ARROW_LEFT" />
-				</button>
+				</IconButton>
 				<span class="type-title-medium flex-1 text-center" aria-live="polite">{{ year }}</span>
-				<button type="button" class="btn-icon m-1" :aria-label="t('common.months.nextYear')" @click="year++">
+				<IconButton variant="standard" class="m-1" :label="t('common.months.nextYear')" @click="year++">
 					<AppIcon :icon="KEYBOARD_ARROW_RIGHT" />
-				</button>
+				</IconButton>
 			</div>
 
 			<div class="grid grid-cols-3 gap-2 pt-2">
@@ -81,7 +82,7 @@ function pick(month: string): void {
 		</div>
 
 		<template #actions>
-			<button type="button" class="btn-text" @click="picking = false">{{ t('common.cancel') }}</button>
+			<Button variant="text" @click="picking = false">{{ t('common.cancel') }}</Button>
 		</template>
 	</AlertDialog>
 </template>

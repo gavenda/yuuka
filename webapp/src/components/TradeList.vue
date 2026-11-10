@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from 'tailwind-material3';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -100,7 +101,7 @@ async function remove(): Promise<void> {
 	<AlertDialog :open="pending !== null && blocked" role="dialog" :title="t('investments.deleteBlockedTitle')" @close="pending = null">
 		{{ t('investments.deleteBlockedBody', { symbol: pending?.symbol ?? '' }) }}
 		<template #actions>
-			<button type="button" class="btn-text" @click="pending = null">{{ t('common.noGoBack') }}</button>
+			<Button variant="text" @click="pending = null">{{ t('common.noGoBack') }}</Button>
 		</template>
 	</AlertDialog>
 
@@ -112,8 +113,8 @@ async function remove(): Promise<void> {
 	>
 		{{ t('investments.deleteBody', { account: pending?.accountName ?? '' }) }}
 		<template #actions>
-			<button type="button" class="btn-text" @click="pending = null">{{ t('common.noGoBack') }}</button>
-			<button type="button" class="btn-danger" @click="remove">{{ t('common.yesDelete') }}</button>
+			<Button variant="text" @click="pending = null">{{ t('common.noGoBack') }}</Button>
+			<Button class="tone-error" @click="remove">{{ t('common.yesDelete') }}</Button>
 		</template>
 	</AlertDialog>
 </template>

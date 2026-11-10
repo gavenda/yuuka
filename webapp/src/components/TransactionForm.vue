@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Chip } from 'tailwind-material3';
 import FormDialog from '@/components/FormDialog.vue';
 import YuukaSays from '@/components/YuukaSays.vue';
 import PickerField from '@/components/PickerField.vue';
@@ -320,11 +321,9 @@ const amountPrefix = computed(() => {
 					v-model="form.accountId"
 					:label="form.mode === 'transfer' ? t('transactions.form.fromAccount') : t('common.account')"
 					:options="accountChoices"
-					:invalid="Boolean(fieldError('account'))"
-					:describedby="describe('account')"
+					:error="fieldError('account')"
 					@blur="touch('account')"
 				/>
-				<FieldSupport id="account" :error="fieldError('account')" />
 			</div>
 
 			<div v-if="form.mode === 'transfer'">
@@ -333,11 +332,9 @@ const amountPrefix = computed(() => {
 					v-model="form.toAccountId"
 					:label="t('transactions.form.toAccount')"
 					:options="accountChoices"
-					:invalid="Boolean(fieldError('to-account'))"
-					:describedby="describe('to-account')"
+					:error="fieldError('to-account')"
 					@blur="touch('to-account')"
 				/>
-				<FieldSupport id="to-account" :error="fieldError('to-account')" />
 			</div>
 
 			<!-- Parents and their children are both selectable, but only one at a
@@ -356,11 +353,9 @@ const amountPrefix = computed(() => {
 						v-model="form.occurredOn"
 						:label="t('common.date')"
 						type="date"
-						:invalid="Boolean(fieldError('date'))"
-						:describedby="describe('date')"
+						:error="fieldError('date')"
 						@blur="touch('date')"
 					/>
-					<FieldSupport id="date" :error="fieldError('date')" />
 				</div>
 
 				<!-- A subscription posts at 00:00 UTC, so there is no time here for anyone to set. -->
@@ -393,17 +388,21 @@ const amountPrefix = computed(() => {
 			<fieldset v-if="ledger.tags.length" id="tags" tabindex="-1" class="min-w-0" :aria-describedby="describe('tags')">
 				<legend class="type-label-medium pb-3.5 text-on-surface">{{ t('common.tags') }}</legend>
 				<div class="flex flex-wrap gap-x-2 gap-y-1">
-					<button
+					<Chip
 						v-for="tag in ledger.tags"
 						:key="tag.id"
-						type="button"
-						class="chip pl-2"
-						:aria-pressed="form.tagIds.includes(tag.id)"
-						@click="toggleTag(tag.id)"
+						type="filter"
+						class="max-w-full rounded-sm!"
+						:selected="form.tagIds.includes(tag.id)"
+						@update:selected="toggleTag(tag.id)"
 					>
-						<span class="size-2 shrink-0 rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" aria-hidden="true" />
+						<template #icon>
+							<span class="grid place-items-center" aria-hidden="true">
+								<span class="size-2! rounded-full" :style="{ backgroundColor: harmonised(tag.color) }" />
+							</span>
+						</template>
 						<span class="truncate">{{ tag.name }}</span>
-					</button>
+					</Chip>
 				</div>
 				<FieldSupport id="tags" :error="fieldError('tags')" class="!px-0" />
 			</fieldset>

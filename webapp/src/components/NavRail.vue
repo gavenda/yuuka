@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import CatPattern from '@/components/CatPattern.vue';
 import AppIcon from '@/components/AppIcon.vue';
-import RailItem from '@/components/RailItem.vue';
 import { formatMonth } from '@/lib/dates';
 import { currentFab, type FabEntry } from '@/lib/fab';
 import { ATTACH_MONEY, CALENDAR_MONTH, LOGOUT, MENU, MENU_OPEN, MONEY_OFF } from '@/lib/icons';
 import { currentMonthAction } from '@/lib/monthAction';
 import { dailyLinks, navGroups, settingsLink } from '@/lib/nav';
 import { useAmountVisibility } from '@/lib/privacy';
-import { railPushesContent, useRail } from '@/lib/rail';
+import { railDocked, railPushesContent, useRail } from '@/lib/rail';
+import { Fab, NavigationItem, NavigationRail, NavigationRailMenuButton } from 'tailwind-material3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { t } from '@/i18n';
 
 defineProps<{
@@ -22,8 +22,13 @@ defineProps<{
 
 const emit = defineEmits<{ 'sign-out': [] }>();
 
-const { expanded, toggle, collapse } = useRail();
+const { expanded, collapse, setExpanded } = useRail();
 const route = useRoute();
+
+/** A destination is current on its own screen, and on one opened from it (the account types, from Settings). */
+function isCurrent(to: string): boolean {
+	return route.path === to || route.meta.parent === to;
+}
 
 /**
  * The FAB in the slot is one persistent button, never rebuilt. A page bringing a FAB opens the slot and pops
@@ -122,25 +127,26 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 /**
- * The open rail is as wide as what it holds — the longest label, the account card — as Material's wide rail
- * is: its content plus a 20px margin, between 220 and 360. The content is always laid out at its open size
- * (the slim rail only clips it), so its width can be read at any time, and the page is told through
- * `--rail-open` how far to move aside.
+ * The open rail is as wide as what it holds — the longest label, the account card — as Material's wide rail is,
+ * between 220 and 360 (tailwind-material3's `NavigationRail` sizes itself). Docked, the page moves aside by as much:
+ * the rail's width is read on every frame it changes and handed to the page as `--rail-open`, so the page follows
+ * the rail's own spring rather than a curve of its own.
  */
-const innerEl = ref<HTMLElement | null>(null);
+const railEl = ref<HTMLElement | null>(null);
 let observer: ResizeObserver | undefined;
 
 function measure(): void {
-	const width = innerEl.value?.offsetWidth;
+	const width = railEl.value?.querySelector('nav')?.offsetWidth;
 	if (!width) return;
-	document.documentElement.style.setProperty('--rail-open', `${Math.min(360, Math.max(220, width + 20))}px`);
+	document.documentElement.style.setProperty('--rail-open', `${width}px`);
 }
 
 onMounted(() => {
+	const nav = railEl.value?.querySelector('nav');
 	measure();
-	if (innerEl.value && typeof ResizeObserver !== 'undefined') {
+	if (nav && typeof ResizeObserver !== 'undefined') {
 		observer = new ResizeObserver(measure);
-		observer.observe(innerEl.value);
+		observer.observe(nav);
 	}
 });
 
@@ -151,212 +157,184 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<!-- Below the docked width the open rail floats over the page, so the page behind it is dimmed
-	     and a tap on it closes the rail. -->
-	<Transition
-		enter-active-class="transition-opacity duration-300 ease-standard-decelerate"
-		enter-from-class="opacity-0"
-		leave-active-class="transition-opacity duration-200 ease-standard-accelerate"
-		leave-to-class="opacity-0"
-	>
-		<div v-if="expanded" class="fixed inset-0 z-30 hidden bg-scrim/32 sm:block lg:hidden" aria-hidden="true" @click="collapse" />
-	</Transition>
-
 	<!--
-	  One structure for both states. Opening the rail changes its width and flips `expanded`; every
-	  element below moves to its open geometry by CSS transition (see `.rail-item`, `.rail-fab` and
-	  `.rail-collapse` in style.css), so the slim and the open rail morph into each other rather than swap.
-	  Icons sit 36px from the left edge in both, which is what lets them stay put while everything else moves.
+	  tailwind-material3's `NavigationRail`, which morphs between slim (96px) and open by itself: items' pills grow to
+	  hug icon and label, labels cross-fade from under the icons to beside them, and icons keep their place. Docked
+	  (from 1024px) the open rail pushes the page aside; below that it is modal, floating over the page behind a scrim
+	  that closes it.
 	-->
-	<nav
-		id="primary-rail"
-		:aria-label="t('nav.primary')"
-		class="rail fixed inset-y-0 left-0 z-40 hidden overflow-hidden bg-surface sm:block"
-		:class="{ 'max-lg:bg-surface-container max-lg:shadow-elevation-2': expanded }"
-		:data-expanded="expanded"
+	<div
+		ref="railEl"
+		class="fixed inset-y-0 left-0 z-40 hidden sm:block [&_nav>div:last-child]:min-h-0 [&_nav>div:last-child]:flex-1"
 		@keydown="onKeydown"
 	>
-		<div ref="innerEl" class="rail-inner pt-11">
-			<!-- The app's mark, in either state, with its name and version beside it once the rail is open. It is
-			     a mark rather than a control (no link, and never the menu button, which sits beneath it), so it
-			     cannot be mistaken for one. The rail's Dashboard destination is the way home. -->
-			<div class="relative isolate flex items-center pb-3 pl-7" aria-hidden="true">
-				<!-- Only in the open rail: a strip of the print behind the name, from the rail's top edge down to
-				     the menu button and thinning out towards the page. -->
-				<CatPattern
-					class="rail-fade absolute -top-16 left-0 -z-10 h-[calc(100%+4rem)] w-[220px]"
-					print="small"
-					fade="trailing"
-					:data-shown="expanded"
-				/>
-				<img src="/yuuka.png" alt="" class="size-10 shrink-0 rounded-full object-cover" />
-				<span class="rail-fade flex items-baseline gap-1.5 pr-4 pl-3 whitespace-nowrap text-on-surface" :data-shown="expanded">
-					<span class="type-title-large">yuuka</span>
-					<span class="type-label-small">v{{ version }}</span>
-				</span>
-			</div>
+		<NavigationRail
+			id="primary-rail"
+			:expanded="expanded"
+			:modal="!railDocked"
+			:label="t('nav.primary')"
+			class="h-full"
+			@update:expanded="setExpanded"
+		>
+			<template #header>
+				<!-- The app's mark, in either state, with its name and version beside it once the rail is open. It is
+				     a mark rather than a control (no link, and never the menu button, which sits beneath it), so it
+				     cannot be mistaken for one. The rail's destinations are the way home. -->
+				<div class="relative isolate ms-2 flex items-center pb-3" aria-hidden="true">
+					<!-- Only in the open rail: a strip of the print behind the name, from the rail's top edge down to
+					     the menu button and thinning out towards the page. -->
+					<CatPattern
+						class="rail-fade absolute -top-16 -left-7 -z-10 h-[calc(100%+4rem)] w-[220px]"
+						print="small"
+						fade="trailing"
+						:data-shown="expanded"
+					/>
+					<img src="/yuuka.png" alt="" class="size-10 shrink-0 rounded-full object-cover" />
+					<span class="rail-fade flex items-baseline gap-1.5 pr-4 pl-3 whitespace-nowrap text-on-surface" :data-shown="expanded">
+						<span class="type-title-large">yuuka</span>
+						<span class="type-label-small">v{{ version }}</span>
+					</span>
+				</div>
 
-			<button
-				type="button"
-				class="btn-icon m-1 ml-7 text-on-surface"
-				:aria-label="expanded ? t('nav.collapse') : t('nav.expand')"
-				:aria-expanded="expanded"
-				aria-controls="primary-rail"
-				@click="toggle"
-			>
-				<!-- Both glyphs are always there, stacked; the one that matches the state shows. Open, it is
-				     Material's "menu open", since pressing it then closes the rail. -->
-				<AppIcon :icon="MENU" class="rail-fade col-start-1 row-start-1" :data-shown="!expanded" />
-				<AppIcon :icon="MENU_OPEN" class="rail-fade col-start-1 row-start-1" :data-shown="expanded" />
-			</button>
+				<NavigationRailMenuButton class="text-on-surface!" :expand-label="t('nav.expand')" :collapse-label="t('nav.collapse')">
+					<template #menu-icon><AppIcon :icon="MENU" /></template>
+					<template #menu-open-icon><AppIcon :icon="MENU_OPEN" /></template>
+				</NavigationRailMenuButton>
 
-			<!-- The screen's leading action, under the menu as Material places it. It has a slot of its own:
-			     when a page brings a FAB the slot opens and the destinations slide down, and the FAB pops in;
-			     when it goes, the reverse. The same button in both rail states: a 56px square that widens into
-			     an extended FAB and reveals its label. -->
-			<div ref="slotEl" class="rail-slot" :data-open="fabOpen" :inert="!fabOpen">
-				<div>
-					<div v-if="shownFab" class="rail-fab-box">
-						<span class="rail-fab-ghost" aria-hidden="true">{{ shownFab.label }}</span>
-						<button
-							type="button"
-							class="fab rail-fab shadow-elevation-3"
-							:data-expanded="fabExpanded"
-							:data-shown="fabShown"
-							:aria-label="shownFab.label"
-							:title="shownFab.label"
-							@click="pressFab"
-						>
-							<AppIcon :icon="shownFab.icon" />
-							<span class="rail-fade whitespace-nowrap" :data-shown="fabExpanded">{{ shownFab.label }}</span>
-						</button>
+				<!-- The screen's leading action, under the menu as Material places it. It has a slot of its own: when a
+				     page brings a FAB the slot opens and the destinations slide down, and the FAB pops in; when it goes,
+				     the reverse. The same button in both rail states: a square while slim, an extended FAB when open. -->
+				<div ref="slotEl" class="rail-slot" :data-open="fabOpen" :inert="!fabOpen">
+					<div>
+						<Fab v-if="shownFab" class="rail-fab" :data-shown="fabShown" :expanded="fabExpanded" :title="shownFab.label" @click="pressFab">
+							<template #icon><AppIcon :icon="shownFab.icon" /></template>
+							{{ shownFab.label }}
+						</Fab>
 					</div>
 				</div>
-			</div>
+			</template>
 
-			<!-- Material's wide rail keeps this gap between its header and its items. -->
-			<div class="mt-10 flex min-h-0 flex-1 flex-col">
-				<!-- One scrolling column: on a short window the open rail would otherwise run off the bottom. -->
-				<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:none]">
-					<RailItem
-						v-for="link in dailyLinks"
-						:key="link.to"
-						:to="link.to"
-						:label="link.label"
-						:icon="link.icon"
-						:icon-selected="link.iconSelected"
-						:expanded="expanded"
-						@click="afterChoice"
-					/>
+			<!-- One scrolling column: on a short window the open rail would otherwise run off the bottom. -->
+			<div class="-mx-2 min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 [scrollbar-width:none]">
+				<NavigationItem
+					v-for="link in dailyLinks"
+					:key="link.to"
+					:as="RouterLink"
+					:to="link.to"
+					:label="link.label"
+					:active="isCurrent(link.to)"
+					@click="afterChoice"
+				>
+					<template #icon><AppIcon :icon="link.icon" /></template>
+					<template v-if="link.iconSelected" #active-icon><AppIcon :icon="link.iconSelected" /></template>
+				</NavigationItem>
 
-					<!-- Only in the open rail: it grows out of nothing rather than appearing, and is inert while shut. -->
-					<div class="rail-collapse" :data-open="expanded" :inert="!expanded">
-						<div>
-							<template v-for="group in navGroups" :key="group.label">
-								<h2 class="type-title-small pt-4 pb-2 pl-8 whitespace-nowrap text-on-surface">{{ group.label }}</h2>
-								<RailItem
-									v-for="link in group.links"
-									:key="link.to"
-									:to="link.to"
-									:label="link.label"
-									:icon="link.icon"
-									:icon-selected="link.iconSelected"
-									expanded
-									@click="afterChoice"
-								/>
-							</template>
-
-							<!-- About the app rather than the money, so no heading: a gap sets them apart. -->
-							<RailItem
-								class="mt-4"
-								:to="settingsLink.to"
-								:label="settingsLink.label"
-								:icon="settingsLink.icon"
-								:icon-selected="settingsLink.iconSelected"
-								expanded
+				<!-- Only in the open rail: it grows out of nothing rather than appearing, and is inert while shut. -->
+				<div class="rail-collapse" :data-open="expanded" :inert="!expanded">
+					<div>
+						<template v-for="group in navGroups" :key="group.label">
+							<h2 class="type-title-small pt-4 pb-2 pl-6 whitespace-nowrap text-on-surface">{{ group.label }}</h2>
+							<NavigationItem
+								v-for="link in group.links"
+								:key="link.to"
+								:as="RouterLink"
+								:to="link.to"
+								:label="link.label"
+								:active="isCurrent(link.to)"
 								@click="afterChoice"
-							/>
-
-							<RailItem
-								:label="t('common.signOut')"
-								:icon="LOGOUT"
-								expanded
-								@click="
-									afterChoice();
-									emit('sign-out');
-								"
-							/>
-						</div>
-					</div>
-				</div>
-
-				<!-- The foot stays at the bottom of the rail however far the destinations above scroll. The display
-				     switch is in reach in both states: a phone keeps it in its top bar, but a wide window has none. -->
-				<div class="flex-none py-4">
-					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
-					<RailItem
-						v-if="showsAmounts"
-						variant="action"
-						:label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
-						:icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY"
-						:expanded="expanded"
-						:aria-label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
-						:aria-pressed="amountsHidden"
-						:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
-						@click="toggleAmounts"
-					/>
-
-					<!-- On a screen that is looking at a month, the button that opens its month picker (`MonthAction`),
-					     which a phone keeps in the bar after the switch above. -->
-					<RailItem
-						v-if="currentMonthAction && month"
-						variant="action"
-						:label="month"
-						:icon="CALENDAR_MONTH"
-						:expanded="expanded"
-						aria-haspopup="dialog"
-						:aria-label="t('common.months.choose', { month })"
-						:title="t('common.months.choose', { month })"
-						@click="
-							afterChoice();
-							currentMonthAction.open();
-						"
-					/>
-
-					<div class="rail-collapse" :data-open="expanded && !!account.name" :inert="!expanded">
-						<div>
-							<div
-								class="relative isolate mx-6 my-4 flex w-fit items-center gap-3 overflow-hidden rounded-xl bg-surface-container-highest px-4 py-3 text-on-surface-variant"
 							>
-								<CatPattern class="absolute inset-0 -z-10 size-full" print="small" fade="none" />
-								<img
-									v-if="account.picture"
-									:src="account.picture"
-									alt=""
-									class="size-10 shrink-0 rounded-full object-cover"
-									referrerpolicy="no-referrer"
-								/>
-								<span
-									v-else
-									class="type-title-small grid size-10 shrink-0 place-items-center rounded-full bg-primary-container text-on-primary-container"
-									aria-hidden="true"
-								>
-									{{ account.initial }}
-								</span>
+								<template #icon><AppIcon :icon="link.icon" /></template>
+								<template v-if="link.iconSelected" #active-icon><AppIcon :icon="link.iconSelected" /></template>
+							</NavigationItem>
+						</template>
 
-								<span class="max-w-[136px] min-w-0">
-									<span class="type-title-medium block truncate">{{ account.name }}</span>
-									<span v-if="account.email && account.email !== account.name" class="type-body-small block truncate">{{
-										account.email
-									}}</span>
-								</span>
-							</div>
+						<!-- About the app rather than the money, so no heading: a gap sets them apart. -->
+						<NavigationItem
+							class="mt-4"
+							:as="RouterLink"
+							:to="settingsLink.to"
+							:label="settingsLink.label"
+							:active="isCurrent(settingsLink.to)"
+							@click="afterChoice"
+						>
+							<template #icon><AppIcon :icon="settingsLink.icon" /></template>
+							<template v-if="settingsLink.iconSelected" #active-icon><AppIcon :icon="settingsLink.iconSelected" /></template>
+						</NavigationItem>
+
+						<NavigationItem
+							:label="t('common.signOut')"
+							@click="
+								afterChoice();
+								emit('sign-out');
+							"
+						>
+							<template #icon><AppIcon :icon="LOGOUT" /></template>
+						</NavigationItem>
+					</div>
+				</div>
+			</div>
+
+			<!-- The foot stays at the bottom of the rail however far the destinations above scroll. The display switch
+			     is in reach in both states: a phone keeps it in its top bar, but a wide window has none. -->
+			<div class="flex-none pt-4 pb-10">
+				<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
+				<NavigationItem
+					v-if="showsAmounts"
+					:label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
+					:aria-pressed="amountsHidden"
+					:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
+					@click="toggleAmounts"
+				>
+					<template #icon><AppIcon :icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY" /></template>
+				</NavigationItem>
+
+				<!-- On a screen that is looking at a month, the button that opens its month picker (`MonthAction`),
+				     which a phone keeps in the bar after the switch above. -->
+				<NavigationItem
+					v-if="currentMonthAction && month"
+					:label="month"
+					aria-haspopup="dialog"
+					:aria-label="t('common.months.choose', { month })"
+					:title="t('common.months.choose', { month })"
+					@click="
+						afterChoice();
+						currentMonthAction.open();
+					"
+				>
+					<template #icon><AppIcon :icon="CALENDAR_MONTH" /></template>
+				</NavigationItem>
+
+				<div class="rail-collapse" :data-open="expanded && !!account.name" :inert="!expanded">
+					<div>
+						<div
+							class="relative isolate mx-4 mt-4 flex w-fit items-center gap-3 overflow-hidden rounded-xl bg-surface-container-highest px-4 py-3 text-on-surface-variant"
+						>
+							<CatPattern class="absolute inset-0 -z-10 size-full" print="small" fade="none" />
+							<img
+								v-if="account.picture"
+								:src="account.picture"
+								alt=""
+								class="size-10 shrink-0 rounded-full object-cover"
+								referrerpolicy="no-referrer"
+							/>
+							<span
+								v-else
+								class="type-title-small grid size-10 shrink-0 place-items-center rounded-full bg-primary-container text-on-primary-container"
+								aria-hidden="true"
+							>
+								{{ account.initial }}
+							</span>
+
+							<span class="max-w-[136px] min-w-0">
+								<span class="type-title-medium block truncate">{{ account.name }}</span>
+								<span v-if="account.email && account.email !== account.name" class="type-body-small block truncate">{{
+									account.email
+								}}</span>
+							</span>
 						</div>
 					</div>
 				</div>
-
-				<div class="h-6 flex-none" />
 			</div>
-		</div>
-	</nav>
+		</NavigationRail>
+	</div>
 </template>

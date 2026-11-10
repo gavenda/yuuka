@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
 import FormDialog from '@/components/FormDialog.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import PickerField from '@/components/PickerField.vue';
@@ -25,7 +25,7 @@ import { currencySymbol } from '@/lib/money';
 import { MASK, useAmountVisibility } from '@/lib/privacy';
 import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
-import { supportId, useFormValidation } from '@/lib/validation';
+import { useFormValidation } from '@/lib/validation';
 import { useInvestmentStore } from '@/stores/investments';
 import type { Security, Trade, TradeKind } from '@/types';
 import { computed, reactive, ref, watch } from 'vue';
@@ -296,11 +296,9 @@ async function submit(): Promise<void> {
 					v-model="dividendSource"
 					:label="t('investments.stock')"
 					:options="dividendChoices"
-					:invalid="Boolean(fieldError('trade-stock'))"
-					:describedby="supportId('trade-stock')"
+					:error="fieldError('trade-stock')"
 					@blur="touch('trade-stock')"
 				/>
-				<FieldSupport id="trade-stock" :error="fieldError('trade-stock')" />
 			</div>
 			<SecurityInput
 				v-else
@@ -319,11 +317,10 @@ async function submit(): Promise<void> {
 					v-model="form.accountId"
 					:label="t('investments.broker')"
 					:options="accountChoices"
-					:invalid="Boolean(fieldError('trade-account'))"
-					:describedby="supportId('trade-account')"
+					:hint="heldHint"
+					:error="fieldError('trade-account')"
 					@blur="touch('trade-account')"
 				/>
-				<FieldSupport id="trade-account" :error="fieldError('trade-account')" :hint="heldHint" />
 			</div>
 
 			<div class="flex gap-3">
@@ -359,7 +356,7 @@ async function submit(): Promise<void> {
 			/>
 
 			<!-- What the trade comes to, fee by fee, ending on the figure that moves the account's cash. -->
-			<div v-if="gross !== null && fees" class="card mt-2 flex flex-col gap-2 p-5">
+			<Card :padded="false" v-if="gross !== null && fees" class="mt-2 flex flex-col gap-2 p-5">
 				<div class="flex justify-between">
 					<span class="type-body-medium text-on-surface-variant">{{ t('investments.gross') }}</span>
 					<MoneyText :amount="gross" class="type-body-large" />
@@ -408,7 +405,7 @@ async function submit(): Promise<void> {
 						<MoneyText :amount="gainOnSale" tone="signed-alert" explicit class="type-body-large" />
 					</div>
 				</template>
-			</div>
+			</Card>
 
 			<p v-if="error" class="type-body-small text-error" role="alert">{{ error }}</p>
 		</div>

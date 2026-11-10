@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import EmptyState from '@/components/EmptyState.vue';
 import FabButton from '@/components/FabButton.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -124,17 +125,17 @@ watch(
 			<StatCard :label="t('investments.marketValue')" :amount="marketValue" hero watermark :caption="caption" />
 
 			<div class="mt-2 grid grid-cols-2 gap-2">
-				<div class="card p-4">
+				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.unrealised') }}</p>
 					<MoneyText :amount="unrealised" tone="signed-alert" :explicit="unrealised !== 0" class="type-title-large mt-1.5 block" />
 					<p class="type-body-small">{{ percentChange(unrealised, cost) }}</p>
-				</div>
-				<div class="card p-4">
+				</Card>
+				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.today') }}</p>
 					<MoneyText :amount="dayChange" tone="signed-alert" :explicit="dayChange !== 0" class="type-title-large mt-1.5 block" />
 					<p class="type-body-small">{{ percentChange(dayChange, marketValue - dayChange) }}</p>
-				</div>
-				<div class="card p-4">
+				</Card>
+				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.realised') }}</p>
 					<MoneyText
 						:amount="store.realisedThisYear"
@@ -142,8 +143,8 @@ watch(
 						:explicit="store.realisedThisYear !== 0"
 						class="type-title-large mt-1.5 block"
 					/>
-				</div>
-				<div class="card p-4">
+				</Card>
+				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.dividends') }}</p>
 					<MoneyText
 						:amount="store.dividendsThisYear"
@@ -151,10 +152,10 @@ watch(
 						:explicit="store.dividendsThisYear !== 0"
 						class="type-title-large mt-1.5 block"
 					/>
-				</div>
+				</Card>
 			</div>
 
-			<div v-if="allocation.length" class="card mt-2 flex flex-col gap-3 p-5">
+			<Card :padded="false" v-if="allocation.length" class="mt-2 flex flex-col gap-3 p-5">
 				<h2 class="type-title-large">{{ t('investments.allocation') }}</h2>
 				<div class="flex h-4 gap-0.5 overflow-hidden rounded-full">
 					<span v-for="slice in allocation" :key="slice.symbol" :class="slice.colour" :style="{ flexGrow: slice.share }" />
@@ -166,7 +167,7 @@ watch(
 						<span class="type-body-medium text-on-surface-variant">{{ slice.share.toFixed(1) }}%</span>
 					</div>
 				</div>
-			</div>
+			</Card>
 
 			<section v-for="group in groups" :key="group.accountId">
 				<div class="group-header">

@@ -22,7 +22,8 @@ function mount(initial: string) {
 	return { month, unmount: () => app.unmount() };
 }
 
-const dialog = () => document.body.querySelector<HTMLElement>('[role="alertdialog"], [role="dialog"]');
+/** The picker while it is up: a library dialog stays in the page shut, and only an open one counts. */
+const dialog = () => document.body.querySelector<HTMLDialogElement>('dialog[open]');
 const cell = (label: string) =>
 	[...(dialog()?.querySelectorAll<HTMLButtonElement>('button[aria-pressed]') ?? [])].find((b) => b.textContent?.trim() === label);
 
@@ -36,7 +37,8 @@ describe('MonthAction', () => {
 		const screen = mount('2026-10');
 
 		expect(dialog()).toBeNull();
-		expect(document.body.querySelector('button')).toBeNull();
+		// Nothing outside the shut picker: the button that opens it is the shell's.
+		expect([...document.body.querySelectorAll('button')].filter((button) => !button.closest('dialog'))).toEqual([]);
 		expect(currentMonthAction.value?.month).toBe('2026-10');
 
 		screen.month.value = '2026-09';

@@ -20,6 +20,14 @@ function initial(): boolean {
 	}
 }
 
+const pushQuery = typeof window !== 'undefined' ? window.matchMedia?.(PUSH_QUERY) : undefined;
+
+/** `railPushesContent()`, kept up to date as the window is resized: whether an open rail docks beside the page. */
+export const railDocked = ref(railPushesContent());
+pushQuery?.addEventListener?.('change', (event) => {
+	railDocked.value = event.matches;
+});
+
 /** Whether the navigation rail is open into its expanded form. A remembered choice, not part of the ledger. */
 const expanded = ref(initial());
 
@@ -37,5 +45,6 @@ export function useRail() {
 		expanded,
 		toggle: () => set(!expanded.value),
 		collapse: () => set(false),
+		setExpanded: set,
 	};
 }

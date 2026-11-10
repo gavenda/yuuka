@@ -3,8 +3,10 @@ import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import { CLOSE, DELETE } from '@/lib/icons';
 import { enterPane, leavePane, paneRoom } from '@/lib/formPane';
-import { useModal } from '@/lib/modal';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { compactWindow } from '@/lib/compact';
+import { isTopDialog, useModalCount } from '@/lib/modal';
+import { Button, Dialog, IconButton } from 'tailwind-material3';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import { t } from '@/i18n';
 
 /**
@@ -41,6 +43,7 @@ const props = withDefaults(
 const emit = defineEmits<{ close: []; save: [] }>();
 
 const panel = ref<HTMLElement | null>(null);
+const formId = useId();
 const confirmingDiscard = ref(false);
 
 function close(): void {
@@ -61,7 +64,17 @@ function submit(): void {
 /** Standing in the supporting pane rather than over the page. */
 const inPane = computed(() => props.beside && paneRoom.value);
 
-useModal(() => props.open && !inPane.value, close, panel);
+/** A dialog over the page: tailwind-material3's `Dialog`, full-screen on a phone. */
+const asDialog = computed(() => props.open && !inPane.value);
+useModalCount(() => asDialog.value);
+
+// The dialog would focus its first control, which on a phone is the close button; a form starts at its first field.
+watch(asDialog, async (shown) => {
+	if (!shown) return;
+	await nextTick();
+	await new Promise((resolve) => requestAnimationFrame(resolve));
+	panel.value?.querySelector<HTMLElement>('[autofocus], input:not([type="hidden"]), textarea, [role="combobox"]')?.focus();
+});
 
 // The pane is not a dialog: nothing behind it is shut off, so it only registers itself (which is what widens
 // the pane and lets the screen ask before replacing it), takes the focus as it opens, gives it back to what
@@ -92,7 +105,7 @@ watch(
 
 function onKeydown(event: KeyboardEvent): void {
 	if (event.key !== 'Escape' || !props.open || !inPane.value || event.defaultPrevented) return;
-	if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+	if (!isTopDialog(null)) return;
 	event.preventDefault();
 	close();
 }
@@ -123,70 +136,51 @@ onBeforeUnmount(() => {
 				@submit.prevent="submit"
 			>
 				<header class="flex h-16 flex-none items-center gap-1 px-1 pt-2">
-					<button type="button" class="btn-icon m-1" :aria-label="t('common.close')" :disabled="submitting" @click="close">
+					<IconButton variant="standard" class="m-1" :label="t('common.close')" :disabled="submitting" @click="close">
 						<AppIcon :icon="CLOSE" />
-					</button>
+					</IconButton>
 					<h2 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ title }}</h2>
-					<button v-if="save" type="submit" class="btn-primary mr-3" :disabled="!saveEnabled || submitting">
+					<Button v-if="save" type="submit" class="mr-3" :disabled="!saveEnabled || submitting">
 						{{ t('common.save') }}
-					</button>
+					</Button>
 				</header>
 				<div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-3"><slot /></div>
 			</form>
 		</Transition>
 	</Teleport>
 
-	<Teleport v-else to="body">
-		<Transition
-			enter-active-class="transition-opacity duration-200 ease-standard-decelerate"
-			enter-from-class="opacity-0"
-			leave-active-class="transition-opacity duration-150 ease-standard-accelerate"
-			leave-to-class="opacity-0"
+	<!-- Over the page: Material's full-screen dialog on a phone (close, the title, Save in the bar) and its basic
+	     dialog beside a rail (Cancel and Save at the foot). Closing goes through `close`, which asks first when the
+	     form holds changes, so the dialog never shuts itself. -->
+	<Dialog v-else :open="open" :fullscreen="compactWindow" persistent :close-label="t('common.close')" @cancel="close">
+		<template #headline>{{ title }}</template>
+		<form
+			:id="formId"
+			ref="panel"
+			novalidate
+			class="flex flex-col gap-3.5 pt-1 text-on-surface sm:w-[512px] sm:max-w-full [--surface-under:var(--color-surface)] sm:[--surface-under:var(--color-surface-container-high)]"
+			@submit.prevent="submit"
 		>
-			<div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center sm:bg-scrim/32 sm:p-6">
-				<!-- Clicking the scrim dismisses; clicks inside the panel must not. -->
-				<div class="absolute inset-0 max-sm:hidden" @click="close" />
-
-				<form
-					ref="panel"
-					role="dialog"
-					aria-modal="true"
-					:aria-label="title"
-					novalidate
-					class="relative flex size-full flex-col bg-surface outline-none [--surface-under:var(--color-surface)] max-sm:sheet-enter sm:dialog-enter sm:h-auto sm:max-h-full sm:max-w-[560px] sm:rounded-xl sm:bg-surface-container-high sm:shadow-elevation-3 sm:[--surface-under:var(--color-surface-container-high)]"
-					@submit.prevent="submit"
-				>
-					<!-- A phone's bar: close, the title, and Save as its one action. -->
-					<header class="flex h-16 flex-none items-center gap-1 px-1 sm:hidden">
-						<button type="button" class="btn-icon m-1" :aria-label="t('common.close')" :disabled="submitting" @click="close">
-							<AppIcon :icon="CLOSE" />
-						</button>
-						<h2 class="type-title-large min-w-0 flex-1 truncate text-on-surface">{{ title }}</h2>
-						<button v-if="save" type="submit" class="btn-primary mr-2" :disabled="!saveEnabled || submitting">
-							{{ t('common.save') }}
-						</button>
-					</header>
-
-					<h2 class="type-headline-small flex-none px-6 pt-6 pb-4 text-on-surface max-sm:hidden">{{ title }}</h2>
-
-					<div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-3 sm:flex-initial sm:px-6 sm:py-0"><slot /></div>
-
-					<footer class="flex flex-none justify-end gap-2 p-6 max-sm:hidden">
-						<button type="button" class="btn-text" :disabled="submitting" @click="close">
-							{{ save ? t('common.cancel') : t('common.close') }}
-						</button>
-						<button v-if="save" type="submit" class="btn-primary" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</button>
-					</footer>
-				</form>
-			</div>
-		</Transition>
-	</Teleport>
+			<slot />
+		</form>
+		<template v-if="save || !compactWindow" #actions>
+			<template v-if="compactWindow">
+				<Button type="submit" :form="formId" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</Button>
+			</template>
+			<template v-else>
+				<Button variant="text" :disabled="submitting" @click="close">
+					{{ save ? t('common.cancel') : t('common.close') }}
+				</Button>
+				<Button v-if="save" type="submit" :form="formId" :disabled="!saveEnabled || submitting">{{ t('common.save') }}</Button>
+			</template>
+		</template>
+	</Dialog>
 
 	<AlertDialog :open="open && confirmingDiscard" :title="t('form.discardTitle')" :icon="DELETE" @close="confirmingDiscard = false">
 		{{ t('form.discardBody') }}
 		<template #actions>
-			<button type="button" class="btn-text" @click="confirmingDiscard = false">{{ t('common.noKeepEditing') }}</button>
-			<button type="button" class="btn-danger" @click="discard">{{ t('common.yesDiscard') }}</button>
+			<Button variant="text" @click="confirmingDiscard = false">{{ t('common.noKeepEditing') }}</Button>
+			<Button class="tone-error" @click="discard">{{ t('common.yesDiscard') }}</Button>
 		</template>
 	</AlertDialog>
 </template>

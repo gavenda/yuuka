@@ -521,7 +521,9 @@ focus rings, Tab reaching a swiped row's actions).
 
 **The theme is the Android app's Material 3 scheme.** `src/style.css` declares every role as a Tailwind
 colour (`bg-surface`, `text-on-surface-variant`, `border-outline-variant`, `bg-primary`, `text-error`,
-`text-secondary`, …), with the dark values replacing the same variables under `.dark`. The values are what
+`text-secondary`, …) as `light-dark(light, dark)`, replacing tailwind-material3's baseline scheme, so the
+library's components wear the brand's colours too. Which half applies follows `color-scheme`, which the
+`.light` or `.dark` class on `<html>` sets (the library's `theme.css`). The values are what
 `ui/theme/Theme.kt` builds at runtime — MaterialKolor, tonal spot, the 2026 colour spec, from the three seeds
 in `ui/theme/Color.kt`: the brand's blue, and for secondary and tertiary the two sampled from Yuuka's clothes
 (see [BRANDING.md](../BRANDING.md)) — so they are generated, never picked: a new seed means regenerating both
@@ -543,18 +545,32 @@ mark of it beside the theme — a dot, a bar, a chip — goes through `useHarmon
 Material's "harmonize" toward the theme's primary, the twin of `HarmonisedColor.kt`. A picker shows the
 value as chosen. The spec pins the eight palette colours to what Android draws for them.
 
+**Material Design 3 components come from [tailwind-material3](https://github.com/gavenda/tailwind-material3)**,
+installed straight from GitHub (`bun add github:gavenda/tailwind-material3`). It ships its `.vue` source, so
+Vite compiles it with the app (`optimizeDeps.exclude` in `vite.config.ts`, `server.deps.inline` for the specs),
+and `style.css` imports its `theme.css` after Tailwind: its tokens, motion springs and a `@source` for its class
+names. Its `--font-brand` and `--font-plain` are pointed at Google Sans Flex. Reach for a library component
+before writing markup of one's own: `Button` (filled, `tonal`, `text`; `tone-error` on one that destroys, as the
+library has no error colour), `IconButton` (`standard` for a bare one in the colour around it), `ButtonGroup`,
+`Fab`, `Card` (`:padded="false"`, as screens set their own 20px), `Chip` (`filter` for one to switch on; give it
+`rounded-sm!`, since the library's `rounded-lg` means Tailwind's 8px and this theme's `lg` is 16), `Badge`,
+`Dialog`, `Menu`/`MenuGroup`/`MenuItem` (the phone's avatar menu), `NavigationRail`/`NavigationItem`/
+`NavigationBar`, `Snackbar`, `Switch` and `TextField`. The library's dialogs and menus are native `<dialog>`s and
+popovers in the top layer: something that has to show over one — a dropdown in a form — must be a popover too,
+and stay inside the dialog in the page, or the dialog makes it inert.
+
 **Material Design 3, not just its colours.** The rest of the system lives in the same stylesheet, so a
 screen never spells out a radius, a weight or a hover tint by hand: shape is the M3 corner scale
 (`rounded-xs` 4px, `sm` 8, `md` 12, `lg` 16, `xl` 28, `full`), elevation is `shadow-elevation-1..3` on top
 of the tonal surfaces, and motion uses the M3 easings, with reduced motion honoured. Type is the M3 scale
 by role — `type-headline-medium`, `type-title-medium`, `type-body-small`, `type-label-large` and the
-rest — at the weights Android draws them in; reach for a role, not a size and a weight. Components are
-classes, not one-offs:
+rest — at the weights Android draws them in; reach for a role, not a size and a weight. What the library has no
+component for is a class here, not a one-off:
 
-- Buttons: `btn-primary` (filled), `btn-secondary` (tonal), `btn-outlined`, `btn-text`, `btn-icon`, and
-  `state-layer` for the hover, focus and pressed wash.
-- Surfaces: `card` (Material's filled card), `card-secondary` and `card-tertiary` (the same on a tinted
-  container), `menu` and `menu-item`, `chip` (a filter chip when it is a button), `badge`.
+- Links drawn as buttons: `btn-secondary`, `btn-text` and `btn-icon` (a library button is a `<button>`, and a
+  link has to stay a link), and `state-layer` for the hover, focus and pressed wash on a pressable row.
+- `menu` and `menu-option`/`menu-item`: a listbox under a field, drawn as the library's menu is; `chip` a
+  read-only label on a row.
 - Grouped rows (`GroupedItems.kt`) are Material's segmented list: a `.group-rows` of `.group-row`s lies
   2px apart, `rounded-lg` at the group's ends and `rounded-xs` between, rounding off while pressed or
   hovered, under a `.group-header` — accounts under their type, transactions under their day, categories
@@ -562,28 +578,32 @@ classes, not one-offs:
   ordinary `surface` page. `settings-header`, `settings-group` and `settings-row`
   are the same list for the settings screens, and `selection-list` / `SelectionItem` the list to pick one
   of in a dialog.
-- Fields are outlined text fields: `.field` wraps a `.input` followed by its `.label`, which rests in the
-  field while it is empty and rises into the border's notch — cut out in the colour of whatever the field
-  sits on (`--surface-under`) — once it has focus or a value. `TextField` is that with its error and
-  hint, and a `prefix` or a clear button (`clearable`) where it needs one; `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it
-  `SelectOption`s from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus
-  on its field), `PickerField` a date or time that opens the browser's own picker, and `ColourField` the palette swatches with a wheel
-  (`ColourWheel`) for a colour off the palette. `search-field` is the pill a search is typed in, and
-  `SearchField` that with its clear button.
+- Fields are the library's outlined `TextField`, wrapped so a form's validation can speak through them.
+  `TextField` takes its `error` and `hint`, and a `prefix` or a clear button (`clearable`) where it needs one;
+  `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it `SelectOption`s
+  from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field, and its
+  listbox is a popover so it shows over a dialog), `PickerField` a date or time that opens the browser's own
+  picker, `PayeeInput` and `SecurityInput` fields that suggest as they are typed in, and `ColourField` the
+  palette swatches with a wheel (`ColourWheel`) for a colour off the palette. Each takes the same `error` and
+  `hint` and says them in the library field's own supporting line, which owns `aria-describedby`. The library
+  names its input itself (so its label stays tied to it), so a field's `id` reaches the input as `data-field`,
+  which is what `useFormValidation`'s `onInput` reads (`fieldKey`). `search-field` is the pill a search is
+  typed in, and `SearchField` that with its clear button.
 
-A few more components carry markup a class can't: `ConnectedButtonGroup` (Material's connected button
-group: choose one of a few, every button in Material's toggle colours — the surface container, primary
-when selected — which `.connected-group` does, not the caller; an option may lead its label with an icon, or with `iconOnly`
-be the icon alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
+A few more components wrap the library's for the app: `ConnectedButtonGroup` (the connected `ButtonGroup`:
+choose one of a few, every button a filled toggle in Material's toggle colours — the surface container, primary
+when selected — so no caller passes one; an option may lead its label with an icon, or with `iconOnly` be an
+`IconButton` alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
 `EmptyState` leads with — see [BRANDING.md](../BRANDING.md)), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
 sideways when the window is too narrow for it), `MonthAction` (a month-scoped screen's month picker, whose
 button the shell draws), `SwipeReveal`
 and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
 filled set Android uses, extracted from Material's own SVGs rather than redrawn.
 
-**Dialogs are two components, and there are no sheets.** `FormDialog` is Android's `FullScreenDialog`: Material's
-full-screen dialog on a phone (close, the title, Save in the bar) and an ordinary dialog of the same
-content beside a rail, with Cancel and Save at the foot. It is a real `<form>`; bind `saveEnabled` to the
+**Dialogs are two components, and there are no sheets.** Both are the library's `Dialog`. `FormDialog` is Android's
+`FullScreenDialog`: Material's full-screen dialog on a phone (close, the title, Save in the bar; `fullscreen`
+follows `compactWindow`, `lib/compact.ts`) and an ordinary dialog of the same content beside a rail, with Cancel
+and Save at the foot. It is `persistent`, so closing goes through its own `close`, which asks first. It is a real `<form>`; bind `saveEnabled` to the
 form's validation, and pass `dirty` so that closing a form that no longer holds what it opened with asks
 before discarding. Every form goes through it. Where the page is 796px wide (a 360px list beside a 436px slot)
 it teleports into the shell's `#form-pane` instead, as Android's supporting pane, and is not a modal: it
@@ -595,8 +615,10 @@ row goes. `beside` false keeps a dialog a dialog (the display currency). `AlertD
 that wants an answer (there is no `confirm()` anywhere), the month picker and adjusting a balance. It is an
 `alertdialog` unless given `role="dialog"`, which anything that is not a question passes. `SelectionDialog`
 is that with a `.selection-list` in it and one button at the foot, for what is picked from a short list: the
-default-account and Save the Change pickers. Both share `useModal` (`lib/modal.ts`) with `FormDialog`: Escape
-closes the one on top, the page stops scrolling, focus moves in. The transaction filters are not a dialog:
+default-account and Save the Change pickers. A native `<dialog>` traps focus and answers Escape itself; each still
+counts itself in `useModalCount` (`lib/modal.ts`), which holds the page still and is what `modalOpen` (the
+update reload's guard) reads. `isTopDialog` knows an open `<dialog>` as well as a `role="dialog"`, so the pane's
+form answers Escape only when nothing stands over it. The transaction filters are not a dialog:
 `FilterChipRow` is a row of chips that slides down under the filter bar in the `TopBar` (`.slide-down`, inert
 while shut), scrolls sideways and applies each change at once.
 
@@ -638,30 +660,29 @@ screen, with the error beside the group, until an account is picked. Which accou
 there too, from a dialog that writes `roundUpSource` one account at a time; the account form says nothing
 about round-ups.
 
-**Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`, a Material 3
-wide navigation rail) and a bottom bar below it (`NavDestination`). Slim, the rail is 96px: the logo — a
+**Navigation is a rail from the `sm` breakpoint** (`NavRail`, the twin of `ui/NavRail.kt`: the library's
+`NavigationRail`, modal below `lg`) and a bottom bar below it (the library's `NavigationBar` of `NavDestination`s). Slim, the rail is 96px: the logo — a
 plain mark, never a control — the menu button, the screen's FAB, and Transactions, Investments and Accounts
 (`dailyLinks` in `src/lib/nav.ts`, the same three as the phone's bar) with their labels beneath. The menu button
 opens it into a drawer of `navGroups` — Insights, Automations and Organize, each under its heading — then
 Settings and Sign out, with the signed-in account in a card at the foot; phones keep those in the avatar
 menu. Hide-amounts sits at the foot in both states, and is left out on a screen that shows no amount; under
 it, on a screen that is looking at a month, is the month button, labelled with that month once open. Open,
-the rail is as wide as its content needs, between Material's 220 and 360: `NavRail` measures it and writes
-`--rail-open`, which is also how far the page (`.shell`) moves aside. It sits beside the page from `lg` and
+the rail is as wide as its content needs, between Material's 220 and 360: `NavRail` measures it on every frame
+it changes and writes `--rail-open`, which is how far the page (`.shell`) moves aside, so the page follows the
+rail's own spring. It sits beside the page from `lg` and
 floats over a scrim below that, and the choice is remembered (`src/lib/rail.ts`), though a narrow window
 never starts with it floating.
 
-The slim and open rail are one structure that morphs, not two layouts swapped: each entry is a `RailItem`
-whose pill, icon and label are positioned by `data-expanded` in `style.css` and transition on the rail's
-own curve. Icons sit 36px from the left in both states, so they never travel sideways; an open item's pill
-hugs its icon and label as Android's does, which works because every item carries an invisible copy of its
-label (the "ghost") that gives it its open width in either state. The parts that exist only when open (the
-"More" group, the account card) grow from zero height and are `inert` while shut. Keep it that way: don't
-add a `v-if` on `expanded` to the rail's layout, or that entry will pop instead of moving.
+The slim and open rail are one structure that morphs, not two layouts swapped: the library's `NavigationItem`s
+grow their pills to hug icon and label and cross-fade the labels, with icons kept 36px from the left in both
+states. The parts that exist only when open (the grouped destinations, the account card) grow from zero height
+(`.rail-collapse`) and are `inert` while shut. Keep it that way: don't add a `v-if` on `expanded` to the rail's
+layout, or that entry will pop instead of moving.
 
 `FabButton` is the one action a screen leads with (`ScreenFab` on Android), registered in `src/lib/fab.ts`:
 a phone gets the floating button, and from `sm` up the rail shows it under its menu button, a square while
-slim and an extended FAB when open. It
+slim and an extended FAB when open (the library's `Fab`, its `expanded` following the rail). It
 has a slot of its own in the rail that opens from nothing, sliding the destinations down as the FAB pops
 in, and is one persistent button: between two pages that both have a FAB the slot stays open while the
 same button folds back to its square, takes the new label and unfolds again.

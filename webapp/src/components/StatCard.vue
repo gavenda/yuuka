@@ -2,6 +2,7 @@
 import CatMark from '@/components/CatMark.vue';
 import MoneyText from '@/components/MoneyText.vue';
 import { DEFAULT_CURRENCY } from '@/lib/money';
+import { Card } from 'tailwind-material3';
 import { computed } from 'vue';
 
 /**
@@ -27,12 +28,19 @@ const props = withDefaults(
 	{ currency: DEFAULT_CURRENCY, signed: false, hero: false, tone: 'surface', watermark: false },
 );
 
-const card = computed(() => (props.tone === 'secondary' ? 'card-secondary' : props.tone === 'tertiary' ? 'card-tertiary' : 'card'));
+/** tailwind-material3's filled `Card`, on a tinted container for a tone. */
+const card = computed(() =>
+	props.tone === 'secondary'
+		? 'bg-secondary-container! text-on-secondary-container!'
+		: props.tone === 'tertiary'
+			? 'bg-tertiary-container! text-on-tertiary-container!'
+			: '',
+);
 const figure = computed(() => (props.hero ? 'type-display-small' : 'type-headline-medium'));
 </script>
 
 <template>
-	<div class="p-5" :class="[card, { 'relative overflow-hidden': watermark }]">
+	<Card :padded="false" class="p-5" :class="card">
 		<CatMark v-if="watermark" />
 		<p class="type-label-small uppercase">{{ label }}</p>
 		<!-- Proportional figures: these are standalone numbers, not a column. -->
@@ -44,5 +52,5 @@ const figure = computed(() => (props.hero ? 'type-display-small' : 'type-headlin
 			:class="figure"
 		/>
 		<p v-if="caption" class="type-body-small mt-1">{{ caption }}</p>
-	</div>
+	</Card>
 </template>

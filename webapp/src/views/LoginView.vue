@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from 'tailwind-material3';
 import { useAuth0 } from '@auth0/auth0-vue';
 import CatPattern from '@/components/CatPattern.vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
@@ -106,9 +107,9 @@ onBeforeUnmount(() => observer?.disconnect());
 			<h1 class="type-headline-large pt-6">{{ t('common.appName') }}</h1>
 			<p class="type-body-large pt-1 pb-10 text-on-surface-variant">{{ t('login.tagline') }}</p>
 
-			<button type="button" class="btn-primary type-title-medium min-h-14 w-full" :disabled="redirecting" @click="signIn">
+			<Button size="m" class="w-full" :disabled="redirecting" @click="signIn">
 				{{ redirecting ? t('login.redirecting') : t('login.logIn') }}
-			</button>
+			</Button>
 
 			<p v-if="error" class="type-body-medium pt-4 text-error" role="alert">{{ error.message }}</p>
 		</div>

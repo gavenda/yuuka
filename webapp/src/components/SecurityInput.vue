@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
-import FieldSupport from '@/components/FieldSupport.vue';
 import { ERROR } from '@/lib/icons';
-import { supportId } from '@/lib/validation';
+import { TextField } from 'tailwind-material3';
 import type { Security } from '@/types';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -68,46 +67,46 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside));
 </script>
 
 <template>
-	<div ref="root">
-		<div class="field">
-			<input
-				id="trade-stock"
-				v-model="query"
-				class="input uppercase"
-				:class="{ 'pr-12': error }"
-				autocomplete="off"
-				role="combobox"
-				aria-autocomplete="list"
-				:aria-expanded="showList"
-				:aria-invalid="error ? 'true' : undefined"
-				:aria-describedby="error ? supportId('trade-stock') : undefined"
-				aria-controls="stock-suggestions"
-				placeholder=" "
-				@input="
-					open = true;
-					active = -1;
-				"
-				@focus="open = true"
-				@blur="emit('blur')"
-				@keydown="onKeydown"
-			/>
-			<label class="label" for="trade-stock">{{ label }}</label>
-			<AppIcon v-if="error" :icon="ERROR" class="pointer-events-none absolute top-4 right-3 text-error" />
+	<!-- tailwind-material3's outlined `TextField`; `data-field` is the key the form's validation knows it by. -->
+	<div ref="root" class="relative">
+		<TextField
+			v-model="query"
+			variant="outlined"
+			class="w-full [&_input]:uppercase"
+			data-field="trade-stock"
+			:label="label"
+			:error="Boolean(error)"
+			autocomplete="off"
+			role="combobox"
+			aria-autocomplete="list"
+			:aria-expanded="showList"
+			aria-controls="stock-suggestions"
+			@input="
+				open = true;
+				active = -1;
+			"
+			@focus="open = true"
+			@blur="emit('blur')"
+			@keydown="onKeydown"
+		>
+			<template v-if="error" #trailing-icon><AppIcon :icon="ERROR" /></template>
+			<template v-if="error" #supporting-text
+				><span role="alert">{{ error }}</span></template
+			>
+		</TextField>
 
-			<ul v-if="showList" id="stock-suggestions" role="listbox" class="menu absolute inset-x-0 z-20 max-h-64 overflow-y-auto">
-				<li v-for="(security, index) in matches" :key="security.symbol" role="option" :aria-selected="index === active">
-					<button
-						type="button"
-						class="menu-item py-1"
-						:class="index === active ? 'bg-on-surface/10' : ''"
-						@mousedown.prevent="choose(security)"
-						@mouseenter="active = index"
-					>
-						<span class="block truncate">{{ labelOf(security) }}</span>
-					</button>
-				</li>
-			</ul>
-		</div>
-		<FieldSupport id="trade-stock" :error="error" />
+		<ul v-if="showList" id="stock-suggestions" role="listbox" class="menu absolute inset-x-0 top-15 z-20 max-h-64 overflow-y-auto">
+			<li v-for="(security, index) in matches" :key="security.symbol" role="option" :aria-selected="index === active">
+				<button
+					type="button"
+					class="menu-item"
+					:data-active="index === active"
+					@mousedown.prevent="choose(security)"
+					@mouseenter="active = index"
+				>
+					<span class="block truncate">{{ labelOf(security) }}</span>
+				</button>
+			</li>
+		</ul>
 	</div>
 </template>

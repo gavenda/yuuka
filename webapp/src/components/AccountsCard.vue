@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import MoneyText from '@/components/MoneyText.vue';
 import type { Account } from '@/types';
 import { t } from '@/i18n';
@@ -12,7 +13,7 @@ defineProps<{ groups: { type: string; accounts: Account[] }[]; mixed: boolean }>
 </script>
 
 <template>
-	<section class="card p-5">
+	<Card as="section" :padded="false" class="p-5">
 		<h2 class="type-title-large">{{ t('dashboard.accounts') }}</h2>
 
 		<template v-for="group in groups" :key="group.type">
@@ -26,5 +27,5 @@ defineProps<{ groups: { type: string; accounts: Account[] }[]; mixed: boolean }>
 		</template>
 
 		<p v-if="mixed" class="type-body-small mt-3 text-on-surface-variant">{{ t('dashboard.mixedCurrencies') }}</p>
-	</section>
+	</Card>
 </template>

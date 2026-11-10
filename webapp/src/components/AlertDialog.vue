@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
 import type { IconPath } from '@/lib/icons';
-import { useModal } from '@/lib/modal';
-import { ref } from 'vue';
+import { useModalCount } from '@/lib/modal';
+import { Dialog } from 'tailwind-material3';
 
 /**
- * Material 3's basic dialog (`AlertDialog` on Android): an optional headline, supporting text and a row of
- * text buttons at the foot — a question that wants an answer before anything else happens, or a short
- * list to pick from. Put the buttons in the `actions` slot, the dismissing one first. It is an `alertdialog`
- * unless told otherwise: pass `role="dialog"` for one that is a list or a couple of fields rather than a
- * question. A dialog that asks for confirmation passes an `icon`: it is drawn above the headline, and the
- * headline is centred under it, as `AlertDialog` does when it is given one. The icon takes the error colour,
- * since what is confirmed is nearly always destructive; pass `:danger="false"` for one that is not.
+ * Material 3's basic dialog (`AlertDialog` on Android), tailwind-material3's `Dialog`: an optional headline,
+ * supporting text and a row of text buttons at the foot — a question that wants an answer before anything else
+ * happens, or a short list to pick from. Put the buttons in the `actions` slot, the dismissing one first. It is an
+ * `alertdialog` unless told otherwise: pass `role="dialog"` for one that is a list or a couple of fields rather than
+ * a question. A dialog that asks for confirmation passes an `icon`: it is drawn above the headline, and the headline
+ * is centred under it, as `AlertDialog` does when it is given one. The icon takes the error colour, since what is
+ * confirmed is nearly always destructive; pass `:danger="false"` for one that is not. A portrait can take the icon's
+ * place (the `icon` slot): it is larger than an icon, so it stands over the headline inside it.
  */
 const props = withDefaults(
 	defineProps<{ open: boolean; title?: string; icon?: IconPath; danger?: boolean; role?: 'alertdialog' | 'dialog' }>(),
@@ -22,47 +23,22 @@ const props = withDefaults(
 );
 const emit = defineEmits<{ close: [] }>();
 
-const panel = ref<HTMLElement | null>(null);
-useModal(
-	() => props.open,
-	() => emit('close'),
-	panel,
-);
+useModalCount(() => props.open);
 </script>
 
 <template>
-	<Teleport to="body">
-		<Transition
-			enter-active-class="transition-opacity duration-200 ease-standard-decelerate"
-			enter-from-class="opacity-0"
-			leave-active-class="transition-opacity duration-150 ease-standard-accelerate"
-			leave-to-class="opacity-0"
-		>
-			<div v-if="open" class="fixed inset-0 z-[60] flex items-center justify-center bg-scrim/32 p-6">
-				<!-- Clicking the scrim dismisses; clicks inside the panel must not. -->
-				<div class="absolute inset-0" @click="emit('close')" />
-
-				<div
-					ref="panel"
-					:role="role"
-					aria-modal="true"
-					:aria-label="title"
-					tabindex="-1"
-					class="dialog-enter relative flex max-h-full w-full max-w-[560px] min-w-[280px] flex-col rounded-xl bg-surface-container-high p-6 shadow-elevation-3 outline-none [--surface-under:var(--color-surface-container-high)] sm:w-auto sm:min-w-[320px]"
-				>
-					<!-- A portrait can take the icon's place, and brings its own colours. -->
-					<div v-if="$slots.icon" class="flex justify-center pb-4"><slot name="icon" /></div>
-					<div v-else-if="icon" class="flex justify-center pb-4" :class="danger ? 'text-error' : 'text-secondary'">
-						<AppIcon :icon="icon" />
-					</div>
-
-					<h2 v-if="title" class="type-headline-small pb-4 text-on-surface" :class="{ 'text-center': icon || $slots.icon }">{{ title }}</h2>
-
-					<div class="type-body-medium min-h-0 overflow-y-auto text-on-surface-variant"><slot /></div>
-
-					<div class="flex flex-none flex-wrap justify-end gap-2 pt-6"><slot name="actions" /></div>
-				</div>
-			</div>
-		</Transition>
-	</Teleport>
+	<Dialog :open="open" :role="role" :aria-label="title && !$slots.icon ? undefined : title" @update:open="!$event && emit('close')">
+		<template v-if="icon && !$slots.icon" #icon>
+			<span :class="danger ? 'text-error' : 'text-secondary'"><AppIcon :icon="icon" /></span>
+		</template>
+		<template v-if="title || $slots.icon" #headline>
+			<span v-if="$slots.icon" class="-mt-2 flex flex-col items-center gap-4 text-center">
+				<slot name="icon" />
+				<span>{{ title }}</span>
+			</span>
+			<template v-else>{{ title }}</template>
+		</template>
+		<div class="sm:min-w-[272px]"><slot /></div>
+		<template v-if="$slots.actions" #actions><slot name="actions" /></template>
+	</Dialog>
 </template>

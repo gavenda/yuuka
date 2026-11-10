@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import MoneyText from '@/components/MoneyText.vue';
 import { formatLongDate } from '@/lib/dates';
 import { DEFAULT_CURRENCY } from '@/lib/money';
@@ -18,7 +19,7 @@ const total = computed(() => props.subscriptions.reduce((sum, subscription) => s
 </script>
 
 <template>
-	<section class="card-tertiary p-5">
+	<Card as="section" :padded="false" class="bg-tertiary-container! text-on-tertiary-container! p-5">
 		<h2 class="type-title-large">{{ t('dashboard.stillToPost') }}</h2>
 		<p class="type-body-small">
 			{{ t('dashboard.stillToPostSummary', { amount: displayMoney(total, currency), count: subscriptions.length }, subscriptions.length) }}
@@ -33,5 +34,5 @@ const total = computed(() => props.subscriptions.reduce((sum, subscription) => s
 				<MoneyText :amount="subscription.amount" :currency="currency" tone="neutral" class="type-body-medium" />
 			</li>
 		</ul>
-	</section>
+	</Card>
 </template>

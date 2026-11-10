@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button, IconButton } from 'tailwind-material3';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AppIcon from '@/components/AppIcon.vue';
 import ColourField from '@/components/ColourField.vue';
@@ -260,12 +261,13 @@ onMounted(() => ledger.load());
 								</span>
 							</component>
 
-							<button
+							<IconButton
+								variant="tonal"
+								width="narrow"
 								v-if="family.children.length"
-								type="button"
-								class="btn-icon-tonal-primary-narrow relative"
+								class="mx-2 bg-primary-container! text-on-primary-container!"
 								:aria-expanded="expanded.has(family.parent.id)"
-								:aria-label="t(expanded.has(family.parent.id) ? 'categories.collapse' : 'categories.expand', { name: family.parent.name })"
+								:label="t(expanded.has(family.parent.id) ? 'categories.collapse' : 'categories.expand', { name: family.parent.name })"
 								@click="toggle(family.parent)"
 							>
 								<AppIcon
@@ -273,7 +275,7 @@ onMounted(() => ledger.load());
 									class="transition-transform duration-300 ease-emphasized-decelerate"
 									:class="expanded.has(family.parent.id) ? 'rotate-180' : ''"
 								/>
-							</button>
+							</IconButton>
 						</div>
 					</SwipeReveal>
 
@@ -314,9 +316,9 @@ onMounted(() => ledger.load());
 		</section>
 
 		<div v-if="archivedCount > 0">
-			<button type="button" class="btn-text" @click="showArchived = !showArchived">
+			<Button variant="text" @click="showArchived = !showArchived">
 				{{ t(showArchived ? 'common.hideArchived' : 'common.showArchived', { count: archivedCount }) }}
-			</button>
+			</Button>
 		</div>
 
 		<FormDialog

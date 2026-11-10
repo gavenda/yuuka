@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button, Card } from 'tailwind-material3';
 import AppIcon from '@/components/AppIcon.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import MoneyText from '@/components/MoneyText.vue';
@@ -160,7 +161,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			</div>
 		</div>
 
-		<div class="card flex flex-col gap-4 p-5">
+		<Card :padded="false" class="flex flex-col gap-4 p-5">
 			<div v-if="chart" class="flex flex-col gap-1">
 				<div class="flex justify-between">
 					<span class="type-title-medium" :class="chart.up ? 'text-primary' : 'text-error'">{{ chart.change }}</span>
@@ -195,14 +196,14 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			</div>
 			<p v-else class="type-body-medium py-6 text-on-surface-variant">{{ t('investments.pricesGathering') }}</p>
 			<ConnectedButtonGroup v-model="range" :label="t('investments.priceRange')" :options="RANGES" />
-		</div>
+		</Card>
 
-		<button type="button" class="btn-secondary my-2 w-full justify-center" @click="openTrade">
-			<AppIcon :icon="ADD" :size="18" />
+		<Button variant="tonal" class="my-2 w-full" @click="openTrade">
+			<template #icon><AppIcon :icon="ADD" /></template>
 			{{ t('investments.newTrade') }}
-		</button>
+		</Button>
 
-		<div class="card flex flex-col gap-2.5 p-5">
+		<Card :padded="false" class="flex flex-col gap-2.5 p-5">
 			<h2 class="type-title-large pb-1">{{ t('investments.position') }}</h2>
 			<div class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.shares') }}</span>
@@ -241,7 +242,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.dividendsReceived') }}</span>
 				<MoneyText :amount="holding.position.dividends" tone="signed" class="type-body-large" />
 			</div>
-		</div>
+		</Card>
 
 		<div class="group-header">
 			<h2>{{ t('investments.trades') }}</h2>

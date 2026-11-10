@@ -16,8 +16,9 @@ export type Rule = () => string | null;
  *   The error follows the value and clears the moment it is acceptable.
  *
  * A saved change never waits for the network, so everything the server would refuse for the form's own
- * values has to be answered here. Rules are keyed by the `id` of the control they belong to, which is how
- * `onInput`, listening on the whole form, knows which field an edit was in.
+ * values has to be answered here. Rules are keyed by the `id` of the control they belong to — or its
+ * `data-field`, for a tailwind-material3 field, which names its input itself — which is how `onInput`, listening
+ * on the whole form, knows which field an edit was in.
  */
 export function useFormValidation(rules: Record<string, Rule>) {
 	const touched = reactive<Record<string, boolean>>({});
@@ -38,7 +39,7 @@ export function useFormValidation(rules: Record<string, Rule>) {
 
 	/** Put on the `<form>` as `@input`: an edit in any field counts as touching it, so no control has to say so itself. */
 	function onInput(event: Event): void {
-		const id = (event.target as HTMLElement | null)?.id;
+		const id = fieldKey(event.target);
 		if (id && id in rules) touch(id);
 	}
 
@@ -103,4 +104,10 @@ export function logoUrlProblem(value: string): string | null {
 /** Same name, whatever the case — what tags, and the payee history, are unique by. */
 export function sameName(a: string, b: string): boolean {
 	return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** The key a control is validated under: its `data-field` where it has one, else its `id`. */
+export function fieldKey(target: EventTarget | null): string | undefined {
+	if (!(target instanceof HTMLElement)) return undefined;
+	return target.dataset.field || target.id || undefined;
 }

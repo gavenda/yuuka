@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from 'tailwind-material3';
 import { currencySymbol, DEFAULT_CURRENCY, parseMoney, parsePercent, percentOf, toDecimalString } from '@/lib/money';
 import { budgetStatus, STATUS } from '@/lib/palette';
 import { displayMoney } from '@/lib/privacy';
@@ -228,10 +229,10 @@ const track = computed(() => {
 			</form>
 
 			<template #actions>
-				<button type="button" class="btn-text" :disabled="saving" @click="editing = false">{{ t('common.cancel') }}</button>
-				<button type="submit" :form="`${fieldId}-form`" class="btn-primary" :disabled="saving || !validation.isValid.value">
+				<Button variant="text" :disabled="saving" @click="editing = false">{{ t('common.cancel') }}</Button>
+				<Button type="submit" :form="`${fieldId}-form`" :disabled="saving || !validation.isValid.value">
 					{{ t('common.save') }}
-				</button>
+				</Button>
 			</template>
 		</AlertDialog>
 	</div>

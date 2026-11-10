@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import { axisScale, compactAmount, shortMonth } from '@/lib/chart';
 import { useElementWidth } from '@/lib/elementWidth';
 import { formatMonth } from '@/lib/dates';
@@ -90,7 +91,7 @@ watch(
 </script>
 
 <template>
-	<section class="card p-5">
+	<Card as="section" :padded="false" class="p-5">
 		<h2 class="type-title-large">{{ t('dashboard.trend.incomeSpend') }}</h2>
 		<p class="type-body-small">
 			{{
@@ -225,5 +226,5 @@ watch(
 				</tbody>
 			</table>
 		</div>
-	</section>
+	</Card>
 </template>

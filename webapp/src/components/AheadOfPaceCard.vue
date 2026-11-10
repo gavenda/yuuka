@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import PlanMeter from '@/components/PlanMeter.vue';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { STATUS } from '@/lib/palette';
@@ -15,7 +16,7 @@ withDefaults(defineProps<{ entries: CategoryBreakdown[]; day: number; days: numb
 </script>
 
 <template>
-	<section class="card flex flex-col gap-4 p-5">
+	<Card as="section" :padded="false" class="flex flex-col gap-4 p-5">
 		<div>
 			<h2 class="type-title-large">{{ t('dashboard.aheadOfPace') }}</h2>
 			<p class="type-body-small">{{ t('dashboard.dayOf', { day, days }) }}</p>
@@ -32,5 +33,5 @@ withDefaults(defineProps<{ entries: CategoryBreakdown[]; day: number; days: numb
 				t('dashboard.spentOfPlanned', { spent: displayMoney(entry.actual, currency), planned: displayMoney(entry.planned, currency) }),
 			]"
 		/>
-	</section>
+	</Card>
 </template>

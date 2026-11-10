@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue';
 import { ADD, ARCHIVE, BALANCE, DELETE, EDIT, PAUSE, PLAY_ARROW, UNARCHIVE, type IconPath } from '@/lib/icons';
+import { IconButton } from 'tailwind-material3';
 import { computed } from 'vue';
 
 export type ActionIconName = 'edit' | 'archive' | 'restore' | 'delete' | 'adjust' | 'pause' | 'resume' | 'add';
@@ -26,16 +27,17 @@ const icon = computed(() => ICONS[props.icon]);
 </script>
 
 <template>
-	<!-- Icon-only, so the label has to be carried by `aria-label`; `title` gives
-	     sighted users the same word on hover. -->
-	<button
-		type="button"
-		class="btn-icon-narrow"
-		:class="danger ? 'btn-icon-filled-danger' : 'btn-icon-filled'"
-		:aria-label="label"
+	<!-- Icon-only, so the label is the button's accessible name; `title` gives sighted users the same word on hover.
+	     The library has no error-coloured filled icon button, so a destructive one swaps primary for error. -->
+	<IconButton
+		variant="filled"
+		width="narrow"
+		:label="label"
 		:title="label"
 		:disabled="disabled"
+		class="mx-2"
+		:class="danger && 'tone-error'"
 	>
 		<AppIcon :icon="icon" />
-	</button>
+	</IconButton>
 </template>

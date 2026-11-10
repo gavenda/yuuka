@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AlertDialog from '@/components/AlertDialog.vue';
 import { t } from '@/i18n';
+import { Button } from 'tailwind-material3';
 
 /**
  * A short list to pick from, as Material 3's basic dialog (`SelectionDialog` on Android): the title, the
@@ -16,7 +17,7 @@ const emit = defineEmits<{ close: [] }>();
 	<AlertDialog :open="open" :title="title" role="dialog" @close="emit('close')">
 		<div class="selection-list sm:w-96"><slot /></div>
 		<template #actions>
-			<button type="button" class="btn-text" @click="emit('close')">{{ dismissLabel }}</button>
+			<Button variant="text" @click="emit('close')">{{ dismissLabel }}</Button>
 		</template>
 	</AlertDialog>
 </template>

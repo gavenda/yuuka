@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Card } from 'tailwind-material3';
 import { useHarmonised } from '@/lib/harmonise';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 import { displayMoney } from '@/lib/privacy';
@@ -16,7 +17,7 @@ const harmonised = useHarmonised();
 </script>
 
 <template>
-	<section class="card p-5">
+	<Card as="section" :padded="false" class="p-5">
 		<h2 class="type-title-large">{{ t('dashboard.overBudget') }}</h2>
 
 		<ul class="mt-3 flex flex-col gap-3">
@@ -41,5 +42,5 @@ const harmonised = useHarmonised();
 				</p>
 			</li>
 		</ul>
-	</section>
+	</Card>
 </template>

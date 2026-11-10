@@ -48,6 +48,9 @@ export default defineConfig({
 	define: {
 		__APP_VERSION__: JSON.stringify(pkg.version),
 	},
+	// tailwind-material3 ships its .vue source, which the Vue plugin compiles with the app's own; pre-bundling would
+	// hand it to esbuild instead.
+	optimizeDeps: { exclude: ['tailwind-material3'] },
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),

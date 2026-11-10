@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Badge, Button, IconButton } from 'tailwind-material3';
 import ActionIcon from '@/components/ActionIcon.vue';
 import AlertDialog from '@/components/AlertDialog.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -240,9 +241,9 @@ async function remove(): Promise<void> {
 			     bar's mark, and the tag and category icons under its last two buttons. -->
 			<div class="-mb-2 flex h-12 items-center">
 				<div class="flex min-w-0 flex-1 max-sm:-ml-3">
-					<button
-						type="button"
-						class="btn-text min-w-0 gap-0"
+					<Button
+						variant="text"
+						class="min-w-0 shrink! gap-0"
 						:aria-expanded="openFilter === 'accounts'"
 						aria-controls="filter-chips"
 						@click="toggleFilter('accounts')"
@@ -250,32 +251,35 @@ async function remove(): Promise<void> {
 						<AppIcon :icon="openFilter === 'accounts' ? ACCOUNT_BALANCE_WALLET_FILL : ACCOUNT_BALANCE_WALLET" :size="18" class="mr-2" />
 						<span class="truncate">{{ accountLabel }}</span>
 						<AppIcon :icon="ARROW_DROP_DOWN" :size="18" />
-					</button>
+					</Button>
 				</div>
 
-				<button
-					type="button"
-					class="btn-icon relative ml-1 sm:m-1"
-					:aria-label="t('transactions.filterByTag')"
+				<!-- The count of choices a filter has on is not an alert, so its badge is tertiary rather than error. -->
+				<IconButton
+					variant="standard"
+					class="ml-1 sm:m-1"
+					:label="t('transactions.filterByTag')"
 					:aria-expanded="openFilter === 'tags'"
 					aria-controls="filter-chips"
 					@click="toggleFilter('tags')"
 				>
-					<AppIcon :icon="openFilter === 'tags' ? SELL_FILL : SELL" />
-					<span v-if="tagFilter.length" class="badge">{{ tagFilter.length }}</span>
-				</button>
+					<Badge :value="tagFilter.length || undefined" class="[&_.bg-error]:bg-tertiary [&_.bg-error]:text-on-tertiary">
+						<AppIcon :icon="openFilter === 'tags' ? SELL_FILL : SELL" />
+					</Badge>
+				</IconButton>
 
-				<button
-					type="button"
-					class="btn-icon relative ml-1 sm:m-1"
-					:aria-label="t('transactions.filterByCategory')"
+				<IconButton
+					variant="standard"
+					class="ml-1 sm:m-1"
+					:label="t('transactions.filterByCategory')"
 					:aria-expanded="openFilter === 'categories'"
 					aria-controls="filter-chips"
 					@click="toggleFilter('categories')"
 				>
-					<AppIcon :icon="openFilter === 'categories' ? FILTER_LIST_FILL : FILTER_LIST" />
-					<span v-if="categoryFilter.length" class="badge">{{ categoryFilter.length }}</span>
-				</button>
+					<Badge :value="categoryFilter.length || undefined" class="[&_.bg-error]:bg-tertiary [&_.bg-error]:text-on-tertiary">
+						<AppIcon :icon="openFilter === 'categories' ? FILTER_LIST_FILL : FILTER_LIST" />
+					</Badge>
+				</IconButton>
 			</div>
 
 			<FilterChipRow
@@ -406,7 +410,7 @@ async function remove(): Promise<void> {
 			<div v-if="store.hasMore" ref="listEnd" class="flex min-h-18 flex-col items-center justify-center p-4 text-center">
 				<template v-if="store.moreError">
 					<p class="type-body-medium text-error" role="alert">{{ store.moreError }}</p>
-					<button type="button" class="btn-text" @click="store.loadMore()">{{ t('common.tryAgain') }}</button>
+					<Button variant="text" @click="store.loadMore()">{{ t('common.tryAgain') }}</Button>
 				</template>
 				<p v-else class="type-body-medium text-on-surface-variant">{{ t('common.fetching') }}</p>
 			</div>
@@ -432,8 +436,8 @@ async function remove(): Promise<void> {
 			</template>
 			<template v-else>{{ t('transactions.deleteTransactionBody') }}</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</button>
-				<button type="button" class="btn-danger" @click="remove">{{ t('common.yesDelete') }}</button>
+				<Button variant="text" @click="pendingDelete = null">{{ t('common.noGoBack') }}</Button>
+				<Button class="tone-error" @click="remove">{{ t('common.yesDelete') }}</Button>
 			</template>
 		</AlertDialog>
 

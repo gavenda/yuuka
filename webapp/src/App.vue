@@ -14,7 +14,6 @@ import { formatMonth } from '@/lib/dates';
 import { dailyLinks, navGroups, settingsLink } from '@/lib/nav';
 import { currentMonthAction } from '@/lib/monthAction';
 import { isOnline } from '@/lib/online';
-import { useRail } from '@/lib/rail';
 import { useAmountVisibility } from '@/lib/privacy';
 import { applyUpdate, installAutoUpdate, updateReady } from '@/lib/pwa';
 import { clearSnackbars, showSnackbar } from '@/lib/snackbar';
@@ -31,6 +30,7 @@ import { useTransactionStore } from '@/stores/transactions';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { t } from '@/i18n';
+import { Button, Card, IconButton, Menu, MenuGroup, MenuItem, NavigationBar } from 'tailwind-material3';
 
 const { isAuthenticated, isLoading, user, error, logout } = useAuth0();
 const ledger = useLedgerStore();
@@ -46,7 +46,6 @@ const monthActionLabel = computed(() =>
 	currentMonthAction.value ? t('common.months.choose', { month: formatMonth(currentMonthAction.value.month) }) : '',
 );
 const userMenuOpen = ref(false);
-const userMenuRoot = ref<HTMLElement | null>(null);
 
 const showShell = computed(() => isAuthenticated.value);
 
@@ -81,9 +80,6 @@ watch(
 	},
 	{ immediate: true },
 );
-
-/** The page makes room for the rail (`.shell` in style.css): a slim one always, an open one only where it fits beside the page. */
-const { expanded: railExpanded } = useRail();
 
 // Whether the page beside the rail has room for a form's supporting pane with the screen still usable beside
 // it. The page, not the window: an open rail beside it takes its share.
@@ -161,14 +157,6 @@ async function signOut(): Promise<void> {
 	await logout({ logoutParams: { returnTo: window.location.origin } });
 }
 
-function onClickOutsideUserMenu(event: MouseEvent): void {
-	if (userMenuRoot.value && !userMenuRoot.value.contains(event.target as Node)) userMenuOpen.value = false;
-}
-
-function onKeydownUserMenu(event: KeyboardEvent): void {
-	if (event.key === 'Escape') userMenuOpen.value = false;
-}
-
 // A session that expires mid-visit should land on the sign-in screen, not on a
 // wall of failed requests.
 watch(isAuthenticated, (authenticated) => {
@@ -227,17 +215,15 @@ watch(
 );
 
 onMounted(() => {
-	document.addEventListener('click', onClickOutsideUserMenu);
 	window.addEventListener('online', onBackOnline);
 });
 onBeforeUnmount(() => {
-	document.removeEventListener('click', onClickOutsideUserMenu);
 	window.removeEventListener('online', onBackOnline);
 });
 </script>
 
 <template>
-	<div class="min-h-dvh" :class="{ shell: shellShown }" :data-rail-open="railExpanded">
+	<div class="min-h-dvh" :class="{ shell: shellShown }">
 		<!-- With room for it, navigation moves to a rail down the side, and the bottom bar below
 		     takes over on a phone. The rail opens into a drawer that also holds what is not a daily
 		     destination: budget, categories, tags, subscriptions, settings and signing out. -->
@@ -272,15 +258,15 @@ onBeforeUnmount(() => {
 				>
 					<AppIcon :icon="ARROW_BACK" />
 				</RouterLink>
-				<button
+				<IconButton
+					variant="standard"
 					v-else-if="isDetail"
-					type="button"
-					class="btn-icon -ml-2 justify-self-start text-on-surface"
-					:aria-label="t('common.back')"
+					class="-ml-2 justify-self-start text-on-surface!"
+					:label="t('common.back')"
 					@click="goBack"
 				>
 					<AppIcon :icon="ARROW_BACK" />
-				</button>
+				</IconButton>
 				<RouterLink
 					v-else
 					to="/"
@@ -298,80 +284,67 @@ onBeforeUnmount(() => {
 
 				<div class="flex shrink-0 items-center justify-self-end group-has-[#bar-search:focus-within]:hidden">
 					<!-- Not on a screen that shows no amount, where there is nothing for it to mask. -->
-					<button
+					<IconButton
+						variant="standard"
 						v-if="route.meta.amountFree !== true"
-						type="button"
-						class="btn-icon"
-						:aria-label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
+						:label="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						:aria-pressed="amountsHidden"
 						:title="amountsHidden ? t('common.showAmounts') : t('common.hideAmounts')"
 						@click="toggleAmounts"
 					>
 						<AppIcon :icon="amountsHidden ? MONEY_OFF : ATTACH_MONEY" />
-					</button>
+					</IconButton>
 
 					<!-- Only on a screen that is looking at a month (`MonthAction`): opens its month picker. -->
-					<button
+					<IconButton
+						variant="standard"
 						v-if="currentMonthAction"
-						type="button"
-						class="btn-icon"
 						aria-haspopup="dialog"
-						:aria-label="monthActionLabel"
+						:label="monthActionLabel"
 						:title="monthActionLabel"
 						@click="currentMonthAction.open()"
 					>
 						<AppIcon :icon="CALENDAR_MONTH" />
-					</button>
+					</IconButton>
 
-					<div ref="userMenuRoot" class="relative ml-1" @keydown="onKeydownUserMenu">
-						<button
-							type="button"
-							class="btn-icon"
-							aria-haspopup="menu"
-							:aria-expanded="userMenuOpen"
-							:aria-label="t('nav.accountMenu')"
-							@click="userMenuOpen = !userMenuOpen"
-						>
-							<img v-if="user?.picture" :src="user.picture" alt="" class="size-8 rounded-full" referrerpolicy="no-referrer" />
-							<span
-								v-else
-								class="type-title-small grid size-8 place-items-center rounded-full bg-primary-container text-on-primary-container"
-								aria-hidden="true"
-							>
-								{{ avatarInitial }}
-							</span>
-						</button>
+					<!-- tailwind-material3's grouped menu: who is signed in, then what the phone's bar has no room for —
+					     the less-visited screens, then what is set up once and then left alone. -->
+					<Menu v-model:open="userMenuOpen" placement="bottom-end" :label="t('nav.accountMenu')">
+						<template #anchor="{ toggle, props }">
+							<IconButton variant="standard" class="ml-1" :label="t('nav.accountMenu')" v-bind="props" @click="toggle">
+								<img
+									v-if="user?.picture"
+									:src="user.picture"
+									alt=""
+									class="-m-1 size-8! max-w-none rounded-full"
+									referrerpolicy="no-referrer"
+								/>
+								<span
+									v-else
+									class="type-title-small -m-1 grid size-8! place-items-center rounded-full bg-primary-container text-on-primary-container"
+									aria-hidden="true"
+								>
+									{{ avatarInitial }}
+								</span>
+							</IconButton>
+						</template>
 
-						<div v-if="userMenuOpen" role="menu" class="menu absolute right-0 z-40 mt-2 w-60">
-							<div v-if="displayName" class="truncate border-b border-outline-variant px-3 pb-3">
+						<MenuGroup v-if="displayName">
+							<div class="px-3 py-2">
 								<span class="type-title-small block truncate text-on-surface">{{ displayName }}</span>
 								<span v-if="user?.email && user.email !== displayName" class="type-body-small block truncate text-on-surface-variant">{{
 									user.email
 								}}</span>
 							</div>
-
-							<!-- What the phone's bar has no room for: the less-visited screens, then what is set up
-							     once and then left alone. -->
-							<template v-for="group in navGroups" :key="group.label">
-								<span class="type-label-medium block px-3 pt-3 pb-1 text-on-surface-variant" role="presentation">{{ group.label }}</span>
-								<RouterLink
-									v-for="link in group.links"
-									:key="link.to"
-									:to="link.to"
-									role="menuitem"
-									class="menu-item"
-									@click="userMenuOpen = false"
-								>
-									{{ link.label }}
-								</RouterLink>
-							</template>
-							<RouterLink :to="settingsLink.to" role="menuitem" class="menu-item mt-3" @click="userMenuOpen = false">
-								{{ settingsLink.label }}
-							</RouterLink>
-
-							<button type="button" role="menuitem" class="menu-item" @click="askSignOut">{{ t('common.signOut') }}</button>
-						</div>
-					</div>
+						</MenuGroup>
+						<MenuGroup v-for="group in navGroups" :key="group.label" :label="group.label">
+							<MenuItem v-for="link in group.links" :key="link.to" @click="router.push(link.to)">{{ link.label }}</MenuItem>
+						</MenuGroup>
+						<MenuGroup>
+							<MenuItem @click="router.push(settingsLink.to)">{{ settingsLink.label }}</MenuItem>
+							<MenuItem @click="askSignOut">{{ t('common.signOut') }}</MenuItem>
+						</MenuGroup>
+					</Menu>
 				</div>
 			</div>
 		</header>
@@ -389,11 +362,11 @@ onBeforeUnmount(() => {
 		</div>
 
 		<div v-else-if="error && !isAuthenticated" class="flex min-h-dvh items-center justify-center px-4">
-			<div class="card flex max-w-sm flex-col items-center p-6 text-center">
+			<Card class="flex max-w-sm flex-col items-center p-6! text-center">
 				<YuukaPortrait mood="worried" class="mb-4" />
 				<p class="type-body-medium text-error" role="alert">{{ error.message }}</p>
 				<RouterLink to="/login" class="btn-secondary mt-4">{{ t('nav.backToSignIn') }}</RouterLink>
-			</div>
+			</Card>
 		</div>
 
 		<main v-else ref="page" class="flex" :class="showShell ? 'max-sm:pb-20' : ''">
@@ -459,28 +432,27 @@ onBeforeUnmount(() => {
 			</div>
 		</main>
 
-		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone. -->
-		<nav
-			v-if="shellShown"
-			:aria-label="t('nav.primary')"
-			class="fixed inset-x-0 bottom-0 z-30 flex bg-surface-container pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden"
-		>
-			<NavDestination
-				v-for="link in dailyLinks"
-				:key="link.to"
-				:to="link.to"
-				:label="link.label"
-				:icon="link.icon"
-				:icon-selected="link.iconSelected"
-			/>
-		</nav>
+		<!-- Bottom bar keeps the primary navigation in thumb reach on a phone: tailwind-material3's `NavigationBar`,
+		     clear of the home indicator. -->
+		<div v-if="shellShown" class="fixed inset-x-0 bottom-0 z-30 bg-surface-container pb-[env(safe-area-inset-bottom)] sm:hidden">
+			<NavigationBar :label="t('nav.primary')">
+				<NavDestination
+					v-for="link in dailyLinks"
+					:key="link.to"
+					:to="link.to"
+					:label="link.label"
+					:icon="link.icon"
+					:icon-selected="link.iconSelected"
+				/>
+			</NavigationBar>
+		</div>
 
 		<!-- Opening another form while the one in the pane holds changes asks first, as closing it would. -->
 		<AlertDialog :open="pendingSwitch !== null" :title="t('form.discardTitle')" :icon="DELETE" @close="pendingSwitch = null">
 			{{ t('form.discardBody') }}
 			<template #actions>
-				<button type="button" class="btn-text" @click="pendingSwitch = null">{{ t('common.noKeepEditing') }}</button>
-				<button type="button" class="btn-danger" @click="switchForms">{{ t('common.yesDiscard') }}</button>
+				<Button variant="text" @click="pendingSwitch = null">{{ t('common.noKeepEditing') }}</Button>
+				<Button class="tone-error" @click="switchForms">{{ t('common.yesDiscard') }}</Button>
 			</template>
 		</AlertDialog>
 
@@ -492,10 +464,10 @@ onBeforeUnmount(() => {
 			</template>
 			<template v-else>{{ t('nav.signOutBody') }}</template>
 			<template #actions>
-				<button type="button" class="btn-text" @click="confirmingSignOut = false">{{ t('common.noStaySignedIn') }}</button>
-				<button type="button" :class="hasUnsentChanges ? 'btn-danger' : 'btn-primary'" @click="signOut">
+				<Button variant="text" @click="confirmingSignOut = false">{{ t('common.noStaySignedIn') }}</Button>
+				<Button :class="hasUnsentChanges && 'tone-error'" @click="signOut">
 					{{ t('common.yesSignOut') }}
-				</button>
+				</Button>
 			</template>
 		</AlertDialog>
 

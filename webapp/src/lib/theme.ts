@@ -30,7 +30,10 @@ systemQuery?.addEventListener?.('change', (event) => {
 const theme = computed<Theme>(() => (mode.value === 'system' ? (systemDark.value ? 'dark' : 'light') : mode.value));
 
 watchEffect(() => {
+	// One of the two is always set: `color-scheme` follows it (tailwind-material3's theme.css), and with it every
+	// `light-dark()` colour role, the scrollbars and the browser's own controls.
 	document.documentElement.classList.toggle('dark', theme.value === 'dark');
+	document.documentElement.classList.toggle('light', theme.value === 'light');
 });
 
 function setMode(next: ThemeMode): void {

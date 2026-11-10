@@ -2,18 +2,22 @@
 import AppIcon from '@/components/AppIcon.vue';
 import { ARROW_DROP_DOWN } from '@/lib/icons';
 import type { SelectOption } from '@/lib/selectOptions';
+import { TextField } from 'tailwind-material3';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
- * A Material 3 exposed dropdown menu, in place of a native `<select>`: an outlined field that shows the
- * chosen option, and a menu of options that opens beneath it (or above, when there is no room) at the
+ * A Material 3 exposed dropdown menu, in place of a native `<select>`: an outlined field (tailwind-material3's
+ * `TextField`, read-only) that shows the chosen option, and a menu of options that opens beneath it (or above, when there is no room) at the
  * field's width (`DropdownField` on Android). Give it its `label`, which rests in the field while nothing is
  * chosen and rises into the border once something is.
  *
  * It follows the select-only combobox pattern: focus stays on the field while the menu is open and the
  * highlighted option is announced through `aria-activedescendant`, so arrow keys, Home/End, Enter/Space,
- * Escape and typing to jump all work as they do on the native control. The menu is teleported out and
- * positioned against the viewport so a dialog's scrolling never clips it.
+ * Escape and typing to jump all work as they do on the native control. The menu is a popover, positioned against
+ * the viewport, so it stands in the top layer above a modal dialog (tailwind-material3's are native `<dialog>`s)
+ * and a dialog's scrolling never clips it; it stays inside the field in the page, so a dialog around it does not
+ * make it inert. `id` is the key the form's validation
+ * knows the field by; its `error` or `hint` is said beneath it, as a `TextField`'s is.
  */
 const props = defineProps<{
 	id: string;
@@ -24,10 +28,9 @@ const props = defineProps<{
 	ariaLabel?: string;
 	required?: boolean;
 	disabled?: boolean;
-	/** The choice is not acceptable: the field takes the error outline. What is wrong is said beneath it, in a `FieldSupport`. */
-	invalid?: boolean;
-	/** The id of that supporting text. */
-	describedby?: string;
+	/** What is wrong with the choice, said beneath the field in the error colour. */
+	error?: string | null;
+	hint?: string;
 }>();
 
 const emit = defineEmits<{ blur: [] }>();
@@ -35,7 +38,10 @@ const model = defineModel<string>({ required: true });
 
 const open = ref(false);
 const active = ref(-1);
-const trigger = ref<HTMLButtonElement | null>(null);
+const root = ref<HTMLElement | null>(null);
+const field = ref<InstanceType<typeof TextField> | null>(null);
+/** The field's input, which is the combobox. */
+const trigger = computed(() => (field.value?.input as unknown as HTMLInputElement | null | undefined) ?? null);
 const menu = ref<HTMLElement | null>(null);
 const position = ref<{ left: number; width: number; top?: number; bottom?: number; maxHeight: number; above: boolean }>({
 	left: 0,
@@ -58,7 +64,8 @@ const MENU_MAX_HEIGHT = 320;
 const EDGE_GAP = 8;
 
 function place(): void {
-	const box = trigger.value?.getBoundingClientRect();
+	// The outlined box the input sits in, not the input itself (inset by the field's padding) nor the line beneath.
+	const box = (trigger.value?.closest('.group') ?? trigger.value)?.getBoundingClientRect();
 	if (!box) return;
 
 	const wanted = Math.min(MENU_MAX_HEIGHT, props.options.length * 48 + 16);
@@ -80,7 +87,7 @@ function place(): void {
 
 function onOutsidePointer(event: PointerEvent): void {
 	const target = event.target as Node;
-	if (trigger.value?.contains(target) || menu.value?.contains(target)) return;
+	if (root.value?.contains(target) || menu.value?.contains(target)) return;
 	close();
 }
 
@@ -104,11 +111,25 @@ function show(start?: 'first' | 'last'): void {
 
 	place();
 	open.value = true;
+	void nextTick(() => {
+		try {
+			menu.value?.showPopover?.();
+		} catch {
+			// Already showing, or a browser without popovers: the menu is still fixed in place over the page.
+		}
+	});
 	scrollActiveIntoView();
 }
 
 function close(): void {
 	open.value = false;
+}
+
+/** A press on the field toggles the menu; one on an option inside it is the option's to answer. */
+function onFieldClick(event: MouseEvent): void {
+	if (props.disabled || menu.value?.contains(event.target as Node)) return;
+	if (open.value) close();
+	else show();
 }
 
 function choose(index: number): void {
@@ -232,97 +253,94 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<div class="field" :data-filled="!isPlaceholder || open">
-		<button
-			:id="id"
-			ref="trigger"
-			type="button"
+	<!-- A press anywhere on the field opens it, not only on its text. -->
+	<div ref="root" class="relative" @click="onFieldClick">
+		<TextField
+			ref="field"
+			variant="outlined"
+			class="w-full [&_input]:cursor-pointer [&_input]:caret-transparent"
+			readonly
+			:model-value="isPlaceholder ? '' : (selected?.label?.trim() ?? '')"
+			:label="label"
+			:disabled="disabled"
+			:error="Boolean(error)"
+			:data-field="id"
 			role="combobox"
-			:aria-label="ariaLabel ?? label"
+			:aria-label="label ? undefined : ariaLabel"
 			aria-haspopup="listbox"
 			:aria-expanded="open"
 			:aria-controls="listboxId"
 			:aria-activedescendant="open && active >= 0 ? optionId(active) : undefined"
 			:aria-required="required"
-			:aria-invalid="invalid || undefined"
-			:aria-describedby="describedby"
-			:disabled="disabled"
-			class="input flex cursor-pointer items-center gap-2 text-left"
-			:class="open && !invalid ? 'border-primary ring-1 ring-primary' : ''"
-			@click="open ? close() : show()"
 			@keydown="onKeydown"
 			@blur="
 				close();
 				emit('blur');
 			"
 		>
-			<!-- Nothing chosen shows nothing: the label rests in the field, as it does in an empty text field. -->
-			<span class="min-w-0 flex-1 truncate">{{ isPlaceholder ? '\u00a0' : selected?.label?.trim() }}</span>
+			<template #trailing-icon>
+				<!-- The dropdown arrow turns over while the menu is open. -->
+				<AppIcon :icon="ARROW_DROP_DOWN" class="transition-transform duration-200 ease-standard" :class="open ? 'rotate-180' : ''" />
+			</template>
+			<template v-if="error || hint" #supporting-text>
+				<span v-if="error" role="alert">{{ error }}</span>
+				<template v-else>{{ hint }}</template>
+			</template>
+		</TextField>
 
-			<!-- The dropdown arrow turns over while the menu is open. -->
-			<AppIcon
-				:icon="ARROW_DROP_DOWN"
-				class="text-on-surface-variant transition-transform duration-200 ease-standard"
-				:class="open ? 'rotate-180' : ''"
-			/>
-		</button>
-
-		<!-- The field's own label, rising into the border once something is chosen or the menu is open. -->
-		<span v-if="label" class="label" aria-hidden="true">{{ label }}</span>
-
-		<!-- A button cannot be `required`, so this stands in for it: it is what the form's own validation checks and points at. -->
+		<!-- The field cannot be `required` while it is read-only, so this stands in for it: it is what the form's own
+		     validation checks and points at. -->
 		<input
 			v-if="required"
 			:value="model"
 			tabindex="-1"
 			required
 			aria-hidden="true"
-			class="pointer-events-none absolute bottom-0 left-1/2 h-px w-px opacity-0"
+			class="pointer-events-none absolute top-12 left-1/2 h-px w-px opacity-0"
 			@focus="trigger?.focus()"
 		/>
 
-		<Teleport to="body">
-			<Transition
-				enter-active-class="transition duration-150 ease-standard-decelerate"
-				enter-from-class="scale-y-90 opacity-0"
-				leave-active-class="transition duration-100 ease-standard-accelerate"
-				leave-to-class="opacity-0"
+		<Transition
+			enter-active-class="transition duration-150 ease-standard-decelerate"
+			enter-from-class="scale-y-90 opacity-0"
+			leave-active-class="transition duration-100 ease-standard-accelerate"
+			leave-to-class="opacity-0"
+		>
+			<!-- Options are not focusable: focus stays on the field, and pressing one must not take it. -->
+			<div
+				v-if="open"
+				:id="listboxId"
+				ref="menu"
+				popover="manual"
+				role="listbox"
+				:aria-label="ariaLabel ?? label"
+				class="menu fixed inset-auto z-[60] m-0 overflow-y-auto overscroll-contain border-0"
+				:class="position.above ? 'origin-bottom' : 'origin-top'"
+				:style="{
+					left: `${position.left}px`,
+					width: `${position.width}px`,
+					top: position.top === undefined ? undefined : `${position.top}px`,
+					bottom: position.bottom === undefined ? undefined : `${position.bottom}px`,
+					maxHeight: `${position.maxHeight}px`,
+				}"
+				@mousedown.prevent
 			>
-				<!-- Options are not focusable: focus stays on the field, and pressing one must not take it. -->
 				<div
-					v-if="open"
-					:id="listboxId"
-					ref="menu"
-					role="listbox"
-					:aria-label="ariaLabel ?? label"
-					class="menu fixed z-[60] overflow-y-auto overscroll-contain"
-					:class="position.above ? 'origin-bottom' : 'origin-top'"
-					:style="{
-						left: `${position.left}px`,
-						width: `${position.width}px`,
-						top: position.top === undefined ? undefined : `${position.top}px`,
-						bottom: position.bottom === undefined ? undefined : `${position.bottom}px`,
-						maxHeight: `${position.maxHeight}px`,
-					}"
-					@mousedown.prevent
+					v-for="(option, index) in options"
+					:id="optionId(index)"
+					:key="option.value"
+					role="option"
+					class="menu-option"
+					:class="option.indent ? 'pl-7' : ''"
+					:aria-selected="option.value === model && !option.disabled"
+					:aria-disabled="option.disabled || undefined"
+					:data-active="index === active"
+					@mousemove="!option.disabled && (active = index)"
+					@click="choose(index)"
 				>
-					<div
-						v-for="(option, index) in options"
-						:id="optionId(index)"
-						:key="option.value"
-						role="option"
-						class="menu-option"
-						:class="option.indent ? 'pl-7' : ''"
-						:aria-selected="option.value === model && !option.disabled"
-						:aria-disabled="option.disabled || undefined"
-						:data-active="index === active"
-						@mousemove="!option.disabled && (active = index)"
-						@click="choose(index)"
-					>
-						<span class="min-w-0 flex-1 truncate">{{ option.label.trim() }}</span>
-					</div>
+					<span class="min-w-0 flex-1 truncate">{{ option.label.trim() }}</span>
 				</div>
-			</Transition>
-		</Teleport>
+			</div>
+		</Transition>
 	</div>
 </template>
