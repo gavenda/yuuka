@@ -286,6 +286,62 @@
 	@apply disabled:cursor-not-allowed disabled:text-on-surface/38;
 }
 
+/*
+ * A list to pick one of (`ExpressiveModalSelectionItem`), over tailwind-material3's `List` and `ListItem`: rows a
+ * hair apart on the highest container, round at the list's two ends and near-square where they meet. The chosen
+ * row fills with the primary container and rounds off. A utility rather than a component class, and keyed on
+ * the row's `aria-pressed`, so it outranks the list item's own shape and colours, which follow Material's
+ * plain list rather than Android's selection row.
+ */
+@utility selection-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+
+	& > [role='listitem'] > [aria-pressed] {
+		gap: 16px;
+		padding-block: 14px;
+		border-radius: var(--radius-xs);
+		background-color: var(--color-surface-container-highest);
+		color: var(--color-on-surface);
+		transition:
+			border-radius 250ms var(--ease-standard),
+			background-color 200ms var(--ease-standard);
+	}
+
+	& > [role='listitem']:first-child > [aria-pressed] {
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
+	}
+
+	& > [role='listitem']:last-child > [aria-pressed] {
+		border-bottom-left-radius: 20px;
+		border-bottom-right-radius: 20px;
+	}
+
+	/* `:nth-child(n)` matches every row; it is there to rank with the end rows' `:first-child` and `:last-child`. */
+	& > [role='listitem']:nth-child(n) > [aria-pressed='true'] {
+		border-radius: 24px;
+		background-color: var(--color-primary-container);
+		color: var(--color-on-primary-container);
+	}
+
+	& > [role='listitem']:first-child:not(:last-child) > [aria-pressed='true'] {
+		border-bottom-left-radius: var(--radius-xs);
+		border-bottom-right-radius: var(--radius-xs);
+	}
+
+	& > [role='listitem']:last-child:not(:first-child) > [aria-pressed='true'] {
+		border-top-left-radius: var(--radius-xs);
+		border-top-right-radius: var(--radius-xs);
+	}
+
+	/* Android draws the subtitle in the row's own ink, not the list's variant one. */
+	& > [role='listitem'] > [aria-pressed] .text-body-medium {
+		color: inherit;
+	}
+}
+
 /* A tailwind-material3 filled `Button` or `IconButton` for an answer that destroys something: error in place of
    primary. Disabled, it keeps the library's own disabled colours. */
 @utility tone-error {
@@ -365,51 +421,6 @@
 	button.settings-row,
 	a.settings-row {
 		@apply state-layer focus-ring cursor-pointer;
-	}
-
-	/*
-	 * A list to pick one of (`ExpressiveModalSelectionItem`): rows a hair apart, round at the list's two ends
-	 * and near-square where they meet. The chosen row fills with the primary container and rounds off.
-	 */
-	.selection-list {
-		@apply flex flex-col gap-1;
-	}
-
-	.selection-item {
-		@apply flex w-full cursor-pointer items-center gap-4 rounded-xs bg-surface-container-highest px-4 py-3.5 text-left text-on-surface;
-		transition:
-			border-radius 250ms var(--ease-standard),
-			background-color 200ms var(--ease-standard);
-	}
-
-	/* Drawn inside the row: a list in a dialog scrolls, and a ring outside the row would be cut off at its edge. */
-	.selection-item:focus-visible {
-		outline-offset: -3px;
-	}
-
-	.selection-item:first-child {
-		border-top-left-radius: 20px;
-		border-top-right-radius: 20px;
-	}
-
-	.selection-item:last-child {
-		border-bottom-left-radius: 20px;
-		border-bottom-right-radius: 20px;
-	}
-
-	.selection-item[aria-pressed='true'] {
-		@apply bg-primary-container text-on-primary-container;
-		border-radius: 24px;
-	}
-
-	.selection-item[aria-pressed='true']:first-child:not(:last-child) {
-		border-bottom-left-radius: var(--radius-xs);
-		border-bottom-right-radius: var(--radius-xs);
-	}
-
-	.selection-item[aria-pressed='true']:last-child:not(:first-child) {
-		border-top-left-radius: var(--radius-xs);
-		border-top-right-radius: var(--radius-xs);
 	}
 
 	.field-support {

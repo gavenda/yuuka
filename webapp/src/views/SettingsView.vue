@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconButton } from 'tailwind-material3';
+import { IconButton, List } from 'tailwind-material3';
 import AppIcon from '@/components/AppIcon.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
 import FormDialog from '@/components/FormDialog.vue';
@@ -289,7 +289,7 @@ onMounted(() => ledger.load());
 				</IconButton>
 			</label>
 
-			<div class="selection-list">
+			<List class="selection-list">
 				<SelectionItem
 					v-for="currency in shownCurrencies"
 					:key="currency.code"
@@ -299,7 +299,7 @@ onMounted(() => ledger.load());
 					:selected="currency.code === pickedCurrency"
 					@click="pickedCurrency = currency.code"
 				/>
-			</div>
+			</List>
 		</FormDialog>
 
 		<SelectionDialog :open="accountSheetOpen" :title="t('settings.selectDefault')" @close="accountSheetOpen = false">

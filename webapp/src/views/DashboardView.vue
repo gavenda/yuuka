@@ -147,7 +147,12 @@ onMounted(() => Promise.all([ledger.load(), budget.load(true), subscriptionStore
 					<h2 class="type-title-medium text-on-surface-variant">{{ formatMonth(budget.month) }}</h2>
 					<StatCard :label="lead.label" :amount="lead.amount" :currency="currency" :caption="lead.caption" hero tone="tertiary" watermark />
 					<!-- In a column beside another, the row would scroll into the gap between them. -->
-					<StatCarousel :stats="figures" :currency="currency" :bleed="false" class="-mx-4 px-4 @min-[840px]:mx-0 @min-[840px]:px-0" />
+					<StatCarousel
+						:stats="figures"
+						:currency="currency"
+						:bleed="false"
+						class="-mx-4 scroll-px-4 px-4 @min-[840px]:mx-0 @min-[840px]:scroll-px-0 @min-[840px]:px-0"
+					/>
 					<PlanCard
 						v-if="pace || incomePercent !== null"
 						:pace="pace"

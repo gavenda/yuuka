@@ -555,7 +555,7 @@ library has no error colour), `IconButton` (`standard` for a bare one in the col
 `Fab`, `Card` (`:padded="false"`, as screens set their own 20px), `Chip` (`filter` for one to switch on; give it
 `rounded-sm!`, since the library's `rounded-lg` means Tailwind's 8px and this theme's `lg` is 16), `Badge`,
 `Dialog`, `Menu`/`MenuGroup`/`MenuItem` (the phone's avatar menu), `NavigationRail`/`NavigationItem`/
-`NavigationBar`, `Snackbar`, `Switch` and `TextField`. The library's dialogs and menus are native `<dialog>`s and
+`NavigationBar`, `Snackbar`, `Switch`, `TextField`, `List`/`ListItem`, `Carousel`, `DatePicker` and `TimePicker`. The library's dialogs and menus are native `<dialog>`s and
 popovers in the top layer: something that has to show over one — a dropdown in a form — must be a popover too,
 and stay inside the dialog in the page, or the dialog makes it inert.
 
@@ -576,14 +576,15 @@ component for is a class here, not a one-off:
   hovered, under a `.group-header` — accounts under their type, transactions under their day, categories
   under their section, tags, subscriptions. Unlike the spec, a row is `surface-container` on the
   ordinary `surface` page. `settings-header`, `settings-group` and `settings-row`
-  are the same list for the settings screens, and `selection-list` / `SelectionItem` the list to pick one
-  of in a dialog.
+  are the same list for the settings screens, and `SelectionItem` (the library's `ListItem` as a button) in
+  the library's `List` with `selection-list` the list to pick one of in a dialog; `selection-list` is a utility,
+  keyed on each row's `aria-pressed`, so it outranks the list item's own shape and colours with Android's.
 - Fields are the library's outlined `TextField`, wrapped so a form's validation can speak through them.
   `TextField` takes its `error` and `hint`, and a `prefix` or a clear button (`clearable`) where it needs one;
   `SelectField` is the exposed dropdown menu that replaces every native `<select>` (give it `SelectOption`s
   from `lib/selectOptions.ts`; it follows the select-only combobox pattern, so keep focus on its field, and its
-  listbox is a popover so it shows over a dialog), `PickerField` a date or time that opens the browser's own
-  picker, `PayeeInput` and `SecurityInput` fields that suggest as they are typed in, and `ColourField` the
+  listbox is a popover so it shows over a dialog), `PickerField` a date or time that opens the library's modal
+  `DatePicker` or `TimePicker` (twelve-hour, as on Android) over a read-only field, `PayeeInput` and `SecurityInput` fields that suggest as they are typed in, and `ColourField` the
   palette swatches with a wheel (`ColourWheel`) for a colour off the palette. Each takes the same `error` and
   `hint` and says them in the library field's own supporting line, which owns `aria-describedby`. The library
   names its input itself (so its label stays tied to it), so a field's `id` reaches the input as `data-field`,
@@ -595,7 +596,8 @@ choose one of a few, every button a filled toggle in Material's toggle colours �
 when selected — so no caller passes one; an option may lead its label with an icon, or with `iconOnly` be an
 `IconButton` alone, as following the system is in the display mode), `YuukaPortrait` (Yuuka in a mood, masked by her badge, which
 `EmptyState` leads with — see [BRANDING.md](../BRANDING.md)), `ToggleSwitch`, `StatCard` and `StatCarousel` (a row of figures that scrolls
-sideways when the window is too narrow for it), `MonthAction` (a month-scoped screen's month picker, whose
+sideways when the window is too narrow for it: the library's `Carousel`, `uncontained`, with the card's 12px corners
+and Android's 12dp spacing in place of the library's 28px and 8px), `MonthAction` (a month-scoped screen's month picker, whose
 button the shell draws), `SwipeReveal`
 and `ActionIcon` (below), and `AppIcon`, which draws one of the Material icons in `lib/icons.ts` — the
 filled set Android uses, extracted from Material's own SVGs rather than redrawn.

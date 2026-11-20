@@ -2,6 +2,7 @@
 export default {
 	appName: 'yuuka',
 	cancel: 'Cancel',
+	ok: 'OK',
 	save: 'Save',
 	add: 'Add',
 	close: 'Close',

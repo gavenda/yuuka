@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { TextField } from 'tailwind-material3';
-import { ref } from 'vue';
+import { DatePicker, TextField, TimePicker } from 'tailwind-material3';
+import { computed, ref } from 'vue';
+import { t } from '@/i18n';
+import { useModalCount } from '@/lib/modal';
 
 /**
  * A field that opens a picker instead of taking typing, for a date or a time of day (`PickerField` on
  * Android). It reads as an outlined field (tailwind-material3's `TextField`, read-only) holding the value as the API spells it — `2026-10-06`, `05:06` —
- * and pressing it opens the browser's own date or time picker, which is this platform's.
+ * and pressing it opens the library's modal `DatePicker` or `TimePicker`, Material's own pickers as
+ * `YuukaDatePickerDialog` and `YuukaTimePickerDialog` are on Android: a change is a draft until OK, and the
+ * time is told in twelve hours as it is there.
  *
  * With `disabled` it shows `display` and never opens — for a value someone else decides, such as the
  * time of day of a transaction a subscription posted. `id` is the key the form's validation knows the field by; its
@@ -29,24 +33,49 @@ const props = defineProps<{
 const model = defineModel<string>({ required: true });
 const emit = defineEmits<{ blur: [] }>();
 
-const native = ref<HTMLInputElement | null>(null);
+const open = ref(false);
+useModalCount(() => open.value);
+
+/** `YYYY-MM-DD` read as a local calendar day; `new Date('2026-10-06')` would be UTC midnight, a day early west of it. */
+function toDate(value: string | undefined): Date | null {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '');
+	return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+}
+
+function fromDate(date: Date): string {
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+const date = computed({
+	get: () => toDate(model.value),
+	set: (value: Date | null) => {
+		if (value) model.value = fromDate(value);
+	},
+});
+
+const time = computed({
+	get: () => model.value || null,
+	set: (value: string | null) => {
+		if (value) model.value = value;
+	},
+});
+
+const earliest = computed(() => toDate(props.min));
+const labels = computed(() => ({ confirm: t('common.ok'), cancel: t('common.cancel') }));
 
 function pick(): void {
-	if (props.disabled) return;
-	const input = native.value;
-	if (!input) return;
+	if (!props.disabled) open.value = true;
+}
 
-	try {
-		input.showPicker();
-	} catch {
-		// A browser without `showPicker` still has the native control underneath to focus and type into.
-		input.focus();
-	}
+/** Closing the picker is the field being left: what was picked (or not) is now the form's to judge. */
+function closed(): void {
+	emit('blur');
 }
 </script>
 
 <template>
-	<div class="relative">
+	<div>
 		<TextField
 			variant="outlined"
 			class="w-full [&_input]:cursor-pointer [&_input]:caret-transparent"
@@ -58,10 +87,11 @@ function pick(): void {
 			:error="Boolean(error)"
 			:data-field="id"
 			aria-haspopup="dialog"
+			:aria-expanded="open"
 			@click="pick"
 			@keydown.enter.prevent="pick"
 			@keydown.space.prevent="pick"
-			@blur="emit('blur')"
+			@blur="!open && emit('blur')"
 		>
 			<template v-if="error || hint" #supporting-text>
 				<span v-if="error" role="alert">{{ error }}</span>
@@ -69,15 +99,7 @@ function pick(): void {
 			</template>
 		</TextField>
 
-		<!-- The picker itself. It sits under the field, unseen, so the browser anchors its popup there. -->
-		<input
-			ref="native"
-			v-model="model"
-			:type="type"
-			:min="min"
-			tabindex="-1"
-			aria-hidden="true"
-			class="pointer-events-none absolute top-13 left-0 h-px w-full opacity-0"
-		/>
+		<DatePicker v-if="type === 'date'" v-model="date" v-model:open="open" :min="earliest" :labels="labels" @closed="closed" />
+		<TimePicker v-else v-model="time" v-model:open="open" :hour12="true" :labels="labels" @closed="closed" />
 	</div>
 </template>
