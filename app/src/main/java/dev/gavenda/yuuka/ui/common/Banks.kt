@@ -39,8 +39,10 @@ object Banks {
         Bank("dragonfi", "DragonFi", R.drawable.bank_dragonfi, minCommission = 0, roundsFeesUp = true),
         Bank("gcash", "GCash", R.drawable.bank_gcash),
         Bank("gotyme", "GoTyme", R.drawable.bank_gotyme_light, logoDark = R.drawable.bank_gotyme_dark),
+        Bank("maribank", "MariBank", R.drawable.bank_maribank),
         Bank("maya", "Maya", R.drawable.bank_maya_light, logoDark = R.drawable.bank_maya_dark),
         Bank("metrobank", "Metrobank", R.drawable.bank_metrobank),
+        Bank("shopeepay", "ShopeePay", R.drawable.bank_shopeepay),
         Bank("tonik", "Tonik", R.drawable.bank_tonik),
     )
 
