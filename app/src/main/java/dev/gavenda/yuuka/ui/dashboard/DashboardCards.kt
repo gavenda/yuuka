@@ -322,7 +322,8 @@ internal fun AheadOfPaceCard(entries: List<CategoryBreakdown>, day: Int, days: I
 
 /**
  * The holdings at their latest close: what they are worth, what they have gained since bought and on the day,
- * and the largest stocks. Pressing it opens Investments. Mirrors `InvestmentsCard.vue`.
+ * and the largest stocks. What is held in another currency than the display currency is said under it, a line a
+ * currency, never added in. Pressing it opens Investments. Mirrors `InvestmentsCard.vue`.
  */
 @Composable
 internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, modifier: Modifier = Modifier) {
@@ -335,14 +336,40 @@ internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, mod
                 Text(stringResource(R.string.dashboard_prices_as_of, formatLongDate(it)), style = MaterialTheme.typography.bodySmall)
             }
 
-            MoneyText(summary.marketValue, modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.headlineMedium)
+            MoneyText(
+                summary.marketValue,
+                modifier = Modifier.padding(top = 12.dp),
+                currency = summary.currency,
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            summary.others.forEach { other ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    MoneyText(other.marketValue, currency = other.currency, style = MaterialTheme.typography.titleMedium)
+                    Text("·", style = MaterialTheme.typography.bodyMedium)
+                    MoneyText(
+                        other.unrealised,
+                        currency = other.currency,
+                        tone = MoneyTone.SIGNED_ALERT,
+                        explicit = other.unrealised != 0L,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(percentChange(other.unrealised, other.costBasis), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
 
             Row(modifier = Modifier.padding(top = 12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Gain(stringResource(R.string.investments_unrealised), summary.unrealised, percentChange(summary.unrealised, summary.costBasis), Modifier.weight(1f))
+                Gain(
+                    stringResource(R.string.investments_unrealised),
+                    summary.unrealised,
+                    percentChange(summary.unrealised, summary.costBasis),
+                    summary.currency,
+                    Modifier.weight(1f),
+                )
                 Gain(
                     stringResource(R.string.investments_today),
                     summary.dayChange,
                     percentChange(summary.dayChange, summary.marketValue - summary.dayChange),
+                    summary.currency,
                     Modifier.weight(1f),
                 )
             }
@@ -366,7 +393,7 @@ internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, mod
                             Text(stock.name, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
                         }
                     }
-                    MoneyText(stock.marketValue, style = MaterialTheme.typography.bodyMedium)
+                    MoneyText(stock.marketValue, currency = stock.currency, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -375,10 +402,10 @@ internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, mod
 
 /** A gain's label, its signed amount, and the share it is of what it was measured from. */
 @Composable
-private fun Gain(label: String, amount: Long, percent: String, modifier: Modifier = Modifier) {
+private fun Gain(label: String, amount: Long, percent: String, currency: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        MoneyText(amount, tone = MoneyTone.SIGNED_ALERT, explicit = amount != 0L, style = MaterialTheme.typography.titleMedium)
+        MoneyText(amount, currency = currency, tone = MoneyTone.SIGNED_ALERT, explicit = amount != 0L, style = MaterialTheme.typography.titleMedium)
         Text(percent, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

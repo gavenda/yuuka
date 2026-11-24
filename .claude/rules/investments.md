@@ -33,6 +33,28 @@ holds pesos. A value is units times price over a million, which can pass what a 
 whole `shares` an app from before this sent, and still answers one beside `units`, so a queued trade from an old
 build lands.
 
+- **An ETF is a security like a stock, bought abroad in its own currency**: an exchange-traded fund bought
+through Interactive Brokers — US-listed (VOO, VT) or a UCITS one on the LSE (VWRA, CSPX) — is the same trade, the
+same average-cost holding, over the same `securities` (`kind` `etf`) and `stock_prices`. Its symbol is `ETF-` and its
+Yahoo Finance symbol (`ETF-VOO`, `ETF-VWRA.L`; `isEtf` in both apps, `ETF_PREFIX` on the server), and it reads
+everywhere by its ticker (`tickerOf`: no prefix, no `.L`), its cash leg `Buy 1.5 CSPX`. Its shares go to four decimals,
+as IBKR's fractional shares do, and its cash is always worked out from them and the price (no `gross`). A security
+carries its `currency` (PHP for a stock or a fund) and an ETF its `exchange` (`US` or `LSE`); a trade's account must
+hold its security's currency, which both forms ask and the server refuses otherwise, so an ETF in dollars is bought
+from a dollar account (IBKR's, filled from Wise). Its money is in that currency's minor unit and its price in
+ten-thousandths of it; the LSE's pence (`GBp`) are kept in pounds. ETFs are not all listed — there are thousands —
+so the security field also offers what Yahoo finds for what is typed (`GET /api/securities/search`, online only),
+and picking one adds it on the server (`GET /api/securities/:symbol`, which reads a year of its closes in one call)
+and to the device. The form fills in IBKR Pro Fixed pricing (`ibkrFees`): in the US USD 0.005 a share, at least
+USD 1.00, at most 1% of the trade and never under USD 0.01; on the LSE 0.05% of the trade, at least USD 4.00 or
+GBP 3.00 an order (USD 1.70 or GBP 1.00 for a fractional one). A dividend fills in the 25% US treaty withholding, or
+nothing for a UCITS ETF (`etfDividendTax`). Both are left editable, since regulatory fees and statements differ. There is no rate between currencies,
+so nothing adds dollars to pesos: Investments shows its totals, gains, realised, dividends and allocation a currency
+at a time, the display currency first (`totalsByCurrency`), an account's holdings in its own currency, a day of the
+activity a total a currency; the dashboard's investments card leads with the display currency and lists the others
+under it. Net worth still adds holdings as they stand, as it adds accounts (see dashboard.md). IBKR and Wise are
+preset banks.
+
 - **NAVPUs come from uitf.com.ph, a page at a time**: see [webapp/CLAUDE.md](../../webapp/CLAUDE.md). Its history
 is behind a reCAPTCHA, so a fund's past NAVPUs start the day the cron first reads it; until then the trend counts
 it at cost, as it does a stock with no close that early.

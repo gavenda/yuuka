@@ -55,6 +55,14 @@ interface YuukaApi {
     @GET("securities")
     suspend fun listSecurities(): SecuritiesResponse
 
+    /** The US-listed and LSE ETFs Yahoo Finance finds for [query]. Online only: it is a question for the market. */
+    @GET("securities/search")
+    suspend fun searchEtfs(@Query("q") query: String): EtfSearchResponse
+
+    /** One security at its latest price; an ETF the server has not kept yet is looked up and kept. */
+    @GET("securities/{symbol}")
+    suspend fun security(@Path("symbol") symbol: String): SecurityResponse
+
     /** A stock's daily closes from [from] on, oldest first. */
     @GET("securities/{symbol}/prices")
     suspend fun prices(@Path("symbol") symbol: String, @Query("from") from: String? = null): PricesResponse

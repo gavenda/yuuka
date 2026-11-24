@@ -17,3 +17,4 @@ export const unauthorized = (message = 'Authentication required.') => new HttpEr
 export const notFound = (message = 'Not found.') => new HttpError(404, message);
 export const conflict = (message: string) => new HttpError(409, message);
 export const tooManyRequests = (message: string) => new HttpError(429, message);
+export const unavailable = (message: string) => new HttpError(503, message);

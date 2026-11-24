@@ -67,9 +67,12 @@ class DashboardViewModel(
         monthState,
         subscriptionRepository.subscriptions,
         month.flatMapLatest { budgetRepository.observeTrend(it) },
-        combine(investmentRepository.trades, investmentRepository.securities) { trades, securities ->
+        combine(investmentRepository.trades, investmentRepository.securities, ledgerRepository.settings) { trades, securities, settings ->
             // Only the totals and the stocks' names are shown, so no account names are needed.
-            investmentSummary(holdings(trades, securities.associateBy { it.symbol }, { null }))
+            investmentSummary(
+                holdings(trades, securities.associateBy { it.symbol }, { null }),
+                first = settings?.displayCurrency ?: DEFAULT_CURRENCY,
+            )
         },
     ) { state, subscriptions, trend, investments ->
         state.copy(subscriptions = subscriptions, trend = trend, investments = investments)

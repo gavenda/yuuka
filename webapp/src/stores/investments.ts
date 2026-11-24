@@ -1,6 +1,6 @@
 import { api, isNetworkError, type TradeInput } from '@/lib/api';
-import { readPrices, readSecurities, readTrades, replaceSecurities, replaceTrades, savePrices } from '@/lib/cache';
-import { holdings as holdingsOf, positions, type Holding } from '@/lib/investments';
+import { readPrices, readSecurities, readTrades, replaceSecurities, replaceTrades, savePrices, saveSecurity } from '@/lib/cache';
+import { holdings as holdingsOf, positions, totalsByCurrency, type Holding } from '@/lib/investments';
 import { useLedgerStore } from '@/stores/ledger';
 import type { PricePoint, Security, Trade } from '@/types';
 import { defineStore } from 'pinia';
@@ -8,7 +8,7 @@ import { computed, ref } from 'vue';
 import { t } from '@/i18n';
 
 /**
- * PSE stocks and UITFs: every security at its latest close or NAVPU, the person's trades, and the closes of the stocks whose
+ * PSE stocks, UITFs and ETFs: every security at its latest close or NAVPU (an ETF once someone has looked it up), the person's trades, and the closes of the stocks whose
  * screens have been opened. The twin of Android's `InvestmentRepository` and `InvestmentsViewModel`. Shown from
  * the browser's local copy while the API is asked, as the subscriptions are.
  */
@@ -30,15 +30,21 @@ export const useInvestmentStore = defineStore('investments', () => {
 	const holdings = computed<Holding[]>(() =>
 		holdingsOf(trades.value, securitiesBySymbol.value, (id) => {
 			const account = ledger.accounts.find((entry) => entry.id === id);
-			return account ? { name: account.name } : undefined;
+			return account ? { name: account.name, currency: account.currency } : undefined;
 		}),
 	);
 
 	/** The positions still holding shares or units. */
 	const held = computed(() => holdings.value.filter((holding) => holding.units > 0));
 
-	/** The accounts a trade can be made in: active ones holding pesos. */
-	const accounts = computed(() => ledger.accounts.filter((account) => !account.archived && account.currency === 'PHP'));
+	/** What a security is priced in: pesos for a stock or a fund, an ETF's own currency. */
+	const currencyOf = (symbol: string) => securitiesBySymbol.value.get(symbol)?.currency ?? 'PHP';
+
+	/** What the holdings come to, a currency at a time, the display currency first: there is no rate to add them up by. */
+	const totals = computed(() => totalsByCurrency(held.value, ledger.displayCurrency));
+
+	/** The accounts a trade can be made in: the active ones. A trade's must hold its security's currency, which the form asks. */
+	const accounts = computed(() => ledger.accounts.filter((account) => !account.archived));
 
 	/** The cash each broker account in use holds. */
 	const brokerCash = computed(() => {
@@ -60,18 +66,52 @@ export const useInvestmentStore = defineStore('investments', () => {
 
 	const yearStart = () => `${new Date().getFullYear()}-01-01`;
 
-	/** What selling has realised since 1 January, average cost. */
+	/** Amounts a currency at a time, the display currency first; a currency with nothing is left out, but pesos always stand. */
+	function byCurrency(entries: { currency: string; amount: number }[]): { currency: string; amount: number }[] {
+		const sums = new Map<string, number>();
+		for (const entry of entries) sums.set(entry.currency, (sums.get(entry.currency) ?? 0) + entry.amount);
+		const first = ledger.displayCurrency;
+		if (!sums.has(first)) sums.set(first, 0);
+		return [...sums.entries()]
+			.filter(([currency, amount]) => amount !== 0 || currency === first)
+			.map(([currency, amount]) => ({ currency, amount }))
+			.sort((a, b) => Number(b.currency === first) - Number(a.currency === first) || a.currency.localeCompare(b.currency));
+	}
+
+	/** What selling has realised since 1 January, average cost, a currency at a time. */
 	const realisedThisYear = computed(() => {
-		const sum = (list: Trade[]) => (positions(list) ?? []).reduce((total, position) => total + position.realised, 0);
-		return sum(trades.value) - sum(trades.value.filter((trade) => trade.occurredOn < yearStart()));
+		const realised = (list: Trade[], sign: number) =>
+			(positions(list) ?? []).map((position) => ({ currency: currencyOf(position.symbol), amount: sign * position.realised }));
+		return byCurrency([
+			...realised(trades.value, 1),
+			...realised(
+				trades.value.filter((trade) => trade.occurredOn < yearStart()),
+				-1,
+			),
+		]);
 	});
 
-	/** Dividends received since 1 January, after the final tax. */
+	/** Dividends received since 1 January, after the tax withheld, a currency at a time. */
 	const dividendsThisYear = computed(() =>
-		trades.value
-			.filter((trade) => trade.kind === 'dividend' && trade.occurredOn >= yearStart())
-			.reduce((total, trade) => total + trade.amount, 0),
+		byCurrency(
+			trades.value
+				.filter((trade) => trade.kind === 'dividend' && trade.occurredOn >= yearStart())
+				.map((trade) => ({ currency: currencyOf(trade.symbol), amount: trade.amount })),
+		),
 	);
+
+	/**
+	 * Adds a security looked up on the server — an ETF found by a search — beside the rest, here and in the copy, so a
+	 * trade can be made of it. Throws what the API said when it cannot be had.
+	 */
+	async function addSecurity(symbol: string): Promise<Security> {
+		const { security } = await api.security(symbol);
+		securities.value = [...securities.value.filter((entry) => entry.symbol !== symbol), security].sort((a, b) =>
+			a.symbol.localeCompare(b.symbol),
+		);
+		void saveSecurity(security);
+		return security;
+	}
 
 	async function showCopy(): Promise<void> {
 		const asked = revision;
@@ -189,6 +229,8 @@ export const useInvestmentStore = defineStore('investments', () => {
 		prices,
 		holdings,
 		held,
+		totals,
+		currencyOf,
 		accounts,
 		brokerCash,
 		pricesAsOf,
@@ -201,6 +243,7 @@ export const useInvestmentStore = defineStore('investments', () => {
 		refresh,
 		refreshTrades,
 		loadPrices,
+		addSecurity,
 		createTrade,
 		updateTrade,
 		deleteTrade,

@@ -8,10 +8,11 @@ import kotlin.math.max
 import kotlin.math.roundToLong
 
 /*
- * PSE stocks and UITFs, worked out on the device. Money is in centavos as everywhere else; a price is in
+ * PSE stocks, UITFs and ETFs, worked out on the device. Money is in centavos as everywhere else; a price is in
  * ten-thousandths of a peso (`…E4`), since the PSE's smallest tick is ₱0.0001 and a NAVPU is quoted to four
  * decimals; a quantity is in ten-thousandths of a share or a unit (`units`), since a fund's units are
- * fractional — a stock's are always whole shares. The arithmetic is the server's (`server/investments.ts`) —
+ * fractional — a stock's are always whole shares. An ETF is priced, and its cash kept, in its own currency
+ * ([Security.currency]): its price in ten-thousandths of that, its money in that currency's minor unit. The arithmetic is the server's (`server/investments.ts`) —
  * a trade made offline must show the figures the server will agree with once it lands.
  */
 
@@ -23,6 +24,21 @@ const val FUND_PREFIX = "UITF-"
 
 /** Whether [symbol] names a UITF rather than a PSE stock. */
 fun isFund(symbol: String): Boolean = symbol.startsWith(FUND_PREFIX)
+
+/** An ETF's symbol is `ETF-` and its Yahoo Finance symbol: `ETF-VOO`, or `ETF-VWRA.L` on the LSE. */
+const val ETF_PREFIX = "ETF-"
+
+/** Whether [symbol] names an ETF bought through a foreign broker. */
+fun isEtf(symbol: String): Boolean = symbol.startsWith(ETF_PREFIX)
+
+/** A stock's or an ETF's ticker, as it is read: an ETF's without `ETF-` or the LSE's `.L`. */
+fun tickerOf(symbol: String): String = if (isEtf(symbol)) symbol.removePrefix(ETF_PREFIX).removeSuffix(".L") else symbol
+
+/** Where an ETF trades, as the API speaks it: a US exchange, or the London Stock Exchange. */
+object EtfExchanges {
+    const val US = "US"
+    const val LSE = "LSE"
+}
 
 object TradeKinds {
     const val BUY = "buy"
@@ -56,17 +72,18 @@ fun tradeCash(kind: String, units: Long, priceE4: Long, fees: Long, gross: Long?
 private val FUND_VERBS = mapOf(TradeKinds.BUY to "Subscribe", TradeKinds.SELL to "Redeem", TradeKinds.DIVIDEND to "Distribution on")
 
 /**
- * A trade's cash leg's payee and notes, as the server writes them: a stock's ticker and `Buy 1,000 BDO`, a fund's
- * name and `Subscribe 1,234.5678 units`.
+ * A trade's cash leg's payee and notes, as the server writes them: a stock's or an ETF's ticker and `Buy 1,000 BDO`,
+ * a fund's name and `Subscribe 1,234.5678 units`.
  */
 fun legLabels(kind: String, symbol: String, name: String?, units: Long): Pair<String, String> {
     val count = formatUnits(units)
     if (isFund(symbol)) return (name ?: symbol).take(120) to "${FUND_VERBS[kind]} $count units"
-    return symbol to "${kind.replaceFirstChar { it.uppercase() }} $count $symbol"
+    val ticker = tickerOf(symbol)
+    return ticker to "${kind.replaceFirstChar { it.uppercase() }} $count $ticker"
 }
 
-/** What a security is called where one word is wanted: a stock's ticker, a fund's name (its symbol means nothing to anyone). */
-fun securityLabel(symbol: String, name: String?): String = if (isFund(symbol)) name ?: symbol else symbol
+/** What a security is called where one word is wanted: a stock's or an ETF's ticker, a fund's name (its symbol means nothing to anyone). */
+fun securityLabel(symbol: String, name: String?): String = if (isFund(symbol)) name ?: symbol else tickerOf(symbol)
 
 private fun unitsDecimal(units: Long, grouped: Boolean): String {
     val whole = units / UNIT
@@ -97,8 +114,8 @@ fun parseUnits(input: String, whole: Boolean): Long? {
     return (count * UNIT + fraction.padEnd(4, '0').toLong()).takeIf { it > 0 }
 }
 
-/** A price as PSE quotes it: at least two decimals, up to four when the tick needs them. */
-fun formatPrice(priceE4: Long): String = currencySymbol("PHP") + priceDecimal(priceE4)
+/** A price as its market quotes it, in its [currency] (pesos unless said): at least two decimals, up to four when the tick needs them. */
+fun formatPrice(priceE4: Long, currency: String = "PHP"): String = currencySymbol(currency) + priceDecimal(priceE4)
 
 /** [formatPrice] without the peso sign or grouping, as a field holds it. */
 fun priceInput(priceE4: Long): String = priceDecimal(priceE4).replace(",", "")
@@ -184,6 +201,31 @@ private fun pseFeesRoundedUp(gross: Long, sell: Boolean, minCommission: Long): P
 /** The 10% final tax withheld from a cash dividend. */
 fun dividendTax(gross: Long): Long = share(gross, 10, 100)
 
+/**
+ * What Interactive Brokers charges on an ETF trade under its IBKR Pro Fixed pricing, in the minor unit of the
+ * trade's [currency], rounded to the nearest. In the US, USD 0.005 a share, at least USD 1.00 and at most 1% of
+ * the trade's value (which a fractional trade comes under), and never under USD 0.01. On the LSE, 0.05% of the
+ * value, at least GBP 3.00 or USD 4.00 an order — GBP 1.00 or USD 1.70 for a fractional one. Exchange and
+ * regulatory fees on top are typed, if any. Mirrors `ibkrFees` in `lib/investments.ts`.
+ */
+fun ibkrFees(gross: Long, units: Long, exchange: String, currency: String): Long {
+    if (gross <= 0) return 0
+    val fractional = units % UNIT != 0L
+    if (exchange == EtfExchanges.US) {
+        // Half a cent a share, in cents: units are ten-thousandths of a share.
+        val perShare = max(units / 20_000.0, 100.0)
+        return max(Math.round(minOf(perShare, gross / 100.0)), 1)
+    }
+    val least = if (currency == "USD") (if (fractional) 170L else 400L) else if (fractional) 100L else 300L
+    return max(share(gross, 5, 10_000), least)
+}
+
+/**
+ * The tax withheld from an ETF's dividend: the United States withholds 25% from a Philippine resident's under the
+ * treaty (once a W-8BEN is filed with the broker), and an Irish UCITS ETF on the LSE pays its dividends whole.
+ */
+fun etfDividendTax(gross: Long, exchange: String): Long = if (exchange == EtfExchanges.US) share(gross, 25, 100) else 0
+
 /** The PSE's board lot for a stock trading at [priceE4]: the fewest shares the main board takes. */
 fun boardLot(priceE4: Long): Long = when {
     priceE4 < 100 -> 1_000_000
@@ -251,6 +293,8 @@ data class Holding(
     val position: Position,
     val name: String,
     val accountName: String,
+    /** What it is priced and valued in: pesos, unless it is an ETF. */
+    val currency: String = "PHP",
     /** The latest close, or the average cost when the stock has no price yet. */
     val priceE4: Long,
     val changeBp: Long?,
@@ -279,14 +323,43 @@ fun holdings(
     trades: List<Trade>,
     securities: Map<String, Security>,
     accountName: (String) -> String?,
+    accountCurrency: (String) -> String? = { null },
 ): List<Holding> = (positions(trades) ?: emptyList()).map { position ->
     val security = securities[position.symbol]
     Holding(
         position = position,
         name = security?.name ?: trades.firstOrNull { it.symbol == position.symbol }?.name ?: position.symbol,
         accountName = accountName(position.accountId) ?: trades.firstOrNull { it.accountId == position.accountId }?.accountName.orEmpty(),
+        currency = security?.currency ?: accountCurrency(position.accountId) ?: "PHP",
         priceE4 = security?.price ?: averagePriceE4(position.costBasis, position.units),
         changeBp = security?.changeBp,
         asOf = security?.asOf,
     )
 }
+
+/** What the holdings in one currency come to: there is no rate between currencies, so they are never added together. */
+data class CurrencyTotal(
+    val currency: String,
+    val marketValue: Long,
+    val costBasis: Long,
+    val unrealised: Long,
+    val dayChange: Long,
+)
+
+/**
+ * The held positions added up a currency at a time, [first] (the display currency) leading and the rest after it by
+ * their codes. Empty with nothing held. Mirrors `totalsByCurrency` in `lib/investments.ts`.
+ */
+fun totalsByCurrency(holdings: List<Holding>, first: String): List<CurrencyTotal> =
+    holdings.filter { it.units > 0 }
+        .groupBy { it.currency }
+        .map { (currency, rows) ->
+            CurrencyTotal(
+                currency = currency,
+                marketValue = rows.sumOf { it.marketValue },
+                costBasis = rows.sumOf { it.costBasis },
+                unrealised = rows.sumOf { it.unrealised },
+                dayChange = rows.sumOf { it.dayChange },
+            )
+        }
+        .sortedWith(compareByDescending<CurrencyTotal> { it.currency == first }.thenBy { it.currency })

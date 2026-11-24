@@ -194,7 +194,7 @@ describe('investmentSummary', () => {
 	const holding = (symbol: string, accountId: string, shares: number, costBasis: number, priceE4: number, asOf: string | null) =>
 		holdingOf(
 			{ accountId, symbol, units: shares * 10_000, costBasis, realised: 0, dividends: 0 },
-			{ name: symbol, accountName: accountId, priceE4, changeBp: null, asOf },
+			{ name: symbol, accountName: accountId, currency: symbol.startsWith('ETF-') ? 'USD' : 'PHP', priceE4, changeBp: null, asOf },
 		);
 
 	it('adds the held positions and names the largest stocks', () => {
@@ -218,6 +218,17 @@ describe('investmentSummary', () => {
 			['BDO', 3_000_000],
 			['ALI', 2_800_000],
 		]);
+	});
+
+	it('adds what is held in another currency beside the display currency, never into it', () => {
+		const summary = investmentSummary(
+			[holding('ETF-VOO', 'ibkr', 2, 120_000, 6_000_000, '2026-10-30'), holding('BDO', 'acc-a', 100, 1_400_000, 1_500_000, '2026-10-30')],
+			3,
+			'PHP',
+		);
+		expect(summary).toMatchObject({ currency: 'PHP', marketValue: 1_500_000, costBasis: 1_400_000 });
+		expect(summary?.others).toEqual([{ currency: 'USD', marketValue: 120_000, costBasis: 120_000, unrealised: 0, dayChange: 0 }]);
+		expect(summary?.largest.map((stock) => stock.symbol)).toEqual(['BDO', 'ETF-VOO']);
 	});
 
 	it('has nothing to say with nothing held', () => {

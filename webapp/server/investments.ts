@@ -17,6 +17,7 @@
 
 import { invalidateSummaries } from './cache';
 import { currentMonth } from './dates';
+import { refreshEtfs } from './etfs';
 
 const PHISIX = 'https://phisix-api3.appspot.com';
 
@@ -260,7 +261,7 @@ export async function resolveLogos(env: Env, now: Date, budget = LOGOS_PER_TICK)
 	return found;
 }
 
-/** The hourly tick: the latest close once a trading day, then a slice of history and of logos. */
+/** The hourly tick: the latest PSE close once a trading day, then a slice of history and of logos, then the ETFs that are due. */
 export async function runInvestmentTick(env: Env, now: Date): Promise<void> {
 	try {
 		await refreshSecurities(env, now);
@@ -276,6 +277,11 @@ export async function runInvestmentTick(env: Env, now: Date): Promise<void> {
 		await resolveLogos(env, now);
 	} catch (error) {
 		console.error('Looking up PSE logos failed', error);
+	}
+	try {
+		await refreshEtfs(env, now);
+	} catch (error) {
+		console.error('Refreshing ETF prices failed', error);
 	}
 }
 

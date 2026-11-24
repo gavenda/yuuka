@@ -1,6 +1,6 @@
 import type { Account, CategoryBreakdown, Subscription } from '@/types';
 import { today } from '@/lib/dates';
-import type { Holding } from '@/lib/investments';
+import { totalsByCurrency, type CurrencyTotal, type Holding } from '@/lib/investments';
 import type { STATUS } from '@/lib/palette';
 
 /**
@@ -141,11 +141,18 @@ export function aheadOfPace(categories: CategoryBreakdown[], month: string, now:
 export interface StockValue {
 	symbol: string;
 	name: string;
+	currency: string;
 	marketValue: number;
 }
 
-/** The holdings at a glance: what they are worth, what they have gained, and the largest of them. */
+/**
+ * The holdings at a glance: what they are worth, what they have gained, and the largest of them. The figures are
+ * those in `currency`, the display currency's when anything is held in it; what is held in another currency is in
+ * `others`, since there is no rate to add it in by.
+ */
 export interface InvestmentSummary {
+	currency: string;
+	others: CurrencyTotal[];
 	marketValue: number;
 	costBasis: number;
 	unrealised: number;
@@ -155,27 +162,40 @@ export interface InvestmentSummary {
 	largest: StockValue[];
 }
 
-/** The positions still holding shares or units, summed; null with none. A stock held in two accounts is one of the `top` largest, not two. */
-export function investmentSummary(holdings: readonly Holding[], top = 3): InvestmentSummary | null {
+/**
+ * The positions still holding shares or units, summed a currency at a time, `first` (the display currency) leading;
+ * null with none. A stock held in two accounts is one of the `top` largest, not two; the largest are those of the
+ * leading currency before any other's.
+ */
+export function investmentSummary(holdings: readonly Holding[], top = 3, first = 'PHP'): InvestmentSummary | null {
 	const held = holdings.filter((holding) => holding.units > 0);
 	if (!held.length) return null;
 	const bySymbol = new Map<string, StockValue>();
 	for (const holding of held) {
-		const stock = bySymbol.get(holding.symbol) ?? { symbol: holding.symbol, name: holding.name, marketValue: 0 };
+		const stock = bySymbol.get(holding.symbol) ?? {
+			symbol: holding.symbol,
+			name: holding.name,
+			currency: holding.currency,
+			marketValue: 0,
+		};
 		stock.marketValue += holding.marketValue;
 		bySymbol.set(holding.symbol, stock);
 	}
-	const marketValue = held.reduce((sum, holding) => sum + holding.marketValue, 0);
-	const costBasis = held.reduce((sum, holding) => sum + holding.costBasis, 0);
+	const [lead, ...others] = totalsByCurrency(held, first);
+	const order = new Map([lead!, ...others].map((total, index) => [total.currency, index]));
 	return {
-		marketValue,
-		costBasis,
-		unrealised: marketValue - costBasis,
-		dayChange: held.reduce((sum, holding) => sum + holding.dayChange, 0),
+		currency: lead!.currency,
+		others,
+		marketValue: lead!.marketValue,
+		costBasis: lead!.costBasis,
+		unrealised: lead!.unrealised,
+		dayChange: lead!.dayChange,
 		asOf: held.reduce<string | null>(
 			(latest, holding) => (holding.asOf && (!latest || holding.asOf > latest) ? holding.asOf : latest),
 			null,
 		),
-		largest: [...bySymbol.values()].sort((a, b) => b.marketValue - a.marketValue).slice(0, top),
+		largest: [...bySymbol.values()]
+			.sort((a, b) => order.get(a.currency)! - order.get(b.currency)! || b.marketValue - a.marketValue)
+			.slice(0, top),
 	};
 }

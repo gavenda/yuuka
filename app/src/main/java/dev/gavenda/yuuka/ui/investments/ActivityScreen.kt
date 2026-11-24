@@ -46,7 +46,12 @@ fun ActivityScreen(modifier: Modifier = Modifier, viewModel: InvestmentsViewMode
 
     val hasMore = state.trades.size > shown
     // A day cut off at the end of a page still says what the whole of it moved.
-    val dayTotals = remember(state.trades) { state.trades.groupBy { it.occurredOn.take(10) }.mapValues { (_, rows) -> rows.sumOf { it.amount } } }
+    // A currency at a time: dollars and pesos are never added.
+    val dayTotals = remember(state.trades, state.securities) {
+        state.trades.groupBy { it.occurredOn.take(10) }.mapValues { (_, rows) ->
+            rows.groupBy { state.currencyOf(it.symbol) }.mapValues { (_, inCurrency) -> inCurrency.sumOf { it.amount } }
+        }
+    }
     val listState = rememberLazyListState()
     val endInReach by remember(listState) {
         derivedStateOf {
@@ -84,6 +89,7 @@ fun ActivityScreen(modifier: Modifier = Modifier, viewModel: InvestmentsViewMode
             activityList(
                 state.trades.take(shown),
                 dayTotals,
+                state::currencyOf,
                 selectedId = editing?.id?.takeIf { trading },
                 onEdit = { trade -> switchForm { editing = trade; trading = true } },
                 onDelete = { pendingDelete = it },
@@ -97,6 +103,8 @@ fun ActivityScreen(modifier: Modifier = Modifier, viewModel: InvestmentsViewMode
         val target = editing
         TradeForm(
             state = state,
+            searchEtfs = viewModel::searchEtfs,
+            addSecurity = viewModel::addSecurity,
             onSave = { if (target != null) viewModel.updateTrade(target.id, it) else viewModel.createTrade(it) },
             onDismiss = { trading = false },
             editing = target,
@@ -109,7 +117,14 @@ fun ActivityScreen(modifier: Modifier = Modifier, viewModel: InvestmentsViewMode
  * The trades, newest first, under the day they were made, as Transactions lists its rows: the date as the day's
  * heading with the cash the day's trades moved at its end, inset past the rows it names.
  */
-private fun LazyListScope.activityList(trades: List<Trade>, dayTotals: Map<String, Long>, selectedId: String?, onEdit: (Trade) -> Unit, onDelete: (Trade) -> Unit) {
+private fun LazyListScope.activityList(
+    trades: List<Trade>,
+    dayTotals: Map<String, Map<String, Long>>,
+    currencyOf: (String) -> String,
+    selectedId: String?,
+    onEdit: (Trade) -> Unit,
+    onDelete: (Trade) -> Unit,
+) {
     trades.groupBy { it.occurredOn.take(10) }.forEach { (day, rows) ->
         item(key = "day:$day") {
             Row(
@@ -118,13 +133,18 @@ private fun LazyListScope.activityList(trades: List<Trade>, dayTotals: Map<Strin
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(formatLongDate(day), style = MaterialTheme.typography.titleMedium)
-                MoneyText(dayTotals[day] ?: rows.sumOf { it.amount }, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    dayTotals[day].orEmpty().forEach { (currency, total) ->
+                        MoneyText(total, currency = currency, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
         }
         itemsIndexed(rows, key = { _, trade -> "trade:${trade.id}" }) { index, trade ->
             TradeRow(
                 trade,
                 positionInGroup(index, rows.lastIndex),
+                currency = currencyOf(trade.symbol),
                 selected = trade.id == selectedId,
                 onClick = { onEdit(trade) },
                 onDelete = { onDelete(trade) },

@@ -7,18 +7,22 @@ import PickerField from '@/components/PickerField.vue';
 import SecurityInput from '@/components/SecurityInput.vue';
 import SelectField from '@/components/SelectField.vue';
 import TextField from '@/components/TextField.vue';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { minCommission, roundsFeesUp } from '@/lib/banks';
 import { currentTime, today } from '@/lib/dates';
 import {
 	boardLot,
 	dividendTax,
+	etfDividendTax,
+	ibkrFees,
+	isEtf,
 	isFund,
 	parsePrice,
 	parseUnits,
 	positions,
 	priceInput,
 	pseFees,
+	securityLabel,
 	tradeWord,
 	UNIT,
 	unitsFor,
@@ -32,7 +36,7 @@ import { namedOptions } from '@/lib/selectOptions';
 import { showSnackbar } from '@/lib/snackbar';
 import { useFormValidation } from '@/lib/validation';
 import { useInvestmentStore } from '@/stores/investments';
-import type { Security, Trade, TradeKind } from '@/types';
+import type { EtfMatch, Security, Trade, TradeKind } from '@/types';
 import { computed, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 
@@ -44,8 +48,11 @@ import { t } from '@/i18n';
  * For a stock, the fees a PSE broker charges (or a dividend's final tax) are worked out as the shares and price
  * are typed, so what the trade costs or brings in is known before it is saved. A fund is bought for an amount,
  * as a trust bank sells it: the amount and the NAVPU fill in the units, which stay editable to match the
- * confirmation, and the amount is the cash. Its fees, if any, are typed. Given `editing`, it opens on that trade
- * and puts it right, its cash leg with it.
+ * confirmation, and the amount is the cash. Its fees, if any, are typed. An ETF is bought through Interactive
+ * Brokers, in its own currency and from an account holding it, in shares to four decimals: its commission under
+ * IBKR's Fixed pricing (a dividend's US withholding) is filled in as the shares and price are typed, and left
+ * editable for what the confirmation says. Given `editing`, it opens on that trade and puts it right, its cash
+ * leg with it.
  */
 const props = defineProps<{ open: boolean; editing?: Trade | null; initialSymbol?: string | null; initialAccount?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
@@ -62,7 +69,7 @@ const form = reactive({
 	price: '',
 	/** A fund's subscription or redemption: the cash, as the trust bank said it. */
 	amount: '',
-	/** A fund's fees, typed; a stock's are worked out. */
+	/** A fund's fees, typed; an ETF's, filled in and editable; a stock's are worked out. */
 	fees: '',
 });
 const opened = ref('');
@@ -70,6 +77,9 @@ const error = ref<string | null>(null);
 const dirty = computed(() => JSON.stringify(form) !== opened.value);
 
 const fund = computed(() => isFund(form.symbol));
+const etf = computed(() => isEtf(form.symbol));
+/** Whether the fees are a field: a fund's are typed, an ETF's filled in from IBKR's schedule and editable. */
+const feesTyped = computed(() => fund.value || etf.value);
 /** A fund's subscription or redemption is entered as an amount, which the units follow. */
 const byAmount = computed(() => fund.value && form.kind !== 'dividend');
 
@@ -78,6 +88,11 @@ const KINDS = computed<{ value: TradeKind; label: string }[]>(() =>
 );
 
 const security = computed(() => store.securitiesBySymbol.get(form.symbol) ?? null);
+/** What the trade is in: its security's currency, which its account must hold. */
+const currency = computed(() => (form.symbol ? store.currencyOf(form.symbol) : null));
+const currencyMark = computed(() => currencySymbol(currency.value ?? 'PHP'));
+/** The accounts the trade can be in: those holding its security's currency, once one is chosen. */
+const accounts = computed(() => store.accounts.filter((account) => currency.value === null || account.currency === currency.value));
 const held = computed(() =>
 	store.holdings.find((holding) => holding.symbol === form.symbol && holding.position.accountId === form.accountId),
 );
@@ -113,7 +128,7 @@ const dividendSources = computed(() => {
 		.map(([accountId, symbol]) => {
 			const name = store.securitiesBySymbol.get(symbol)!.name;
 			const shared = (counts.get(symbol) ?? 0) > 1;
-			const label = isFund(symbol) ? name : `${symbol} · ${name}`;
+			const label = isFund(symbol) ? name : `${securityLabel(symbol, name)} · ${name}`;
 			return { value: `${accountId}|${symbol}`, label: `${label}${shared ? ` · ${names.get(accountId)}` : ''}` };
 		});
 });
@@ -132,13 +147,13 @@ const dividendSource = computed({
 });
 
 const occurredOn = computed(() => (form.occurredTime ? `${form.occurredOn}T${form.occurredTime}` : form.occurredOn));
-const units = computed(() => parseUnits(form.units, !fund.value));
+const units = computed(() => parseUnits(form.units, !fund.value && !etf.value));
 const price = computed(() => parsePrice(form.price));
 const amount = computed(() => {
 	const value = parseMoney(form.amount);
 	return value !== null && value > 0 ? value : null;
 });
-/** A fund's typed fees: blank is none. */
+/** A fund's or an ETF's typed fees: blank is none. */
 const typedFees = computed(() => {
 	if (form.fees.trim() === '') return 0;
 	const value = parseMoney(form.fees);
@@ -157,29 +172,40 @@ const fees = computed(() =>
 		: pseFees(gross.value, form.kind === 'sell', minCommission(bank.value), roundsFeesUp(bank.value)),
 );
 const tax = computed(() => (gross.value === null ? 0 : dividendTax(gross.value)));
-/** What comes off the gross: a fund's typed fees, a stock dividend's final tax, or a stock trade's PSE fees. */
+/** What IBKR's schedule says an ETF trade costs, or its dividend has withheld: what the fees field is filled in with. */
+const etfFees = computed(() => {
+	const exchange = security.value?.exchange;
+	if (!etf.value || !exchange || gross.value === null || units.value === null) return null;
+	return form.kind === 'dividend'
+		? etfDividendTax(gross.value, exchange)
+		: ibkrFees(gross.value, units.value, exchange, currency.value ?? 'USD');
+});
+/** What comes off the gross: a fund's or an ETF's typed fees, a stock dividend's final tax, or a stock trade's PSE fees. */
 const feeTotal = computed(() => {
-	if (fund.value) return typedFees.value ?? 0;
+	if (feesTyped.value) return typedFees.value ?? 0;
 	return form.kind === 'dividend' ? tax.value : (fees.value?.total ?? 0);
 });
 
 const validation = useFormValidation({
 	'trade-stock': () =>
 		security.value && (form.kind !== 'dividend' || dividendSource.value !== '') ? null : t('investments.chooseSecurity'),
-	'trade-account': () =>
-		store.accounts.some((account) => account.id === form.accountId)
-			? null
-			: t(fund.value ? 'investments.chooseAccount' : 'investments.chooseBroker'),
+	'trade-account': () => {
+		if (accounts.value.some((account) => account.id === form.accountId)) return null;
+		if (store.accounts.some((account) => account.id === form.accountId))
+			return t('investments.accountCurrency', { currency: currency.value ?? '' });
+		return t(fund.value ? 'investments.chooseAccount' : 'investments.chooseBroker');
+	},
 	'trade-amount': () => (!byAmount.value || amount.value !== null ? null : t('investments.amountNumber')),
 	'trade-units': () => {
-		if (units.value === null) return t(fund.value ? 'investments.unitsNumber' : 'investments.sharesWhole');
+		if (units.value === null)
+			return t(fund.value ? 'investments.unitsNumber' : etf.value ? 'investments.sharesNumber' : 'investments.sharesWhole');
 		if (form.kind === 'sell' && units.value > available.value)
 			return t('investments.sharesOverHeld', { shares: displayUnits(available.value) });
 		return historyHolds() ? null : t(fund.value ? 'investments.unitsOverHistory' : 'investments.sharesOverHistory');
 	},
 	'trade-price': () => (price.value === null ? t('investments.priceNumber') : null),
 	'trade-fees': () => {
-		if (!fund.value) return null;
+		if (!feesTyped.value) return null;
 		if (typedFees.value === null) return t('investments.feesNumber');
 		const net = gross.value === null ? null : form.kind === 'buy' ? gross.value + typedFees.value : gross.value - typedFees.value;
 		return net !== null && net <= 0 ? t('investments.feesTooHigh') : null;
@@ -232,7 +258,7 @@ watch(
 				units: unitsInput(editing.units),
 				price: priceInput(editing.price),
 				amount: editingFund && editing.kind !== 'dividend' ? toDecimalString(cash) : '',
-				fees: editingFund && editing.fees > 0 ? toDecimalString(editing.fees) : '',
+				fees: (editingFund || isEtf(editing.symbol)) && editing.fees > 0 ? toDecimalString(editing.fees) : '',
 			});
 		} else {
 			const symbol = props.initialSymbol ?? '';
@@ -290,24 +316,46 @@ watch(
 	},
 );
 
-/** The security fills in the account that already holds it, as a payee fills in the rest. */
+/**
+ * An ETF's fees follow its shares, price and kind, as IBKR's schedule works them out, whenever any changes; they are
+ * left editable for the confirmation's figure. While those still read as the form opened with them, an edit keeps
+ * the fees it was saved with.
+ */
+watch(etfFees, (worked) => {
+	if (worked === null) return;
+	const start = openedAs();
+	if (props.editing && start.symbol === form.symbol && start.kind === form.kind && start.units === form.units && start.price === form.price)
+		return;
+	form.fees = worked > 0 ? toDecimalString(worked) : '';
+});
+
+/**
+ * The security fills in the account that already holds it, as a payee fills in the rest — or, when the account
+ * chosen does not hold its currency, the first that does.
+ */
 function pick(picked: Security): void {
 	form.symbol = picked.symbol;
 	const holding = store.held.find((entry) => entry.symbol === picked.symbol);
 	if (holding) form.accountId = holding.position.accountId;
+	else if (!accounts.value.some((account) => account.id === form.accountId)) form.accountId = accounts.value[0]?.id ?? '';
 	form.price = priceInput(picked.price);
 	touch('trade-stock');
 }
 
+/** An ETF a search found is added on the server, with its price, before it can be picked. */
+const searchEtfs = async (query: string) => (await api.searchEtfs(query)).results;
+const resolveEtf = (match: EtfMatch) => store.addSecurity(match.symbol);
+
 const lotHint = computed(() => {
 	if (fund.value) return byAmount.value ? t('investments.unitsHint') : undefined;
+	if (etf.value) return undefined;
 	if (form.kind === 'dividend' || price.value === null) return undefined;
 	const lot = boardLot(price.value);
 	const odd = units.value !== null && (units.value / UNIT) % lot !== 0;
 	return t(odd ? 'investments.oddLotHint' : 'investments.boardLotHint', { lot: lot.toLocaleString('en-US') });
 });
 
-const accountChoices = computed(() => namedOptions(store.accounts));
+const accountChoices = computed(() => namedOptions(accounts.value));
 const heldHint = computed(() =>
 	held.value && held.value.units > 0 ? t('investments.heldHint', { shares: displayUnits(held.value.units) }) : undefined,
 );
@@ -315,6 +363,18 @@ const heldHint = computed(() =>
 const priceLabel = computed(() => {
 	if (form.kind === 'dividend') return t(fund.value ? 'investments.distributionPerUnit' : 'investments.dividendPerShare');
 	return t(fund.value ? 'investments.navpu' : 'investments.price');
+});
+
+/** What an ETF's fees field holds: IBKR's commission, or the tax withheld from a dividend. */
+const feesLabel = computed(() => {
+	if (!etf.value) return t('investments.fees');
+	return t(form.kind === 'dividend' ? 'investments.taxWithheld' : 'investments.commission');
+});
+const feesHint = computed(() => {
+	if (!etf.value) return t('investments.feesHint');
+	if (form.kind === 'dividend')
+		return t(security.value?.exchange === 'US' ? 'investments.usWithholdingHint' : 'investments.ucitsWithholdingHint');
+	return t('investments.ibkrFeesHint');
 });
 
 /** The figure the trade moves the account's cash by, and what it is called. */
@@ -384,6 +444,8 @@ async function submit(): Promise<void> {
 				:label="t('investments.security')"
 				:securities="store.securities"
 				:selected="security"
+				:search="searchEtfs"
+				:resolve="resolveEtf"
 				:error="fieldError('trade-stock')"
 				@select="pick"
 				@blur="touch('trade-stock')"
@@ -421,7 +483,7 @@ async function submit(): Promise<void> {
 				v-model="form.amount"
 				:label="t('investments.amount')"
 				inputmode="decimal"
-				:prefix="currencySymbol('PHP')"
+				:prefix="currencyMark"
 				:error="fieldError('trade-amount')"
 				@blur="touch('trade-amount')"
 			/>
@@ -432,7 +494,7 @@ async function submit(): Promise<void> {
 				v-model="form.price"
 				:label="priceLabel"
 				inputmode="decimal"
-				:prefix="currencySymbol('PHP')"
+				:prefix="currencyMark"
 				:error="fieldError('trade-price')"
 				@blur="touch('trade-price')"
 			/>
@@ -441,7 +503,7 @@ async function submit(): Promise<void> {
 				id="trade-units"
 				v-model="form.units"
 				:label="fund ? t('investments.units') : t('investments.shares')"
-				:inputmode="fund ? 'decimal' : 'numeric'"
+				:inputmode="fund || etf ? 'decimal' : 'numeric'"
 				:hint="lotHint"
 				:error="fieldError('trade-units')"
 				@blur="touch('trade-units')"
@@ -453,20 +515,20 @@ async function submit(): Promise<void> {
 				v-model="form.price"
 				:label="priceLabel"
 				inputmode="decimal"
-				:prefix="currencySymbol('PHP')"
+				:prefix="currencyMark"
 				:error="fieldError('trade-price')"
 				@blur="touch('trade-price')"
 			/>
 
 			<TextField
-				v-if="fund"
+				v-if="feesTyped"
 				id="trade-fees"
 				v-model="form.fees"
-				:label="t('investments.fees')"
+				:label="feesLabel"
 				inputmode="decimal"
-				:prefix="currencySymbol('PHP')"
+				:prefix="currencyMark"
 				:placeholder="t('common.optional')"
-				:hint="t('investments.feesHint')"
+				:hint="feesHint"
 				:error="fieldError('trade-fees')"
 				@blur="touch('trade-fees')"
 			/>
@@ -475,11 +537,11 @@ async function submit(): Promise<void> {
 			<Card :padded="false" v-if="gross !== null && net" class="mt-2 flex flex-col gap-2 p-5">
 				<div class="flex justify-between">
 					<span class="type-body-medium text-on-surface-variant">{{ t('investments.gross') }}</span>
-					<MoneyText :amount="gross" class="type-body-large" />
+					<MoneyText :amount="gross" :currency="currency ?? 'PHP'" class="type-body-large" />
 				</div>
-				<div v-if="fund" class="flex justify-between">
-					<span class="type-body-medium text-on-surface-variant">{{ t('investments.fees') }}</span>
-					<MoneyText :amount="form.kind === 'buy' ? feeTotal : -feeTotal" class="type-body-large" />
+				<div v-if="feesTyped" class="flex justify-between">
+					<span class="type-body-medium text-on-surface-variant">{{ feesLabel }}</span>
+					<MoneyText :amount="form.kind === 'buy' ? feeTotal : -feeTotal" :currency="currency ?? 'PHP'" class="type-body-large" />
 				</div>
 				<div v-else-if="form.kind === 'dividend'" class="flex justify-between">
 					<span class="type-body-medium text-on-surface-variant">{{ t('investments.finalTax') }}</span>
@@ -510,11 +572,11 @@ async function submit(): Promise<void> {
 				<hr class="border-outline-variant" />
 				<div class="flex justify-between">
 					<span class="type-body-medium text-on-surface-variant">{{ net.label }}</span>
-					<MoneyText :amount="net.amount" class="type-title-medium" />
+					<MoneyText :amount="net.amount" :currency="currency ?? 'PHP'" class="type-title-medium" />
 				</div>
 				<div v-if="gainOnSale !== null" class="flex justify-between">
 					<span class="type-body-medium text-on-surface-variant">{{ t('investments.gainOnSale') }}</span>
-					<MoneyText :amount="gainOnSale" tone="signed-alert" explicit class="type-body-large" />
+					<MoneyText :amount="gainOnSale" :currency="currency ?? 'PHP'" tone="signed-alert" explicit class="type-body-large" />
 				</div>
 			</Card>
 

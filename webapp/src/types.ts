@@ -296,11 +296,22 @@ export interface Security {
 	asOf: string;
 	/** The logo PSE Edge shows for the company, loaded from there; null, or absent in an older copy, with none found yet. */
 	logoUrl?: string | null;
-	kind: 'stock' | 'fund';
+	kind: 'stock' | 'fund' | 'etf';
 	/** The trust entity that runs a fund; null for a stock. */
 	provider: string | null;
 	/** What a fund invests in (Money Market Fund, Equity Fund, …); null for a stock. */
 	classification: string | null;
+	/** What `price` is in: PHP for a stock or a fund, an ETF's own currency otherwise. */
+	currency: string;
+	/** Where an ETF trades, which decides its broker's fees and the tax on its dividends; null for the PSE. */
+	exchange: 'US' | 'LSE' | null;
+}
+
+/** An ETF a search on Yahoo Finance found, not yet kept: `api.security` adds it. */
+export interface EtfMatch {
+	symbol: string;
+	name: string;
+	exchange: 'US' | 'LSE';
 }
 
 export type TradeKind = 'buy' | 'sell' | 'dividend';

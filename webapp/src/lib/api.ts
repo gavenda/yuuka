@@ -2,6 +2,7 @@ import type {
 	Account,
 	AccountType,
 	Budget,
+	EtfMatch,
 	Category,
 	IncomePlan,
 	Payee,
@@ -619,6 +620,10 @@ export const api = {
 		),
 
 	listSecurities: () => request<{ securities: Security[] }>('/securities'),
+	/** The US-listed and LSE ETFs Yahoo Finance finds for `query`. Online only: it is a question for the market. */
+	searchEtfs: (query: string) => request<{ results: EtfMatch[] }>(`/securities/search${queryString({ q: query })}`),
+	/** One security at its latest price; an ETF the server has not kept yet is looked up and kept. */
+	security: (symbol: string) => request<{ security: Security }>(`/securities/${encodeURIComponent(symbol)}`),
 	prices: (symbol: string, from?: string) =>
 		request<{ prices: PricePoint[] }>(`/securities/${encodeURIComponent(symbol)}/prices${queryString({ from })}`),
 	listTrades: () => request<{ trades: Trade[] }>('/trades'),

@@ -493,6 +493,9 @@ export function readSecurities(): Promise<Security[] | null> {
 
 export const replaceSecurities = (securities: Security[]) => write(replace('securities', securities));
 
+/** One security, an ETF just looked up, beside the rest. */
+export const saveSecurity = (security: Security) => write([put('securities', security)]);
+
 /** Newest first, the order the API answers in. */
 export function readTrades(): Promise<Trade[] | null> {
 	return read((db) => {

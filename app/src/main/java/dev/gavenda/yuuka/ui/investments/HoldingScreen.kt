@@ -101,12 +101,12 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         }
                     }
-                    Text(formatPrice(holding.priceE4), style = MaterialTheme.typography.headlineMedium)
+                    Text(formatPrice(holding.priceE4, holding.currency), style = MaterialTheme.typography.headlineMedium)
                     if (holding.changeBp != null) {
                         Text(
                             stringResource(
                                 R.string.investments_today_change,
-                                (if (dayMove < 0) "−" else "+") + formatPrice(kotlin.math.abs(dayMove)),
+                                (if (dayMove < 0) "−" else "+") + formatPrice(kotlin.math.abs(dayMove), holding.currency),
                                 "%+.2f%%".format(holding.changeBp / 100.0),
                             ),
                             style = MaterialTheme.typography.bodyMedium,
@@ -124,7 +124,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         val shown = closes.filter { it.day >= from }
                         if (shown.size >= 2) {
-                            PriceChart(securityLabel(symbol, holding.name), shown.map { it.close })
+                            PriceChart(securityLabel(symbol, holding.name), shown.map { it.close }, holding.currency)
                         } else {
                             Text(
                                 stringResource(R.string.investments_prices_gathering),
@@ -161,6 +161,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                 TradeRow(
                     trade,
                     positionInGroup(index, trades.lastIndex),
+                    currency = state.currencyOf(trade.symbol),
                     onClick = { switchForm { editing = trade; trading = true } },
                     onDelete = { pendingDelete = trade },
                     selected = trading && trade.id == editing?.id,
@@ -176,6 +177,8 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
         val account = holding?.let { state.held.firstOrNull { it.symbol == symbol }?.position?.accountId }
         TradeForm(
             state = state,
+            searchEtfs = viewModel::searchEtfs,
+            addSecurity = viewModel::addSecurity,
             onSave = { if (target != null) viewModel.updateTrade(target.id, it) else viewModel.createTrade(it) },
             onDismiss = { trading = false },
             editing = target,
@@ -213,19 +216,19 @@ private fun PositionCard(holding: Holding) {
                 Text(unitsText(holding.units), style = MaterialTheme.typography.bodyLarge)
             }
             if (holding.units > 0) {
-                FigureRow(stringResource(R.string.investments_average_cost)) { Text(formatPrice(holding.avgCostE4), style = MaterialTheme.typography.bodyLarge) }
+                FigureRow(stringResource(R.string.investments_average_cost)) { Text(formatPrice(holding.avgCostE4, holding.currency), style = MaterialTheme.typography.bodyLarge) }
             }
-            FigureRow(stringResource(R.string.investments_cost_basis)) { MoneyText(holding.costBasis, style = MaterialTheme.typography.bodyLarge) }
-            FigureRow(stringResource(R.string.investments_market_value)) { MoneyText(holding.marketValue, style = MaterialTheme.typography.bodyLarge) }
+            FigureRow(stringResource(R.string.investments_cost_basis)) { MoneyText(holding.costBasis, currency = holding.currency, style = MaterialTheme.typography.bodyLarge) }
+            FigureRow(stringResource(R.string.investments_market_value)) { MoneyText(holding.marketValue, currency = holding.currency, style = MaterialTheme.typography.bodyLarge) }
             HorizontalDivider()
             FigureRow(stringResource(R.string.investments_unrealised_gain), percentChange(holding.unrealised, holding.costBasis)) {
-                MoneyText(holding.unrealised, tone = MoneyTone.SIGNED_ALERT, explicit = holding.unrealised != 0L, style = MaterialTheme.typography.bodyLarge)
+                MoneyText(holding.unrealised, currency = holding.currency, tone = MoneyTone.SIGNED_ALERT, explicit = holding.unrealised != 0L, style = MaterialTheme.typography.bodyLarge)
             }
             FigureRow(stringResource(R.string.investments_realised_gain)) {
-                MoneyText(holding.position.realised, tone = MoneyTone.SIGNED_ALERT, explicit = holding.position.realised != 0L, style = MaterialTheme.typography.bodyLarge)
+                MoneyText(holding.position.realised, currency = holding.currency, tone = MoneyTone.SIGNED_ALERT, explicit = holding.position.realised != 0L, style = MaterialTheme.typography.bodyLarge)
             }
             FigureRow(stringResource(if (holding.fund) R.string.investments_distributions_received else R.string.investments_dividends_received)) {
-                MoneyText(holding.position.dividends, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.bodyLarge)
+                MoneyText(holding.position.dividends, currency = holding.currency, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -247,7 +250,7 @@ internal fun FigureRow(label: String, caption: String? = null, value: @Composabl
  * error when lower, and the range's high and low named at the side. Prices are public, so nothing is masked.
  */
 @Composable
-private fun PriceChart(symbol: String, closes: List<Long>, modifier: Modifier = Modifier) {
+private fun PriceChart(symbol: String, closes: List<Long>, currency: String, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val up = closes.last() >= closes.first()
     val line = if (up) scheme.primary else scheme.error
@@ -259,7 +262,7 @@ private fun PriceChart(symbol: String, closes: List<Long>, modifier: Modifier = 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(percentChange(closes.last() - closes.first(), closes.first()), style = MaterialTheme.typography.titleMedium, color = line)
-            Text(formatPrice(high), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+            Text(formatPrice(high, currency), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
         }
         Canvas(modifier = Modifier.fillMaxWidth().height(160.dp).semantics { contentDescription = description }) {
             val step = if (closes.size > 1) size.width / (closes.size - 1) else 0f
@@ -278,6 +281,6 @@ private fun PriceChart(symbol: String, closes: List<Long>, modifier: Modifier = 
             drawPath(path, line, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawCircle(line, 4.dp.toPx(), Offset(size.width, yOf(closes.last())))
         }
-        Text(formatPrice(low), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.End))
+        Text(formatPrice(low, currency), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.End))
     }
 }

@@ -35,7 +35,7 @@ const nameOf = (trade: Trade) => securityLabel(trade.symbol, trade.name ?? store
 function lineOf(trade: Trade): string {
 	const fund = isFund(trade.symbol);
 	const key = trade.kind === 'dividend' ? (fund ? 'distributionLine' : 'dividendLine') : fund ? 'unitsAt' : 'sharesAt';
-	return t(`investments.${key}`, { shares: displayUnits(trade.units), price: formatPrice(trade.price) });
+	return t(`investments.${key}`, { shares: displayUnits(trade.units), price: formatPrice(trade.price, store.currencyOf(trade.symbol)) });
 }
 /** The time a trade was made, led by its day (`15 Oct, 9:45 AM`) where no day's heading says it; nothing for an untimed trade under one. */
 const whenOf = (occurredOn: string) =>
@@ -86,6 +86,7 @@ async function remove(): Promise<void> {
 							<!-- A buy or sell only turns cash into shares or units and back; a dividend is income. -->
 							<MoneyText
 								:amount="trade.amount"
+								:currency="store.currencyOf(trade.symbol)"
 								:tone="trade.kind === 'dividend' ? 'signed' : 'transfer'"
 								explicit
 								class="type-title-medium"

@@ -66,6 +66,7 @@ const holding = computed(() => {
 		{
 			name: first.name,
 			accountName: rows.map((row) => row.accountName).join(', '),
+			currency: first.currency,
 			priceE4: first.priceE4,
 			changeBp: first.changeBp,
 			asOf: first.asOf,
@@ -150,7 +151,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			<div class="mt-4 min-w-0">
 				<p class="type-title-large">{{ holding.name }}</p>
 				<p v-if="fundLine" class="type-body-small text-on-surface-variant">{{ fundLine }}</p>
-				<p class="type-headline-medium">{{ formatPrice(holding.priceE4) }}</p>
+				<p class="type-headline-medium">{{ formatPrice(holding.priceE4, holding.currency) }}</p>
 				<p
 					v-if="holding.changeBp !== null"
 					class="type-body-medium"
@@ -158,7 +159,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 				>
 					{{
 						t('investments.todayChange', {
-							change: `${dayMove < 0 ? '−' : '+'}${formatPrice(Math.abs(dayMove))}`,
+							change: `${dayMove < 0 ? '−' : '+'}${formatPrice(Math.abs(dayMove), holding.currency)}`,
 							percent: `${holding.changeBp >= 0 ? '+' : ''}${(holding.changeBp / 100).toFixed(2)}%`,
 						})
 					}}
@@ -170,7 +171,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			<div v-if="chart" class="flex flex-col gap-1">
 				<div class="flex justify-between">
 					<span class="type-title-medium" :class="chart.up ? 'text-primary' : 'text-error'">{{ chart.change }}</span>
-					<span class="type-label-small text-on-surface-variant">{{ formatPrice(chart.high) }}</span>
+					<span class="type-label-small text-on-surface-variant">{{ formatPrice(chart.high, holding.currency) }}</span>
 				</div>
 				<!-- Prices are public, so nothing here is masked. -->
 				<svg
@@ -197,7 +198,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 						stroke-linejoin="round"
 					/>
 				</svg>
-				<span class="type-label-small self-end text-on-surface-variant">{{ formatPrice(chart.low) }}</span>
+				<span class="type-label-small self-end text-on-surface-variant">{{ formatPrice(chart.low, holding.currency) }}</span>
 			</div>
 			<p v-else class="type-body-medium py-6 text-on-surface-variant">{{ t('investments.pricesGathering') }}</p>
 			<ConnectedButtonGroup v-model="range" :label="t('investments.priceRange')" :options="RANGES" />
@@ -216,15 +217,15 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			</div>
 			<div v-if="holding.units > 0" class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.averageCost') }}</span>
-				<span class="type-body-large">{{ formatPrice(holding.avgCostE4) }}</span>
+				<span class="type-body-large">{{ formatPrice(holding.avgCostE4, holding.currency) }}</span>
 			</div>
 			<div class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.costBasis') }}</span>
-				<MoneyText :amount="holding.costBasis" class="type-body-large" />
+				<MoneyText :currency="holding.currency" :amount="holding.costBasis" class="type-body-large" />
 			</div>
 			<div class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.marketValue') }}</span>
-				<MoneyText :amount="holding.marketValue" class="type-body-large" />
+				<MoneyText :currency="holding.currency" :amount="holding.marketValue" class="type-body-large" />
 			</div>
 			<hr class="border-outline-variant" />
 			<div class="flex items-center justify-between">
@@ -232,11 +233,18 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 					<span class="type-body-medium text-on-surface-variant">{{ t('investments.unrealisedGain') }}</span>
 					<span class="type-body-small text-on-surface-variant">{{ percentChange(holding.unrealised, holding.costBasis) }}</span>
 				</span>
-				<MoneyText :amount="holding.unrealised" tone="signed-alert" :explicit="holding.unrealised !== 0" class="type-body-large" />
+				<MoneyText
+					:currency="holding.currency"
+					:amount="holding.unrealised"
+					tone="signed-alert"
+					:explicit="holding.unrealised !== 0"
+					class="type-body-large"
+				/>
 			</div>
 			<div class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.realisedGain') }}</span>
 				<MoneyText
+					:currency="holding.currency"
 					:amount="holding.position.realised"
 					tone="signed-alert"
 					:explicit="holding.position.realised !== 0"
@@ -247,7 +255,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 				<span class="type-body-medium text-on-surface-variant">{{
 					holding.fund ? t('investments.distributionsReceived') : t('investments.dividendsReceived')
 				}}</span>
-				<MoneyText :amount="holding.position.dividends" tone="signed" class="type-body-large" />
+				<MoneyText :currency="holding.currency" :amount="holding.position.dividends" tone="signed" class="type-body-large" />
 			</div>
 		</Card>
 

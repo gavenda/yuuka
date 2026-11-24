@@ -113,7 +113,7 @@ describe('local database', () => {
 			await cache.warmCache();
 
 			const db = await openDatabase();
-			expect(db.version).toBe(5);
+			expect(db.version).toBe(6);
 			expect(Array.from(db.objectStoreNames)).not.toContain('entries');
 			db.close();
 		});

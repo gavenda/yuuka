@@ -21,6 +21,10 @@ interface InvestmentDao {
     suspend fun insertSecurities(securities: List<SecurityEntity>)
 
     @Transaction
+    /** One security, an ETF just looked up, beside the rest. */
+    @Upsert
+    suspend fun upsertSecurity(security: SecurityEntity)
+
     suspend fun replaceSecurities(securities: List<SecurityEntity>) {
         clearSecurities()
         insertSecurities(securities)

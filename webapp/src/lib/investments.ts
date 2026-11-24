@@ -1,9 +1,11 @@
 /**
- * PSE stocks and UITFs, worked out in the browser. The twin of Android's `domain/Investments.kt`, and both follow
+ * PSE stocks, UITFs and ETFs, worked out in the browser. The twin of Android's `domain/Investments.kt`, and both follow
  * the server's arithmetic (`server/investments.ts`), so a trade made offline shows the figures the server will
  * agree with once it lands. Money is in centavos; a price in ten-thousandths of a peso (`…E4`), since the PSE's
  * smallest tick is ₱0.0001 and a NAVPU is quoted to four decimals; a quantity in ten-thousandths of a share or
- * a unit (`units`), since a fund's units are fractional — a stock's are always whole shares.
+ * a unit (`units`), since a fund's units are fractional — a stock's are always whole shares. An ETF is priced, and
+ * its cash kept, in its own currency (`Security.currency`): its price in ten-thousandths of that, its money in that
+ * currency's minor unit.
  */
 import { currencySymbol } from '@/lib/money';
 import type { Security, Trade, TradeKind } from '@/types';
@@ -16,6 +18,15 @@ export const FUND_PREFIX = 'UITF-';
 
 /** Whether `symbol` names a UITF rather than a PSE stock. */
 export const isFund = (symbol: string) => symbol.startsWith(FUND_PREFIX);
+
+/** An ETF's symbol is `ETF-` and its Yahoo Finance symbol: `ETF-VOO`, or `ETF-VWRA.L` on the LSE. */
+export const ETF_PREFIX = 'ETF-';
+
+/** Whether `symbol` names an ETF bought through a foreign broker. */
+export const isEtf = (symbol: string) => symbol.startsWith(ETF_PREFIX);
+
+/** A stock's or an ETF's ticker, as it is read: an ETF's without `ETF-` or the LSE's `.L`. */
+export const tickerOf = (symbol: string) => (isEtf(symbol) ? symbol.slice(ETF_PREFIX.length).replace(/\.L$/, '') : symbol);
 
 /**
  * The value in centavos of `units` at `priceE4`, rounded half up. The product of two ten-thousandths can pass what
@@ -44,20 +55,21 @@ export function tradeWord(kind: TradeKind, symbol: string): 'buy' | 'sell' | 'di
 	return kind === 'buy' ? 'subscribe' : kind === 'sell' ? 'redeem' : 'distribution';
 }
 
-/** What a security is called where one word is wanted: a stock's ticker, a fund's name (its symbol means nothing to anyone). */
-export const securityLabel = (symbol: string, name: string | null | undefined) => (isFund(symbol) ? (name ?? symbol) : symbol);
+/** What a security is called where one word is wanted: a stock's or an ETF's ticker, a fund's name (its symbol means nothing to anyone). */
+export const securityLabel = (symbol: string, name: string | null | undefined) => (isFund(symbol) ? (name ?? symbol) : tickerOf(symbol));
 
 /** What a fund's trades are called on its cash leg, as the server writes it. */
 const FUND_VERBS: Record<TradeKind, string> = { buy: 'Subscribe', sell: 'Redeem', dividend: 'Distribution on' };
 
 /**
- * A trade's cash leg's payee and notes, as the server writes them: a stock's ticker and `Buy 1,000 BDO`, a fund's
- * name and `Subscribe 1,234.5678 units`.
+ * A trade's cash leg's payee and notes, as the server writes them: a stock's or an ETF's ticker and `Buy 1,000 BDO`,
+ * a fund's name and `Subscribe 1,234.5678 units`.
  */
 export function legLabels(kind: TradeKind, symbol: string, name: string | null, units: number): { payee: string; notes: string } {
 	const count = formatUnits(units);
 	if (isFund(symbol)) return { payee: (name ?? symbol).slice(0, 120), notes: `${FUND_VERBS[kind]} ${count} units` };
-	return { payee: symbol, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${count} ${symbol}` };
+	const ticker = tickerOf(symbol);
+	return { payee: ticker, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${count} ${ticker}` };
 }
 
 function unitsDecimal(units: number, grouped: boolean): string {
@@ -96,8 +108,8 @@ function priceDecimal(priceE4: number): string {
 	return `${whole.toLocaleString('en-US')}.${fraction}`;
 }
 
-/** A price as PSE quotes it: at least two decimals, up to four when the tick needs them. */
-export const formatPrice = (priceE4: number) => `${currencySymbol('PHP')}${priceDecimal(priceE4)}`;
+/** A price as its market quotes it, in its currency (pesos unless said): at least two decimals, up to four when the tick needs them. */
+export const formatPrice = (priceE4: number, currency = 'PHP') => `${currencySymbol(currency)}${priceDecimal(priceE4)}`;
 
 /** `formatPrice` without the peso sign or grouping, as a field holds it. */
 export const priceInput = (priceE4: number) => priceDecimal(priceE4).replaceAll(',', '');
@@ -184,6 +196,34 @@ function pseFeesRoundedUp(gross: number, sell: boolean, minCommission: number): 
 /** The 10% final tax withheld from a cash dividend. */
 export const dividendTax = (gross: number) => share(gross, 10, 100);
 
+/** Where an ETF trades: a US exchange, or the London Stock Exchange. */
+export type EtfExchange = 'US' | 'LSE';
+
+/**
+ * What Interactive Brokers charges on an ETF trade under its IBKR Pro Fixed pricing, in the minor unit of the
+ * trade's currency, rounded to the nearest. In the US, USD 0.005 a share, at least USD 1.00 and at most 1% of
+ * the trade's value (which a fractional trade comes under), and never under USD 0.01. On the LSE, 0.05% of the
+ * value, at least GBP 3.00 or USD 4.00 an order — GBP 1.00 or USD 1.70 for a fractional one. Exchange and
+ * regulatory fees on top are typed, if any.
+ */
+export function ibkrFees(gross: number, units: number, exchange: EtfExchange, currency: string): number {
+	if (gross <= 0) return 0;
+	const fractional = units % UNIT !== 0;
+	if (exchange === 'US') {
+		// Half a cent a share, in cents: units are ten-thousandths of a share.
+		const perShare = Math.max(units / 20_000, 100);
+		return Math.max(Math.round(Math.min(perShare, gross / 100)), 1);
+	}
+	const least = currency === 'USD' ? (fractional ? 170 : 400) : fractional ? 100 : 300;
+	return Math.max(share(gross, 5, 10_000), least);
+}
+
+/**
+ * The tax withheld from an ETF's dividend: the United States withholds 25% from a Philippine resident's under the
+ * treaty (once a W-8BEN is filed with the broker), and an Irish UCITS ETF on the LSE pays its dividends whole.
+ */
+export const etfDividendTax = (gross: number, exchange: EtfExchange) => (exchange === 'US' ? share(gross, 25, 100) : 0);
+
 /** The PSE's board lot for a stock trading at `priceE4`: the fewest shares the main board takes. */
 export function boardLot(priceE4: number): number {
 	if (priceE4 < 100) return 1_000_000;
@@ -255,6 +295,8 @@ export interface Holding {
 	symbol: string;
 	/** Whether it is a UITF rather than a PSE stock. */
 	fund: boolean;
+	/** What it is priced and valued in: pesos, unless it is an ETF. */
+	currency: string;
 	name: string;
 	accountName: string;
 	/** The latest close, or the average cost when the stock has no price yet. */
@@ -273,7 +315,7 @@ export interface Holding {
 /** Fills in what a position is worth at `priceE4`. */
 export function holdingOf(
 	position: Position,
-	details: { name: string; accountName: string; priceE4: number; changeBp: number | null; asOf: string | null },
+	details: { name: string; accountName: string; currency: string; priceE4: number; changeBp: number | null; asOf: string | null },
 ): Holding {
 	const marketValue = valueOf(position.units, details.priceE4);
 	const previousCloseE4 =
@@ -297,7 +339,7 @@ export function holdingOf(
 export function holdings(
 	trades: readonly Trade[],
 	securities: ReadonlyMap<string, Security>,
-	account: (id: string) => { name: string } | undefined,
+	account: (id: string) => { name: string; currency: string } | undefined,
 ): Holding[] {
 	return (positions(trades) ?? []).map((position) => {
 		const security = securities.get(position.symbol);
@@ -305,9 +347,39 @@ export function holdings(
 		return holdingOf(position, {
 			name: security?.name ?? trades.find((trade) => trade.symbol === position.symbol)?.name ?? position.symbol,
 			accountName: owner?.name ?? trades.find((trade) => trade.accountId === position.accountId)?.accountName ?? '',
+			currency: security?.currency ?? owner?.currency ?? 'PHP',
 			priceE4: security?.price ?? averagePriceE4(position.costBasis, position.units),
 			changeBp: security?.changeBp ?? null,
 			asOf: security?.asOf ?? null,
 		});
 	});
+}
+
+/** What the holdings in one currency come to: there is no rate between currencies, so they are never added together. */
+export interface CurrencyTotal {
+	currency: string;
+	marketValue: number;
+	costBasis: number;
+	unrealised: number;
+	dayChange: number;
+}
+
+/**
+ * The held positions added up a currency at a time, `first` (the display currency) leading and the rest after it by
+ * their codes. Empty with nothing held.
+ */
+export function totalsByCurrency(holdings: readonly Holding[], first: string): CurrencyTotal[] {
+	const totals = new Map<string, CurrencyTotal>();
+	for (const holding of holdings) {
+		if (holding.units <= 0) continue;
+		const total = totals.get(holding.currency) ?? { currency: holding.currency, marketValue: 0, costBasis: 0, unrealised: 0, dayChange: 0 };
+		total.marketValue += holding.marketValue;
+		total.costBasis += holding.costBasis;
+		total.unrealised += holding.unrealised;
+		total.dayChange += holding.dayChange;
+		totals.set(holding.currency, total);
+	}
+	return [...totals.values()].sort(
+		(a, b) => Number(b.currency === first) - Number(a.currency === first) || a.currency.localeCompare(b.currency),
+	);
 }

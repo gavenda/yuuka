@@ -12,6 +12,7 @@ import dev.gavenda.yuuka.data.local.entity.TradeEntity
 import dev.gavenda.yuuka.data.local.entity.TransactionEntity
 import dev.gavenda.yuuka.data.local.entity.toDomain
 import dev.gavenda.yuuka.data.local.entity.toEntity
+import dev.gavenda.yuuka.data.model.EtfMatch
 import dev.gavenda.yuuka.data.model.PricePoint
 import dev.gavenda.yuuka.data.model.Security
 import dev.gavenda.yuuka.data.model.SystemCategories
@@ -28,7 +29,7 @@ import kotlinx.serialization.json.put
 import java.time.LocalDate
 
 /**
- * PSE stocks and UITFs. Prices come from the server, which keeps them from PHISIX and uitf.com.ph; trades are written here first
+ * PSE stocks, UITFs and ETFs. Prices come from the server, which keeps them from PHISIX, uitf.com.ph and Yahoo Finance; trades are written here first
  * and sent through the [Outbox], with their cash leg saved as an ordinary transaction so the broker account's
  * balance moves at once, as `POST /api/trades` will move it. Both are named here, so the server adopts them.
  */
@@ -54,6 +55,19 @@ class InvestmentRepository(
     suspend fun refreshTrades() {
         val trades = apiCall { api.listTrades() }.trades
         dao.replaceTrades(trades.map { it.toEntity() })
+    }
+
+    /** The US-listed and LSE ETFs Yahoo Finance finds for [query]. Online only; throws what the API said. */
+    suspend fun searchEtfs(query: String): List<EtfMatch> = apiCall { api.searchEtfs(query) }.results
+
+    /**
+     * Adds a security looked up on the server — an ETF a search found — beside the rest, so a trade can be made of
+     * it. Throws what the API said when it cannot be had.
+     */
+    suspend fun addSecurity(symbol: String): Security {
+        val security = apiCall { api.security(symbol) }.security
+        dao.upsertSecurity(security.toEntity())
+        return security
     }
 
     /** A year of closes, folded into what is already held for the stock. */

@@ -34,12 +34,15 @@ onMounted(async () => {
 
 const hasMore = computed(() => store.trades.length > shown.value);
 
-/** A day cut off at the end of a page still says what the whole of it moved. */
+/** A day cut off at the end of a page still says what the whole of it moved, a currency at a time: dollars and pesos are never added. */
 const dayTotals = computed(() => {
-	const totals = new Map<string, number>();
+	const totals = new Map<string, Map<string, number>>();
 	for (const trade of store.trades) {
 		const key = trade.occurredOn.slice(0, 10);
-		totals.set(key, (totals.get(key) ?? 0) + trade.amount);
+		const currency = store.currencyOf(trade.symbol);
+		const day = totals.get(key) ?? new Map<string, number>();
+		day.set(currency, (day.get(currency) ?? 0) + trade.amount);
+		totals.set(key, day);
 	}
 	return totals;
 });
@@ -56,7 +59,11 @@ const days = computed(() => {
 		if (rows) rows.push(trade);
 		else byDay.set(key, [trade]);
 	}
-	return [...byDay.entries()].map(([date, rows]) => ({ date, total: dayTotals.value.get(date) ?? 0, rows }));
+	return [...byDay.entries()].map(([date, rows]) => ({
+		date,
+		totals: [...(dayTotals.value.get(date) ?? new Map<string, number>())],
+		rows,
+	}));
 });
 
 /** The foot of the list for as long as there is more of it to show. */
@@ -111,7 +118,9 @@ watch(
 			<section v-for="day in days" :key="day.date">
 				<div class="group-header">
 					<h2>{{ formatLongDate(day.date) }}</h2>
-					<MoneyText :amount="day.total" tone="signed" />
+					<span class="flex gap-3">
+						<MoneyText v-for="[currency, total] in day.totals" :key="currency" :amount="total" :currency="currency" tone="signed" />
+					</span>
 				</div>
 				<TradeList :trades="day.rows" show-symbol :selected-id="trading ? editing?.id : null" @edit="openEdit" />
 			</section>

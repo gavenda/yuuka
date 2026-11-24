@@ -113,9 +113,13 @@ fun aheadOfPace(categories: List<CategoryBreakdown>, month: String, today: Strin
 }
 
 /** One stock's worth across every broker account that holds it. */
-data class StockValue(val symbol: String, val name: String, val marketValue: Long)
+data class StockValue(val symbol: String, val name: String, val marketValue: Long, val currency: String = "PHP")
 
-/** The holdings at a glance: what they are worth, what they have gained, and the largest of them. */
+/**
+ * The holdings at a glance: what they are worth, what they have gained, and the largest of them. The figures are
+ * those in [currency], the display currency's when anything is held in it; what is held in another currency is in
+ * [others], since there is no rate to add it in by.
+ */
 data class InvestmentSummary(
     val marketValue: Long,
     val costBasis: Long,
@@ -123,23 +127,34 @@ data class InvestmentSummary(
     /** The latest trading day a held stock was priced at. */
     val asOf: String?,
     val largest: List<StockValue>,
+    val currency: String = "PHP",
+    val others: List<CurrencyTotal> = emptyList(),
 ) {
     val unrealised: Long get() = marketValue - costBasis
 }
 
-/** The positions still holding shares or units, summed; null with none. A stock held in two accounts is one of the [top] largest, not two. */
-fun investmentSummary(holdings: List<Holding>, top: Int = 3): InvestmentSummary? {
+/**
+ * The positions still holding shares or units, summed a currency at a time, [first] (the display currency) leading;
+ * null with none. A stock held in two accounts is one of the [top] largest, not two; the largest are those of the
+ * leading currency before any other's. Mirrors `investmentSummary` in `lib/dashboard.ts`.
+ */
+fun investmentSummary(holdings: List<Holding>, top: Int = 3, first: String = "PHP"): InvestmentSummary? {
     val held = holdings.filter { it.units > 0 }
     if (held.isEmpty()) return null
+    val totals = totalsByCurrency(held, first)
+    val lead = totals.first()
+    val order = totals.mapIndexed { index, total -> total.currency to index }.toMap()
     val largest = held.groupBy { it.symbol }
-        .map { (symbol, rows) -> StockValue(symbol, rows.first().name, rows.sumOf { it.marketValue }) }
-        .sortedByDescending { it.marketValue }
+        .map { (symbol, rows) -> StockValue(symbol, rows.first().name, rows.sumOf { it.marketValue }, rows.first().currency) }
+        .sortedWith(compareBy<StockValue> { order[it.currency] ?: 0 }.thenByDescending { it.marketValue })
         .take(top)
     return InvestmentSummary(
-        marketValue = held.sumOf { it.marketValue },
-        costBasis = held.sumOf { it.costBasis },
-        dayChange = held.sumOf { it.dayChange },
+        marketValue = lead.marketValue,
+        costBasis = lead.costBasis,
+        dayChange = lead.dayChange,
         asOf = held.mapNotNull { it.asOf }.maxOrNull(),
         largest = largest,
+        currency = lead.currency,
+        others = totals.drop(1),
     )
 }

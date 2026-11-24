@@ -33,6 +33,7 @@ import dev.gavenda.yuuka.domain.formatPrice
 import dev.gavenda.yuuka.domain.formatUnits
 import dev.gavenda.yuuka.domain.isFund
 import dev.gavenda.yuuka.domain.securityLabel
+import dev.gavenda.yuuka.domain.tickerOf
 import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
@@ -89,39 +90,66 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Uni
                 return@LazyColumn
             }
 
-            val marketValue = held.sumOf { it.marketValue }
-            val cost = held.sumOf { it.costBasis }
-            val unrealised = marketValue - cost
-            val dayChange = held.sumOf { it.dayChange }
+            // There is no rate between currencies, so an ETF in dollars is added up beside the pesos, never into them.
+            val totals = state.totals
+            val lead = totals.first()
 
             item(key = "value") {
                 StatCard(
                     label = stringResource(R.string.investments_market_value),
-                    amount = marketValue,
+                    amount = lead.marketValue,
+                    currency = lead.currency,
                     hero = true,
                     watermark = true,
                     caption = state.pricesAsOf?.let { asOf ->
                         stringResource(
                             R.string.investments_as_of,
-                            visibility.displayMoney(cost),
+                            visibility.displayMoney(lead.costBasis, lead.currency),
                             LocalDate.parse(asOf).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                         )
                     },
                 )
             }
+            totals.drop(1).forEach { total ->
+                item(key = "value:${total.currency}") {
+                    StatCard(
+                        label = stringResource(R.string.investments_market_value_in, total.currency),
+                        amount = total.marketValue,
+                        currency = total.currency,
+                        modifier = Modifier.padding(top = 8.dp),
+                        caption = stringResource(R.string.investments_cost_of, visibility.displayMoney(total.costBasis, total.currency)),
+                    )
+                }
+            }
             item(key = "gains") {
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GainCard(stringResource(R.string.investments_unrealised), unrealised, percentChange(unrealised, cost), Modifier.weight(1f))
-                        GainCard(stringResource(R.string.investments_today), dayChange, percentChange(dayChange, marketValue - dayChange), Modifier.weight(1f))
+                        GainCard(
+                            stringResource(R.string.investments_unrealised),
+                            totals.map { Triple(it.currency, it.unrealised, percentChange(it.unrealised, it.costBasis)) },
+                            Modifier.weight(1f),
+                        )
+                        GainCard(
+                            stringResource(R.string.investments_today),
+                            totals.map { Triple(it.currency, it.dayChange, percentChange(it.dayChange, it.marketValue - it.dayChange)) },
+                            Modifier.weight(1f),
+                        )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GainCard(stringResource(R.string.investments_realised), state.realisedThisYear, null, Modifier.weight(1f))
-                        GainCard(stringResource(R.string.investments_dividends), state.dividendsThisYear, null, Modifier.weight(1f))
+                        GainCard(
+                            stringResource(R.string.investments_realised),
+                            state.realisedThisYear.map { (currency, amount) -> Triple(currency, amount, null) },
+                            Modifier.weight(1f),
+                        )
+                        GainCard(
+                            stringResource(R.string.investments_dividends),
+                            state.dividendsThisYear.map { (currency, amount) -> Triple(currency, amount, null) },
+                            Modifier.weight(1f),
+                        )
                     }
                 }
             }
-            if (held.isNotEmpty()) item(key = "allocation") { AllocationCard(held, Modifier.padding(top = 8.dp)) }
+            if (held.isNotEmpty()) item(key = "allocation") { AllocationCard(held, totals.map { it.currency }, Modifier.padding(top = 8.dp)) }
             holdingsList(held, state.securitiesBySymbol, onOpenHolding)
             item(key = "activity-header") {
                 Row(
@@ -137,6 +165,7 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Uni
                 TradeRow(
                     trade,
                     positionInGroup(index, recent.lastIndex),
+                    currency = state.currencyOf(trade.symbol),
                     onClick = { switchForm { editing = trade; trading = true } },
                     onDelete = { pendingDelete = trade },
                     selected = trading && trade.id == editing?.id,
@@ -150,6 +179,8 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Uni
         val target = editing
         TradeForm(
             state = state,
+            searchEtfs = viewModel::searchEtfs,
+            addSecurity = viewModel::addSecurity,
             onSave = { if (target != null) viewModel.updateTrade(target.id, it) else viewModel.createTrade(it) },
             onDismiss = { trading = false },
             editing = target,
@@ -169,7 +200,7 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, securities: Map<
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(first.accountName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                MoneyText(rows.sumOf { it.marketValue }, style = MaterialTheme.typography.titleMedium)
+                MoneyText(rows.sumOf { it.marketValue }, currency = first.currency, style = MaterialTheme.typography.titleMedium)
             }
         }
         itemsIndexed(rows, key = { _, holding -> "holding:$accountId:${holding.symbol}" }) { index, holding ->
@@ -183,13 +214,23 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, securities: Map<
     }
 }
 
+/** A gain a currency at a time: each figure in its currency, with the share it is where there is one. */
 @Composable
-private fun GainCard(label: String, amount: Long, percent: String?, modifier: Modifier = Modifier) {
+private fun GainCard(label: String, figures: List<Triple<String, Long, String?>>, modifier: Modifier = Modifier) {
     Card(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(label.uppercase(), style = MaterialTheme.typography.labelSmall)
-            MoneyText(amount, tone = MoneyTone.SIGNED_ALERT, explicit = amount != 0L, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 6.dp))
-            if (percent != null) Text(percent, style = MaterialTheme.typography.bodySmall)
+            figures.forEach { (currency, amount, percent) ->
+                MoneyText(
+                    amount,
+                    currency = currency,
+                    tone = MoneyTone.SIGNED_ALERT,
+                    explicit = amount != 0L,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                if (percent != null) Text(percent, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
@@ -201,15 +242,32 @@ private fun sliceColors(): List<Color> {
     return listOf(scheme.primary, scheme.secondary, scheme.tertiary, scheme.primaryContainer, scheme.secondaryContainer, scheme.tertiaryContainer)
 }
 
-/** One bar split by what each stock or fund is worth, largest first, and a legend of the shares it is. */
+/**
+ * A bar a currency split by what each stock, fund or ETF is worth, largest first, and a legend of the shares it is:
+ * a share of pesos and dollars together means nothing.
+ */
 @Composable
-private fun AllocationCard(holdings: List<Holding>, modifier: Modifier = Modifier) {
-    val bySymbol = holdings.groupBy { it.symbol }.mapValues { (_, rows) -> rows.sumOf { it.marketValue } }.entries.sortedByDescending { it.value }
-    val total = bySymbol.sumOf { it.value }.coerceAtLeast(1)
-    val colors = sliceColors()
+private fun AllocationCard(holdings: List<Holding>, currencies: List<String>, modifier: Modifier = Modifier) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.investments_allocation), style = MaterialTheme.typography.titleLarge)
+            currencies.forEach { currency ->
+                if (currencies.size > 1) {
+                    Text(currency, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                AllocationBar(holdings.filter { it.currency == currency })
+            }
+        }
+    }
+}
+
+@Composable
+private fun AllocationBar(holdings: List<Holding>) {
+    val bySymbol = holdings.groupBy { it.symbol }.mapValues { (_, rows) -> rows.sumOf { it.marketValue } }.entries.sortedByDescending { it.value }
+    val total = bySymbol.sumOf { it.value }.coerceAtLeast(1)
+    val colors = sliceColors()
+    run {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth().height(16.dp).clip(CircleShape), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 bySymbol.forEachIndexed { index, (_, value) ->
                     if (value > 0) Box(Modifier.weight(value.toFloat() / total).fillMaxHeight().background(colors[index % colors.size]))
@@ -248,7 +306,7 @@ internal fun unitsText(units: Long): String {
 
 /** How many at what: `100 sh · ₱118.00`, a fund's `5.1483 units · ₱1,942.3725`, a dividend's or a distribution's a share or a unit. */
 @Composable
-internal fun quantityLine(symbol: String, kind: String, units: Long, priceE4: Long): String {
+internal fun quantityLine(symbol: String, kind: String, units: Long, priceE4: Long, currency: String = "PHP"): String {
     val fund = isFund(symbol)
     val line = when {
         kind == TradeKinds.DIVIDEND && fund -> R.string.investments_distribution_line
@@ -256,10 +314,10 @@ internal fun quantityLine(symbol: String, kind: String, units: Long, priceE4: Lo
         fund -> R.string.investments_units_at
         else -> R.string.investments_shares_at
     }
-    return stringResource(line, unitsText(units), formatPrice(priceE4))
+    return stringResource(line, unitsText(units), formatPrice(priceE4, currency))
 }
 
-/** A stock's row leads with its ticker over the company; a fund's with its name over the trust entity that runs it. */
+/** A stock's or an ETF's row leads with its ticker over its name; a fund's with its name over the trust entity that runs it. */
 @Composable
 private fun HoldingRow(holding: Holding, provider: String?, position: ItemPosition, onClick: () -> Unit) {
     GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick) {
@@ -270,21 +328,21 @@ private fun HoldingRow(holding: Holding, provider: String?, position: ItemPositi
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    if (holding.fund) holding.name else holding.symbol,
+                    if (holding.fund) holding.name else tickerOf(holding.symbol),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(if (holding.fund) provider.orEmpty() else holding.name, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 Text(
-                    quantityLine(holding.symbol, TradeKinds.BUY, holding.units, holding.priceE4),
+                    quantityLine(holding.symbol, TradeKinds.BUY, holding.units, holding.priceE4, holding.currency),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                MoneyText(holding.marketValue, style = MaterialTheme.typography.titleMedium)
-                MoneyText(holding.unrealised, tone = MoneyTone.SIGNED_ALERT, explicit = true, style = MaterialTheme.typography.bodySmall)
+                MoneyText(holding.marketValue, currency = holding.currency, style = MaterialTheme.typography.titleMedium)
+                MoneyText(holding.unrealised, currency = holding.currency, tone = MoneyTone.SIGNED_ALERT, explicit = true, style = MaterialTheme.typography.bodySmall)
                 Text(percentChange(holding.unrealised, holding.costBasis), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -357,6 +415,8 @@ internal fun TradeRow(
     position: ItemPosition,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    /** What the trade's cash and price are in: its security's currency. */
+    currency: String = "PHP",
     selected: Boolean = false,
     showSymbol: Boolean = true,
     showDate: Boolean = false,
@@ -395,11 +455,12 @@ internal fun TradeRow(
                     // A buy or sell only turns cash into shares or units and back; a dividend is income.
                     MoneyText(
                         trade.amount,
+                        currency = currency,
                         tone = if (trade.kind == TradeKinds.DIVIDEND) MoneyTone.SIGNED else MoneyTone.TRANSFER,
                         explicit = true,
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text(quantityLine(trade.symbol, trade.kind, trade.units, trade.price), style = MaterialTheme.typography.bodySmall)
+                    Text(quantityLine(trade.symbol, trade.kind, trade.units, trade.price, currency), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

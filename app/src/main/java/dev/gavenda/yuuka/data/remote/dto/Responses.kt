@@ -61,6 +61,12 @@ data class SubscriptionsResponse(val subscriptions: List<Subscription>)
 data class SecuritiesResponse(val securities: List<Security>)
 
 @Serializable
+data class SecurityResponse(val security: Security)
+
+@Serializable
+data class EtfSearchResponse(val results: List<EtfMatch>)
+
+@Serializable
 data class TradesResponse(val trades: List<Trade>)
 
 @Serializable

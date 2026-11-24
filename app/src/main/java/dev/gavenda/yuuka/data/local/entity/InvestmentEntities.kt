@@ -6,7 +6,7 @@ import dev.gavenda.yuuka.data.model.PricePoint
 import dev.gavenda.yuuka.data.model.Security
 import dev.gavenda.yuuka.data.model.Trade
 
-/** Every PSE stock at its latest close and every UITF at its latest NAVPU; replaced whole from the API. */
+/** Every PSE stock at its latest close, every UITF at its latest NAVPU and every ETF looked up; replaced whole from the API. */
 @Entity(tableName = "securities")
 data class SecurityEntity(
     @PrimaryKey val symbol: String,
@@ -18,6 +18,8 @@ data class SecurityEntity(
     val kind: String,
     val provider: String?,
     val classification: String?,
+    val currency: String,
+    val exchange: String?,
 )
 
 @Entity(tableName = "trades")
@@ -47,8 +49,8 @@ data class StockPriceEntity(
     val close: Long,
 )
 
-fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification)
-fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification)
+fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification, currency, exchange)
+fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification, currency, exchange)
 
 fun Trade.toEntity() = TradeEntity(
     id, accountId, accountName, symbol, name, kind, occurredOn, units, price, gross, fees, amount, transactionId, createdAt, updatedAt,

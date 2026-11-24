@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { badRequest, conflict, notFound } from '../errors';
+import { badRequest, conflict, notFound, unavailable } from '../errors';
 import { alreadyOwned, newId } from '../ids';
 import { invalidateSummaries } from '../cache';
 import { currentMonth, joinOccurrence, splitOccurrence } from '../dates';
@@ -9,7 +9,8 @@ import { requireAuth } from '../middleware/auth';
 import type { SystemCategory } from '../defaults';
 import { positions, refreshSecurities, tradeCash, UNIT, type TradeKind, type TradeLike } from '../investments';
 import { FUND_PREFIX } from '../funds';
-import { pricesQuerySchema, tradeCreateSchema, tradeUpdateSchema } from '../schemas';
+import { ETF_PREFIX, resolveEtf, searchEtfs } from '../etfs';
+import { pricesQuerySchema, securitySearchSchema, securitySymbolSchema, tradeCreateSchema, tradeUpdateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
 /**
@@ -29,9 +30,11 @@ interface SecurityRow {
 	kind: SecurityKind;
 	provider: string | null;
 	classification: string | null;
+	currency: string;
+	exchange: 'US' | 'LSE' | null;
 }
 
-type SecurityKind = 'stock' | 'fund';
+type SecurityKind = 'stock' | 'fund' | 'etf';
 
 interface TradeRow {
 	id: string;
@@ -61,6 +64,8 @@ const toSecurity = (row: SecurityRow) => ({
 	kind: row.kind,
 	provider: row.provider,
 	classification: row.classification,
+	currency: row.currency,
+	exchange: row.exchange,
 });
 
 const toTrade = (row: TradeRow) => ({
@@ -93,9 +98,10 @@ const SELECT_TRADE = `
 const monthOf = (day: string) => day.slice(0, 7);
 
 /**
- * Every PSE stock at its latest close and every UITF at its latest NAVPU. The stocks are brought up to
- * date first if they are behind, so the first person to look needs no cron; the funds only ever come
- * from the cron (`server/funds.ts`), which may ask uitf.com.ph for one page every few minutes.
+ * Every PSE stock at its latest close, every UITF at its latest NAVPU and every ETF someone has looked up.
+ * The stocks are brought up to date first if they are behind, so the first person to look needs no cron;
+ * the funds only ever come from the cron (`server/funds.ts`), which may ask uitf.com.ph for one page every
+ * few minutes. ETFs are not all listed: `/search` finds one on Yahoo Finance and `/:symbol` adds it.
  */
 export const securityRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
@@ -108,6 +114,37 @@ export const securityRoutes = new Hono<AppEnv>()
 		}
 		const { results } = await c.env.DB.prepare('SELECT * FROM securities ORDER BY symbol').all<SecurityRow>();
 		return c.json({ securities: results.map(toSecurity) });
+	})
+	/** The US-listed and LSE ETFs Yahoo Finance finds for `q`, to pick one to add. Nothing is kept. */
+	.get('/search', async (c) => {
+		const { q } = parseQuery(c, securitySearchSchema);
+		try {
+			return c.json({ results: await searchEtfs(q) });
+		} catch (error) {
+			console.warn('Yahoo Finance search failed', error);
+			throw unavailable('ETFs cannot be searched right now.');
+		}
+	})
+	/**
+	 * One security at its latest price. An ETF not kept yet is read from Yahoo Finance and kept, a year of its
+	 * closes with it, which is how one is added: it is market data, the same for everyone.
+	 */
+	.get('/:symbol', async (c) => {
+		const parsed = securitySymbolSchema.safeParse(c.req.param('symbol'));
+		if (!parsed.success) throw notFound('Security not found.');
+		const symbol = parsed.data;
+		const find = () => c.env.DB.prepare('SELECT * FROM securities WHERE symbol = ?').bind(symbol).first<SecurityRow>();
+		let row = await find();
+		if (!row && symbol.startsWith(ETF_PREFIX)) {
+			try {
+				if (await resolveEtf(c.env, symbol)) row = await find();
+			} catch (error) {
+				console.warn(`Yahoo Finance could not be read for ${symbol}`, error);
+				throw unavailable('That ETF cannot be looked up right now.');
+			}
+		}
+		if (!row) throw notFound(symbol.startsWith(ETF_PREFIX) ? 'ETF not found.' : 'Security not found.');
+		return c.json({ security: toSecurity(row) });
 	})
 	/** A security's daily closes (a fund's NAVPUs) from `from` on, oldest first. */
 	.get('/:symbol/prices', async (c) => {
@@ -134,6 +171,7 @@ interface TradedSecurity {
 	symbol: string;
 	name: string;
 	kind: SecurityKind;
+	currency: string;
 }
 
 /** What a fund's trades are called: a buy subscribes, a sell redeems, a dividend is a distribution. */
@@ -142,26 +180,51 @@ const FUND_VERBS: Record<TradeKind, string> = { buy: 'Subscribe', sell: 'Redeem'
 /** Units as the notes write them: whole for a stock, up to four decimals for a fund. */
 const unitsText = (unitsE4: number) => (unitsE4 / UNIT).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 
+/** What a stock or an ETF is called on its cash leg: its ticker, an ETF's without `ETF-` or the LSE's `.L`. */
+export const tickerOf = (symbol: string) => (symbol.startsWith(ETF_PREFIX) ? symbol.slice(ETF_PREFIX.length).replace(/\.L$/, '') : symbol);
+
 /**
- * The cash leg's payee and notes: a stock's ticker and `Buy 1,000 BDO`; a fund's name, since its symbol
- * means nothing to anyone, and `Subscribe 1,234.5678 units`.
+ * The cash leg's payee and notes: a stock's or an ETF's ticker and `Buy 1,000 BDO`; a fund's name, since its
+ * symbol means nothing to anyone, and `Subscribe 1,234.5678 units`.
  */
 function legLabels(security: TradedSecurity, kind: TradeKind, unitsE4: number): { payee: string; notes: string } {
 	if (security.kind === 'fund') return { payee: security.name.slice(0, 120), notes: `${FUND_VERBS[kind]} ${unitsText(unitsE4)} units` };
-	return { payee: security.symbol, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${unitsText(unitsE4)} ${security.symbol}` };
+	const ticker = tickerOf(security.symbol);
+	return { payee: ticker, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${unitsText(unitsE4)} ${ticker}` };
 }
 
-/** The security a trade names, refusing what a stock cannot be: part of a share, or a cash figure of its own. */
-async function tradedSecurity(db: D1Database, input: { symbol: string; units: number; gross: number | null }): Promise<TradedSecurity> {
-	const security = await db
-		.prepare('SELECT symbol, name, kind FROM securities WHERE symbol = ?')
-		.bind(input.symbol)
-		.first<TradedSecurity>();
-	if (!security) throw notFound(input.symbol.startsWith(FUND_PREFIX) ? 'Fund not found.' : 'Stock not found.');
-	if (security.kind === 'stock') {
-		if (input.units % UNIT !== 0) throw badRequest('A stock is traded in whole shares.');
-		if (input.gross !== null) throw badRequest('A stock’s cash is worked out from its shares and price.');
+const notFoundFor = (symbol: string) =>
+	notFound(symbol.startsWith(FUND_PREFIX) ? 'Fund not found.' : symbol.startsWith(ETF_PREFIX) ? 'ETF not found.' : 'Stock not found.');
+
+/**
+ * The security a trade names, refusing what a stock cannot be (part of a share, or a cash figure of its own),
+ * a cash figure for an ETF, and an account that does not hold the security's currency. An ETF not kept yet
+ * — a trade queued offline can name one before anyone has looked it up here — is read from Yahoo Finance.
+ */
+async function tradedSecurity(
+	env: Env,
+	userId: string,
+	input: { symbol: string; units: number; gross: number | null; accountId: string },
+): Promise<TradedSecurity> {
+	const find = () =>
+		env.DB.prepare('SELECT symbol, name, kind, currency FROM securities WHERE symbol = ?').bind(input.symbol).first<TradedSecurity>();
+	let security = await find();
+	if (!security && input.symbol.startsWith(ETF_PREFIX)) {
+		// Yahoo unwell is a 503, which a queued trade is sent again for; only an ETF it does not know is a 404.
+		const known = await resolveEtf(env, input.symbol).catch((error: unknown) => {
+			console.warn(`Yahoo Finance could not be read for ${input.symbol}`, error);
+			throw unavailable('That ETF cannot be looked up right now.');
+		});
+		if (known) security = await find();
 	}
+	if (!security) throw notFoundFor(input.symbol);
+	if (security.kind !== 'fund' && input.gross !== null) throw badRequest('Its cash is worked out from its shares and price.');
+	if (security.kind === 'stock' && input.units % UNIT !== 0) throw badRequest('A stock is traded in whole shares.');
+	// Only a currency to refuse: someone else's account, or none, is the 404 the statement that writes answers.
+	const account = await env.DB.prepare('SELECT currency FROM accounts WHERE id = ? AND user_id = ?')
+		.bind(input.accountId, userId)
+		.first<{ currency: string }>();
+	if (account && account.currency !== security.currency) throw badRequest(`This account does not hold ${security.currency}.`);
 	return security;
 }
 
@@ -194,7 +257,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 			return c.json({ trade: toTrade(existing!) });
 		}
 
-		const security = await tradedSecurity(c.env.DB, input);
+		const security = await tradedSecurity(c.env, userId, input);
 
 		const { date, time } = splitOccurrence(input.occurredOn);
 		const trade: TradeLike = {
@@ -273,7 +336,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 			.first<{ occurred_on: string; created_at: string; transaction_id: string }>();
 		if (!existing) throw notFound('Trade not found.');
 
-		const security = await tradedSecurity(c.env.DB, input);
+		const security = await tradedSecurity(c.env, userId, input);
 
 		const { date, time } = splitOccurrence(input.occurredOn);
 		const trade: TradeLike = {

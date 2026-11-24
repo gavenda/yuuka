@@ -447,14 +447,17 @@ export const deviceRegisterSchema = z.object({
 
 const realDateTime = dateTimeString.refine((value) => isRealDate(value.slice(0, 10)), 'Must be a real calendar date.');
 
+/** A PSE symbol, a UITF's or an ETF's. */
+const securitySymbol = z
+	.string()
+	.trim()
+	.regex(/^(?:[A-Z0-9]{1,12}|UITF-\d{1,7}|ETF-[A-Z0-9]{1,6}(?:\.L)?)$/, 'Must be a PSE symbol, a UITF or an ETF.');
+
 /** What a trade is: the same whether it is being made or put right. */
 const tradeFields = z.object({
 	accountId: z.string().min(1),
-	/** A PSE symbol, or a UITF's: `UITF-` and its id on uitf.com.ph. */
-	symbol: z
-		.string()
-		.trim()
-		.regex(/^(?:[A-Z0-9]{1,12}|UITF-\d{1,7})$/, 'Must be a PSE symbol or a UITF.'),
+	/** A PSE symbol, a UITF's (`UITF-` and its id on uitf.com.ph) or an ETF's (`ETF-` and its Yahoo symbol). */
+	symbol: securitySymbol,
 	kind: z.enum(['buy', 'sell', 'dividend']),
 	/** A date, optionally with the `THH:MM` it was made at, as a transaction's. */
 	occurredOn: realDateTime,
@@ -462,11 +465,11 @@ const tradeFields = z.object({
 	units: z.number().int().positive().max(1_000_000_000_000_000).optional(),
 	/** Whole shares, as the apps sent before UITFs. Taken when `units` is left out. */
 	shares: z.number().int().positive().max(100_000_000_000).optional(),
-	/** Ten-thousandths of a peso a share or unit; a dividend's is what it paid a share. */
+	/** Ten-thousandths of the security's currency a share or unit; a dividend's is what it paid a share. */
 	price: z.number().int().positive().max(100_000_000_000),
 	/** A fund's cash before fees, in centavos, when the trust bank said what it was. A stock's is never given. */
 	gross: money.positive().max(10_000_000_000_000).nullish(),
-	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
+	/** Minor units of the account's currency: the broker's fees and taxes, or a dividend's withheld tax. */
 	fees: money.min(0).default(0),
 });
 
@@ -491,6 +494,13 @@ export const tradeCreateSchema = tradeFields
 
 /** A trade put right: the whole of it again, its cash leg worked out afresh. */
 export const tradeUpdateSchema = tradeFields.transform(withUnits);
+
+export const securitySymbolSchema = securitySymbol;
+
+/** What an ETF search is for: a ticker or a few words of its name. */
+export const securitySearchSchema = z.object({
+	q: z.string().trim().min(1).max(60),
+});
 
 export const pricesQuerySchema = z.object({
 	from: dateString.optional(),

@@ -140,4 +140,52 @@ class InvestmentsTest {
         assertEquals("BDO PESO MONEY MARKET FUND" to "Subscribe 5.1483 units", legLabels(TradeKinds.BUY, "UITF-128", "BDO PESO MONEY MARKET FUND", 51_483))
         assertEquals("BDO" to "Sell 100 BDO", legLabels(TradeKinds.SELL, "BDO", "BDO Unibank, Inc.", 1_000_000))
     }
+
+    /** The same figures `lib/investments.spec.ts` pins for an ETF. */
+    @Test
+    fun `reads an ETF by its ticker, on its leg as anywhere else`() {
+        assertEquals("VWRA", tickerOf("ETF-VWRA.L"))
+        assertEquals("VOO", tickerOf("ETF-VOO"))
+        assertEquals("BDO", tickerOf("BDO"))
+        assertEquals("CSPX", securityLabel("ETF-CSPX.L", "iShares Core S&P 500"))
+        assertEquals("CSPX" to "Buy 1.5 CSPX", legLabels(TradeKinds.BUY, "ETF-CSPX.L", "iShares Core S&P 500", 15_000))
+    }
+
+    @Test
+    fun `charges IBKR Fixed in the US, half a cent a share, a dollar at least, 1 percent at most`() {
+        assertEquals(100L, ibkrFees(612_470, 100_000, EtfExchanges.US, "USD"))
+        assertEquals(500L, ibkrFees(5_000_000, 10_000_000, EtfExchanges.US, "USD"))
+        assertEquals(5L, ibkrFees(500, 5_000, EtfExchanges.US, "USD"))
+        assertEquals(1L, ibkrFees(75, 500, EtfExchanges.US, "USD"))
+    }
+
+    @Test
+    fun `charges IBKR Fixed on the LSE, at least 4 dollars or 3 pounds, less for a fractional order`() {
+        assertEquals(170L, ibkrFees(105_015, 15_000, EtfExchanges.LSE, "USD"))
+        assertEquals(400L, ibkrFees(105_015, 10_000, EtfExchanges.LSE, "USD"))
+        assertEquals(1_000L, ibkrFees(2_000_000, 100_000, EtfExchanges.LSE, "USD"))
+        assertEquals(300L, ibkrFees(50_000, 10_000, EtfExchanges.LSE, "GBP"))
+        assertEquals(100L, ibkrFees(50_000, 5_000, EtfExchanges.LSE, "GBP"))
+    }
+
+    @Test
+    fun `withholds 25 percent from a US ETF's dividend and nothing from a UCITS one's`() {
+        assertEquals(2_500L, etfDividendTax(10_000, EtfExchanges.US))
+        assertEquals(0L, etfDividendTax(10_000, EtfExchanges.LSE))
+    }
+
+    @Test
+    fun `adds holdings a currency at a time, the display currency first`() {
+        fun holding(symbol: String, currency: String, value: Long) = Holding(
+            position = Position("a", symbol, UNIT, value, 0, 0),
+            name = symbol,
+            accountName = "a",
+            currency = currency,
+            priceE4 = value * 100,
+            changeBp = null,
+            asOf = null,
+        )
+        val totals = totalsByCurrency(listOf(holding("ETF-VOO", "USD", 600), holding("BDO", "PHP", 120), holding("ALI", "PHP", 30)), "PHP")
+        assertEquals(listOf("PHP" to 150L, "USD" to 600L), totals.map { it.currency to it.marketValue })
+    }
 }

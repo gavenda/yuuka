@@ -457,6 +457,8 @@
     <!-- Investments: PSE holdings, priced from PHISIX by the server -->
     <string name="destination_investments">Investments</string>
     <string name="investments_market_value">Market value</string>
+    <string name="investments_market_value_in">Market value in %1$s</string>
+    <string name="investments_cost_of">Cost %1$s</string>
     <string name="investments_as_of">Cost %1$s · closing prices of %2$s</string>
     <string name="investments_unrealised">Unrealised</string>
     <string name="investments_today">Today</string>
@@ -494,7 +496,7 @@
     <string name="investments_price_range_1y">1Y</string>
     <string name="investments_price_chart">%1$s closing prices</string>
     <string name="investments_trades">Trades</string>
-    <string name="investments_label_security">Stock or fund</string>
+    <string name="investments_label_security">Stock, fund or ETF</string>
     <string name="investments_label_broker">Broker account</string>
     <string name="investments_label_fund_account">Account</string>
     <string name="investments_label_price">Price</string>
@@ -502,6 +504,14 @@
     <string name="investments_label_amount">Amount</string>
     <string name="investments_label_fees">Fees</string>
     <string name="investments_fees_hint">Entry, exit or early-redemption fees, if any</string>
+    <string name="investments_ibkr_fees_hint">Worked out from IBKR Fixed pricing; change it to match your confirmation</string>
+    <string name="investments_us_withholding_hint">The 25% US treaty rate; change it to match your statement</string>
+    <string name="investments_ucits_withholding_hint">A UCITS ETF pays its dividends whole; change it if tax was withheld</string>
+    <string name="investments_tax_withheld">Tax withheld</string>
+    <string name="investments_exchange_us">US</string>
+    <string name="investments_exchange_lse">LSE</string>
+    <string name="investments_etf_looking_up">Looking it up…</string>
+    <string name="investments_etf_lookup_failed">Could not look that ETF up. Try again when you are online.</string>
     <string name="investments_units_hint">Worked out from the amount; change it to match your confirmation</string>
     <string name="investments_label_dividend_per_share">Dividend a share</string>
     <string name="investments_label_distribution_per_unit">Distribution a unit</string>
@@ -531,9 +541,11 @@
     <string name="investments_delete_trade_blocked_title">This trade can\'t be deleted</string>
     <string name="investments_delete_trade_blocked_body">A later sell of %1$s needs the shares it bought. Delete that sell first.</string>
     <string name="investments_delete_trade_blocked_fund_body">A later redemption of %1$s needs the units it bought. Delete that redemption first.</string>
-    <string name="error_choose_security">Choose a stock or fund</string>
+    <string name="error_choose_security">Choose a stock, fund or ETF</string>
     <string name="error_choose_broker">Choose a broker account</string>
     <string name="error_shares_whole">Shares must be a whole number above zero</string>
+    <string name="error_shares_number">Shares must be a number above zero, up to four decimals</string>
+    <string name="error_account_currency">Choose an account that holds %1$s</string>
     <string name="error_units_number">Units must be a number above zero, up to four decimals</string>
     <string name="error_shares_over_held">You only hold %1$s</string>
     <string name="error_shares_over_history">A later sell would have more shares than were held</string>

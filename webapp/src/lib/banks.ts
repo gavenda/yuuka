@@ -29,11 +29,13 @@ export const BANKS: readonly Bank[] = [
 	{ key: 'dragonfi', name: 'DragonFi', logo: '/banks/dragonfi.svg', minCommission: 0, roundsFeesUp: true },
 	{ key: 'gcash', name: 'GCash', logo: '/banks/gcash.svg' },
 	{ key: 'gotyme', name: 'GoTyme', logo: '/banks/gotyme_light.svg', logoDark: '/banks/gotyme_dark.svg' },
+	{ key: 'ibkr', name: 'Interactive Brokers', logo: '/banks/ibkr_light.svg', logoDark: '/banks/ibkr_dark.svg' },
 	{ key: 'maribank', name: 'MariBank', logo: '/banks/maribank.svg' },
 	{ key: 'maya', name: 'Maya', logo: '/banks/maya_light.svg', logoDark: '/banks/maya_dark.svg' },
 	{ key: 'metrobank', name: 'Metrobank', logo: '/banks/metrobank.svg' },
 	{ key: 'shopeepay', name: 'ShopeePay', logo: '/banks/shopeepay.svg' },
 	{ key: 'tonik', name: 'Tonik', logo: '/banks/tonik.svg' },
+	{ key: 'wise', name: 'Wise', logo: '/banks/wise_light.svg', logoDark: '/banks/wise_dark.svg' },
 ];
 
 export function bankByKey(key: string | null | undefined): Bank | null {

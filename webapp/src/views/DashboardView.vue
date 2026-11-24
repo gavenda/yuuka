@@ -109,7 +109,7 @@ const upcoming = computed(() => (budget.month === currentMonth() ? stillToPost(s
 const attention = computed(() => over.value.length > 0 || ahead.value.length > 0 || upcoming.value.length > 0);
 
 /** The holdings at their latest close, as Investments shows them; the card is left out with nothing held. */
-const holdings = computed(() => investmentSummary(investments.held));
+const holdings = computed(() => investmentSummary(investments.held, 3, ledger.displayCurrency));
 
 /** The accounts in use under their types, each in its own currency. */
 const groups = computed(() => accountGroups(budget.summary?.accounts ?? []));

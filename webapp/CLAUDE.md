@@ -376,6 +376,22 @@ scrapes on a read. It is scraping, so a change to the markup leaves NAVPUs where
 anything; `test/funds.spec.ts` pins the parser against a page of the same shape. `refreshSecurities`,
 `backfillPrices` and `resolveLogos` keep to `kind = 'stock'`.
 
+**ETF prices come from Yahoo Finance, a few on the hourly tick.** Yahoo has no published API, but
+`v1/finance/search` and `v8/finance/chart/<SYMBOL>` answer JSON with no key (`server/etfs.ts`). Nothing is listed
+ahead of time: `GET /api/securities/search?q=` passes a query on and keeps the US-listed and LSE ETFs (`parseSearch`,
+nothing stored), and `GET /api/securities/:symbol` answers a kept security, or reads an `ETF-` one Yahoo knows
+(`resolveEtf`, a year of closes in the one call) into `securities` (kind `etf`, `currency`, `exchange`) and
+`stock_prices` first; `POST`/`PATCH /trades` does the same for a symbol a queued trade names before anyone looked
+it up. A close arrives as a float, so `parseChart` rounds it to the market's `priceHint` decimals before scaling, and
+a price in pence (`GBp`) is kept in pounds; its day is the exchange's own. `runInvestmentTick` ends with
+`refreshEtfs`: up to `ETFS_PER_TICK` ETFs read more than `STALE_HOURS` ago, the held ones first, five days of closes
+each, then the current month's summary purged for whoever holds one. One Yahoo no longer knows has its
+`updated_at` moved on, so it waits its turn. `test/etfs.spec.ts` stands in for Yahoo with a stubbed `fetch`.
+`migrations/0010_etf.sql` made `securities` again, since SQLite cannot widen a CHECK in place: its rows put aside,
+the table dropped and made afresh under its own name, the rows put back, under `defer_foreign_keys`. Building a
+new table and renaming it fails on a database with trades — dropping the old one counts each trade as pointing
+nowhere, and a rename never counts them found again — which the suite cannot see, since it migrates an empty one.
+
 `trades` (`routes/investments.ts`) belong to a person like any ledger row. `POST /api/trades` takes the
 units (or an older app's whole `shares`), the price, a fund's `gross` and the fees and works out the cash leg itself
 (`tradeCash`), refusing part of a share or a `gross` for a stock, writing the leg and the trade
@@ -732,7 +748,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-789 tests: 467 against the API in `test/`, 322 over the browser helpers as
+805 tests: 477 against the API in `test/`, 328 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

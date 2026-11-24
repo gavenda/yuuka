@@ -8,7 +8,7 @@ import TradeForm from '@/components/TradeForm.vue';
 import TradeList from '@/components/TradeList.vue';
 import { formatLongDate } from '@/lib/dates';
 import { whenDiscardable } from '@/lib/formPane';
-import { formatPrice, percentChange, securityLabel, type Holding } from '@/lib/investments';
+import { formatPrice, percentChange, securityLabel, tickerOf, type Holding } from '@/lib/investments';
 import { displayMoney, displayUnits } from '@/lib/privacy';
 import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
@@ -18,8 +18,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { t } from '@/i18n';
 
 /**
- * Every PSE stock and UITF held across the accounts (`InvestmentsScreen` on Android): what it is worth at the last
- * close, how far that is from what it cost, what it is made of, and the latest trades behind it.
+ * Every PSE stock, UITF and ETF held across the accounts (`InvestmentsScreen` on Android): what it is worth at the
+ * last close, how far that is from what it cost, what it is made of, and the latest trades behind it. There is no
+ * rate between currencies, so an ETF in dollars is added up beside the pesos, never into them: each figure is a
+ * currency at a time, the display currency first.
  */
 const store = useInvestmentStore();
 const ledger = useLedgerStore();
@@ -35,13 +37,16 @@ onMounted(async () => {
 	await Promise.all([ledger.load(), store.load()]);
 });
 
-const marketValue = computed(() => store.held.reduce((sum, holding) => sum + holding.marketValue, 0));
-const cost = computed(() => store.held.reduce((sum, holding) => sum + holding.costBasis, 0));
-const unrealised = computed(() => marketValue.value - cost.value);
-const dayChange = computed(() => store.held.reduce((sum, holding) => sum + holding.dayChange, 0));
+/** The holdings a currency at a time; with nothing held, nothing in the display currency. */
+const totals = computed(() =>
+	store.totals.length ? store.totals : [{ currency: ledger.displayCurrency, marketValue: 0, costBasis: 0, unrealised: 0, dayChange: 0 }],
+);
+const lead = computed(() => totals.value[0]!);
 
 const caption = computed(() =>
-	store.pricesAsOf ? t('investments.asOf', { cost: displayMoney(cost.value), date: formatLongDate(store.pricesAsOf) }) : undefined,
+	store.pricesAsOf
+		? t('investments.asOf', { cost: displayMoney(lead.value.costBasis, lead.value.currency), date: formatLongDate(store.pricesAsOf) })
+		: undefined,
 );
 
 /** The holdings under the broker account that holds them. */
@@ -55,6 +60,7 @@ const groups = computed(() => {
 	return [...byAccount.entries()].map(([accountId, rows]) => ({
 		accountId,
 		name: rows[0]!.accountName,
+		currency: rows[0]!.currency,
 		total: rows.reduce((sum, holding) => sum + holding.marketValue, 0),
 		rows,
 	}));
@@ -62,7 +68,7 @@ const groups = computed(() => {
 
 const recent = computed(() => store.trades.slice(0, RECENT_TRADES));
 
-/** One bar split by what each stock or fund is worth, largest first. */
+/** A bar a currency split by what each stock, fund or ETF is worth, largest first: a share of pesos and dollars together means nothing. */
 const SLICE_CLASSES = [
 	'bg-primary',
 	'bg-secondary',
@@ -71,25 +77,32 @@ const SLICE_CLASSES = [
 	'bg-secondary-container',
 	'bg-tertiary-container',
 ];
-const allocation = computed(() => {
-	const bySymbol = new Map<string, number>();
-	for (const holding of store.held) bySymbol.set(holding.symbol, (bySymbol.get(holding.symbol) ?? 0) + holding.marketValue);
-	const total = Math.max(
-		1,
-		[...bySymbol.values()].reduce((sum, value) => sum + value, 0),
-	);
-	return [...bySymbol.entries()]
-		.sort((a, b) => b[1] - a[1])
-		.map(([symbol, value], index) => ({
-			symbol,
-			label: securityLabel(symbol, store.securitiesBySymbol.get(symbol)?.name),
-			share: (value * 100) / total,
-			colour: SLICE_CLASSES[index % SLICE_CLASSES.length]!,
-		}));
-});
+const allocation = computed(() =>
+	store.totals.map(({ currency }) => {
+		const bySymbol = new Map<string, number>();
+		for (const holding of store.held) {
+			if (holding.currency === currency) bySymbol.set(holding.symbol, (bySymbol.get(holding.symbol) ?? 0) + holding.marketValue);
+		}
+		const total = Math.max(
+			1,
+			[...bySymbol.values()].reduce((sum, value) => sum + value, 0),
+		);
+		return {
+			currency,
+			slices: [...bySymbol.entries()]
+				.sort((a, b) => b[1] - a[1])
+				.map(([symbol, value], index) => ({
+					symbol,
+					label: securityLabel(symbol, store.securitiesBySymbol.get(symbol)?.name),
+					share: (value * 100) / total,
+					colour: SLICE_CLASSES[index % SLICE_CLASSES.length]!,
+				})),
+		};
+	}),
+);
 
-/** A stock's row leads with its ticker over the company; a fund's with its name over the trust entity that runs it. */
-const headlineOf = (holding: Holding) => (holding.fund ? holding.name : holding.symbol);
+/** A stock's or an ETF's row leads with its ticker over its name; a fund's with its name over the trust entity that runs it. */
+const headlineOf = (holding: Holding) => (holding.fund ? holding.name : tickerOf(holding.symbol));
 const sublineOf = (holding: Holding) => (holding.fund ? (store.securitiesBySymbol.get(holding.symbol)?.provider ?? '') : holding.name);
 
 function openTrade(): void {
@@ -128,34 +141,73 @@ watch(
 		/>
 
 		<template v-else-if="store.loaded">
-			<StatCard :label="t('investments.marketValue')" :amount="marketValue" hero watermark :caption="caption" />
+			<StatCard
+				:label="t('investments.marketValue')"
+				:amount="lead.marketValue"
+				:currency="lead.currency"
+				hero
+				watermark
+				:caption="caption"
+			/>
+			<!-- What is held in another currency stands beside it, never added in. -->
+			<StatCard
+				v-for="total in totals.slice(1)"
+				:key="total.currency"
+				class="mt-2"
+				:label="t('investments.marketValueIn', { currency: total.currency })"
+				:amount="total.marketValue"
+				:currency="total.currency"
+				:caption="t('investments.costOf', { cost: displayMoney(total.costBasis, total.currency) })"
+			/>
 
 			<div class="mt-2 grid grid-cols-2 gap-2">
 				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.unrealised') }}</p>
-					<MoneyText :amount="unrealised" tone="signed-alert" :explicit="unrealised !== 0" class="type-title-large mt-1.5 block" />
-					<p class="type-body-small">{{ percentChange(unrealised, cost) }}</p>
+					<template v-for="total in totals" :key="total.currency">
+						<MoneyText
+							:amount="total.unrealised"
+							:currency="total.currency"
+							tone="signed-alert"
+							:explicit="total.unrealised !== 0"
+							class="type-title-large mt-1.5 block"
+						/>
+						<p class="type-body-small">{{ percentChange(total.unrealised, total.costBasis) }}</p>
+					</template>
 				</Card>
 				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.today') }}</p>
-					<MoneyText :amount="dayChange" tone="signed-alert" :explicit="dayChange !== 0" class="type-title-large mt-1.5 block" />
-					<p class="type-body-small">{{ percentChange(dayChange, marketValue - dayChange) }}</p>
+					<template v-for="total in totals" :key="total.currency">
+						<MoneyText
+							:amount="total.dayChange"
+							:currency="total.currency"
+							tone="signed-alert"
+							:explicit="total.dayChange !== 0"
+							class="type-title-large mt-1.5 block"
+						/>
+						<p class="type-body-small">{{ percentChange(total.dayChange, total.marketValue - total.dayChange) }}</p>
+					</template>
 				</Card>
 				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.realised') }}</p>
 					<MoneyText
-						:amount="store.realisedThisYear"
+						v-for="entry in store.realisedThisYear"
+						:key="entry.currency"
+						:amount="entry.amount"
+						:currency="entry.currency"
 						tone="signed-alert"
-						:explicit="store.realisedThisYear !== 0"
+						:explicit="entry.amount !== 0"
 						class="type-title-large mt-1.5 block"
 					/>
 				</Card>
 				<Card :padded="false" class="p-4">
 					<p class="type-label-small uppercase">{{ t('investments.dividends') }}</p>
 					<MoneyText
-						:amount="store.dividendsThisYear"
+						v-for="entry in store.dividendsThisYear"
+						:key="entry.currency"
+						:amount="entry.amount"
+						:currency="entry.currency"
 						tone="signed-alert"
-						:explicit="store.dividendsThisYear !== 0"
+						:explicit="entry.amount !== 0"
 						class="type-title-large mt-1.5 block"
 					/>
 				</Card>
@@ -163,22 +215,25 @@ watch(
 
 			<Card :padded="false" v-if="allocation.length" class="mt-2 flex flex-col gap-3 p-5">
 				<h2 class="type-title-large">{{ t('investments.allocation') }}</h2>
-				<div class="flex h-4 gap-0.5 overflow-hidden rounded-full">
-					<span v-for="slice in allocation" :key="slice.symbol" :class="slice.colour" :style="{ flexGrow: slice.share }" />
-				</div>
-				<div class="grid grid-cols-2 gap-x-4 gap-y-3">
-					<div v-for="slice in allocation" :key="slice.symbol" class="flex items-center gap-2">
-						<span class="size-2.5 rounded-full" :class="slice.colour" aria-hidden="true" />
-						<span class="type-body-medium min-w-0 flex-1 truncate">{{ slice.label }}</span>
-						<span class="type-body-medium text-on-surface-variant">{{ slice.share.toFixed(1) }}%</span>
+				<template v-for="part in allocation" :key="part.currency">
+					<h3 v-if="allocation.length > 1" class="type-label-large text-on-surface-variant">{{ part.currency }}</h3>
+					<div class="flex h-4 gap-0.5 overflow-hidden rounded-full">
+						<span v-for="slice in part.slices" :key="slice.symbol" :class="slice.colour" :style="{ flexGrow: slice.share }" />
 					</div>
-				</div>
+					<div class="grid grid-cols-2 gap-x-4 gap-y-3">
+						<div v-for="slice in part.slices" :key="slice.symbol" class="flex items-center gap-2">
+							<span class="size-2.5 rounded-full" :class="slice.colour" aria-hidden="true" />
+							<span class="type-body-medium min-w-0 flex-1 truncate">{{ slice.label }}</span>
+							<span class="type-body-medium text-on-surface-variant">{{ slice.share.toFixed(1) }}%</span>
+						</div>
+					</div>
+				</template>
 			</Card>
 
 			<section v-for="group in groups" :key="group.accountId">
 				<div class="group-header">
 					<h2>{{ group.name }}</h2>
-					<MoneyText :amount="group.total" />
+					<MoneyText :amount="group.total" :currency="group.currency" />
 				</div>
 				<ul class="group-rows">
 					<li v-for="holding in group.rows" :key="holding.symbol">
@@ -195,13 +250,19 @@ watch(
 									<span class="type-body-small text-on-surface-variant">{{
 										t(holding.fund ? 'investments.unitsAt' : 'investments.sharesAt', {
 											shares: displayUnits(holding.units),
-											price: formatPrice(holding.priceE4),
+											price: formatPrice(holding.priceE4, holding.currency),
 										})
 									}}</span>
 								</span>
 								<span class="flex shrink-0 flex-col items-end gap-0.5">
-									<MoneyText :amount="holding.marketValue" class="type-title-medium" />
-									<MoneyText :amount="holding.unrealised" tone="signed-alert" explicit class="type-body-small" />
+									<MoneyText :amount="holding.marketValue" :currency="holding.currency" class="type-title-medium" />
+									<MoneyText
+										:amount="holding.unrealised"
+										:currency="holding.currency"
+										tone="signed-alert"
+										explicit
+										class="type-body-small"
+									/>
 									<span class="type-body-small text-on-surface-variant">{{ percentChange(holding.unrealised, holding.costBasis) }}</span>
 								</span>
 							</span>

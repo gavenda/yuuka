@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { Trade } from '@/types';
 import {
 	boardLot,
+	etfDividendTax,
+	holdingOf,
+	ibkrFees,
+	securityLabel,
+	tickerOf,
+	totalsByCurrency,
 	formatUnits,
 	legLabels,
 	parsePrice,
@@ -149,5 +155,53 @@ describe('UITFs', () => {
 			notes: 'Subscribe 5.1483 units',
 		});
 		expect(legLabels('sell', 'BDO', 'BDO Unibank, Inc.', 1_000_000)).toEqual({ payee: 'BDO', notes: 'Sell 100 BDO' });
+	});
+});
+
+/** The same figures Android's `InvestmentsTest` pins for an ETF. */
+describe('ETFs', () => {
+	it('reads an ETF by its ticker, on its leg as anywhere else', () => {
+		expect(tickerOf('ETF-VWRA.L')).toBe('VWRA');
+		expect(tickerOf('ETF-VOO')).toBe('VOO');
+		expect(tickerOf('BDO')).toBe('BDO');
+		expect(securityLabel('ETF-CSPX.L', 'iShares Core S&P 500')).toBe('CSPX');
+		expect(legLabels('buy', 'ETF-CSPX.L', 'iShares Core S&P 500', 15_000)).toEqual({ payee: 'CSPX', notes: 'Buy 1.5 CSPX' });
+	});
+
+	it('charges IBKR Fixed in the US: half a cent a share, a dollar at least, 1% of the trade at most', () => {
+		// 10 shares of $612.47: $0.05 by the share, so the $1.00 minimum.
+		expect(ibkrFees(612_470, 100_000, 'US', 'USD')).toBe(100);
+		// 1,000 shares of $50: $5.00, under 1% of $50,000.
+		expect(ibkrFees(5_000_000, 10_000_000, 'US', 'USD')).toBe(500);
+		// Half a share of $10: 1% of $5.00 caps it at $0.05.
+		expect(ibkrFees(500, 5_000, 'US', 'USD')).toBe(5);
+		// A twentieth of a share of $15: never under a cent.
+		expect(ibkrFees(75, 500, 'US', 'USD')).toBe(1);
+	});
+
+	it('charges IBKR Fixed on the LSE: 0.05%, at least $4 or £3 an order, less for a fractional one', () => {
+		expect(ibkrFees(105_015, 15_000, 'LSE', 'USD')).toBe(170);
+		expect(ibkrFees(105_015, 10_000, 'LSE', 'USD')).toBe(400);
+		expect(ibkrFees(2_000_000, 100_000, 'LSE', 'USD')).toBe(1_000);
+		expect(ibkrFees(50_000, 10_000, 'LSE', 'GBP')).toBe(300);
+		expect(ibkrFees(50_000, 5_000, 'LSE', 'GBP')).toBe(100);
+	});
+
+	it('withholds 25% from a US-listed ETF’s dividend and nothing from a UCITS one’s', () => {
+		expect(etfDividendTax(10_000, 'US')).toBe(2_500);
+		expect(etfDividendTax(10_000, 'LSE')).toBe(0);
+	});
+
+	it('adds holdings a currency at a time, the display currency first', () => {
+		const holding = (symbol: string, currency: string, value: number) =>
+			holdingOf(
+				{ accountId: 'a', symbol, units: UNIT, costBasis: value, realised: 0, dividends: 0 },
+				{ name: symbol, accountName: 'a', currency, priceE4: value * 100, changeBp: null, asOf: null },
+			);
+		const totals = totalsByCurrency([holding('ETF-VOO', 'USD', 600), holding('BDO', 'PHP', 120), holding('ALI', 'PHP', 30)], 'PHP');
+		expect(totals.map((total) => [total.currency, total.marketValue])).toEqual([
+			['PHP', 150],
+			['USD', 600],
+		]);
 	});
 });
