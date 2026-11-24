@@ -282,17 +282,25 @@ export interface Payee {
 	lastUsedAt: string;
 }
 
-/** A PSE stock at its latest close (`GET /securities`). `price` is in ten-thousandths of a peso. */
+/**
+ * A PSE stock at its latest close, or a UITF at its latest NAVPU (`GET /securities`). `price` is in
+ * ten-thousandths of a peso.
+ */
 export interface Security {
 	symbol: string;
 	name: string;
 	price: number;
-	/** The day's move in hundredths of a percent, when PHISIX gave one. */
+	/** The day's move in hundredths of a percent, when there is one. */
 	changeBp: number | null;
-	/** The trading day `price` is the close of. */
+	/** The trading day `price` is the close (or the NAVPU) of. */
 	asOf: string;
 	/** The logo PSE Edge shows for the company, loaded from there; null, or absent in an older copy, with none found yet. */
 	logoUrl?: string | null;
+	kind: 'stock' | 'fund';
+	/** The trust entity that runs a fund; null for a stock. */
+	provider: string | null;
+	/** What a fund invests in (Money Market Fund, Equity Fund, …); null for a stock. */
+	classification: string | null;
 }
 
 export type TradeKind = 'buy' | 'sell' | 'dividend';
@@ -306,9 +314,12 @@ export interface Trade {
 	name: string | null;
 	kind: TradeKind;
 	occurredOn: string;
-	shares: number;
-	/** Ten-thousandths of a peso a share; a dividend's is what it paid a share. */
+	/** Ten-thousandths of a share or a unit; a stock's are whole shares. A dividend's are the ones it was paid on. */
+	units: number;
+	/** Ten-thousandths of a peso a share or unit; a dividend's is what it paid a share. */
 	price: number;
+	/** A fund's cash before fees in centavos, as the trust bank said it; null works it out from the units and price. */
+	gross: number | null;
 	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
 	fees: number;
 	/** Centavos, signed: the cash leg's amount. */

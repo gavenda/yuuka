@@ -3,7 +3,7 @@ import { Card } from 'tailwind-material3';
 import MoneyText from '@/components/MoneyText.vue';
 import type { InvestmentSummary } from '@/lib/dashboard';
 import { formatLongDate } from '@/lib/dates';
-import { percentChange } from '@/lib/investments';
+import { isFund, percentChange } from '@/lib/investments';
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { t } from '@/i18n';
@@ -47,8 +47,9 @@ const gains = computed(() => [
 		<ul>
 			<li v-for="stock in summary.largest" :key="stock.symbol" class="flex items-center gap-3 py-1.5">
 				<div class="min-w-0 flex-1">
-					<p class="type-body-medium">{{ stock.symbol }}</p>
-					<p class="type-body-small truncate text-on-surface-variant">{{ stock.name }}</p>
+					<!-- A fund is its name alone: its symbol means nothing to anyone. -->
+					<p class="type-body-medium truncate">{{ isFund(stock.symbol) ? stock.name : stock.symbol }}</p>
+					<p v-if="!isFund(stock.symbol)" class="type-body-small truncate text-on-surface-variant">{{ stock.name }}</p>
 				</div>
 				<MoneyText :amount="stock.marketValue" class="type-body-medium" />
 			</li>

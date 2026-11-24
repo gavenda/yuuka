@@ -37,7 +37,7 @@ import {
 	provisionalTransfer,
 } from './provisional';
 import { queued } from './queue';
-import { tradeCash } from './investments';
+import { legLabels, tradeCash } from './investments';
 
 // Re-exported so nothing that already imports these from `@/lib/api` has to move.
 export { ApiError, isNetworkError, setTokenProvider, setUnauthorizedHandler } from './http';
@@ -105,18 +105,20 @@ export interface TradeInput {
 	kind: TradeKind;
 	/** A date, optionally with the `THH:MM` it was made at. */
 	occurredOn: string;
-	shares: number;
+	/** Ten-thousandths of a share or a unit. */
+	units: number;
 	price: number;
+	/** A fund's cash before fees, as the trust bank said it; null for a stock, worked out from the units and price. */
+	gross: number | null;
 	fees: number;
 }
 
 /**
- * A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes, and
- * filed under a system category — a buy's or a sell's under the transfer Investments, a dividend's under
- * the income Investments.
+ * A trade's cash leg as the server writes it: the stock (or the fund's name) as the payee, what was done in
+ * the notes, and filed under a system category — a buy's or a sell's under the transfer Investments, a
+ * dividend's under the income Investments.
  */
 function tradeLeg(ledger: LedgerView, id: string, input: TradeInput, amount: number) {
-	const verb = `${input.kind[0]!.toUpperCase()}${input.kind.slice(1)}`;
 	const system = input.kind === 'dividend' ? 'investment_income' : 'investments';
 	return {
 		id,
@@ -124,8 +126,7 @@ function tradeLeg(ledger: LedgerView, id: string, input: TradeInput, amount: num
 		categoryId: ledger.categories.find((category) => category.system === system)?.id ?? null,
 		amount,
 		occurredOn: input.occurredOn,
-		payee: input.symbol,
-		notes: `${verb} ${input.shares.toLocaleString('en-US')} ${input.symbol}`,
+		...legLabels(input.kind, input.symbol, input.name, input.units),
 	};
 }
 
@@ -629,7 +630,7 @@ export const api = {
 		const ledger = ledgerView();
 		const id = newId('trade');
 		const transactionId = newId('transaction');
-		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
+		const amount = tradeCash(input.kind, input.units, input.price, input.fees, input.gross);
 		const now = new Date().toISOString();
 		const leg = provisionalTransaction(ledger, tradeLeg(ledger, transactionId, input, amount));
 		const { name, ...body } = input;
@@ -653,7 +654,7 @@ export const api = {
 	 */
 	updateTrade: (existing: Trade, input: TradeInput) => {
 		const ledger = ledgerView();
-		const amount = tradeCash(input.kind, input.shares, input.price, input.fees);
+		const amount = tradeCash(input.kind, input.units, input.price, input.fees, input.gross);
 		const leg = provisionalTransaction(ledger, tradeLeg(ledger, existing.transactionId, input, amount));
 		const { name, ...body } = input;
 		const trade: Trade = { ...existing, ...body, name, accountName: leg.accountName, amount, updatedAt: new Date().toISOString() };

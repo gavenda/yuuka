@@ -8,8 +8,8 @@ import TradeForm from '@/components/TradeForm.vue';
 import TradeList from '@/components/TradeList.vue';
 import { formatLongDate } from '@/lib/dates';
 import { whenDiscardable } from '@/lib/formPane';
-import { formatPrice, percentChange, type Holding } from '@/lib/investments';
-import { displayMoney, MASK, useAmountVisibility } from '@/lib/privacy';
+import { formatPrice, percentChange, securityLabel, type Holding } from '@/lib/investments';
+import { displayMoney, displayUnits } from '@/lib/privacy';
 import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
 import type { Trade } from '@/types';
@@ -18,14 +18,13 @@ import { useRoute, useRouter } from 'vue-router';
 import { t } from '@/i18n';
 
 /**
- * Every PSE holding across the broker accounts (`InvestmentsScreen` on Android): what it is worth at the last
+ * Every PSE stock and UITF held across the accounts (`InvestmentsScreen` on Android): what it is worth at the last
  * close, how far that is from what it cost, what it is made of, and the latest trades behind it.
  */
 const store = useInvestmentStore();
 const ledger = useLedgerStore();
 const route = useRoute();
 const router = useRouter();
-const { hidden } = useAmountVisibility();
 
 /** How many of the latest trades Investments shows; the rest are a "See all" away, on the activity. */
 const RECENT_TRADES = 5;
@@ -63,7 +62,7 @@ const groups = computed(() => {
 
 const recent = computed(() => store.trades.slice(0, RECENT_TRADES));
 
-/** One bar split by what each stock is worth, largest first. */
+/** One bar split by what each stock or fund is worth, largest first. */
 const SLICE_CLASSES = [
 	'bg-primary',
 	'bg-secondary',
@@ -81,10 +80,17 @@ const allocation = computed(() => {
 	);
 	return [...bySymbol.entries()]
 		.sort((a, b) => b[1] - a[1])
-		.map(([symbol, value], index) => ({ symbol, share: (value * 100) / total, colour: SLICE_CLASSES[index % SLICE_CLASSES.length]! }));
+		.map(([symbol, value], index) => ({
+			symbol,
+			label: securityLabel(symbol, store.securitiesBySymbol.get(symbol)?.name),
+			share: (value * 100) / total,
+			colour: SLICE_CLASSES[index % SLICE_CLASSES.length]!,
+		}));
 });
 
-const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
+/** A stock's row leads with its ticker over the company; a fund's with its name over the trust entity that runs it. */
+const headlineOf = (holding: Holding) => (holding.fund ? holding.name : holding.symbol);
+const sublineOf = (holding: Holding) => (holding.fund ? (store.securitiesBySymbol.get(holding.symbol)?.provider ?? '') : holding.name);
 
 function openTrade(): void {
 	whenDiscardable(() => {
@@ -163,7 +169,7 @@ watch(
 				<div class="grid grid-cols-2 gap-x-4 gap-y-3">
 					<div v-for="slice in allocation" :key="slice.symbol" class="flex items-center gap-2">
 						<span class="size-2.5 rounded-full" :class="slice.colour" aria-hidden="true" />
-						<span class="type-body-medium flex-1">{{ slice.symbol }}</span>
+						<span class="type-body-medium min-w-0 flex-1 truncate">{{ slice.label }}</span>
 						<span class="type-body-medium text-on-surface-variant">{{ slice.share.toFixed(1) }}%</span>
 					</div>
 				</div>
@@ -184,10 +190,13 @@ watch(
 						>
 							<span class="flex items-center gap-4 px-4 py-3">
 								<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span class="type-title-medium">{{ holding.symbol }}</span>
-									<span class="type-body-small truncate">{{ holding.name }}</span>
+									<span class="type-title-medium truncate">{{ headlineOf(holding) }}</span>
+									<span class="type-body-small truncate">{{ sublineOf(holding) }}</span>
 									<span class="type-body-small text-on-surface-variant">{{
-										t('investments.sharesAt', { shares: sharesShown(holding.shares), price: formatPrice(holding.priceE4) })
+										t(holding.fund ? 'investments.unitsAt' : 'investments.sharesAt', {
+											shares: displayUnits(holding.units),
+											price: formatPrice(holding.priceE4),
+										})
 									}}</span>
 								</span>
 								<span class="flex shrink-0 flex-col items-end gap-0.5">

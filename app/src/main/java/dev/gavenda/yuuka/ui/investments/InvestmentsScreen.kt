@@ -16,18 +16,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import dev.gavenda.yuuka.R
+import dev.gavenda.yuuka.data.model.Security
 import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.domain.AmountVisibility
 import dev.gavenda.yuuka.domain.Holding
 import dev.gavenda.yuuka.domain.MASK
 import dev.gavenda.yuuka.domain.TradeKinds
 import dev.gavenda.yuuka.domain.formatPrice
+import dev.gavenda.yuuka.domain.formatUnits
+import dev.gavenda.yuuka.domain.isFund
+import dev.gavenda.yuuka.domain.securityLabel
 import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.koinInject
@@ -117,7 +122,7 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Uni
                 }
             }
             if (held.isNotEmpty()) item(key = "allocation") { AllocationCard(held, Modifier.padding(top = 8.dp)) }
-            holdingsList(held, onOpenHolding)
+            holdingsList(held, state.securitiesBySymbol, onOpenHolding)
             item(key = "activity-header") {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 16.dp, bottom = 4.dp),
@@ -154,7 +159,7 @@ fun InvestmentsScreen(onOpenHolding: (String) -> Unit, onOpenActivity: () -> Uni
 }
 
 /** The holdings under the broker account that holds them, each account with what it comes to. Its cash is on Accounts. */
-private fun LazyListScope.holdingsList(holdings: List<Holding>, onOpen: (String) -> Unit) {
+private fun LazyListScope.holdingsList(holdings: List<Holding>, securities: Map<String, Security>, onOpen: (String) -> Unit) {
     holdings.groupBy { it.position.accountId }.forEach { (accountId, rows) ->
         val first = rows.first()
         item(key = "account:$accountId") {
@@ -168,7 +173,12 @@ private fun LazyListScope.holdingsList(holdings: List<Holding>, onOpen: (String)
             }
         }
         itemsIndexed(rows, key = { _, holding -> "holding:$accountId:${holding.symbol}" }) { index, holding ->
-            HoldingRow(holding, positionInGroup(index, rows.lastIndex), onClick = { onOpen(holding.symbol) })
+            HoldingRow(
+                holding,
+                securities[holding.symbol]?.provider,
+                positionInGroup(index, rows.lastIndex),
+                onClick = { onOpen(holding.symbol) },
+            )
         }
     }
 }
@@ -191,7 +201,7 @@ private fun sliceColors(): List<Color> {
     return listOf(scheme.primary, scheme.secondary, scheme.tertiary, scheme.primaryContainer, scheme.secondaryContainer, scheme.tertiaryContainer)
 }
 
-/** One bar split by what each stock is worth, largest first, and a legend of the shares it is. */
+/** One bar split by what each stock or fund is worth, largest first, and a legend of the shares it is. */
 @Composable
 private fun AllocationCard(holdings: List<Holding>, modifier: Modifier = Modifier) {
     val bySymbol = holdings.groupBy { it.symbol }.mapValues { (_, rows) -> rows.sumOf { it.marketValue } }.entries.sortedByDescending { it.value }
@@ -209,9 +219,16 @@ private fun AllocationCard(holdings: List<Holding>, modifier: Modifier = Modifie
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     pair.forEachIndexed { column, (symbol, value) ->
                         val index = row * 2 + column
+                        val name = holdings.first { it.symbol == symbol }.name
                         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(Modifier.size(10.dp).background(colors[index % colors.size], CircleShape))
-                            Text(symbol, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(
+                                securityLabel(symbol, name),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
                             Text("%.1f%%".format(value * 100.0 / total), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -222,15 +239,29 @@ private fun AllocationCard(holdings: List<Holding>, modifier: Modifier = Modifie
     }
 }
 
-/** A share count, masked with the amounts: how many shares someone holds gives the magnitude away as well. */
+/** A count of shares or units, masked with the amounts: how many someone holds gives the magnitude away as well. */
 @Composable
-internal fun sharesText(shares: Long): String {
+internal fun unitsText(units: Long): String {
     val hidden by koinInject<AmountVisibility>().hidden.collectAsStateWithLifecycle()
-    return if (hidden) MASK else "%,d".format(shares)
+    return if (hidden) MASK else formatUnits(units)
 }
 
+/** How many at what: `100 sh · ₱118.00`, a fund's `5.1483 units · ₱1,942.3725`, a dividend's or a distribution's a share or a unit. */
 @Composable
-private fun HoldingRow(holding: Holding, position: ItemPosition, onClick: () -> Unit) {
+internal fun quantityLine(symbol: String, kind: String, units: Long, priceE4: Long): String {
+    val fund = isFund(symbol)
+    val line = when {
+        kind == TradeKinds.DIVIDEND && fund -> R.string.investments_distribution_line
+        kind == TradeKinds.DIVIDEND -> R.string.investments_dividend_line
+        fund -> R.string.investments_units_at
+        else -> R.string.investments_shares_at
+    }
+    return stringResource(line, unitsText(units), formatPrice(priceE4))
+}
+
+/** A stock's row leads with its ticker over the company; a fund's with its name over the trust entity that runs it. */
+@Composable
+private fun HoldingRow(holding: Holding, provider: String?, position: ItemPosition, onClick: () -> Unit) {
     GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -238,10 +269,15 @@ private fun HoldingRow(holding: Holding, position: ItemPosition, onClick: () -> 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(holding.symbol, style = MaterialTheme.typography.titleMedium)
-                Text(holding.name, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 Text(
-                    stringResource(R.string.investments_shares_at, sharesText(holding.shares), formatPrice(holding.priceE4)),
+                    if (holding.fund) holding.name else holding.symbol,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(if (holding.fund) provider.orEmpty() else holding.name, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                Text(
+                    quantityLine(holding.symbol, TradeKinds.BUY, holding.units, holding.priceE4),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -264,7 +300,7 @@ private fun HoldingRow(holding: Holding, position: ItemPosition, onClick: () -> 
 internal fun StockLogo(symbol: String, name: String, logoUrl: String?) {
     var failed by remember(logoUrl) { mutableStateOf(false) }
     if (logoUrl == null || failed) {
-        SymbolBadge(symbol, size = 56)
+        SymbolBadge(securityLabel(symbol, name), size = 56)
         return
     }
     Box(
@@ -281,7 +317,7 @@ internal fun StockLogo(symbol: String, name: String, logoUrl: String?) {
     }
 }
 
-/** The ticker's first letters on a tonal circle, standing in for a logo the PSE does not hand out. */
+/** The ticker's (or a fund's name's) first letters on a tonal circle, standing in for a logo the PSE does not hand out. */
 @Composable
 internal fun SymbolBadge(symbol: String, size: Int = 40) {
     Box(
@@ -297,11 +333,15 @@ internal fun SymbolBadge(symbol: String, size: Int = 40) {
     }
 }
 
+/** The word for a trade: a fund's are a subscription, a redemption and a distribution. */
 @Composable
-internal fun tradeKindLabel(kind: String): String = stringResource(
-    when (kind) {
-        TradeKinds.BUY -> R.string.investments_trade_buy
-        TradeKinds.SELL -> R.string.investments_trade_sell
+internal fun tradeKindLabel(kind: String, symbol: String): String = stringResource(
+    when {
+        isFund(symbol) && kind == TradeKinds.BUY -> R.string.investments_trade_subscribe
+        isFund(symbol) && kind == TradeKinds.SELL -> R.string.investments_trade_redeem
+        isFund(symbol) -> R.string.investments_trade_distribution
+        kind == TradeKinds.BUY -> R.string.investments_trade_buy
+        kind == TradeKinds.SELL -> R.string.investments_trade_sell
         else -> R.string.investments_trade_dividend
     },
 )
@@ -331,7 +371,7 @@ internal fun TradeRow(
     SwipeToRevealActions(
         modifier = Modifier.fillMaxWidth(),
         actions = {
-            ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, "${trade.symbol} ${tradeKindLabel(trade.kind)}"), onDelete, danger = true)
+            ActionIconButton(ActionIcon.DELETE, stringResource(R.string.cd_delete_item, "${securityLabel(trade.symbol, trade.name)} ${tradeKindLabel(trade.kind, trade.symbol)}"), onDelete, danger = true)
         },
     ) {
         GroupedItem(position = position, modifier = Modifier.fillMaxWidth(), onClick = onClick, selected = selected) {
@@ -340,28 +380,26 @@ internal fun TradeRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val kind = tradeKindLabel(trade.kind)
-                    Text(if (showSymbol) "$kind · ${trade.symbol}" else kind, style = MaterialTheme.typography.titleMedium)
+                    val kind = tradeKindLabel(trade.kind, trade.symbol)
+                    Text(
+                        if (showSymbol) "$kind · ${securityLabel(trade.symbol, trade.name)}" else kind,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Text(trade.accountName.orEmpty(), style = MaterialTheme.typography.bodySmall)
                     whenMade?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 }
                 // The cash at the end with how many at what under it, where a transaction keeps its running balance.
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // A buy or sell only turns cash into shares and back; a dividend is income.
+                    // A buy or sell only turns cash into shares or units and back; a dividend is income.
                     MoneyText(
                         trade.amount,
                         tone = if (trade.kind == TradeKinds.DIVIDEND) MoneyTone.SIGNED else MoneyTone.TRANSFER,
                         explicit = true,
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text(
-                        if (trade.kind == TradeKinds.DIVIDEND) {
-                            stringResource(R.string.investments_dividend_line, sharesText(trade.shares), formatPrice(trade.price))
-                        } else {
-                            stringResource(R.string.investments_shares_at, sharesText(trade.shares), formatPrice(trade.price))
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text(quantityLine(trade.symbol, trade.kind, trade.units, trade.price), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -381,13 +419,24 @@ internal fun DeleteTradeDialog(trade: Trade, viewModel: InvestmentsViewModel, on
         AlertDialog(
             onDismissRequest = onDone,
             title = { Text(stringResource(R.string.investments_delete_trade_blocked_title)) },
-            text = { Text(stringResource(R.string.investments_delete_trade_blocked_body, trade.symbol)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (isFund(trade.symbol)) R.string.investments_delete_trade_blocked_fund_body else R.string.investments_delete_trade_blocked_body,
+                        securityLabel(trade.symbol, trade.name),
+                    ),
+                )
+            },
             confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.action_no_go_back)) } },
         )
         return
     }
     ConfirmDeleteDialog(
-        title = stringResource(R.string.investments_delete_trade_title, tradeKindLabel(trade.kind).lowercase(), trade.symbol),
+        title = stringResource(
+            R.string.investments_delete_trade_title,
+            tradeKindLabel(trade.kind, trade.symbol).lowercase(),
+            securityLabel(trade.symbol, trade.name),
+        ),
         body = stringResource(R.string.investments_delete_trade_body, trade.accountName.orEmpty()),
         deleting = busy.isBusy("delete"),
         onConfirm = { busy.run("delete", snackbarHostState, successMessage = deletedMessage, onSuccess = onDone) { viewModel.deleteTrade(trade.id) } },

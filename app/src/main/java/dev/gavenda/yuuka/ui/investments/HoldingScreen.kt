@@ -28,6 +28,7 @@ import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.domain.Holding
 import dev.gavenda.yuuka.domain.Position
 import dev.gavenda.yuuka.domain.formatPrice
+import dev.gavenda.yuuka.domain.securityLabel
 import dev.gavenda.yuuka.domain.percentChange
 import dev.gavenda.yuuka.ui.common.*
 import org.koin.compose.viewmodel.koinViewModel
@@ -93,6 +94,13 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                         style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center,
                     )
+                    // Who runs a fund and what it invests in, under its name.
+                    state.securitiesBySymbol[holding.symbol]?.takeIf { holding.fund }?.let { fund ->
+                        val line = listOfNotNull(fund.provider, fund.classification).joinToString(" · ")
+                        if (line.isNotEmpty()) {
+                            Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                        }
+                    }
                     Text(formatPrice(holding.priceE4), style = MaterialTheme.typography.headlineMedium)
                     if (holding.changeBp != null) {
                         Text(
@@ -116,7 +124,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         val shown = closes.filter { it.day >= from }
                         if (shown.size >= 2) {
-                            PriceChart(symbol, shown.map { it.close })
+                            PriceChart(securityLabel(symbol, holding.name), shown.map { it.close })
                         } else {
                             Text(
                                 stringResource(R.string.investments_prices_gathering),
@@ -178,7 +186,7 @@ fun HoldingScreen(symbol: String, modifier: Modifier = Modifier, viewModel: Inve
     pendingDelete?.let { DeleteTradeDialog(it, viewModel, onDone = { pendingDelete = null }) }
 }
 
-/** The stock's positions in every broker account, added together. */
+/** The security's positions in every account, added together. */
 private fun combined(symbol: String, holdings: List<Holding>): Holding? {
     val rows = holdings.filter { it.symbol == symbol }
     val first = rows.firstOrNull() ?: return null
@@ -186,7 +194,7 @@ private fun combined(symbol: String, holdings: List<Holding>): Holding? {
         position = Position(
             accountId = "",
             symbol = symbol,
-            shares = rows.sumOf { it.shares },
+            units = rows.sumOf { it.units },
             costBasis = rows.sumOf { it.costBasis },
             realised = rows.sumOf { it.position.realised },
             dividends = rows.sumOf { it.position.dividends },
@@ -201,8 +209,10 @@ private fun PositionCard(holding: Holding) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.investments_position), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 4.dp))
-            FigureRow(stringResource(R.string.investments_shares)) { Text(sharesText(holding.shares), style = MaterialTheme.typography.bodyLarge) }
-            if (holding.shares > 0) {
+            FigureRow(stringResource(if (holding.fund) R.string.investments_units else R.string.investments_shares)) {
+                Text(unitsText(holding.units), style = MaterialTheme.typography.bodyLarge)
+            }
+            if (holding.units > 0) {
                 FigureRow(stringResource(R.string.investments_average_cost)) { Text(formatPrice(holding.avgCostE4), style = MaterialTheme.typography.bodyLarge) }
             }
             FigureRow(stringResource(R.string.investments_cost_basis)) { MoneyText(holding.costBasis, style = MaterialTheme.typography.bodyLarge) }
@@ -214,7 +224,7 @@ private fun PositionCard(holding: Holding) {
             FigureRow(stringResource(R.string.investments_realised_gain)) {
                 MoneyText(holding.position.realised, tone = MoneyTone.SIGNED_ALERT, explicit = holding.position.realised != 0L, style = MaterialTheme.typography.bodyLarge)
             }
-            FigureRow(stringResource(R.string.investments_dividends_received)) {
+            FigureRow(stringResource(if (holding.fund) R.string.investments_distributions_received else R.string.investments_dividends_received)) {
                 MoneyText(holding.position.dividends, tone = MoneyTone.SIGNED, style = MaterialTheme.typography.bodyLarge)
             }
         }

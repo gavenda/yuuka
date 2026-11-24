@@ -6,7 +6,7 @@ import dev.gavenda.yuuka.data.model.PricePoint
 import dev.gavenda.yuuka.data.model.Security
 import dev.gavenda.yuuka.data.model.Trade
 
-/** Every PSE stock at its latest close; replaced whole from the API. */
+/** Every PSE stock at its latest close and every UITF at its latest NAVPU; replaced whole from the API. */
 @Entity(tableName = "securities")
 data class SecurityEntity(
     @PrimaryKey val symbol: String,
@@ -15,6 +15,9 @@ data class SecurityEntity(
     val changeBp: Long?,
     val asOf: String,
     val logoUrl: String?,
+    val kind: String,
+    val provider: String?,
+    val classification: String?,
 )
 
 @Entity(tableName = "trades")
@@ -26,8 +29,9 @@ data class TradeEntity(
     val name: String?,
     val kind: String,
     val occurredOn: String,
-    val shares: Long,
+    val units: Long,
     val price: Long,
+    val gross: Long?,
     val fees: Long,
     val amount: Long,
     val transactionId: String,
@@ -43,14 +47,14 @@ data class StockPriceEntity(
     val close: Long,
 )
 
-fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf, logoUrl)
-fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf, logoUrl)
+fun Security.toEntity() = SecurityEntity(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification)
+fun SecurityEntity.toDomain() = Security(symbol, name, price, changeBp, asOf, logoUrl, kind, provider, classification)
 
 fun Trade.toEntity() = TradeEntity(
-    id, accountId, accountName, symbol, name, kind, occurredOn, shares, price, fees, amount, transactionId, createdAt, updatedAt,
+    id, accountId, accountName, symbol, name, kind, occurredOn, units, price, gross, fees, amount, transactionId, createdAt, updatedAt,
 )
 fun TradeEntity.toDomain() = Trade(
-    id, accountId, accountName, symbol, name, kind, occurredOn, shares, price, fees, amount, transactionId, createdAt, updatedAt,
+    id, accountId, accountName, symbol, name, kind, occurredOn, units, price, gross, fees, amount, transactionId, createdAt, updatedAt,
 )
 
 fun PricePoint.toEntity(symbol: String) = StockPriceEntity(symbol, day, close)

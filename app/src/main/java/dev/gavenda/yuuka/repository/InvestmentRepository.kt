@@ -9,6 +9,7 @@ import dev.gavenda.yuuka.data.local.dao.TransactionDao
 import dev.gavenda.yuuka.data.local.entity.AccountEntity
 import dev.gavenda.yuuka.data.local.entity.CategoryEntity
 import dev.gavenda.yuuka.data.local.entity.TradeEntity
+import dev.gavenda.yuuka.data.local.entity.TransactionEntity
 import dev.gavenda.yuuka.data.local.entity.toDomain
 import dev.gavenda.yuuka.data.local.entity.toEntity
 import dev.gavenda.yuuka.data.model.PricePoint
@@ -17,6 +18,7 @@ import dev.gavenda.yuuka.data.model.SystemCategories
 import dev.gavenda.yuuka.data.model.Trade
 import dev.gavenda.yuuka.data.remote.YuukaApi
 import dev.gavenda.yuuka.data.remote.apiCall
+import dev.gavenda.yuuka.domain.legLabels
 import dev.gavenda.yuuka.domain.tradeCash
 import dev.gavenda.yuuka.sync.Outbox
 import kotlinx.coroutines.flow.Flow
@@ -26,7 +28,7 @@ import kotlinx.serialization.json.put
 import java.time.LocalDate
 
 /**
- * PSE investments. Prices come from the server, which keeps them from PHISIX; trades are written here first
+ * PSE stocks and UITFs. Prices come from the server, which keeps them from PHISIX and uitf.com.ph; trades are written here first
  * and sent through the [Outbox], with their cash leg saved as an ordinary transaction so the broker account's
  * balance moves at once, as `POST /api/trades` will move it. Both are named here, so the server adopts them.
  */
@@ -61,25 +63,39 @@ class InvestmentRepository(
         dao.insertPrices(prices.map { it.toEntity(symbol) })
     }
 
-    suspend fun createTrade(accountId: String, symbol: String, kind: String, occurredOn: String, shares: Long, price: Long, fees: Long) {
+    suspend fun createTrade(
+        accountId: String,
+        symbol: String,
+        kind: String,
+        occurredOn: String,
+        units: Long,
+        price: Long,
+        gross: Long?,
+        fees: Long,
+    ) {
         val id = Ids.new(Ids.TRADE)
         val transactionId = Ids.new(Ids.TRANSACTION)
-        val amount = tradeCash(kind, shares, price, fees)
+        val amount = tradeCash(kind, units, price, fees, gross)
         val account = accountDao.byId(accountId)
+        val name = dao.security(symbol)?.name
         val now = Provisional.touchedAt()
 
-        transactionDao.saveLocal(listOf(leg(transactionId, accountId, account, kind, symbol, occurredOn, shares, amount, systemCategory(kind))), emptyList())
+        transactionDao.saveLocal(
+            listOf(leg(transactionId, accountId, account, kind, symbol, name, occurredOn, units, amount, systemCategory(kind))),
+            emptyList(),
+        )
         dao.upsertTrade(
             TradeEntity(
                 id = id,
                 accountId = accountId,
                 accountName = account?.name,
                 symbol = symbol,
-                name = dao.security(symbol)?.name,
+                name = name,
                 kind = kind,
                 occurredOn = occurredOn,
-                shares = shares,
+                units = units,
                 price = price,
+                gross = gross,
                 fees = fees,
                 amount = amount,
                 transactionId = transactionId,
@@ -95,8 +111,9 @@ class InvestmentRepository(
             put("symbol", symbol)
             put("kind", kind)
             put("occurredOn", occurredOn)
-            put("shares", shares)
+            put("units", units)
             put("price", price)
+            put("gross", gross)
             put("fees", fees)
         }
         outbox.enqueue("POST", "/api/trades", body)
@@ -106,13 +123,24 @@ class InvestmentRepository(
      * A trade put right, whole, with its cash leg worked out again — the same leg, so it moves rather than being
      * replaced, and the balances it touches move with it.
      */
-    suspend fun updateTrade(id: String, accountId: String, symbol: String, kind: String, occurredOn: String, shares: Long, price: Long, fees: Long) {
+    suspend fun updateTrade(
+        id: String,
+        accountId: String,
+        symbol: String,
+        kind: String,
+        occurredOn: String,
+        units: Long,
+        price: Long,
+        gross: Long?,
+        fees: Long,
+    ) {
         val existing = dao.trade(id) ?: return
-        val amount = tradeCash(kind, shares, price, fees)
+        val amount = tradeCash(kind, units, price, fees, gross)
         val account = accountDao.byId(accountId)
+        val name = dao.security(symbol)?.name
 
         transactionDao.saveLocal(
-            listOf(leg(existing.transactionId, accountId, account, kind, symbol, occurredOn, shares, amount, systemCategory(kind))),
+            listOf(leg(existing.transactionId, accountId, account, kind, symbol, name, occurredOn, units, amount, systemCategory(kind))),
             emptyList(),
         )
         dao.upsertTrade(
@@ -120,11 +148,12 @@ class InvestmentRepository(
                 accountId = accountId,
                 accountName = account?.name,
                 symbol = symbol,
-                name = dao.security(symbol)?.name,
+                name = name,
                 kind = kind,
                 occurredOn = occurredOn,
-                shares = shares,
+                units = units,
                 price = price,
+                gross = gross,
                 fees = fees,
                 amount = amount,
                 updatedAt = Provisional.touchedAt(),
@@ -136,37 +165,42 @@ class InvestmentRepository(
             put("symbol", symbol)
             put("kind", kind)
             put("occurredOn", occurredOn)
-            put("shares", shares)
+            put("units", units)
             put("price", price)
+            put("gross", gross)
             put("fees", fees)
         }
         outbox.enqueue("PATCH", "/api/trades/$id", body, entity = "trade", rowId = id)
     }
 
-    /** A trade's cash leg as the server writes it: the stock as the payee, what was done in the notes. */
     /** The system category the server files a trade's cash under, so the leg shows under it at once. */
     private suspend fun systemCategory(kind: String) = categoryDao.bySystem(SystemCategories.forTrade(kind))
 
+    /** A trade's cash leg as the server writes it: the stock (or the fund's name) as the payee, what was done in the notes. */
     private fun leg(
         id: String,
         accountId: String,
         account: AccountEntity?,
         kind: String,
         symbol: String,
+        name: String?,
         occurredOn: String,
-        shares: Long,
+        units: Long,
         amount: Long,
         category: CategoryEntity?,
-    ) = Provisional.transaction(
-        id = id,
-        accountId = accountId,
-        account = account,
-        category = category,
-        amount = amount,
-        occurredOn = occurredOn,
-        payee = symbol,
-        notes = "${kind.replaceFirstChar { it.uppercase() }} ${"%,d".format(shares)} $symbol",
-    )
+    ): TransactionEntity {
+        val (payee, notes) = legLabels(kind, symbol, name, units)
+        return Provisional.transaction(
+            id = id,
+            accountId = accountId,
+            account = account,
+            category = category,
+            amount = amount,
+            occurredOn = occurredOn,
+            payee = payee,
+            notes = notes,
+        )
+    }
 
     /** The trade goes with its cash leg, here as on the server. */
     suspend fun deleteTrade(id: String) {

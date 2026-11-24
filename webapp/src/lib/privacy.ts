@@ -1,5 +1,6 @@
 import { ref, watchEffect } from 'vue';
 import { DEFAULT_CURRENCY, formatMoney } from './money';
+import { formatUnits } from './investments';
 
 const STORAGE_KEY = 'yuuka.amounts-hidden';
 
@@ -90,4 +91,9 @@ function maskedMoney(minor: number, currency: string): string {
  */
 export function displayMoney(minor: number, currency: string = DEFAULT_CURRENCY): string {
 	return hidden.value ? maskedMoney(minor, currency) : formatMoney(minor, currency);
+}
+
+/** Shares or units as `formatUnits` reads them, masked while amounts are hidden: a count gives away a figure too. */
+export function displayUnits(units: number): string {
+	return hidden.value ? MASK : formatUnits(units);
 }

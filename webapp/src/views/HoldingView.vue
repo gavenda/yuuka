@@ -9,7 +9,7 @@ import TradeList from '@/components/TradeList.vue';
 import { whenDiscardable } from '@/lib/formPane';
 import { ADD } from '@/lib/icons';
 import { formatPrice, holdingOf, percentChange } from '@/lib/investments';
-import { MASK, useAmountVisibility } from '@/lib/privacy';
+import { displayUnits } from '@/lib/privacy';
 import { useInvestmentStore } from '@/stores/investments';
 import { useLedgerStore } from '@/stores/ledger';
 import type { PricePoint, Trade } from '@/types';
@@ -18,13 +18,13 @@ import { useRoute } from 'vue-router';
 import { t } from '@/i18n';
 
 /**
- * One stock across every broker account that holds it (`HoldingScreen` on Android): its last close and the day's
- * move, its closes over a month, a quarter or a year, the position in it and the trades that built it.
+ * One stock or fund across every account that holds it (`HoldingScreen` on Android): its last close (a fund's
+ * NAVPU) and the day's move, its closes over a month, a quarter or a year, the position in it and the trades
+ * that built it.
  */
 const store = useInvestmentStore();
 const ledger = useLedgerStore();
 const route = useRoute();
-const { hidden } = useAmountVisibility();
 
 const symbol = computed(() => String(route.params.symbol ?? ''));
 const trading = ref(false);
@@ -48,7 +48,7 @@ watch(
 	{ immediate: true },
 );
 
-/** The stock's positions in every account, added together. */
+/** The security's positions in every account, added together. */
 const holding = computed(() => {
 	const rows = store.holdings.filter((entry) => entry.symbol === symbol.value);
 	const first = rows[0];
@@ -58,7 +58,7 @@ const holding = computed(() => {
 		{
 			accountId: '',
 			symbol: symbol.value,
-			shares: sum((position) => position.shares),
+			units: sum((position) => position.units),
 			costBasis: sum((position) => position.costBasis),
 			realised: sum((position) => position.realised),
 			dividends: sum((position) => position.dividends),
@@ -112,7 +112,11 @@ const chart = computed(() => {
 	};
 });
 
-const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
+/** Who runs a fund and what it invests in, under its name; nothing for a stock. */
+const fundLine = computed(() => {
+	const security = store.securitiesBySymbol.get(symbol.value);
+	return security?.kind === 'fund' ? [security.provider, security.classification].filter(Boolean).join(' · ') : '';
+});
 
 function openTrade(): void {
 	whenDiscardable(() => {
@@ -145,6 +149,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 			<StockLogo :symbol="holding.symbol" :name="holding.name" :logo-url="store.securitiesBySymbol.get(holding.symbol)?.logoUrl ?? null" />
 			<div class="mt-4 min-w-0">
 				<p class="type-title-large">{{ holding.name }}</p>
+				<p v-if="fundLine" class="type-body-small text-on-surface-variant">{{ fundLine }}</p>
 				<p class="type-headline-medium">{{ formatPrice(holding.priceE4) }}</p>
 				<p
 					v-if="holding.changeBp !== null"
@@ -174,7 +179,7 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 					class="h-40 w-full overflow-visible"
 					:class="chart.up ? 'text-primary' : 'text-error'"
 					role="img"
-					:aria-label="t('investments.priceChart', { symbol: holding.symbol })"
+					:aria-label="t('investments.priceChart', { symbol: holding.fund ? holding.name : holding.symbol })"
 				>
 					<defs>
 						<linearGradient :id="`fill-${holding.symbol}`" x1="0" x2="0" y1="0" y2="1">
@@ -206,10 +211,10 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 		<Card :padded="false" class="flex flex-col gap-2.5 p-5">
 			<h2 class="type-title-large pb-1">{{ t('investments.position') }}</h2>
 			<div class="flex justify-between">
-				<span class="type-body-medium text-on-surface-variant">{{ t('investments.shares') }}</span>
-				<span class="type-body-large">{{ sharesShown(holding.shares) }}</span>
+				<span class="type-body-medium text-on-surface-variant">{{ holding.fund ? t('investments.units') : t('investments.shares') }}</span>
+				<span class="type-body-large">{{ displayUnits(holding.units) }}</span>
 			</div>
-			<div v-if="holding.shares > 0" class="flex justify-between">
+			<div v-if="holding.units > 0" class="flex justify-between">
 				<span class="type-body-medium text-on-surface-variant">{{ t('investments.averageCost') }}</span>
 				<span class="type-body-large">{{ formatPrice(holding.avgCostE4) }}</span>
 			</div>
@@ -239,7 +244,9 @@ const accountFor = computed(() => store.held.find((entry) => entry.symbol === sy
 				/>
 			</div>
 			<div class="flex justify-between">
-				<span class="type-body-medium text-on-surface-variant">{{ t('investments.dividendsReceived') }}</span>
+				<span class="type-body-medium text-on-surface-variant">{{
+					holding.fund ? t('investments.distributionsReceived') : t('investments.dividendsReceived')
+				}}</span>
 				<MoneyText :amount="holding.position.dividends" tone="signed" class="type-body-large" />
 			</div>
 		</Card>

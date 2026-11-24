@@ -7,7 +7,8 @@ import { NOW_SQL } from '../sql';
 import { parseJson, parseQuery } from '../validate';
 import { requireAuth } from '../middleware/auth';
 import type { SystemCategory } from '../defaults';
-import { positions, refreshSecurities, tradeCash, type TradeKind, type TradeLike } from '../investments';
+import { positions, refreshSecurities, tradeCash, UNIT, type TradeKind, type TradeLike } from '../investments';
+import { FUND_PREFIX } from '../funds';
 import { pricesQuerySchema, tradeCreateSchema, tradeUpdateSchema } from '../schemas';
 import type { AppEnv } from '../types';
 
@@ -25,7 +26,12 @@ interface SecurityRow {
 	change_bp: number | null;
 	as_of: string;
 	logo_url: string | null;
+	kind: SecurityKind;
+	provider: string | null;
+	classification: string | null;
 }
+
+type SecurityKind = 'stock' | 'fund';
 
 interface TradeRow {
 	id: string;
@@ -36,8 +42,9 @@ interface TradeRow {
 	kind: TradeKind;
 	occurred_on: string;
 	occurred_time: string | null;
-	shares: number;
+	units_e4: number;
 	price_e4: number;
+	gross: number | null;
 	fees: number;
 	transaction_id: string;
 	created_at: string;
@@ -51,6 +58,9 @@ const toSecurity = (row: SecurityRow) => ({
 	changeBp: row.change_bp,
 	asOf: row.as_of,
 	logoUrl: row.logo_url,
+	kind: row.kind,
+	provider: row.provider,
+	classification: row.classification,
 });
 
 const toTrade = (row: TradeRow) => ({
@@ -61,8 +71,11 @@ const toTrade = (row: TradeRow) => ({
 	name: row.name,
 	kind: row.kind,
 	occurredOn: joinOccurrence(row.occurred_on, row.occurred_time),
-	shares: row.shares,
+	units: row.units_e4,
+	// Whole shares, for the apps from before UITFs; a fund's fraction of a unit is lost to them.
+	shares: Math.floor(row.units_e4 / UNIT),
 	price: row.price_e4,
+	gross: row.gross,
 	fees: row.fees,
 	amount: tradeCash(row),
 	transactionId: row.transaction_id,
@@ -79,7 +92,11 @@ const SELECT_TRADE = `
 
 const monthOf = (day: string) => day.slice(0, 7);
 
-/** Every PSE stock at its latest close. Brought up to date first if it is behind, so the first person to look needs no cron. */
+/**
+ * Every PSE stock at its latest close and every UITF at its latest NAVPU. The stocks are brought up to
+ * date first if they are behind, so the first person to look needs no cron; the funds only ever come
+ * from the cron (`server/funds.ts`), which may ask uitf.com.ph for one page every few minutes.
+ */
 export const securityRoutes = new Hono<AppEnv>()
 	.use('*', requireAuth)
 	.get('/', async (c) => {
@@ -92,7 +109,7 @@ export const securityRoutes = new Hono<AppEnv>()
 		const { results } = await c.env.DB.prepare('SELECT * FROM securities ORDER BY symbol').all<SecurityRow>();
 		return c.json({ securities: results.map(toSecurity) });
 	})
-	/** A stock's daily closes from `from` on, oldest first. */
+	/** A security's daily closes (a fund's NAVPUs) from `from` on, oldest first. */
 	.get('/:symbol/prices', async (c) => {
 		const { from = '0000-00-00' } = parseQuery(c, pricesQuerySchema);
 		const { results } = await c.env.DB.prepare('SELECT day, close_e4 FROM stock_prices WHERE symbol = ? AND day >= ? ORDER BY day ASC')
@@ -104,18 +121,49 @@ export const securityRoutes = new Hono<AppEnv>()
 async function userTrades(db: D1Database, userId: string): Promise<TradeLike[]> {
 	const { results } = await db
 		.prepare(
-			'SELECT id, account_id, symbol, kind, occurred_on, occurred_time, created_at, shares, price_e4, fees FROM trades WHERE user_id = ?',
+			'SELECT id, account_id, symbol, kind, occurred_on, occurred_time, created_at, units_e4, price_e4, gross, fees FROM trades WHERE user_id = ?',
 		)
 		.bind(userId)
 		.all<TradeLike & { id: string }>();
 	return results;
 }
 
-const POSITION_MESSAGE = 'That would sell more shares than are held at that point.';
+const POSITION_MESSAGE = 'That would sell more than is held at that point.';
 
-/** What the cash leg's notes say the trade was: `Buy 1,000 BDO`. */
-const legNotes = (kind: TradeKind, shares: number, symbol: string) =>
-	`${kind[0]!.toUpperCase()}${kind.slice(1)} ${shares.toLocaleString('en-US')} ${symbol}`;
+interface TradedSecurity {
+	symbol: string;
+	name: string;
+	kind: SecurityKind;
+}
+
+/** What a fund's trades are called: a buy subscribes, a sell redeems, a dividend is a distribution. */
+const FUND_VERBS: Record<TradeKind, string> = { buy: 'Subscribe', sell: 'Redeem', dividend: 'Distribution on' };
+
+/** Units as the notes write them: whole for a stock, up to four decimals for a fund. */
+const unitsText = (unitsE4: number) => (unitsE4 / UNIT).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+/**
+ * The cash leg's payee and notes: a stock's ticker and `Buy 1,000 BDO`; a fund's name, since its symbol
+ * means nothing to anyone, and `Subscribe 1,234.5678 units`.
+ */
+function legLabels(security: TradedSecurity, kind: TradeKind, unitsE4: number): { payee: string; notes: string } {
+	if (security.kind === 'fund') return { payee: security.name.slice(0, 120), notes: `${FUND_VERBS[kind]} ${unitsText(unitsE4)} units` };
+	return { payee: security.symbol, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${unitsText(unitsE4)} ${security.symbol}` };
+}
+
+/** The security a trade names, refusing what a stock cannot be: part of a share, or a cash figure of its own. */
+async function tradedSecurity(db: D1Database, input: { symbol: string; units: number; gross: number | null }): Promise<TradedSecurity> {
+	const security = await db
+		.prepare('SELECT symbol, name, kind FROM securities WHERE symbol = ?')
+		.bind(input.symbol)
+		.first<TradedSecurity>();
+	if (!security) throw notFound(input.symbol.startsWith(FUND_PREFIX) ? 'Fund not found.' : 'Stock not found.');
+	if (security.kind === 'stock') {
+		if (input.units % UNIT !== 0) throw badRequest('A stock is traded in whole shares.');
+		if (input.gross !== null) throw badRequest('A stock’s cash is worked out from its shares and price.');
+	}
+	return security;
+}
 
 /** Refuses fees that eat the whole trade: a buy always pays out, a sell and a dividend always bring something in. */
 function checkCash(kind: TradeKind, amount: number): void {
@@ -146,8 +194,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 			return c.json({ trade: toTrade(existing!) });
 		}
 
-		const security = await c.env.DB.prepare('SELECT symbol FROM securities WHERE symbol = ?').bind(input.symbol).first();
-		if (!security) throw notFound('Stock not found.');
+		const security = await tradedSecurity(c.env.DB, input);
 
 		const { date, time } = splitOccurrence(input.occurredOn);
 		const trade: TradeLike = {
@@ -157,8 +204,9 @@ export const tradeRoutes = new Hono<AppEnv>()
 			occurred_on: date,
 			occurred_time: time,
 			created_at: new Date().toISOString(),
-			shares: input.shares,
+			units_e4: input.units,
 			price_e4: input.price,
+			gross: input.gross,
 			fees: input.fees,
 		};
 		const amount = tradeCash(trade);
@@ -167,7 +215,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 		if (input.kind === 'sell' && !positions([...(await userTrades(c.env.DB, userId)), trade])) throw conflict(POSITION_MESSAGE);
 
 		const transactionId = input.transactionId ?? newId('txn');
-		const notes = legNotes(input.kind, input.shares, input.symbol);
+		const { payee, notes } = legLabels(security, input.kind, input.units);
 		const [inserted] = await c.env.DB.batch([
 			// The account is checked in the statement that writes, as everywhere else.
 			c.env.DB.prepare(
@@ -182,14 +230,14 @@ export const tradeRoutes = new Hono<AppEnv>()
 				amount,
 				date,
 				time,
-				input.symbol,
+				payee,
 				notes,
 				input.accountId,
 				userId,
 			),
 			c.env.DB.prepare(
-				`INSERT INTO trades (id, user_id, account_id, symbol, kind, occurred_on, occurred_time, shares, price_e4, fees, transaction_id)
-				 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM transactions WHERE id = ? AND user_id = ?)`,
+				`INSERT INTO trades (id, user_id, account_id, symbol, kind, occurred_on, occurred_time, units_e4, price_e4, gross, fees, transaction_id)
+				 SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM transactions WHERE id = ? AND user_id = ?)`,
 			).bind(
 				id,
 				userId,
@@ -198,8 +246,9 @@ export const tradeRoutes = new Hono<AppEnv>()
 				input.kind,
 				date,
 				time,
-				input.shares,
+				input.units,
 				input.price,
+				input.gross,
 				input.fees,
 				transactionId,
 				transactionId,
@@ -224,8 +273,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 			.first<{ occurred_on: string; created_at: string; transaction_id: string }>();
 		if (!existing) throw notFound('Trade not found.');
 
-		const security = await c.env.DB.prepare('SELECT symbol FROM securities WHERE symbol = ?').bind(input.symbol).first();
-		if (!security) throw notFound('Stock not found.');
+		const security = await tradedSecurity(c.env.DB, input);
 
 		const { date, time } = splitOccurrence(input.occurredOn);
 		const trade: TradeLike = {
@@ -236,8 +284,9 @@ export const tradeRoutes = new Hono<AppEnv>()
 			occurred_time: time,
 			// It keeps its place among trades made at the same moment.
 			created_at: existing.created_at,
-			shares: input.shares,
+			units_e4: input.units,
 			price_e4: input.price,
+			gross: input.gross,
 			fees: input.fees,
 		};
 		const amount = tradeCash(trade);
@@ -247,7 +296,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 		const rest = (await userTrades(c.env.DB, userId)).filter((row) => (row as TradeLike & { id: string }).id !== id);
 		if (!positions([...rest, trade])) throw conflict(POSITION_MESSAGE);
 
-		const notes = legNotes(input.kind, input.shares, input.symbol);
+		const { payee, notes } = legLabels(security, input.kind, input.units);
 		const owned = 'EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)';
 		const [moved] = await c.env.DB.batch([
 			// The account is checked in the statements that write, as everywhere else.
@@ -263,7 +312,7 @@ export const tradeRoutes = new Hono<AppEnv>()
 				amount,
 				date,
 				time,
-				input.symbol,
+				payee,
 				notes,
 				existing.transaction_id,
 				userId,
@@ -272,7 +321,8 @@ export const tradeRoutes = new Hono<AppEnv>()
 			),
 			c.env.DB.prepare(
 				`UPDATE trades
-				 SET account_id = ?, symbol = ?, kind = ?, occurred_on = ?, occurred_time = ?, shares = ?, price_e4 = ?, fees = ?, updated_at = ${NOW_SQL}
+				 SET account_id = ?, symbol = ?, kind = ?, occurred_on = ?, occurred_time = ?, units_e4 = ?, price_e4 = ?, gross = ?, fees = ?,
+				     updated_at = ${NOW_SQL}
 				 WHERE id = ? AND user_id = ? AND ${owned}`,
 			).bind(
 				input.accountId,
@@ -280,8 +330,9 @@ export const tradeRoutes = new Hono<AppEnv>()
 				input.kind,
 				date,
 				time,
-				input.shares,
+				input.units,
 				input.price,
+				input.gross,
 				input.fees,
 				id,
 				userId,

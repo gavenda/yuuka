@@ -7,23 +7,30 @@ import org.junit.Test
 
 /** The same figures `test/investments.spec.ts` pins on the server: a trade made offline must agree with it. */
 class InvestmentsTest {
+    /** [shares] are whole. */
     private fun trade(kind: String, on: String, shares: Long, price: Long, fees: Long = 0) = Trade(
         id = "$kind$on", accountId = "a", symbol = "X", kind = kind, occurredOn = on,
-        shares = shares, price = price, fees = fees, amount = tradeCash(kind, shares, price, fees), transactionId = "t$on",
+        units = shares * UNIT, price = price, fees = fees, amount = tradeCash(kind, shares * UNIT, price, fees), transactionId = "t$on",
     )
 
     @Test
-    fun `values shares to the centavo, rounding half up`() {
-        assertEquals(1_180_000L, valueOf(100, 1_180_000))
-        assertEquals(0L, valueOf(3, 5))
-        assertEquals(1L, valueOf(10, 5))
+    fun `values units to the centavo, rounding half up`() {
+        assertEquals(1_180_000L, valueOf(1_000_000, 1_180_000))
+        assertEquals(0L, valueOf(30_000, 5))
+        assertEquals(1L, valueOf(100_000, 5))
+        // 1,234.5678 units at ₱1,942.3725.
+        assertEquals(239_799_054L, valueOf(12_345_678, 19_423_725))
+        // A product past what a Long holds: 100,000,000 units at ₱100,000.0000.
+        assertEquals(1_000_000_000_000_000L, valueOf(1_000_000_000_000, 1_000_000_000))
     }
 
     @Test
-    fun `signs a trade's cash by what it does`() {
-        assertEquals(-102_000L, tradeCash(TradeKinds.BUY, 10, 1_000_000, 2_000))
-        assertEquals(98_000L, tradeCash(TradeKinds.SELL, 10, 1_000_000, 2_000))
-        assertEquals(900L, tradeCash(TradeKinds.DIVIDEND, 10, 10_000, 100))
+    fun `signs a trade's cash by what it does, a fund's from what the trust bank said`() {
+        assertEquals(-102_000L, tradeCash(TradeKinds.BUY, 100_000, 1_000_000, 2_000))
+        assertEquals(98_000L, tradeCash(TradeKinds.SELL, 100_000, 1_000_000, 2_000))
+        assertEquals(900L, tradeCash(TradeKinds.DIVIDEND, 100_000, 10_000, 100))
+        // ₱10,000.00 for 5.1483 units, which at ₱1,942.3725 come to ₱9,999.92.
+        assertEquals(-1_000_000L, tradeCash(TradeKinds.BUY, 51_483, 19_423_725, 0, gross = 1_000_000))
     }
 
     @Test
@@ -35,7 +42,7 @@ class InvestmentsTest {
                 trade(TradeKinds.SELL, "2026-03-01", 50, 300_000),
             ),
         )
-        assertEquals(listOf(Position("a", "X", 150, 225_000, 75_000, 0)), result)
+        assertEquals(listOf(Position("a", "X", 1_500_000, 225_000, 75_000, 0)), result)
     }
 
     @Test
@@ -47,8 +54,8 @@ class InvestmentsTest {
     fun `works a day's trades through in time order, an untimed one first`() {
         assertNull(positions(listOf(trade(TradeKinds.BUY, "2026-01-01T10:00", 100, 100_000), trade(TradeKinds.SELL, "2026-01-01T09:30", 10, 100_000))))
         assertEquals(
-            90L,
-            positions(listOf(trade(TradeKinds.SELL, "2026-01-01T09:30", 10, 100_000), trade(TradeKinds.BUY, "2026-01-01", 100, 100_000)))?.single()?.shares,
+            900_000L,
+            positions(listOf(trade(TradeKinds.SELL, "2026-01-01T09:30", 10, 100_000), trade(TradeKinds.BUY, "2026-01-01", 100, 100_000)))?.single()?.units,
         )
     }
 
@@ -77,6 +84,8 @@ class InvestmentsTest {
         assertEquals(5_700L, parsePrice("0.57"))
         assertEquals(1L, parsePrice("0.0001"))
         assertNull(parsePrice("0.00001"))
+        assertEquals(8_409L, parsePrice("0.840905"))
+        assertEquals(8_410L, parsePrice("0.840950"))
         assertNull(parsePrice("0"))
     }
 
@@ -101,10 +110,34 @@ class InvestmentsTest {
             trade(TradeKinds.SELL, "2026-02-10T10:00", 400, 110_000),
             trade(TradeKinds.BUY, "2026-03-01", 200, 105_000),
         )
-        assertEquals(0L, sharesHeldBefore(trades, "a", "X", "2026-01-05"))
-        assertEquals(1000L, sharesHeldBefore(trades, "a", "X", "2026-02-10"))
-        assertEquals(600L, sharesHeldBefore(trades, "a", "X", "2026-02-11"))
-        assertEquals(800L, sharesHeldBefore(trades, "a", "X", "2026-03-02"))
-        assertEquals(0L, sharesHeldBefore(trades, "b", "X", "2026-03-02"))
+        assertEquals(0L, unitsHeldBefore(trades, "a", "X", "2026-01-05"))
+        assertEquals(10_000_000L, unitsHeldBefore(trades, "a", "X", "2026-02-10"))
+        assertEquals(6_000_000L, unitsHeldBefore(trades, "a", "X", "2026-02-11"))
+        assertEquals(8_000_000L, unitsHeldBefore(trades, "a", "X", "2026-03-02"))
+        assertEquals(0L, unitsHeldBefore(trades, "b", "X", "2026-03-02"))
+    }
+
+    @Test
+    fun `gives the units an amount buys at a NAVPU, to the ten-thousandth`() {
+        assertEquals(51_483L, unitsFor(1_000_000, 19_423_725))
+        assertEquals(500_000L, unitsFor(500_000, 1_000_000))
+    }
+
+    @Test
+    fun `reads and writes units with up to four decimals, a stock in whole shares`() {
+        assertEquals(51_483L, parseUnits("5.1483", whole = false))
+        assertEquals(10_000_000L, parseUnits("1,000", whole = false))
+        assertNull(parseUnits("1.23456", whole = false))
+        assertNull(parseUnits("1.5", whole = true))
+        assertEquals(1_000_000L, parseUnits("100", whole = true))
+        assertEquals("5.1483", formatUnits(51_483))
+        assertEquals("1,234.5", formatUnits(12_345_000))
+        assertEquals("100", formatUnits(1_000_000))
+    }
+
+    @Test
+    fun `names a fund's cash leg as the server does`() {
+        assertEquals("BDO PESO MONEY MARKET FUND" to "Subscribe 5.1483 units", legLabels(TradeKinds.BUY, "UITF-128", "BDO PESO MONEY MARKET FUND", 51_483))
+        assertEquals("BDO" to "Sell 100 BDO", legLabels(TradeKinds.SELL, "BDO", "BDO Unibank, Inc.", 1_000_000))
     }
 }

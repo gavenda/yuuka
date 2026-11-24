@@ -6,13 +6,16 @@ import type { Security } from '@/types';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
- * The stock a trade is of, typed rather than scrolled to: the PSE lists hundreds. What is typed is matched
- * against symbols first, then names, and the list offers the closest few (`SecurityField` on Android).
+ * The stock or fund a trade is of, typed rather than scrolled to: the PSE lists hundreds, and the trust banks
+ * hundreds more UITFs. What is typed is matched against symbols first, then names (and a fund's trust entity),
+ * and the list offers the closest few (`SecurityField` on Android). A fund reads as its name and who runs it,
+ * since its symbol means nothing to anyone.
  */
 const props = defineProps<{ label: string; securities: Security[]; selected: Security | null; error?: string | null }>();
 const emit = defineEmits<{ select: [Security]; blur: [] }>();
 
-const labelOf = (security: Security) => `${security.symbol} · ${security.name}`;
+const labelOf = (security: Security) =>
+	security.kind === 'fund' ? [security.name, security.provider].filter(Boolean).join(' · ') : `${security.symbol} · ${security.name}`;
 const query = ref(props.selected ? labelOf(props.selected) : '');
 const open = ref(false);
 const active = ref(-1);
@@ -29,7 +32,9 @@ const matches = computed(() => {
 	const needle = query.value.trim().toUpperCase();
 	if (!needle || (props.selected && query.value === labelOf(props.selected))) return [];
 	const bySymbol = props.securities.filter((security) => security.symbol.startsWith(needle));
-	const byName = props.securities.filter((security) => security.name.toUpperCase().includes(needle));
+	const byName = props.securities.filter(
+		(security) => security.name.toUpperCase().includes(needle) || Boolean(security.provider?.toUpperCase().includes(needle)),
+	);
 	return [...new Set([...bySymbol, ...byName])].slice(0, 8);
 });
 const showList = computed(() => open.value && matches.value.length > 0);
@@ -72,7 +77,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside));
 		<TextField
 			v-model="query"
 			variant="outlined"
-			class="w-full [&_input]:uppercase"
+			class="w-full"
 			data-field="trade-stock"
 			:label="label"
 			:error="Boolean(error)"

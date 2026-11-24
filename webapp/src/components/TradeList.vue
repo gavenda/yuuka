@@ -7,8 +7,8 @@ import SwipeReveal from '@/components/SwipeReveal.vue';
 import { ApiError } from '@/lib/api';
 import { formatDate, formatTime } from '@/lib/dates';
 import { DELETE } from '@/lib/icons';
-import { formatPrice } from '@/lib/investments';
-import { MASK, useAmountVisibility } from '@/lib/privacy';
+import { formatPrice, isFund, securityLabel, tradeWord } from '@/lib/investments';
+import { displayUnits } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
 import { useInvestmentStore } from '@/stores/investments';
 import type { Trade } from '@/types';
@@ -25,13 +25,18 @@ const props = defineProps<{ trades: Trade[]; showSymbol?: boolean; showDate?: bo
 const emit = defineEmits<{ edit: [trade: Trade] }>();
 
 const store = useInvestmentStore();
-const { hidden } = useAmountVisibility();
 const pending = ref<Trade | null>(null);
 const blocked = computed(() => (pending.value ? !store.canDelete(pending.value.id) : false));
 const error = ref<string | null>(null);
 
-const kindLabel = (trade: Trade) => t(`investments.${trade.kind}`);
-const sharesShown = (count: number) => (hidden.value ? MASK : count.toLocaleString('en-US'));
+const kindLabel = (trade: Trade) => t(`investments.${tradeWord(trade.kind, trade.symbol)}`);
+const nameOf = (trade: Trade) => securityLabel(trade.symbol, trade.name ?? store.securitiesBySymbol.get(trade.symbol)?.name);
+/** How many at what: `100 sh · ₱118.00`, a fund's `5.1483 units · ₱1,942.3725`, a dividend's or a distribution's a share or a unit. */
+function lineOf(trade: Trade): string {
+	const fund = isFund(trade.symbol);
+	const key = trade.kind === 'dividend' ? (fund ? 'distributionLine' : 'dividendLine') : fund ? 'unitsAt' : 'sharesAt';
+	return t(`investments.${key}`, { shares: displayUnits(trade.units), price: formatPrice(trade.price) });
+}
 /** The time a trade was made, led by its day (`15 Oct, 9:45 AM`) where no day's heading says it; nothing for an untimed trade under one. */
 const whenOf = (occurredOn: string) =>
 	[props.showDate ? formatDate(occurredOn) : null, formatTime(occurredOn)].filter(Boolean).join(', ') || null;
@@ -57,7 +62,7 @@ async function remove(): Promise<void> {
 				<template #actions>
 					<ActionIcon
 						icon="delete"
-						:label="t('investments.deleteTrade', { name: `${trade.symbol} ${kindLabel(trade)}` })"
+						:label="t('investments.deleteTrade', { name: `${nameOf(trade)} ${kindLabel(trade)}` })"
 						danger
 						@click="pending = trade"
 					/>
@@ -72,25 +77,20 @@ async function remove(): Promise<void> {
 					<!-- Laid out as a transaction's row: the headline, the account and the time under it, the cash and the shares at the end. -->
 					<span class="flex gap-4 px-4 py-3">
 						<span class="flex min-w-0 flex-1 flex-col gap-1">
-							<span class="type-title-medium truncate">{{ showSymbol ? `${kindLabel(trade)} · ${trade.symbol}` : kindLabel(trade) }}</span>
+							<span class="type-title-medium truncate">{{ showSymbol ? `${kindLabel(trade)} · ${nameOf(trade)}` : kindLabel(trade) }}</span>
 							<span class="type-body-small truncate">{{ trade.accountName ?? '' }}</span>
 							<span v-if="whenOf(trade.occurredOn)" class="type-body-small">{{ whenOf(trade.occurredOn) }}</span>
 						</span>
 						<!-- The cash at the end with how many at what under it, where a transaction keeps its running balance. -->
 						<span class="flex shrink-0 flex-col items-end gap-1">
-							<!-- A buy or sell only turns cash into shares and back; a dividend is income. -->
+							<!-- A buy or sell only turns cash into shares or units and back; a dividend is income. -->
 							<MoneyText
 								:amount="trade.amount"
 								:tone="trade.kind === 'dividend' ? 'signed' : 'transfer'"
 								explicit
 								class="type-title-medium"
 							/>
-							<span class="type-body-small">{{
-								t(trade.kind === 'dividend' ? 'investments.dividendLine' : 'investments.sharesAt', {
-									shares: sharesShown(trade.shares),
-									price: formatPrice(trade.price),
-								})
-							}}</span>
+							<span class="type-body-small">{{ lineOf(trade) }}</span>
 						</span>
 					</span>
 				</button>
@@ -99,7 +99,11 @@ async function remove(): Promise<void> {
 	</ul>
 
 	<AlertDialog :open="pending !== null && blocked" role="dialog" :title="t('investments.deleteBlockedTitle')" @close="pending = null">
-		{{ t('investments.deleteBlockedBody', { symbol: pending?.symbol ?? '' }) }}
+		{{
+			t(pending && isFund(pending.symbol) ? 'investments.deleteBlockedFundBody' : 'investments.deleteBlockedBody', {
+				symbol: pending ? nameOf(pending) : '',
+			})
+		}}
 		<template #actions>
 			<Button variant="text" @click="pending = null">{{ t('common.noGoBack') }}</Button>
 		</template>
@@ -107,7 +111,7 @@ async function remove(): Promise<void> {
 
 	<AlertDialog
 		:open="pending !== null && !blocked"
-		:title="pending ? t('investments.deleteTitle', { kind: kindLabel(pending).toLowerCase(), symbol: pending.symbol }) : ''"
+		:title="pending ? t('investments.deleteTitle', { kind: kindLabel(pending).toLowerCase(), symbol: nameOf(pending) }) : ''"
 		:icon="DELETE"
 		@close="pending = null"
 	>

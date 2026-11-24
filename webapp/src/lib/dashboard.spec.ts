@@ -193,7 +193,7 @@ describe('aheadOfPace', () => {
 describe('investmentSummary', () => {
 	const holding = (symbol: string, accountId: string, shares: number, costBasis: number, priceE4: number, asOf: string | null) =>
 		holdingOf(
-			{ accountId, symbol, shares, costBasis, realised: 0, dividends: 0 },
+			{ accountId, symbol, units: shares * 10_000, costBasis, realised: 0, dividends: 0 },
 			{ name: symbol, accountName: accountId, priceE4, changeBp: null, asOf },
 		);
 

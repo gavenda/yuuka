@@ -60,8 +60,9 @@
 	// subscription posts at 00:00 UTC — the user never picks a time.
 	// https://developers.cloudflare.com/workers/configuration/cron-triggers/
 	"triggers": {
-		// The second is the hourly PSE price tick (`INVESTMENT_CRON` in `server/investments.ts`).
-		"crons": ["0 0 * * *", "20 * * * *"],
+		// The second is the hourly PSE price tick (`INVESTMENT_CRON` in `server/investments.ts`), the
+		// third the UITF NAVPU tick (`FUND_CRON` in `server/funds.ts`).
+		"crons": ["0 0 * * *", "20 * * * *", "*/5 * * * *"],
 	},
 	"d1_databases": [
 		{

@@ -21,6 +21,7 @@ import { transactionRoutes } from './routes/transactions';
 import { notifyChange, slicesForPath } from './notify';
 import { runDueSubscriptions } from './subscriptions';
 import { INVESTMENT_CRON, runInvestmentTick } from './investments';
+import { FUND_CRON, runFundTick } from './funds';
 import type { AppEnv } from './types';
 
 /**
@@ -115,14 +116,16 @@ export default {
 	fetch: app.fetch,
 
 	/**
-	 * Two crons (`triggers.crons` in `wrangler.jsonc`). At 00:00 UTC it posts every subscription that
+	 * Three crons (`triggers.crons` in `wrangler.jsonc`). At 00:00 UTC it posts every subscription that
 	 * has come due; `scheduledTime` is when the trigger was meant to fire, not when it happened to
 	 * start, so a late tick still posts for the right day. Every hour at :20 it brings PSE prices up
-	 * to the latest close and backfills a slice of history (`server/investments.ts`).
+	 * to the latest close and backfills a slice of history (`server/investments.ts`). Every five
+	 * minutes it reads one trust entity's UITF NAVPUs, if one is due (`server/funds.ts`).
 	 */
 	async scheduled(controller, env, ctx): Promise<void> {
 		const when = new Date(controller.scheduledTime);
 		if (controller.cron === INVESTMENT_CRON) ctx.waitUntil(runInvestmentTick(env, when));
+		else if (controller.cron === FUND_CRON) ctx.waitUntil(runFundTick(env, when));
 		else ctx.waitUntil(runDueSubscriptions(env, when));
 	},
 } satisfies ExportedHandler<Env>;

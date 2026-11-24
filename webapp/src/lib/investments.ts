@@ -1,19 +1,92 @@
 /**
- * PSE investments, worked out in the browser. The twin of Android's `domain/Investments.kt`, and both follow
+ * PSE stocks and UITFs, worked out in the browser. The twin of Android's `domain/Investments.kt`, and both follow
  * the server's arithmetic (`server/investments.ts`), so a trade made offline shows the figures the server will
  * agree with once it lands. Money is in centavos; a price in ten-thousandths of a peso (`…E4`), since the PSE's
- * smallest tick is ₱0.0001; shares are whole.
+ * smallest tick is ₱0.0001 and a NAVPU is quoted to four decimals; a quantity in ten-thousandths of a share or
+ * a unit (`units`), since a fund's units are fractional — a stock's are always whole shares.
  */
 import { currencySymbol } from '@/lib/money';
 import type { Security, Trade, TradeKind } from '@/types';
 
-/** The value in centavos of `shares` at `priceE4`, rounded half up. */
-export const valueOf = (shares: number, priceE4: number) => Math.floor((shares * priceE4 + 50) / 100);
+/** Ten-thousandths of a unit in one share or unit. */
+export const UNIT = 10_000;
+
+/** A fund's symbol is `UITF-` and its id on uitf.com.ph; no PSE symbol has a hyphen. */
+export const FUND_PREFIX = 'UITF-';
+
+/** Whether `symbol` names a UITF rather than a PSE stock. */
+export const isFund = (symbol: string) => symbol.startsWith(FUND_PREFIX);
+
+/**
+ * The value in centavos of `units` at `priceE4`, rounded half up. The product of two ten-thousandths can pass what
+ * a double holds exactly, so it is worked out in BigInt.
+ */
+export const valueOf = (units: number, priceE4: number) => Number((BigInt(units) * BigInt(priceE4) + 500_000n) / 1_000_000n);
+
+/** The units `gross` centavos buy at `priceE4`, to the ten-thousandth, rounded half up: what a trust bank gives for an amount. */
+export function unitsFor(gross: number, priceE4: number): number {
+	if (priceE4 <= 0) return 0;
+	return Number((BigInt(gross) * 1_000_000n + BigInt(priceE4) / 2n) / BigInt(priceE4));
+}
+
+/** A trade's cash before fees: what the trust bank said (`gross`), or the units at the price. */
+export const tradeGross = (units: number, priceE4: number, gross: number | null = null) => gross ?? valueOf(units, priceE4);
 
 /** The cash a trade moves, signed: a buy pays the gross and the fees, a sell and a dividend bring in the gross less them. */
-export function tradeCash(kind: TradeKind, shares: number, priceE4: number, fees: number): number {
-	const gross = valueOf(shares, priceE4);
-	return kind === 'buy' ? -(gross + fees) : gross - fees;
+export function tradeCash(kind: TradeKind, units: number, priceE4: number, fees: number, gross: number | null = null): number {
+	const value = tradeGross(units, priceE4, gross);
+	return kind === 'buy' ? -(value + fees) : value - fees;
+}
+
+/** The word for a trade, as `investments.*` names it: a fund's are a subscription, a redemption and a distribution. */
+export function tradeWord(kind: TradeKind, symbol: string): 'buy' | 'sell' | 'dividend' | 'subscribe' | 'redeem' | 'distribution' {
+	if (!isFund(symbol)) return kind;
+	return kind === 'buy' ? 'subscribe' : kind === 'sell' ? 'redeem' : 'distribution';
+}
+
+/** What a security is called where one word is wanted: a stock's ticker, a fund's name (its symbol means nothing to anyone). */
+export const securityLabel = (symbol: string, name: string | null | undefined) => (isFund(symbol) ? (name ?? symbol) : symbol);
+
+/** What a fund's trades are called on its cash leg, as the server writes it. */
+const FUND_VERBS: Record<TradeKind, string> = { buy: 'Subscribe', sell: 'Redeem', dividend: 'Distribution on' };
+
+/**
+ * A trade's cash leg's payee and notes, as the server writes them: a stock's ticker and `Buy 1,000 BDO`, a fund's
+ * name and `Subscribe 1,234.5678 units`.
+ */
+export function legLabels(kind: TradeKind, symbol: string, name: string | null, units: number): { payee: string; notes: string } {
+	const count = formatUnits(units);
+	if (isFund(symbol)) return { payee: (name ?? symbol).slice(0, 120), notes: `${FUND_VERBS[kind]} ${count} units` };
+	return { payee: symbol, notes: `${kind[0]!.toUpperCase()}${kind.slice(1)} ${count} ${symbol}` };
+}
+
+function unitsDecimal(units: number, grouped: boolean): string {
+	const whole = Math.floor(units / UNIT);
+	const fraction = String(units % UNIT)
+		.padStart(4, '0')
+		.replace(/0+$/, '');
+	const head = grouped ? whole.toLocaleString('en-US') : String(whole);
+	return fraction ? `${head}.${fraction}` : head;
+}
+
+/** Shares or units as they are read: grouped, with as many of the four decimals as they need. */
+export const formatUnits = (units: number) => unitsDecimal(units, true);
+
+/** `formatUnits` without grouping, as a field holds it. */
+export const unitsInput = (units: number) => unitsDecimal(units, false);
+
+/**
+ * A typed quantity in ten-thousandths, split on the decimal point like money: a whole number of shares for a
+ * stock (`whole`), up to four decimals of a unit for a fund. Null unless above zero.
+ */
+export function parseUnits(input: string, whole: boolean): number | null {
+	const pattern = whole ? /^(\d+)()$/ : /^(\d*)(?:\.(\d{0,4}))?$/;
+	const match = pattern.exec(input.trim().replaceAll(',', ''));
+	if (!match) return null;
+	const [, head = '', fraction = ''] = match;
+	if (head === '' && fraction === '') return null;
+	const value = Number(head || '0') * UNIT + Number(fraction.padEnd(4, '0'));
+	return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
 function priceDecimal(priceE4: number): string {
@@ -36,21 +109,17 @@ export function percentChange(part: number, whole: number): string {
 	return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }
 
-/** A typed price in ten-thousandths of a peso, split on the decimal point like money: null unless above zero with at most four decimals. */
+/**
+ * A typed price in ten-thousandths of a peso, split on the decimal point like money: null unless above zero. A
+ * NAVPU a trust bank quotes to six decimals is taken and rounded half up to four, as the server reads it.
+ */
 export function parsePrice(input: string): number | null {
-	const match = /^(\d*)(?:\.(\d{0,4}))?$/.exec(input.trim().replaceAll(',', ''));
+	const match = /^(\d*)(?:\.(\d{0,8}))?$/.exec(input.trim().replaceAll(',', ''));
 	if (!match) return null;
 	const [, whole = '', fraction = ''] = match;
 	if (whole === '' && fraction === '') return null;
-	const value = Number(whole || '0') * 10_000 + Number(fraction.padEnd(4, '0'));
-	return Number.isSafeInteger(value) && value > 0 ? value : null;
-}
-
-/** A typed share count: a whole number above zero, or null. */
-export function parseShares(input: string): number | null {
-	const text = input.trim().replaceAll(',', '');
-	if (!/^\d+$/.test(text)) return null;
-	const value = Number(text);
+	const digits = fraction.padEnd(5, '0');
+	const value = Number(whole || '0') * 10_000 + Number(digits.slice(0, 4)) + (digits[4]! >= '5' ? 1 : 0);
 	return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
@@ -129,8 +198,9 @@ export function boardLot(priceE4: number): number {
 export interface Position {
 	accountId: string;
 	symbol: string;
-	shares: number;
-	/** What the shares held cost, buy fees included. */
+	/** Ten-thousandths of a share or a unit held. */
+	units: number;
+	/** What the units held cost, buy fees included. */
 	costBasis: number;
 	realised: number;
 	dividends: number;
@@ -147,19 +217,19 @@ export function positions(trades: readonly Trade[]): Position[] | null {
 		const key = `${trade.accountId}\u0000${trade.symbol}`;
 		let position = byKey.get(key);
 		if (!position) {
-			position = { accountId: trade.accountId, symbol: trade.symbol, shares: 0, costBasis: 0, realised: 0, dividends: 0 };
+			position = { accountId: trade.accountId, symbol: trade.symbol, units: 0, costBasis: 0, realised: 0, dividends: 0 };
 			byKey.set(key, position);
 		}
-		const gross = valueOf(trade.shares, trade.price);
+		const gross = tradeGross(trade.units, trade.price, trade.gross);
 		if (trade.kind === 'buy') {
-			position.shares += trade.shares;
+			position.units += trade.units;
 			position.costBasis += gross + trade.fees;
 		} else if (trade.kind === 'sell') {
-			if (trade.shares > position.shares) return null;
-			const cost = Math.round((position.costBasis * trade.shares) / position.shares);
+			if (trade.units > position.units) return null;
+			const cost = Math.round((position.costBasis * trade.units) / position.units);
 			position.realised += gross - trade.fees - cost;
 			position.costBasis -= cost;
-			position.shares -= trade.shares;
+			position.units -= trade.units;
 		} else {
 			position.dividends += gross - trade.fees;
 		}
@@ -168,25 +238,30 @@ export function positions(trades: readonly Trade[]): Position[] | null {
 }
 
 /**
- * The shares of `symbol` in `accountId` held at the start of `day` (`YYYY-MM-DD`), its own trades left out: what
- * a dividend paid that day is most likely paid on. Zero for a history that does not stand.
+ * The units of `symbol` in `accountId` held at the start of `day` (`YYYY-MM-DD`), its own trades left out: what
+ * a dividend or a distribution paid that day is most likely paid on. Zero for a history that does not stand.
  */
-export function sharesHeldBefore(trades: readonly Trade[], accountId: string, symbol: string, day: string): number {
+export function unitsHeldBefore(trades: readonly Trade[], accountId: string, symbol: string, day: string): number {
 	const before = trades.filter((trade) => trade.accountId === accountId && trade.symbol === symbol && trade.occurredOn.slice(0, 10) < day);
-	return positions(before)?.[0]?.shares ?? 0;
+	return positions(before)?.[0]?.units ?? 0;
 }
+
+/** What a unit cost on average, in ten-thousandths of a peso: `costBasis` centavos over `units`. */
+export const averagePriceE4 = (costBasis: number, units: number) => (units === 0 ? 0 : Math.round((costBasis * 1_000_000) / units));
 
 /** A position with what it is worth: one row of the Investments screen. */
 export interface Holding {
 	position: Position;
 	symbol: string;
+	/** Whether it is a UITF rather than a PSE stock. */
+	fund: boolean;
 	name: string;
 	accountName: string;
 	/** The latest close, or the average cost when the stock has no price yet. */
 	priceE4: number;
 	changeBp: number | null;
 	asOf: string | null;
-	shares: number;
+	units: number;
 	costBasis: number;
 	avgCostE4: number;
 	marketValue: number;
@@ -200,24 +275,25 @@ export function holdingOf(
 	position: Position,
 	details: { name: string; accountName: string; priceE4: number; changeBp: number | null; asOf: string | null },
 ): Holding {
-	const marketValue = valueOf(position.shares, details.priceE4);
+	const marketValue = valueOf(position.units, details.priceE4);
 	const previousCloseE4 =
 		details.changeBp === null ? details.priceE4 : Math.round((details.priceE4 * 10_000) / (10_000 + details.changeBp));
 	return {
 		...details,
 		position,
 		symbol: position.symbol,
-		shares: position.shares,
+		fund: isFund(position.symbol),
+		units: position.units,
 		costBasis: position.costBasis,
-		avgCostE4: position.shares === 0 ? 0 : Math.round((position.costBasis * 100) / position.shares),
+		avgCostE4: averagePriceE4(position.costBasis, position.units),
 		marketValue,
 		unrealised: marketValue - position.costBasis,
 		previousCloseE4,
-		dayChange: marketValue - valueOf(position.shares, previousCloseE4),
+		dayChange: marketValue - valueOf(position.units, previousCloseE4),
 	};
 }
 
-/** Every position, valued at its stock's latest close. */
+/** Every position, valued at its security's latest close or NAVPU. */
 export function holdings(
 	trades: readonly Trade[],
 	securities: ReadonlyMap<string, Security>,
@@ -229,7 +305,7 @@ export function holdings(
 		return holdingOf(position, {
 			name: security?.name ?? trades.find((trade) => trade.symbol === position.symbol)?.name ?? position.symbol,
 			accountName: owner?.name ?? trades.find((trade) => trade.accountId === position.accountId)?.accountName ?? '',
-			priceE4: security?.price ?? (position.shares > 0 ? Math.round((position.costBasis * 100) / position.shares) : 0),
+			priceE4: security?.price ?? averagePriceE4(position.costBasis, position.units),
 			changeBp: security?.changeBp ?? null,
 			asOf: security?.asOf ?? null,
 		});

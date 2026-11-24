@@ -155,9 +155,9 @@ export interface InvestmentSummary {
 	largest: StockValue[];
 }
 
-/** The positions still holding shares, summed; null with none. A stock held in two accounts is one of the `top` largest, not two. */
+/** The positions still holding shares or units, summed; null with none. A stock held in two accounts is one of the `top` largest, not two. */
 export function investmentSummary(holdings: readonly Holding[], top = 3): InvestmentSummary | null {
-	const held = holdings.filter((holding) => holding.shares > 0);
+	const held = holdings.filter((holding) => holding.units > 0);
 	if (!held.length) return null;
 	const bySymbol = new Map<string, StockValue>();
 	for (const holding of held) {

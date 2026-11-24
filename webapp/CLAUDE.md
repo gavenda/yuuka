@@ -360,8 +360,25 @@ NULL for none, with `logo_checked_at`, and asks again only after `LOGO_RECHECK_D
 nothing, so the next tick tries again. It is scraping, so a change to PSE Edge's markup leaves logos NULL rather
 than breaking anything.
 
+**UITF NAVPUs are scraped from uitf.com.ph, on a third cron.** `triggers.crons` also holds `"*/5 * * * *"`
+(`FUND_CRON`), which `scheduled` sends to `runFundTick` (`server/funds.ts`). The site has no API, and its robots.txt
+asks for a minute between requests, so a tick asks for one page at most. The first reads the trust entities off the
+page's own picker into `fund_providers`; after that each tick reads `daily_navpu.php?bank_id=<id>` for the most out of
+date trust entity that is due — one someone holds a fund of after `HELD_EVERY_HOURS`, any other after
+`CATALOGUE_EVERY_HOURS`, the held first — marking `checked_at` before it asks, so a page that keeps failing waits its
+turn. The page is plain HTML: a dated heading (`parseAsOf`), then a table per classification under an icon naming the
+currency (`parseNavpus`, after the commented-out markup is stripped), each fund a link carrying its `fund_id`. Peso
+funds are upserted into `securities` (kind `fund`, `provider`, `provider_id`, `classification`) — an older page than
+the one kept changes nothing — with that day's `stock_prices` row; the day's move is worked out from the NAVPU before
+it. The current month's summary is purged for whoever holds a fund of that trust entity. The date filter and a fund's
+history are behind a reCAPTCHA and are never asked for, so nothing is backfilled, and `GET /api/securities` never
+scrapes on a read. It is scraping, so a change to the markup leaves NAVPUs where they were rather than breaking
+anything; `test/funds.spec.ts` pins the parser against a page of the same shape. `refreshSecurities`,
+`backfillPrices` and `resolveLogos` keep to `kind = 'stock'`.
+
 `trades` (`routes/investments.ts`) belong to a person like any ledger row. `POST /api/trades` takes the
-shares, the price and the fees and works out the cash leg itself (`tradeCash`), writing the leg and the trade
+units (or an older app's whole `shares`), the price, a fund's `gross` and the fees and works out the cash leg itself
+(`tradeCash`), refusing part of a share or a `gross` for a stock, writing the leg and the trade
 in one batch with the account checked in the statement; it takes a client-chosen `id` and `transactionId`,
 and answers a replay with the trade already there. `PATCH /api/trades/:id` takes the whole trade again and
 rewrites the trade and its leg in one batch, both checked against the account in the statement; it is the
@@ -715,7 +732,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-777 tests: 458 against the API in `test/`, 319 over the browser helpers as
+789 tests: 467 against the API in `test/`, 322 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

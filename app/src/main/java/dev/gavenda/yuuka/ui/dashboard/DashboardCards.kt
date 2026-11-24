@@ -27,6 +27,8 @@ import dev.gavenda.yuuka.domain.BudgetHealth
 import dev.gavenda.yuuka.domain.BudgetPace
 import dev.gavenda.yuuka.domain.InvestmentSummary
 import dev.gavenda.yuuka.domain.percentChange
+import dev.gavenda.yuuka.domain.isFund
+import dev.gavenda.yuuka.domain.securityLabel
 import dev.gavenda.yuuka.domain.formatLongDate
 import dev.gavenda.yuuka.domain.statusColor
 import dev.gavenda.yuuka.ui.common.MoneyText
@@ -357,9 +359,12 @@ internal fun InvestmentsCard(summary: InvestmentSummary, onOpen: () -> Unit, mod
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // A fund is its name alone: its symbol means nothing to anyone.
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stock.symbol, style = MaterialTheme.typography.bodyMedium)
-                        Text(stock.name, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
+                        Text(securityLabel(stock.symbol, stock.name), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                        if (!isFund(stock.symbol)) {
+                            Text(stock.name, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
+                        }
                     }
                     MoneyText(stock.marketValue, style = MaterialTheme.typography.bodyMedium)
                 }

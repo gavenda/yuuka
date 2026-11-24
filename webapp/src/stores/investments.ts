@@ -8,7 +8,7 @@ import { computed, ref } from 'vue';
 import { t } from '@/i18n';
 
 /**
- * PSE investments: every stock at its latest close, the person's trades, and the closes of the stocks whose
+ * PSE stocks and UITFs: every security at its latest close or NAVPU, the person's trades, and the closes of the stocks whose
  * screens have been opened. The twin of Android's `InvestmentRepository` and `InvestmentsViewModel`. Shown from
  * the browser's local copy while the API is asked, as the subscriptions are.
  */
@@ -34,8 +34,8 @@ export const useInvestmentStore = defineStore('investments', () => {
 		}),
 	);
 
-	/** The positions still holding shares. */
-	const held = computed(() => holdings.value.filter((holding) => holding.shares > 0));
+	/** The positions still holding shares or units. */
+	const held = computed(() => holdings.value.filter((holding) => holding.units > 0));
 
 	/** The accounts a trade can be made in: active ones holding pesos. */
 	const accounts = computed(() => ledger.accounts.filter((account) => !account.archived && account.currency === 'PHP'));

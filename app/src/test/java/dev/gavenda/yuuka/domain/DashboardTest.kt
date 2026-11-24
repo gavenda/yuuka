@@ -161,7 +161,7 @@ class DashboardTest {
     }
 
     private fun holding(symbol: String, account: String, shares: Long, cost: Long, priceE4: Long, asOf: String?) =
-        Holding(Position(account, symbol, shares, cost, 0, 0), name = symbol, accountName = account, priceE4 = priceE4, changeBp = null, asOf = asOf)
+        Holding(Position(account, symbol, shares * UNIT, cost, 0, 0), name = symbol, accountName = account, priceE4 = priceE4, changeBp = null, asOf = asOf)
 
     private fun subscription(id: String, nextRunOn: String, enabled: Boolean = true) =
         Subscription(id = id, accountId = "acc", amount = -500, payee = id, startOn = nextRunOn, dayOfMonth = 1, nextRunOn = nextRunOn, enabled = enabled)

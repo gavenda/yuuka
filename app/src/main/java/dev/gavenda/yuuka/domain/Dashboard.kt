@@ -127,9 +127,9 @@ data class InvestmentSummary(
     val unrealised: Long get() = marketValue - costBasis
 }
 
-/** The positions still holding shares, summed; null with none. A stock held in two accounts is one of the [top] largest, not two. */
+/** The positions still holding shares or units, summed; null with none. A stock held in two accounts is one of the [top] largest, not two. */
 fun investmentSummary(holdings: List<Holding>, top: Int = 3): InvestmentSummary? {
-    val held = holdings.filter { it.shares > 0 }
+    val held = holdings.filter { it.units > 0 }
     if (held.isEmpty()) return null
     val largest = held.groupBy { it.symbol }
         .map { (symbol, rows) -> StockValue(symbol, rows.first().name, rows.sumOf { it.marketValue }) }

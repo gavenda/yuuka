@@ -450,29 +450,47 @@ const realDateTime = dateTimeString.refine((value) => isRealDate(value.slice(0, 
 /** What a trade is: the same whether it is being made or put right. */
 const tradeFields = z.object({
 	accountId: z.string().min(1),
+	/** A PSE symbol, or a UITF's: `UITF-` and its id on uitf.com.ph. */
 	symbol: z
 		.string()
 		.trim()
-		.regex(/^[A-Z0-9]{1,12}$/, 'Must be a PSE symbol.'),
+		.regex(/^(?:[A-Z0-9]{1,12}|UITF-\d{1,7})$/, 'Must be a PSE symbol or a UITF.'),
 	kind: z.enum(['buy', 'sell', 'dividend']),
 	/** A date, optionally with the `THH:MM` it was made at, as a transaction's. */
 	occurredOn: realDateTime,
-	shares: z.number().int().positive().max(1_000_000_000_000),
-	/** Ten-thousandths of a peso a share; a dividend's is what it paid a share. */
+	/** Ten-thousandths of a share or a unit; a dividend's are the ones it was paid on. A stock's must be whole shares. */
+	units: z.number().int().positive().max(1_000_000_000_000_000).optional(),
+	/** Whole shares, as the apps sent before UITFs. Taken when `units` is left out. */
+	shares: z.number().int().positive().max(100_000_000_000).optional(),
+	/** Ten-thousandths of a peso a share or unit; a dividend's is what it paid a share. */
 	price: z.number().int().positive().max(100_000_000_000),
+	/** A fund's cash before fees, in centavos, when the trust bank said what it was. A stock's is never given. */
+	gross: money.positive().max(10_000_000_000_000).nullish(),
 	/** Centavos: the broker's fees and taxes, or a dividend's withheld final tax. */
 	fees: money.min(0).default(0),
 });
 
-/** A PSE trade. Its cash leg is worked out from the shares, the price and the fees, never taken from the caller. */
-export const tradeCreateSchema = tradeFields.extend({
-	id: clientId('trd'),
-	/** The id its cash transaction takes, so a client's provisional row keeps its name. */
-	transactionId: clientId('txn'),
-});
+/** A trade's quantity, from `units`, or from the whole `shares` an older app sent. */
+function withUnits<T extends z.infer<typeof tradeFields>>({ shares, units, ...trade }: T, context: z.RefinementCtx) {
+	const resolved = units ?? (shares === undefined ? undefined : shares * 10_000);
+	if (resolved === undefined) {
+		context.addIssue({ code: 'custom', path: ['units'], message: 'Must say how many units.' });
+		return z.NEVER;
+	}
+	return { ...trade, units: resolved, gross: trade.gross ?? null };
+}
+
+/** A trade. Its cash leg is worked out from the units, the price (or the gross) and the fees, never taken from the caller. */
+export const tradeCreateSchema = tradeFields
+	.extend({
+		id: clientId('trd'),
+		/** The id its cash transaction takes, so a client's provisional row keeps its name. */
+		transactionId: clientId('txn'),
+	})
+	.transform(withUnits);
 
 /** A trade put right: the whole of it again, its cash leg worked out afresh. */
-export const tradeUpdateSchema = tradeFields;
+export const tradeUpdateSchema = tradeFields.transform(withUnits);
 
 export const pricesQuerySchema = z.object({
 	from: dateString.optional(),

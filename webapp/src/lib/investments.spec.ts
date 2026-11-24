@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import type { Trade } from '@/types';
-import { boardLot, parsePrice, positions, priceInput, pseFees, sharesHeldBefore, tradeCash, valueOf } from './investments';
+import {
+	boardLot,
+	formatUnits,
+	legLabels,
+	parsePrice,
+	parseUnits,
+	positions,
+	priceInput,
+	pseFees,
+	tradeCash,
+	tradeWord,
+	UNIT,
+	unitsFor,
+	unitsHeldBefore,
+	valueOf,
+} from './investments';
 
-/** The same figures `test/investments.spec.ts` and Android's `InvestmentsTest` pin: all three must agree. */
+/** The same figures `test/investments.spec.ts` and Android's `InvestmentsTest` pin: all three must agree. `shares` are whole. */
 const trade = (kind: Trade['kind'], occurredOn: string, shares: number, price: number, fees = 0): Trade => ({
 	id: `${kind}${occurredOn}`,
 	accountId: 'a',
@@ -11,26 +26,31 @@ const trade = (kind: Trade['kind'], occurredOn: string, shares: number, price: n
 	name: null,
 	kind,
 	occurredOn,
-	shares,
+	units: shares * UNIT,
 	price,
+	gross: null,
 	fees,
-	amount: tradeCash(kind, shares, price, fees),
+	amount: tradeCash(kind, shares * UNIT, price, fees),
 	transactionId: `t${occurredOn}`,
 	createdAt: '',
 	updatedAt: '',
 });
 
 describe('investments', () => {
-	it('values shares to the centavo, rounding half up', () => {
-		expect(valueOf(100, 1_180_000)).toBe(1_180_000);
-		expect(valueOf(3, 5)).toBe(0);
-		expect(valueOf(10, 5)).toBe(1);
+	it('values units to the centavo, rounding half up', () => {
+		expect(valueOf(1_000_000, 1_180_000)).toBe(1_180_000);
+		expect(valueOf(30_000, 5)).toBe(0);
+		expect(valueOf(100_000, 5)).toBe(1);
+		// 1,234.5678 units at ₱1,942.3725, past what a double multiplies exactly.
+		expect(valueOf(12_345_678, 19_423_725)).toBe(239_799_054);
 	});
 
-	it("signs a trade's cash by what it does", () => {
-		expect(tradeCash('buy', 10, 1_000_000, 2_000)).toBe(-102_000);
-		expect(tradeCash('sell', 10, 1_000_000, 2_000)).toBe(98_000);
-		expect(tradeCash('dividend', 10, 10_000, 100)).toBe(900);
+	it("signs a trade's cash by what it does, a fund's from what the trust bank said", () => {
+		expect(tradeCash('buy', 100_000, 1_000_000, 2_000)).toBe(-102_000);
+		expect(tradeCash('sell', 100_000, 1_000_000, 2_000)).toBe(98_000);
+		expect(tradeCash('dividend', 100_000, 10_000, 100)).toBe(900);
+		// ₱10,000.00 for 5.1483 units, which at ₱1,942.3725 come to ₱9,999.92.
+		expect(tradeCash('buy', 51_483, 19_423_725, 0, 1_000_000)).toBe(-1_000_000);
 	});
 
 	it('takes shares out at the average cost and realises the rest', () => {
@@ -40,7 +60,7 @@ describe('investments', () => {
 				trade('buy', '2026-02-01', 100, 200_000),
 				trade('sell', '2026-03-01', 50, 300_000),
 			]),
-		).toEqual([{ accountId: 'a', symbol: 'X', shares: 150, costBasis: 225_000, realised: 75_000, dividends: 0 }]);
+		).toEqual([{ accountId: 'a', symbol: 'X', units: 1_500_000, costBasis: 225_000, realised: 75_000, dividends: 0 }]);
 	});
 
 	it('refuses a history that sells more than it holds', () => {
@@ -49,7 +69,7 @@ describe('investments', () => {
 
 	it("works a day's trades through in time order, an untimed one first", () => {
 		expect(positions([trade('buy', '2026-01-01T10:00', 100, 100_000), trade('sell', '2026-01-01T09:30', 10, 100_000)])).toBeNull();
-		expect(positions([trade('sell', '2026-01-01T09:30', 10, 100_000), trade('buy', '2026-01-01', 100, 100_000)])?.[0]?.shares).toBe(90);
+		expect(positions([trade('sell', '2026-01-01T09:30', 10, 100_000), trade('buy', '2026-01-01', 100, 100_000)])?.[0]?.units).toBe(900_000);
 	});
 
 	it('charges the PSE schedule, with the ₱20 minimum commission', () => {
@@ -69,6 +89,8 @@ describe('investments', () => {
 		expect(parsePrice('0.57')).toBe(5_700);
 		expect(parsePrice('0.0001')).toBe(1);
 		expect(parsePrice('0.00001')).toBeNull();
+		expect(parsePrice('0.840905')).toBe(8_409);
+		expect(parsePrice('0.840950')).toBe(8_410);
 		expect(parsePrice('0')).toBeNull();
 	});
 
@@ -85,17 +107,47 @@ describe('investments', () => {
 	});
 });
 
-describe('sharesHeldBefore', () => {
+describe('unitsHeldBefore', () => {
 	it('is what was held at the start of the day, as a dividend is paid on', () => {
 		const trades = [
 			trade('buy', '2026-01-05', 1000, 100_000),
 			trade('sell', '2026-02-10T10:00', 400, 110_000),
 			trade('buy', '2026-03-01', 200, 105_000),
 		];
-		expect(sharesHeldBefore(trades, 'a', 'X', '2026-01-05')).toBe(0);
-		expect(sharesHeldBefore(trades, 'a', 'X', '2026-02-10')).toBe(1000);
-		expect(sharesHeldBefore(trades, 'a', 'X', '2026-02-11')).toBe(600);
-		expect(sharesHeldBefore(trades, 'a', 'X', '2026-03-02')).toBe(800);
-		expect(sharesHeldBefore(trades, 'b', 'X', '2026-03-02')).toBe(0);
+		expect(unitsHeldBefore(trades, 'a', 'X', '2026-01-05')).toBe(0);
+		expect(unitsHeldBefore(trades, 'a', 'X', '2026-02-10')).toBe(10_000_000);
+		expect(unitsHeldBefore(trades, 'a', 'X', '2026-02-11')).toBe(6_000_000);
+		expect(unitsHeldBefore(trades, 'a', 'X', '2026-03-02')).toBe(8_000_000);
+		expect(unitsHeldBefore(trades, 'b', 'X', '2026-03-02')).toBe(0);
+	});
+});
+
+describe('UITFs', () => {
+	it('gives the units an amount buys at a NAVPU, to the ten-thousandth', () => {
+		expect(unitsFor(1_000_000, 19_423_725)).toBe(51_483);
+		expect(unitsFor(500_000, 1_000_000)).toBe(500_000);
+	});
+
+	it('reads and writes units with up to four decimals, a stock in whole shares', () => {
+		expect(parseUnits('5.1483', false)).toBe(51_483);
+		expect(parseUnits('1,000', false)).toBe(10_000_000);
+		expect(parseUnits('1.23456', false)).toBeNull();
+		expect(parseUnits('1.5', true)).toBeNull();
+		expect(parseUnits('100', true)).toBe(1_000_000);
+		expect(formatUnits(51_483)).toBe('5.1483');
+		expect(formatUnits(12_345_000)).toBe('1,234.5');
+		expect(formatUnits(1_000_000)).toBe('100');
+	});
+
+	it('names a fund’s trades and its cash leg as the server does', () => {
+		expect(tradeWord('buy', 'UITF-128')).toBe('subscribe');
+		expect(tradeWord('sell', 'UITF-128')).toBe('redeem');
+		expect(tradeWord('dividend', 'UITF-128')).toBe('distribution');
+		expect(tradeWord('buy', 'BDO')).toBe('buy');
+		expect(legLabels('buy', 'UITF-128', 'BDO PESO MONEY MARKET FUND', 51_483)).toEqual({
+			payee: 'BDO PESO MONEY MARKET FUND',
+			notes: 'Subscribe 5.1483 units',
+		});
+		expect(legLabels('sell', 'BDO', 'BDO Unibank, Inc.', 1_000_000)).toEqual({ payee: 'BDO', notes: 'Sell 100 BDO' });
 	});
 });

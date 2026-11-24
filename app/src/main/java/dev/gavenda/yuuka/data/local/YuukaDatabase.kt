@@ -38,7 +38,9 @@ import dev.gavenda.yuuka.data.local.entity.*
     // 11: tags gained `total`, what their transactions come to.
     // 12: PSE investments: securities, trades and their daily closes.
     // 13: securities gained `logoUrl`, the company's logo on PSE Edge.
-    version = 14,
+    // 15: UITFs: securities gained `kind`, `provider` and `classification`; trades
+    // hold `units` (ten-thousandths) and a fund's `gross` in place of `shares`.
+    version = 15,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

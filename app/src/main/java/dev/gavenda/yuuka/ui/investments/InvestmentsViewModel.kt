@@ -23,7 +23,7 @@ import java.time.LocalDate
 data class InvestmentsUiState(
     val trades: List<Trade> = emptyList(),
     val securities: List<Security> = emptyList(),
-    /** Every position, sold-out ones included; [held] is the ones still holding shares. */
+    /** Every position, sold-out ones included; [held] is the ones still holding shares or units. */
     val holdings: List<Holding> = emptyList(),
     /** The accounts a trade can be made in: active ones holding pesos. */
     val accounts: List<Account> = emptyList(),
@@ -31,7 +31,7 @@ data class InvestmentsUiState(
     val brokerCash: Map<String, Long> = emptyMap(),
     val loaded: Boolean = false,
 ) {
-    val held: List<Holding> get() = holdings.filter { it.shares > 0 }
+    val held: List<Holding> get() = holdings.filter { it.units > 0 }
     val securitiesBySymbol: Map<String, Security> get() = securities.associateBy { it.symbol }
 
     /** The latest trading day any stock was priced at. */
@@ -60,8 +60,11 @@ data class TradeSubmission(
     val symbol: String,
     val kind: String,
     val occurredOn: String,
-    val shares: Long,
+    /** Ten-thousandths of a share or a unit. */
+    val units: Long,
     val price: Long,
+    /** A fund's cash before fees, as the trust bank said it; null for a stock. */
+    val gross: Long?,
     val fees: Long,
 )
 
@@ -100,15 +103,15 @@ class InvestmentsViewModel(
     }
 
     suspend fun createTrade(submission: TradeSubmission) = with(submission) {
-        repository.createTrade(accountId, symbol, kind, occurredOn, shares, price, fees)
+        repository.createTrade(accountId, symbol, kind, occurredOn, units, price, gross, fees)
     }
 
     suspend fun updateTrade(id: String, submission: TradeSubmission) = with(submission) {
-        repository.updateTrade(id, accountId, symbol, kind, occurredOn, shares, price, fees)
+        repository.updateTrade(id, accountId, symbol, kind, occurredOn, units, price, gross, fees)
     }
 
     suspend fun deleteTrade(id: String) = repository.deleteTrade(id)
 
-    /** Whether the history still stands without this trade: a later sell may need its shares. */
+    /** Whether the history still stands without this trade: a later sell may need its shares or units. */
     fun canDelete(id: String): Boolean = positions(uiState.value.trades.filter { it.id != id }) != null
 }

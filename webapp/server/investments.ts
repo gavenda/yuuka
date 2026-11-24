@@ -1,5 +1,6 @@
 /**
- * PSE investments: market data from PHISIX, and what a person's trades come to.
+ * PSE investments and UITFs: stock prices from PHISIX (fund NAVPUs are `funds.ts`), and what a
+ * person's trades come to.
  *
  * PHISIX (https://phisix-api3.appspot.com) answers `stocks.json` with the latest
  * price of every PSE stock, and `stocks/<SYMBOL>.<YYYY-MM-DD>.json` with one
@@ -8,7 +9,8 @@
  * prices once a trading day, and past closes only for stocks someone holds, a
  * few dozen an hour, newest first.
  *
- * Prices are in ten-thousandths of a peso (`_e4`) and money in centavos, both
+ * Prices are in ten-thousandths of a peso (`_e4`), quantities in ten-thousandths of a
+ * share or a unit (`units_e4`, since a fund's units are fractional) and money in centavos, all
  * integers. A PHISIX amount arrives as a JSON number with at most four decimal
  * places; rounding it to the nearest ten-thousandth is exact for those.
  */
@@ -41,8 +43,14 @@ interface PhisixResponse {
 
 export const toE4 = (amount: number) => Math.round(amount * 10_000);
 
-/** The value in centavos of `shares` at `priceE4`, rounded half up. */
-export const valueOf = (shares: number, priceE4: number) => Math.floor((shares * priceE4 + 50) / 100);
+/** Ten-thousandths of a unit in one share or unit. */
+export const UNIT = 10_000;
+
+/**
+ * The value in centavos of `unitsE4` at `priceE4`, rounded half up. The product of two
+ * ten-thousandths can pass what a double holds exactly, so it is worked out in BigInt.
+ */
+export const valueOf = (unitsE4: number, priceE4: number) => Number((BigInt(unitsE4) * BigInt(priceE4) + 500_000n) / 1_000_000n);
 
 /** Manila is UTC+8 all year. */
 function manila(now: Date): Date {
@@ -90,7 +98,9 @@ async function fetchJson(url: string): Promise<PhisixResponse | null> {
 export async function refreshSecurities(env: Env, now: Date, force = false): Promise<boolean> {
 	const day = latestCloseDay(now);
 	if (!force) {
-		const latest = await env.DB.prepare('SELECT MAX(as_of) AS as_of FROM securities').first<{ as_of: string | null }>();
+		const latest = await env.DB.prepare("SELECT MAX(as_of) AS as_of FROM securities WHERE kind = 'stock'").first<{
+			as_of: string | null;
+		}>();
 		if (latest?.as_of && latest.as_of >= day) return false;
 	}
 
@@ -133,7 +143,10 @@ export async function refreshSecurities(env: Env, now: Date, force = false): Pro
  * remembered in `stock_price_gaps` and not asked again.
  */
 export async function backfillPrices(env: Env, now: Date, budget = BACKFILL_PER_TICK): Promise<number> {
-	const { results: held } = await env.DB.prepare('SELECT DISTINCT symbol FROM trades ORDER BY symbol').all<{ symbol: string }>();
+	// PHISIX knows only stocks; a fund's past NAVPUs are not to be had (see `funds.ts`).
+	const { results: held } = await env.DB.prepare(
+		`SELECT DISTINCT t.symbol FROM trades t JOIN securities s ON s.symbol = t.symbol AND s.kind = 'stock' ORDER BY t.symbol`,
+	).all<{ symbol: string }>();
 	if (held.length === 0) return 0;
 
 	const end = latestCloseDay(now);
@@ -222,7 +235,7 @@ export async function resolveLogos(env: Env, now: Date, budget = LOGOS_PER_TICK)
 	stale.setUTCDate(stale.getUTCDate() - LOGO_RECHECK_DAYS);
 	const { results } = await env.DB.prepare(
 		`SELECT s.symbol FROM securities s
-		 WHERE s.symbol IN (SELECT DISTINCT symbol FROM trades)
+		 WHERE s.kind = 'stock' AND s.symbol IN (SELECT DISTINCT symbol FROM trades)
 		   AND (s.logo_checked_at IS NULL OR s.logo_checked_at < ?)
 		 ORDER BY s.logo_checked_at IS NOT NULL, s.symbol
 		 LIMIT ?`,
@@ -276,30 +289,38 @@ export interface TradeLike {
 	/** `HH:MM`, or null when the trade names no time; an untimed trade sorts to the start of its day. */
 	occurred_time?: string | null;
 	created_at?: string;
-	shares: number;
+	/** Ten-thousandths of a share or a unit; a stock's are always whole shares. */
+	units_e4: number;
 	price_e4: number;
+	/** Centavos before fees, when the trust bank said what it was; null works it out from the units and price. */
+	gross?: number | null;
 	fees: number;
 }
 
+/** A trade's cash before fees: what the trust bank said, or the units at the price. */
+export const tradeGross = (trade: Pick<TradeLike, 'units_e4' | 'price_e4' | 'gross'>) =>
+	trade.gross ?? valueOf(trade.units_e4, trade.price_e4);
+
 /** The cash a trade moves, signed: a buy pays the gross and the fees, a sell and a dividend bring in the gross less them. */
-export function tradeCash(trade: Pick<TradeLike, 'kind' | 'shares' | 'price_e4' | 'fees'>): number {
-	const gross = valueOf(trade.shares, trade.price_e4);
+export function tradeCash(trade: Pick<TradeLike, 'kind' | 'units_e4' | 'price_e4' | 'gross' | 'fees'>): number {
+	const gross = tradeGross(trade);
 	return trade.kind === 'buy' ? -(gross + trade.fees) : gross - trade.fees;
 }
 
 export interface Position {
 	accountId: string;
 	symbol: string;
-	shares: number;
-	/** What the shares held cost, buy fees included. */
+	/** Ten-thousandths of a share or a unit held. */
+	units: number;
+	/** What the units held cost, buy fees included. */
 	costBasis: number;
 	realised: number;
 	dividends: number;
 }
 
 /**
- * Works a set of trades through in date and time order, average cost: a buy adds its shares and its cost
- * with fees, a sell takes its shares out at the average cost so far and realises the rest of its
+ * Works a set of trades through in date and time order, average cost: a buy adds its units and its cost
+ * with fees, a sell takes its units out at the average cost so far and realises the rest of its
  * proceeds, a dividend adds its net cash. Answers null when a sell would take more than is held at
  * that point — a back-dated sell, or a deleted buy, that the history cannot carry.
  */
@@ -315,19 +336,19 @@ export function positions(trades: TradeLike[]): Position[] | null {
 		const key = `${trade.account_id}\u0000${trade.symbol}`;
 		let position = byKey.get(key);
 		if (!position) {
-			position = { accountId: trade.account_id, symbol: trade.symbol, shares: 0, costBasis: 0, realised: 0, dividends: 0 };
+			position = { accountId: trade.account_id, symbol: trade.symbol, units: 0, costBasis: 0, realised: 0, dividends: 0 };
 			byKey.set(key, position);
 		}
-		const gross = valueOf(trade.shares, trade.price_e4);
+		const gross = tradeGross(trade);
 		if (trade.kind === 'buy') {
-			position.shares += trade.shares;
+			position.units += trade.units_e4;
 			position.costBasis += gross + trade.fees;
 		} else if (trade.kind === 'sell') {
-			if (trade.shares > position.shares) return null;
-			const cost = Math.round((position.costBasis * trade.shares) / position.shares);
+			if (trade.units_e4 > position.units) return null;
+			const cost = Math.round((position.costBasis * trade.units_e4) / position.units);
 			position.realised += gross - trade.fees - cost;
 			position.costBasis -= cost;
-			position.shares -= trade.shares;
+			position.units -= trade.units_e4;
 		} else {
 			position.dividends += gross - trade.fees;
 		}
@@ -336,21 +357,21 @@ export function positions(trades: TradeLike[]): Position[] | null {
 }
 
 /**
- * What a person's holdings are worth, by the latest close — or, with `onOrBefore`, by each stock's
- * close on that day or the last before it. A stock with no close that early is counted at what it
- * cost, which is all that is known of it.
+ * What a person's holdings are worth, by the latest close — or, with `onOrBefore`, by each security's
+ * close on that day or the last before it. One with no close that early (a fund's past NAVPUs are only
+ * known from the day the cron first saw them) is counted at what it cost, which is all that is known of it.
  */
 export async function holdingsValue(db: D1Database, userId: string, onOrBefore?: string): Promise<number> {
 	const { results } = await db
 		.prepare(
-			`SELECT account_id, symbol, kind, occurred_on, occurred_time, created_at, shares, price_e4, fees FROM trades
+			`SELECT account_id, symbol, kind, occurred_on, occurred_time, created_at, units_e4, price_e4, gross, fees FROM trades
 			 WHERE user_id = ? ${onOrBefore ? 'AND occurred_on <= ?' : ''}`,
 		)
 		.bind(...(onOrBefore ? [userId, onOrBefore] : [userId]))
 		.all<TradeLike>();
 	if (results.length === 0) return 0;
 
-	const held = (positions(results) ?? []).filter((position) => position.shares > 0);
+	const held = (positions(results) ?? []).filter((position) => position.units > 0);
 	let total = 0;
 	for (const position of held) {
 		const row = onOrBefore
@@ -359,7 +380,7 @@ export async function holdingsValue(db: D1Database, userId: string, onOrBefore?:
 					.bind(position.symbol, onOrBefore)
 					.first<{ price: number }>()
 			: await db.prepare('SELECT price_e4 AS price FROM securities WHERE symbol = ?').bind(position.symbol).first<{ price: number }>();
-		total += row ? valueOf(position.shares, row.price) : position.costBasis;
+		total += row ? valueOf(position.units, row.price) : position.costBasis;
 	}
 	return total;
 }
