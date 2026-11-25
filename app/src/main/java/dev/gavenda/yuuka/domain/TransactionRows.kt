@@ -23,9 +23,12 @@ sealed interface TransactionRow {
         val categoryColor: String?,
         val notes: String,
         val tags: List<TransactionTag>,
+        /** What left, in the source account's currency — the row is drawn in it. */
         val amount: Long,
         /** The outflow leg — the row that carries the shared id and category. */
         val leg: Transaction,
+        /** The inflow leg, in the destination's currency, which between two currencies is another amount. */
+        val inflow: Transaction,
     ) : TransactionRow {
         override val transaction: Transaction get() = leg
     }
@@ -59,8 +62,9 @@ fun mergeTransferRows(group: List<Transaction>): List<TransactionRow> {
                         categoryColor = transaction.categoryColor,
                         notes = transaction.notes,
                         tags = outflow.tags,
-                        amount = abs(transaction.amount),
+                        amount = abs(outflow.amount),
                         leg = outflow,
+                        inflow = inflow,
                     ),
                 )
                 continue

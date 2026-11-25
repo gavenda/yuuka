@@ -47,6 +47,7 @@ object Provisional {
         payee: String,
         notes: String,
         transferId: String? = null,
+        feeTransferId: String? = null,
     ): TransactionEntity = TransactionEntity(
         id = id,
         accountId = accountId,
@@ -59,6 +60,7 @@ object Provisional {
         payee = payee,
         notes = notes,
         transferId = transferId,
+        feeTransferId = feeTransferId,
         // A schedule posts automated rows, and a schedule is the server.
         automated = false,
         // Right for the newest row on the account, approximate for one

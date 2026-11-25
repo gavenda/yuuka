@@ -98,7 +98,7 @@ describe('local database', () => {
 			);
 			expect(store('transaction_tags').keyPath).toEqual(['transactionId', 'tagId']);
 			expect(indexes('transaction_tags')).toEqual(['tagId']);
-			expect(indexes('transactions')).toEqual(['accountId', 'categoryId', 'month', 'transferId']);
+			expect(indexes('transactions')).toEqual(['accountId', 'categoryId', 'feeTransferId', 'month', 'transferId']);
 			expect(indexes('budgets')).toEqual(['categoryId', 'queriedMonth']);
 			expect(store('income_plans').keyPath).toBe('queriedMonth');
 			expect(store('summaries').keyPath).toBe('month');
@@ -113,7 +113,7 @@ describe('local database', () => {
 			await cache.warmCache();
 
 			const db = await openDatabase();
-			expect(db.version).toBe(6);
+			expect(db.version).toBe(7);
 			expect(Array.from(db.objectStoreNames)).not.toContain('entries');
 			db.close();
 		});
@@ -313,6 +313,23 @@ describe('local database', () => {
 
 			expect(await storedIds('transactions')).toEqual(['other']);
 			expect(await storedKeys('transaction_tags')).toEqual([]);
+		});
+
+		it("takes a transfer's fee with it, and a fee deleted alone leaves the transfer", async () => {
+			const legs = [
+				row.transaction('from', { transferId: 'x', amount: -500 }),
+				row.transaction('to', { transferId: 'x', accountId: 'b', amount: 9 }),
+				row.transaction('fee', { feeTransferId: 'x', amount: -25 }),
+			];
+			await cache.saveTransactions(legs);
+			expect((await cache.readTransferFee('x'))?.id).toBe('fee');
+
+			await cache.deleteTransaction('fee');
+			expect(await storedIds('transactions')).toEqual(['from', 'to']);
+
+			await cache.saveTransactions([legs[2]]);
+			await cache.deleteTransaction('to');
+			expect(await storedIds('transactions')).toEqual([]);
 		});
 	});
 

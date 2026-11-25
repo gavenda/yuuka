@@ -364,6 +364,20 @@
     <string name="error_amount_required">Enter an amount.</string>
     <string name="error_amount_number">Enter an amount as a number, such as 45.99.</string>
     <string name="error_amount_greater_than_zero">Enter an amount greater than zero.</string>
+    <string name="label_rate">Rate</string>
+    <string name="rate_hint">1 %1$s in %2$s</string>
+    <string name="rate_loading">Looking up the rate…</string>
+    <string name="rate_found">Rate for %1$s</string>
+    <string name="rate_unavailable">No rate online. Enter the one you got.</string>
+    <string name="error_rate_required">Enter a rate.</string>
+    <string name="error_rate_number">Enter a rate greater than zero, such as 0.0172.</string>
+    <string name="label_received">Received</string>
+    <string name="error_received_required">Enter what arrived.</string>
+    <string name="label_fee">Fee</string>
+    <string name="fee_hint">Counted as spending</string>
+    <string name="error_fee_number">Enter a fee as a number, such as 25.00.</string>
+    <string name="error_fee_greater_than_zero">Enter a fee greater than zero, or leave it blank.</string>
+    <string name="label_fee_category">Fee category</string>
     <string name="error_choose_to_account">Choose the account it goes to.</string>
     <string name="error_too_many_tags">A transaction can wear at most %1$d tags.</string>
     <string name="error_too_long">Use %1$d characters or fewer.</string>
@@ -402,7 +416,7 @@
     <string name="transactions_end">That\'s every last one, all accounted for.</string>
     <string name="delete_transfer_confirm_title">Delete this transfer?</string>
     <string name="delete_transaction_confirm_title">Delete this transaction?</string>
-    <string name="delete_transfer_body">This transfer will be removed. This cannot be undone.</string>
+    <string name="delete_transfer_body">This transfer, and any fee it cost, will be removed. This cannot be undone.</string>
     <string name="delete_transaction_body">This transaction will be removed. This cannot be undone.</string>
 
     <!-- Subscriptions -->

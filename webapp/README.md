@@ -228,7 +228,8 @@ access token in `Authorization: Bearer <token>`.
 | `GET/POST/PATCH/DELETE` | `/categories`                    | Categories                                         |
 | `GET/POST/PATCH/DELETE` | `/tags`                          | Tags, the labels a transaction can wear            |
 | `GET/POST/PATCH/DELETE` | `/transactions`                  | Transactions, filtered and paged                   |
-| `POST`                  | `/transactions/transfer`         | Write both legs of a transfer                      |
+| `POST/PATCH`            | `/transactions/transfer`         | Write both legs of a transfer, and its fee         |
+| `GET`                   | `/fx?from=&to=&date=`            | Exchange rate a transfer's form suggests           |
 | `GET/POST/PATCH/DELETE` | `/subscriptions`                 | Monthly charges the daily cron posts for you       |
 | `GET/PUT/DELETE`        | `/budgets`                       | Per-category monthly budgets                       |
 | `GET`                   | `/summary?month=YYYY-MM`         | Totals, balances, budget vs actual, by day, payees |
@@ -236,6 +237,12 @@ access token in `Authorization: Bearer <token>`.
 
 `GET /transactions` accepts `month`, `from`, `to`, `accountId`, `categoryId`
 (or `none` for uncategorised), `search`, `limit` and `offset`.
+
+`POST /transactions/transfer` (and `PATCH /transactions/transfer/:id`) take `amount`, what leaves the source
+account, and an optional `toAmount`, what arrives in the destination's own currency (`amount` when left out). A
+`fee` (`{ amount, categoryId }`) posts an ordinary expense on the source account linked to the transfer; on an edit,
+leaving it out keeps the fee and `null` takes it off. `GET /fx` answers `{ rate, date, source }` from the ECB's
+rates (Frankfurter), or today's from open.er-api.com for a pair the ECB does not quote, and `503` when neither does.
 
 ### Subscriptions
 

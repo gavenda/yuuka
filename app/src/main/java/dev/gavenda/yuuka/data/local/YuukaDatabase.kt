@@ -41,7 +41,8 @@ import dev.gavenda.yuuka.data.local.entity.*
     // 15: UITFs: securities gained `kind`, `provider` and `classification`; trades
     // hold `units` (ten-thousandths) and a fund's `gross` in place of `shares`.
     // 16: ETFs: securities gained `currency` and `exchange`.
-    version = 16,
+    // 17: transactions gained `feeTransferId`, the transfer a fee was paid for.
+    version = 17,
     exportSchema = true,
 )
 abstract class YuukaDatabase : RoomDatabase() {

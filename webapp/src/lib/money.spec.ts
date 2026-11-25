@@ -1,5 +1,45 @@
 import { describe, expect, it } from 'vitest';
-import { currencySymbol, DEFAULT_CURRENCY, formatMoney, parseMoney, percentOf, toDecimalString } from './money';
+import {
+	convertAtRate,
+	currencySymbol,
+	DEFAULT_CURRENCY,
+	formatMoney,
+	formatRate,
+	parseMoney,
+	parseRate,
+	percentOf,
+	rateBetween,
+	toDecimalString,
+} from './money';
+
+describe('exchange rates', () => {
+	it('converts to whole minor units', () => {
+		expect(convertAtRate(580_000, 0.017241)).toBe(10_000);
+		expect(convertAtRate(100, 58.125)).toBe(5813);
+	});
+
+	it('works the rate out of two amounts', () => {
+		expect(rateBetween(580_000, 10_000)).toBeCloseTo(0.0172414, 6);
+		expect(rateBetween(0, 10_000)).toBeNull();
+	});
+
+	it('writes a rate in six significant figures, without trailing zeros or an exponent', () => {
+		expect(formatRate(0.017241379)).toBe('0.0172414');
+		expect(formatRate(58)).toBe('58');
+		expect(formatRate(1.5)).toBe('1.5');
+		expect(formatRate(0.0000001234)).toBe('0.0000001234');
+		expect(formatRate(0.000000123456789)).toBe('0.000000123457');
+	});
+
+	it('reads only a positive number as a rate', () => {
+		expect(parseRate(' 0.0172 ')).toBe(0.0172);
+		expect(parseRate('1,000.5')).toBe(1000.5);
+		expect(parseRate('.5')).toBe(0.5);
+		expect(parseRate('0')).toBeNull();
+		expect(parseRate('-1')).toBeNull();
+		expect(parseRate('abc')).toBeNull();
+	});
+});
 
 describe('currencySymbol', () => {
 	it('writes a known currency with its symbol', () => {

@@ -86,6 +86,37 @@ export function parseMoney(input: string): number | null {
 	return sign ? -minor : minor;
 }
 
+/**
+ * What `minor` comes to at `rate`, in the other currency's minor unit. Every currency here is kept in hundredths,
+ * so the conversion is one multiplication, rounded to the nearest hundredth. A rate is a ratio rather than money,
+ * so it may be a float; only what it produces has to be whole.
+ */
+export function convertAtRate(minor: number, rate: number): number {
+	return Math.round(minor * rate);
+}
+
+/** The rate two amounts imply — what arrived over what left — or null when either is not above zero. */
+export function rateBetween(sent: number, received: number): number | null {
+	return sent > 0 && received > 0 ? received / sent : null;
+}
+
+/** A rate as it is typed and shown: six significant figures, without a trailing zero or an exponent. */
+export function formatRate(rate: number): string {
+	// As many decimals as six significant figures need at this size, written out in full: `toPrecision` would
+	// switch to an exponent below 1e-6. The twin of Android's `formatRate`, which rounds a BigDecimal the same way.
+	const decimals = Math.min(20, Math.max(0, 5 - Math.floor(Math.log10(rate))));
+	const fixed = rate.toFixed(decimals);
+	return fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
+}
+
+/** Parses a typed rate into a positive number, or null when it is not one. */
+export function parseRate(input: string): number | null {
+	const normalised = input.trim().replace(/[\s,_]/g, '');
+	if (!/^\d*\.?\d+$|^\d+\.$/.test(normalised)) return null;
+	const value = Number(normalised);
+	return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 /** Parses a percentage input like "12.5" into 0-100, or null if it is not a valid share. */
 export function parsePercent(input: string): number | null {
 	const trimmed = input.trim();

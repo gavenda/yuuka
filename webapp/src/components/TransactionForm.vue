@@ -8,12 +8,14 @@ import TextField from '@/components/TextField.vue';
 import { categoryOptions, namedOptions } from '@/lib/selectOptions';
 import PayeeInput from '@/components/PayeeInput.vue';
 import ConnectedButtonGroup from '@/components/ConnectedButtonGroup.vue';
-import { currentTime, today } from '@/lib/dates';
+import { currentTime, formatLongDate, today } from '@/lib/dates';
 import FieldSupport from '@/components/FieldSupport.vue';
-import { currencySymbol, parseMoney, toDecimalString } from '@/lib/money';
+import { convertAtRate, currencySymbol, formatRate, parseMoney, parseRate, rateBetween, toDecimalString } from '@/lib/money';
+import { readTransferFee } from '@/lib/cache';
 import { useHarmonised } from '@/lib/harmonise';
 import { supportId, useFormValidation } from '@/lib/validation';
 import { api, ApiError } from '@/lib/api';
+import { newId } from '@/lib/ids';
 import { displayMoney } from '@/lib/privacy';
 import { showSnackbar } from '@/lib/snackbar';
 import { showSaved } from '@/lib/sync';
@@ -35,7 +37,7 @@ const MODES: { value: Mode; label: string }[] = [
  * income, or a transfer between two of the user's accounts — opened empty for a new entry or seeded from the
  * row being edited. It takes the screen over on a phone and is an ordinary dialog beside a rail.
  */
-const props = defineProps<{ open: boolean; transaction?: Transaction | null; transferToAccountId?: string | null }>();
+const props = defineProps<{ open: boolean; transaction?: Transaction | null; transferInflow?: Transaction | null }>();
 const emit = defineEmits<{ close: [] }>();
 
 const ledger = useLedgerStore();
@@ -54,13 +56,47 @@ const form = reactive({
 	payee: '',
 	notes: '',
 	tagIds: [] as string[],
+	/** Between two currencies: one of the source's in the destination's, and what arrived. */
+	rate: '',
+	toAmount: '',
+	/** What the transfer cost, an expense on the source account; blank is none. */
+	fee: '',
+	feeCategoryId: '',
 });
+
+/**
+ * Whether the rate is the person's own — typed, worked out from a typed received amount, or what an edited
+ * transfer already moved at — rather than the one looked up. A rate of their own is never overwritten.
+ */
+const rateOwn = ref(false);
+/** What is said under the rate: that it is being looked up, which day's it is, or that there is none. */
+const rateNote = ref<string | null>(null);
+/** The expense the transfer being edited already posted for its fee, so an edit changes that one. */
+const feeId = ref<string | null>(null);
+/**
+ * Whether the fee of the transfer being edited has been read. Until it has, "no fee" cannot be told from "not read
+ * yet", so the form does not save — as on Android.
+ */
+const feeLoaded = ref(true);
 
 /** A failure that belongs to no one field — the save itself went wrong. Each field's own problem is drawn beside it. */
 const error = ref<string | null>(null);
 
 /** The most tags one transaction wears; the API refuses more. */
 const MAX_TAGS = 10;
+
+const fromCurrency = computed(() => ledger.accountsById.get(form.accountId)?.currency.toUpperCase() ?? null);
+const toCurrency = computed(() => ledger.accountsById.get(form.toAccountId)?.currency.toUpperCase() ?? null);
+
+/** The two currencies a rate is between, `PHP>USD`; empty while either account is not chosen. */
+const currencyPair = computed(() => (fromCurrency.value && toCurrency.value ? `${fromCurrency.value}>${toCurrency.value}` : ''));
+/** The pair the rate on show is for, so that changing either account's currency asks for a new one. */
+const ratePair = ref('');
+
+/** A transfer between accounts of two currencies, which asks for a rate and what arrived. */
+const crossCurrency = computed(
+	() => form.mode === 'transfer' && fromCurrency.value !== null && toCurrency.value !== null && fromCurrency.value !== toCurrency.value,
+);
 
 const validation = useFormValidation({
 	payee: () => (form.payee.trim().length > 120 ? t('transactions.form.payeeTooLong', { max: 120 }) : null),
@@ -79,6 +115,24 @@ const validation = useFormValidation({
 	date: () => (form.occurredOn ? null : t('transactions.form.dateRequired')),
 	notes: () => (form.notes.trim().length > 500 ? t('transactions.form.notesTooLong', { max: 500 }) : null),
 	tags: () => (form.tagIds.length > MAX_TAGS ? t('transactions.form.tooManyTags', { max: MAX_TAGS }) : null),
+	rate: () => {
+		if (!crossCurrency.value) return null;
+		if (!form.rate.trim()) return t('transactions.form.rateRequired');
+		return parseRate(form.rate) === null ? t('transactions.form.rateNumber') : null;
+	},
+	received: () => {
+		if (!crossCurrency.value) return null;
+		if (!form.toAmount.trim()) return t('transactions.form.receivedRequired');
+		const minor = parseMoney(form.toAmount);
+		if (minor === null) return t('transactions.form.amountNumber');
+		return minor > 0 ? null : t('transactions.form.amountPositive');
+	},
+	fee: () => {
+		if (form.mode !== 'transfer' || !form.fee.trim()) return null;
+		const minor = parseMoney(form.fee);
+		if (minor === null) return t('transactions.form.feeNumber');
+		return minor > 0 ? null : t('transactions.form.feePositive');
+	},
 });
 const { error: fieldError, touch } = validation;
 const describe = (id: string): string | undefined => (fieldError(id) ? supportId(id) : undefined);
@@ -126,16 +180,28 @@ function seed(): void {
 			payee: '',
 			notes: '',
 			tagIds: [],
+			rate: '',
+			toAmount: '',
+			fee: '',
+			feeCategoryId: '',
 		});
+		rateOwn.value = false;
+		rateNote.value = null;
+		feeId.value = null;
+		feeLoaded.value = true;
 	} else {
 		const isTransfer = Boolean(transaction.transferId);
 		// A time of day is an optional `THH:MM` suffix; a bare date has none. An automated row never has one.
 		const hasTime = transaction.occurredOn.length > 10 && !transaction.automated;
 
+		const inflow = isTransfer ? (props.transferInflow ?? null) : null;
+		const sent = Math.abs(transaction.amount);
+		const rate = inflow ? rateBetween(sent, inflow.amount) : null;
+
 		Object.assign(form, {
 			mode: isTransfer ? 'transfer' : transaction.amount >= 0 ? 'income' : 'expense',
 			accountId: transaction.accountId,
-			toAccountId: isTransfer ? (props.transferToAccountId ?? '') : '',
+			toAccountId: inflow?.accountId ?? '',
 			categoryId: transaction.categoryId ?? '',
 			amount: toDecimalString(Math.abs(transaction.amount)),
 			occurredOn: transaction.occurredOn.slice(0, 10),
@@ -143,10 +209,37 @@ function seed(): void {
 			payee: transaction.payee,
 			notes: transaction.notes,
 			tagIds: transaction.tags.map((tag) => tag.id),
+			// What the transfer moved at is the person's, so it is not looked up again over it.
+			rate: rate === null ? '' : formatRate(rate),
+			toAmount: inflow ? toDecimalString(inflow.amount) : '',
+			fee: '',
+			feeCategoryId: '',
 		});
+		rateOwn.value = rate !== null;
+		rateNote.value = null;
+		feeId.value = null;
+		feeLoaded.value = !transaction.transferId;
+
+		// The fee is its own row, read from the copy. Once it is in, it is what the form opened with: only its two
+		// keys of the snapshot move, so whatever was typed meanwhile still counts as a change, and a fee already
+		// typed is not overwritten.
+		if (transaction.transferId) {
+			const transferId = transaction.transferId;
+			void readTransferFee(transferId).then((fee) => {
+				if (props.transaction?.transferId !== transferId) return;
+				feeLoaded.value = true;
+				if (!fee) return;
+				feeId.value = fee.id;
+				const stored = { fee: toDecimalString(Math.abs(fee.amount)), feeCategoryId: fee.categoryId ?? '' };
+				opened.value = JSON.stringify({ ...JSON.parse(opened.value), ...stored });
+				if (!form.fee) Object.assign(form, stored);
+			});
+		}
 	}
 
+	ratePair.value = currencyPair.value;
 	opened.value = JSON.stringify(form);
+	void lookUpRate();
 }
 
 watch(
@@ -159,7 +252,7 @@ watch(
 
 // Beside a supporting pane the list stays usable, so another row can be opened while the form is: it starts
 // over on that one.
-watch([() => props.transaction, () => props.transferToAccountId], () => {
+watch([() => props.transaction, () => props.transferInflow], () => {
 	if (props.open) seed();
 });
 
@@ -169,6 +262,85 @@ watch(
 	() => {
 		if (!selectable.value.some((category) => category.id === form.categoryId)) form.categoryId = '';
 	},
+);
+
+/** Received, as the amount and the rate come to. Left alone while either is not a number yet. */
+function deriveReceived(): void {
+	const sent = parseMoney(form.amount);
+	const rate = parseRate(form.rate);
+	if (sent === null || sent <= 0 || rate === null) return;
+	form.toAmount = toDecimalString(convertAtRate(sent, rate));
+}
+
+/** Typing a rate makes it the person's own, and what arrived follows it. */
+function onRateTyped(): void {
+	rateOwn.value = true;
+	rateNote.value = null;
+	deriveReceived();
+}
+
+/** Typing what arrived — the figure a bank statement gives — makes the rate whatever the two amounts imply. */
+function onReceivedTyped(): void {
+	const sent = parseMoney(form.amount);
+	const received = parseMoney(form.toAmount);
+	const rate = sent !== null && received !== null ? rateBetween(sent, received) : null;
+	if (rate === null) return;
+	rateOwn.value = true;
+	rateNote.value = null;
+	form.rate = formatRate(rate);
+}
+
+/** Bumped for every lookup, so an answer that is no longer for the accounts and day on show is dropped. */
+let lookup = 0;
+
+/**
+ * Fills in the rate for the two currencies on the transfer's day, unless the person has given their own. Online
+ * only: unreachable, or a pair nobody quotes, leaves the field for them to type.
+ */
+async function lookUpRate(): Promise<void> {
+	const asked = ++lookup;
+	if (!props.open || !crossCurrency.value || rateOwn.value) return;
+
+	const from = fromCurrency.value!;
+	const to = toCurrency.value!;
+	rateNote.value = t('transactions.form.rateLoading');
+	try {
+		const answer = await api.exchangeRate(from, to, form.occurredOn || today());
+		if (asked !== lookup || rateOwn.value) return;
+		form.rate = formatRate(answer.rate);
+		rateNote.value = t('transactions.form.rateFound', { date: formatLongDate(answer.date) });
+		deriveReceived();
+	} catch {
+		if (asked === lookup && !rateOwn.value) rateNote.value = t('transactions.form.rateUnavailable');
+	}
+}
+
+watch([currencyPair, () => form.occurredOn], () => {
+	if (!crossCurrency.value) {
+		rateNote.value = null;
+		return;
+	}
+	// A rate — the person's own or one looked up — was for the two currencies it was given for. Another pair
+	// clears it and what arrived, so neither can be saved for the wrong currencies while a new one is asked for.
+	if (currencyPair.value !== ratePair.value) {
+		ratePair.value = currencyPair.value;
+		rateOwn.value = false;
+		form.rate = '';
+		form.toAmount = '';
+	}
+	void lookUpRate();
+});
+
+watch(
+	() => form.amount,
+	() => {
+		if (crossCurrency.value) deriveReceived();
+	},
+);
+
+/** The fee is an expense, so it takes the standard expense categories. */
+const feeCategoryChoices = computed(() =>
+	categoryOptions(ledger.groupForPicker(ledger.expenseCategories), { value: '', label: t('common.uncategorized') }),
 );
 
 /**
@@ -213,12 +385,24 @@ async function submit(): Promise<void> {
 	const tagIds = form.tagIds.filter((id) => ledger.tags.some((tag) => tag.id === id));
 
 	// Direction lives in the sign, so the form's mode is what decides it.
+	// A fee left blank is none: on an edit that takes off the one it had, and on a new transfer it is left out.
+	const feeMinor = form.fee.trim() ? (parseMoney(form.fee) as number) : null;
+	const fee =
+		feeMinor !== null
+			? { ...(feeId.value ? { id: feeId.value } : {}), amount: feeMinor, categoryId: form.feeCategoryId || null }
+			: feeId.value
+				? null
+				: undefined;
+
 	const body =
 		form.mode === 'transfer'
 			? {
 					fromAccountId: form.accountId,
 					toAccountId: form.toAccountId,
 					amount: minor,
+					// Each leg is in its own account's currency; between two of one currency what arrived is what left.
+					toAmount: crossCurrency.value ? (parseMoney(form.toAmount) as number) : minor,
+					...(fee === undefined ? {} : { fee }),
 					occurredOn,
 					notes: form.notes,
 					categoryId: form.categoryId || null,
@@ -240,7 +424,8 @@ async function submit(): Promise<void> {
 		let roundUp: Transaction | null = null;
 
 		if (form.mode === 'transfer' && editing?.transferId) {
-			await api.updateTransfer(editing.transferId, body);
+			// The inflow leg is the one this form was opened beside; without it a new one would be drawn.
+			await api.updateTransfer(editing.transferId, body, { fromId: editing.id, toId: props.transferInflow?.id ?? newId('transaction') });
 		} else if (form.mode === 'transfer') {
 			await api.createTransfer(body);
 		} else if (editing) {
@@ -275,18 +460,16 @@ function announceRoundUp(roundUp: Transaction): void {
 	);
 }
 
-/** The amount leads with the currency of the account it lands on. */
-const amountPrefix = computed(() => {
-	const currency = ledger.accountsById.get(form.accountId)?.currency;
-	return currency ? currencySymbol(currency) : undefined;
-});
+/** The amount, and a fee, lead with the currency of the account they leave; what arrived with the destination's. */
+const amountPrefix = computed(() => (fromCurrency.value ? currencySymbol(fromCurrency.value) : undefined));
+const receivedPrefix = computed(() => (toCurrency.value ? currencySymbol(toCurrency.value) : undefined));
 </script>
 
 <template>
 	<FormDialog
 		:open="open"
 		:title="isEditing ? t('transactions.editTransaction') : t('transactions.newTransaction')"
-		:save-enabled="validation.isValid.value"
+		:save-enabled="feeLoaded && validation.isValid.value"
 		:dirty="dirty"
 		@close="emit('close')"
 		@save="submit"
@@ -336,6 +519,56 @@ const amountPrefix = computed(() => {
 					@blur="touch('to-account')"
 				/>
 			</div>
+
+			<!-- Between two currencies, what left is the amount above: the rate and what arrived follow each other,
+			     and either may be typed — a bank's statement gives one or the other. -->
+			<div v-if="crossCurrency" class="flex gap-3">
+				<TextField
+					id="rate"
+					v-model="form.rate"
+					class="min-w-0 flex-1"
+					:label="t('transactions.form.rate')"
+					inputmode="decimal"
+					:hint="rateNote ?? t('transactions.form.rateHint', { from: fromCurrency!, to: toCurrency! })"
+					:error="fieldError('rate')"
+					@update:model-value="onRateTyped"
+					@blur="touch('rate')"
+				/>
+				<TextField
+					id="received"
+					v-model="form.toAmount"
+					class="min-w-0 flex-1"
+					:label="t('transactions.form.received')"
+					placeholder="0.00"
+					inputmode="decimal"
+					:prefix="receivedPrefix"
+					:error="fieldError('received')"
+					@update:model-value="onReceivedTyped"
+					@blur="touch('received')"
+				/>
+			</div>
+
+			<!-- A fee is spending, not a movement: it posts its own expense on the account the money left. -->
+			<template v-if="form.mode === 'transfer'">
+				<TextField
+					id="fee"
+					v-model="form.fee"
+					:label="t('transactions.form.fee')"
+					:placeholder="t('common.optional')"
+					inputmode="decimal"
+					:prefix="amountPrefix"
+					:hint="t('transactions.form.feeHint')"
+					:error="fieldError('fee')"
+					@blur="touch('fee')"
+				/>
+				<SelectField
+					v-if="form.fee.trim()"
+					id="fee-category"
+					v-model="form.feeCategoryId"
+					:label="t('transactions.form.feeCategory')"
+					:options="feeCategoryChoices"
+				/>
+			</template>
 
 			<!-- Parents and their children are both selectable, but only one at a
 			     time: a transaction carries a single category, never both. -->

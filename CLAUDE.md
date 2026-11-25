@@ -93,6 +93,27 @@ one negative and one positive transaction sharing a `transfer_id`. Both are
 excluded from income and spending totals, because a transfer is neither; deleting
 either side deletes the pair, so the two accounts can never disagree.
 
+- **A transfer between currencies keeps each leg in its own currency, and the rate is never stored**: the outflow
+is what left in the source account's currency (`amount`), the inflow what arrived in the destination's
+(`toAmount`, `amount` when both accounts hold one currency), and the rate is the one divided by the other — so it
+cannot drift from the money. When the two accounts' currencies differ, both forms show a Rate and a Received
+field: the rate is filled in from `GET /api/fx` for the transfer's day (the ECB's rates through Frankfurter, today's
+from open.er-api.com for a pair the ECB does not quote, cached in KV), Received follows it, and typing either
+makes the rate the person's own (`convertAtRate`, `rateBetween`, `formatRate`, `parseRate` in both apps' money
+helpers). An own rate — typed, implied by a typed Received, or what an edited transfer moved at — is never
+overwritten by a lookup, until either account's currency changes. The lookup is online only and never queued:
+offline the field says there is no rate and waits to be typed. Net worth and every other total still add
+currencies as they stand.
+
+- **A transfer's fee is an ordinary expense, linked to it**: any transfer may cost a fee, typed on the form in
+the source account's currency with an expense category of its own. It posts a third row on the source account,
+payee `Transfer fee`, with `transfer_id` NULL — so it counts as spending like any other expense — and
+`fee_transfer_id` naming the transfer, which takes it along when the transfer is deleted (`ON DELETE CASCADE`
+through the `transfers` parent). Deleting the fee row alone just takes the fee off. It wears no tags and is never
+remembered as a payee. On `PATCH /transactions/transfer/:id` a `fee` left out keeps the fee (and moves it with
+the transfer's source account and day), `null` takes it off, and an object adds or changes it; a `toAmount` left
+out keeps what arrived while what left is unchanged, so an older app renaming a transfer cannot reset its rate.
+
 - **Categories nest one level, budgets stay on the parent**: A subcategory inherits
 its parent's kind, so an "Investments" under "Cashflow" is always a
 transfer category. Its spending counts towards the parent's plan, and

@@ -113,6 +113,8 @@ export interface Transaction {
 	payee: string;
 	notes: string;
 	transferId: string | null;
+	/** Set on the expense a transfer's fee posted: the transfer it was paid for. It goes when the transfer does. */
+	feeTransferId: string | null;
 	/** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
 	automated: boolean;
 	/** The tags it wears, in name order. Both legs of a transfer wear the same ones. */

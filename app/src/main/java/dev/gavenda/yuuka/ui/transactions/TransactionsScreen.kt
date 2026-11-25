@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gavenda.yuuka.R
 import dev.gavenda.yuuka.data.model.Trade
+import dev.gavenda.yuuka.data.remote.dto.ExchangeRate
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionTag
 import dev.gavenda.yuuka.data.model.UNCATEGORIZED_FILTER_ID
@@ -102,8 +103,8 @@ private fun rememberBackToTop(listState: LazyListState): BackToTopState {
     return state
 }
 
-/** What the form was opened on: the row being edited, or nothing for a new one. */
-private class FormTarget(val editing: Transaction?, val transferToAccountId: String?)
+/** What the form was opened on: the row being edited (and a transfer's inflow leg), or nothing for a new one. */
+private class FormTarget(val editing: Transaction?, val transferInflow: Transaction?)
 
 @Composable
 fun TransactionsScreen(
@@ -134,6 +135,8 @@ fun TransactionsScreen(
         onRefreshPayees = viewModel::refreshPayees,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
+        onLoadTransferFee = viewModel::transferFee,
+        onLookUpRate = viewModel::exchangeRate,
     )
 }
 
@@ -150,6 +153,10 @@ internal fun TransactionsScreenContent(
     onRefreshPayees: () -> Unit = {},
     onSave: suspend (editing: Transaction?, TransactionSubmission) -> String = { _, _ -> "" },
     onDelete: suspend (Transaction) -> Unit = {},
+    /** The fee a transfer already cost, for its edit form. */
+    onLoadTransferFee: suspend (transferId: String) -> Transaction? = { null },
+    /** The rate a transfer's form suggests, or null when none can be had. */
+    onLookUpRate: suspend (from: String, to: String, date: String) -> ExchangeRate? = { _, _, _ -> null },
     /** The trade a row is the cash of, if it is one. */
     tradeFor: (transactionId: String) -> Trade? = { null },
     /** A trade's own form: its cash is not edited as a transaction, but the trade is, from here as from Investments. */
@@ -169,12 +176,12 @@ internal fun TransactionsScreenContent(
 
     // Beside a supporting pane the list stays usable, so opening another form asks first if this one has changes.
     val switchForm = rememberFormSwitch()
-    val openForm = { editing: Transaction?, transferToAccountId: String? ->
+    val openForm = { editing: Transaction?, transferInflow: Transaction? ->
         switchForm {
             onRefreshPayees()
             formError = null
             tradeEditing = null
-            form = FormTarget(editing, transferToAccountId)
+            form = FormTarget(editing, transferInflow)
         }
     }
     // A trade's cash row opens the trade, whose form works its cash out again; the server refuses an edit of the row itself.
@@ -212,7 +219,7 @@ internal fun TransactionsScreenContent(
 
     val openEdit = { row: TransactionRow ->
         when (row) {
-            is TransactionRow.Transfer -> openForm(row.leg, row.toAccountId)
+            is TransactionRow.Transfer -> openForm(row.leg, row.inflow)
             is TransactionRow.Single -> tradeFor(row.transaction.id)?.let(openTrade) ?: openForm(row.transaction, null)
         }
     }
@@ -296,7 +303,9 @@ internal fun TransactionsScreenContent(
     form?.let { target -> key(target.editing?.id) {
         TransactionForm(
             editing = target.editing,
-            transferToAccountId = target.transferToAccountId,
+            transferInflow = target.transferInflow,
+            loadTransferFee = onLoadTransferFee,
+            lookUpRate = onLookUpRate,
             accounts = state.accounts.filter { !it.archived },
             categories = state.categories,
             tags = state.tags,

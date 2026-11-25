@@ -102,6 +102,8 @@ export interface TransactionRow {
 	payee: string;
 	notes: string;
 	transfer_id: string | null;
+	/** The transfer this row is the fee of: an ordinary expense, linked so it goes when the transfer does. */
+	fee_transfer_id: string | null;
 	/** Where the row came from: typed, posted by a subscription, or a round-up. */
 	source: TransactionSource;
 	created_at: string;
@@ -225,6 +227,8 @@ export const toTransaction = (row: TransactionRow) => ({
 	payee: row.payee,
 	notes: row.notes,
 	transferId: row.transfer_id,
+	/** Set on the expense a transfer's fee posted: which transfer it was paid for. */
+	feeTransferId: row.fee_transfer_id ?? null,
 	/** Posted by a subscription at 00:00 UTC — its time of day is not the user's to change. */
 	automated: row.source === 'subscription',
 	tags: parseTags(row.tags_json),

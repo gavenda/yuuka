@@ -9,6 +9,7 @@ import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
 import dev.gavenda.yuuka.data.model.TransactionFilters
 import dev.gavenda.yuuka.data.remote.ApiError
+import dev.gavenda.yuuka.data.remote.dto.ExchangeRate
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.repository.*
 import dev.gavenda.yuuka.ui.common.ScreenStatus
@@ -59,10 +60,14 @@ sealed interface TransactionSubmission {
         val toAccountId: String,
         val categoryId: String?,
         val amount: Long,
+        /** What arrived, in the destination's currency; [amount] between two accounts of one currency. */
+        val toAmount: Long,
         val occurredOn: String,
         val payee: String,
         val notes: String,
         val tagIds: List<String>,
+        /** What it cost, an expense on the source account; null for none (and, on an edit, takes one off). */
+        val fee: TransferFee?,
     ) : TransactionSubmission
 }
 
@@ -268,10 +273,12 @@ class TransactionsViewModel(
                         submission.toAccountId,
                         submission.categoryId,
                         submission.amount,
+                        submission.toAmount,
                         submission.occurredOn,
                         submission.payee,
                         submission.notes,
                         submission.tagIds,
+                        submission.fee,
                     )
                 } else {
                     transactionRepository.createTransfer(
@@ -279,10 +286,12 @@ class TransactionsViewModel(
                         submission.toAccountId,
                         submission.categoryId,
                         submission.amount,
+                        submission.toAmount,
                         submission.occurredOn,
                         submission.payee,
                         submission.notes,
                         submission.tagIds,
+                        submission.fee,
                     )
                 }
             }
@@ -297,6 +306,20 @@ class TransactionsViewModel(
         val currency = _uiState.value.accounts.firstOrNull { it.id == roundUp.accountId }?.currency ?: _uiState.value.currency
         return "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
     }
+
+    /** The fee the transfer being edited already cost, for its form; null when it cost none. */
+    suspend fun transferFee(transferId: String): Transaction? = transactionRepository.transferFee(transferId)
+
+    /** The rate a transfer's form suggests, or null when it cannot be had (offline, or a pair nobody quotes). */
+    suspend fun exchangeRate(from: String, to: String, date: String): ExchangeRate? =
+        try {
+            transactionRepository.exchangeRate(from, to, date)
+        } catch (e: Exception) {
+            // A lookup cancelled because the accounts or the day changed is not "no rate": it is let go, so the
+            // form waits for the one that replaced it instead of saying there is none.
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
 
     /** Deletes [transaction], and the other side with it when it is a transfer's. */
     suspend fun delete(transaction: Transaction) = transactionRepository.deleteTransactionOrTransfer(transaction)

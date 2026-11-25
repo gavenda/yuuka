@@ -87,6 +87,7 @@ export const transaction = (id: string, extra: Partial<Transaction> = {}): Trans
 	payee: id,
 	notes: '',
 	transferId: null,
+	feeTransferId: null,
 	automated: false,
 	tags: [],
 	runningBalance: 0,

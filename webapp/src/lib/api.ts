@@ -36,6 +36,7 @@ import {
 	provisionalTag,
 	provisionalTransaction,
 	provisionalTransfer,
+	type TransferFeeDraft,
 } from './provisional';
 import { queued } from './queue';
 import { legLabels, tradeCash } from './investments';
@@ -82,6 +83,34 @@ function queryString(filters: Record<string, string | number | undefined>): stri
 	}
 	const query = params.toString();
 	return query ? `?${query}` : '';
+}
+
+/** What `provisionalTransfer` is given, read off a transfer's request body. */
+function transferDraft(
+	input: Record<string, unknown>,
+	ids: { transferId: string; fromId: string; toId: string },
+	fee: TransferFeeDraft | null,
+): Parameters<typeof provisionalTransfer>[1] {
+	return {
+		ids,
+		fromAccountId: String(input.fromAccountId ?? ''),
+		toAccountId: String(input.toAccountId ?? ''),
+		categoryId: (input.categoryId as string | null) ?? null,
+		amount: Number(input.amount ?? 0),
+		toAmount: input.toAmount === undefined ? undefined : Number(input.toAmount),
+		occurredOn: String(input.occurredOn ?? ''),
+		payee: String(input.payee ?? ''),
+		notes: String(input.notes ?? ''),
+		tagIds: input.tagIds as string[] | undefined,
+		fee,
+	};
+}
+
+/** A transfer's fee as the form gave it, with an id drawn for a new one; null for none. */
+function transferFee(raw: unknown): TransferFeeDraft | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const fee = raw as Partial<TransferFeeDraft>;
+	return { id: fee.id ?? newId('transaction'), amount: Number(fee.amount ?? 0), categoryId: fee.categoryId ?? null };
 }
 
 /**
@@ -447,65 +476,51 @@ export const api = {
 		),
 	createTransfer: (input: Record<string, unknown>) => {
 		const ids = { transferId: newId('transfer'), fromId: newId('transaction'), toId: newId('transaction') };
+		const fee = transferFee(input.fee);
 
 		return saved(
 			queued({
 				method: 'POST',
 				path: '/api/transactions/transfer',
-				body: { ...input, ids },
-				optimistic: {
-					transferId: ids.transferId,
-					transactions: provisionalTransfer(ledgerView(), {
-						ids,
-						fromAccountId: String(input.fromAccountId ?? ''),
-						toAccountId: String(input.toAccountId ?? ''),
-						categoryId: (input.categoryId as string | null) ?? null,
-						amount: Number(input.amount ?? 0),
-						occurredOn: String(input.occurredOn ?? ''),
-						payee: String(input.payee ?? ''),
-						notes: String(input.notes ?? ''),
-						tagIds: input.tagIds as string[] | undefined,
-					}),
-				},
+				body: { ...input, ids, ...(fee ? { fee } : {}) },
+				optimistic: { transferId: ids.transferId, transactions: provisionalTransfer(ledgerView(), transferDraft(input, ids, fee)) },
 			}),
 			(answer) => local.saveTransactions(answer.transactions),
 		);
 	},
-	updateTransfer: (transferId: string, input: Record<string, unknown>) => {
-		const ledger = ledgerView();
-		// An edit keeps the legs it already has; only what they say changes.
-		const legs = [ledger.transaction(String(input.fromId ?? '')), ledger.transaction(String(input.toId ?? ''))];
-		const ids = {
-			transferId,
-			fromId: legs[0]?.id ?? newId('transaction'),
-			toId: legs[1]?.id ?? newId('transaction'),
-		};
+	/**
+	 * Rewrites a transfer whole. [legs] are the two rows it already has, which the provisional answer keeps the
+	 * names of: rows under new names would stand beside the old ones until the server's answer replaced them.
+	 */
+	updateTransfer: (transferId: string, input: Record<string, unknown>, legs: { fromId: string; toId: string }) => {
+		const ids = { transferId, ...legs };
+		// Left out, the fee stays as it is; null takes it off; given, it is the one the transfer has (the form
+		// names its id) or a new one.
+		const fee = input.fee === undefined ? undefined : transferFee(input.fee);
 
 		return saved(
 			queued({
 				method: 'PATCH',
 				path: `/api/transactions/transfer/${transferId}`,
-				body: input,
+				body: fee === undefined ? input : { ...input, fee },
 				entity: 'transfer',
 				id: transferId,
-				optimistic: {
-					transferId,
-					transactions: provisionalTransfer(ledger, {
-						ids,
-						fromAccountId: String(input.fromAccountId ?? ''),
-						toAccountId: String(input.toAccountId ?? ''),
-						categoryId: (input.categoryId as string | null) ?? null,
-						amount: Number(input.amount ?? 0),
-						occurredOn: String(input.occurredOn ?? ''),
-						payee: String(input.payee ?? ''),
-						notes: String(input.notes ?? ''),
-						tagIds: input.tagIds as string[] | undefined,
-					}),
-				},
+				optimistic: { transferId, transactions: provisionalTransfer(ledgerView(), transferDraft(input, ids, fee ?? null)) },
 			}),
-			(answer) => local.saveTransactions(answer.transactions),
+			async (answer) => {
+				// A fee taken off is not among the rows answered, so it is taken out of the copy here.
+				if (fee === null) {
+					const existing = await local.readTransferFee(transferId);
+					if (existing) await local.deleteTransaction(existing.id);
+				}
+				await local.saveTransactions(answer.transactions);
+			},
 		);
 	},
+
+	/** The rate a transfer's form suggests; online only, never queued. */
+	exchangeRate: (from: string, to: string, date: string) =>
+		request<{ rate: number; date: string; source: string }>(`/fx${queryString({ from, to, date })}`),
 
 	listSubscriptions: () => request<{ subscriptions: Subscription[] }>('/subscriptions'),
 	createSubscription: (input: Record<string, unknown>) => {

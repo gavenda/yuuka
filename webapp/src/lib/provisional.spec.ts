@@ -202,6 +202,24 @@ describe('a provisional transfer', () => {
 
 		expect(out.payee).toBe('Checking → Savings');
 	});
+
+	it('lands what arrived between two currencies, and posts the fee as an expense on the source', () => {
+		const rows = provisionalTransfer(view(), {
+			ids,
+			fromAccountId: 'acc_1',
+			toAccountId: 'acc_savings',
+			categoryId: null,
+			amount: 580_000,
+			toAmount: 10_000,
+			occurredOn: '2026-03-04',
+			payee: '',
+			notes: '',
+			fee: { id: 'txn_fee', amount: 5000, categoryId: 'cat_fees' },
+		});
+
+		expect(rows.map((leg) => leg.amount)).toEqual([-580_000, 10_000, -5000]);
+		expect(rows[2]).toMatchObject({ accountId: 'acc_1', transferId: null, feeTransferId: 'tfr_1', payee: 'Transfer fee' });
+	});
 });
 
 describe('a provisional adjustment', () => {

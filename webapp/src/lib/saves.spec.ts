@@ -77,6 +77,37 @@ describe('saves', () => {
 		expect(await balances()).toEqual({ a: 10_000, b: 0 });
 	});
 
+	it('edit a transfer in place, between two currencies and with its fee, and take the fee off', async () => {
+		const balances = async () => Object.fromEntries((await cache.readLedger())!.accounts.map((account) => [account.id, account.balance]));
+		await cache.saveAccount(row.account('a', { balance: 100_000 }));
+		await cache.saveAccount(row.account('b', { balance: 0, currency: 'USD' }));
+		await cache.writeTransactionPage(SEPTEMBER, [], 0, 8);
+		const transfer = { fromAccountId: 'a', toAccountId: 'b', amount: 58_000, toAmount: 1_000, occurredOn: '2026-09-13' };
+
+		const created = await api.createTransfer({ ...transfer, fee: { amount: 500, categoryId: null } });
+		await settled();
+		expect(await balances()).toEqual({ a: 41_500, b: 1_000 });
+
+		// The edit keeps the legs' names, so the copy holds the same three rows rather than two more beside them.
+		const [from, to, fee] = created.transactions;
+		await api.updateTransfer(
+			created.transferId,
+			{ ...transfer, toAmount: 990, fee: { id: fee.id, amount: 700, categoryId: null } },
+			{
+				fromId: from.id,
+				toId: to.id,
+			},
+		);
+		await settled();
+		expect((await cache.readTransactionPage(SEPTEMBER, 50))!.transactions).toHaveLength(3);
+		expect(await balances()).toEqual({ a: 41_300, b: 990 });
+
+		await api.updateTransfer(created.transferId, { ...transfer, fee: null }, { fromId: from.id, toId: to.id });
+		await settled();
+		expect((await cache.readTransactionPage(SEPTEMBER, 50))!.transactions).toHaveLength(2);
+		expect(await balances()).toEqual({ a: 42_000, b: 1_000 });
+	});
+
 	it('move the balance with the starting balance', async () => {
 		const account = row.account('a', { startingBalance: 1_000, balance: 4_000 });
 		await cache.saveAccount(account);

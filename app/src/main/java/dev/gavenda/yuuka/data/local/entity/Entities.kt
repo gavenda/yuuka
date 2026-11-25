@@ -111,6 +111,8 @@ data class TransactionEntity(
     val payee: String,
     val notes: String,
     val transferId: String?,
+    /** The transfer this row is the fee of, an ordinary expense that goes when the transfer does. */
+    val feeTransferId: String? = null,
     /** Posted by a subscription's cron at 00:00 UTC, so its time of day is not the user's to change. */
     val automated: Boolean,
     val runningBalance: Long,

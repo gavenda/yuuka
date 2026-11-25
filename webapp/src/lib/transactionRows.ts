@@ -13,8 +13,12 @@ export interface TransferRow {
 	categoryColor: string | null;
 	notes: string;
 	tags: TransactionTag[];
+	/** What left, in the source account's currency — the card is drawn in it. */
 	amount: number;
+	/** The outflow leg. */
 	leg: Transaction;
+	/** The inflow leg, in the destination's currency, which between two currencies is another amount. */
+	inflow: Transaction;
 }
 
 export type TransactionRow = { kind: 'transaction'; transaction: Transaction } | TransferRow;
@@ -45,8 +49,9 @@ export function mergeTransferRows(group: Transaction[]): TransactionRow[] {
 					categoryColor: transaction.categoryColor,
 					notes: transaction.notes,
 					tags: outflow.tags,
-					amount: Math.abs(transaction.amount),
+					amount: Math.abs(outflow.amount),
 					leg: outflow,
+					inflow,
 				});
 				continue;
 			}

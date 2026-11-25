@@ -27,9 +27,9 @@
  * upgrade drops every store and creates them afresh, as Room's destructive migration does, so a row
  * written under another version is never read. 1 was a single key-value `entries` store; 3 added the PSE
  * investments' `securities`, `trades` and `stock_prices`; 4 a category's `system`; 5 UITFs, a trade's `units` and `gross`
- * in place of its `shares`, and a security's `kind`; 6 ETFs, a security's `currency` and `exchange`.
+ * in place of its `shares`, and a security's `kind`; 6 ETFs, a security's `currency` and `exchange`; 7 a transaction's `feeTransferId`.
  */
-const VERSION = 6;
+const VERSION = 7;
 const DATABASE = 'yuuka-cache';
 
 interface TableSpec {
@@ -49,7 +49,7 @@ export const TABLES = {
 	categories: { keyPath: 'id', indexes: ['parentId'] },
 	tags: { keyPath: 'id' },
 	transaction_tags: { keyPath: ['transactionId', 'tagId'], indexes: ['tagId'] },
-	transactions: { keyPath: 'id', indexes: ['accountId', 'categoryId', 'month', 'transferId'] },
+	transactions: { keyPath: 'id', indexes: ['accountId', 'categoryId', 'month', 'transferId', 'feeTransferId'] },
 	transaction_pages: { keyPath: 'key', indexes: ['cachedAt'] },
 	budgets: { keyPath: 'id', indexes: ['queriedMonth', 'categoryId'] },
 	income_plans: { keyPath: 'queriedMonth' },

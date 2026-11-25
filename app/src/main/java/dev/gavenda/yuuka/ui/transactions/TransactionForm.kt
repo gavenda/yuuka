@@ -24,6 +24,8 @@ import dev.gavenda.yuuka.data.model.Category
 import dev.gavenda.yuuka.data.model.Payee
 import dev.gavenda.yuuka.data.model.Tag
 import dev.gavenda.yuuka.data.model.Transaction
+import dev.gavenda.yuuka.data.remote.dto.ExchangeRate
+import dev.gavenda.yuuka.repository.TransferFee
 import dev.gavenda.yuuka.domain.*
 import dev.gavenda.yuuka.ui.common.ConnectedButtonGroup
 import dev.gavenda.yuuka.ui.common.DropdownField
@@ -59,9 +61,22 @@ private data class FormFields(
     val payee: String = "",
     val notes: String = "",
     val tagIds: List<String> = emptyList(),
+    /** Between two currencies: one of the source's in the destination's, and what arrived. */
+    val rate: String = "",
+    val toAmount: String = "",
+    /** What the transfer cost, an expense on the source account; blank is none. */
+    val fee: String = "",
+    val feeCategoryId: String = "",
 )
 
-private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, defaultAccountId: String?, accounts: List<Account>): FormFields {
+/** What is said under the rate: that it is being looked up, which day's it is, or that there is none. */
+private sealed interface RateNote {
+    data object Loading : RateNote
+    data class Found(val date: String) : RateNote
+    data object Unavailable : RateNote
+}
+
+private fun seedFrom(transaction: Transaction?, transferInflow: Transaction?, defaultAccountId: String?, accounts: List<Account>): FormFields {
     if (transaction == null) {
         val preferred = accounts.firstOrNull { it.id == defaultAccountId } ?: accounts.firstOrNull()
         return FormFields(accountId = preferred?.id ?: "", date = LocalDate.parse(today()), time = LocalTime.now())
@@ -73,6 +88,10 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
     // posts it at 00:00 UTC and the API refuses to give it one.
     val time = if (transaction.occurredOn.length > 10 && !transaction.automated) runCatching { LocalTime.parse(transaction.occurredOn.substring(11, 16)) }.getOrNull() else null
 
+    val inflow = transferInflow.takeIf { isTransfer }
+    // What the transfer moved at is the person's own, so it is shown as it was rather than looked up again.
+    val rate = inflow?.let { rateBetween(kotlin.math.abs(transaction.amount), it.amount) }
+
     return FormFields(
         mode = when {
             isTransfer -> FormMode.TRANSFER
@@ -80,7 +99,9 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
             else -> FormMode.EXPENSE
         },
         accountId = transaction.accountId,
-        toAccountId = if (isTransfer) transferToAccountId ?: "" else "",
+        toAccountId = inflow?.accountId ?: "",
+        rate = rate?.let(::formatRate) ?: "",
+        toAmount = inflow?.let { toDecimalString(it.amount) } ?: "",
         categoryId = transaction.categoryId ?: "",
         amount = toDecimalString(kotlin.math.abs(transaction.amount)),
         date = date,
@@ -91,6 +112,10 @@ private fun seedFrom(transaction: Transaction?, transferToAccountId: String?, de
     )
 }
 
+/** The name of the category [id] among [groups], parents and children alike, or [fallback] when it is none of them. */
+private fun labelOf(groups: List<CategoryGroup>, id: String, fallback: String): String =
+    groups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == id }?.name ?: fallback
+
 @Composable
 private fun tagColor(hex: String): Color =
     harmonisedColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
@@ -98,7 +123,7 @@ private fun tagColor(hex: String): Color =
 @Composable
 fun TransactionForm(
     editing: Transaction?,
-    transferToAccountId: String?,
+    transferInflow: Transaction?,
     accounts: List<Account>,
     categories: List<Category>,
     tags: List<Tag>,
@@ -108,9 +133,89 @@ fun TransactionForm(
     error: String?,
     onSubmit: (TransactionSubmission) -> Unit,
     onCancel: () -> Unit,
+    /** The fee the transfer being edited already cost, read from the device. */
+    loadTransferFee: suspend (transferId: String) -> Transaction? = { null },
+    /** The rate for a pair of currencies on a day, or null when none can be had. */
+    lookUpRate: suspend (from: String, to: String, date: String) -> ExchangeRate? = { _, _, _ -> null },
 ) {
-    val initial = remember(editing) { seedFrom(editing, transferToAccountId, defaultAccountId, accounts) }
+    var initial by remember(editing) { mutableStateOf(seedFrom(editing, transferInflow, defaultAccountId, accounts)) }
     var fields by remember(editing) { mutableStateOf(initial) }
+
+    // The fee is its own row; until it has been read, an edit could not tell "no fee" from "not read yet", so the
+    // form waits for it rather than saving a transfer without the fee it has.
+    val editingTransferId = editing?.transferId
+    var feeLoaded by remember(editing) { mutableStateOf(editingTransferId == null) }
+    LaunchedEffect(editingTransferId) {
+        if (editingTransferId == null) return@LaunchedEffect
+        val fee = loadTransferFee(editingTransferId)
+        if (fee != null) {
+            val withFee = { f: FormFields -> f.copy(fee = toDecimalString(kotlin.math.abs(fee.amount)), feeCategoryId = fee.categoryId ?: "") }
+            initial = withFee(initial)
+            fields = withFee(fields)
+        }
+        feeLoaded = true
+    }
+
+    val fromCurrency = accounts.firstOrNull { it.id == fields.accountId }?.currency?.uppercase()
+    val toCurrency = accounts.firstOrNull { it.id == fields.toAccountId }?.currency?.uppercase()
+    /** A transfer between accounts of two currencies, which asks for a rate and what arrived. */
+    val crossCurrency = fields.mode == FormMode.TRANSFER && fromCurrency != null && toCurrency != null && fromCurrency != toCurrency
+    val currencyPair = if (fromCurrency != null && toCurrency != null) "$fromCurrency>$toCurrency" else ""
+
+    // A rate typed, worked out from a typed received amount, or the one an edited transfer moved at, is the person's
+    // own and never overwritten — until either account's currency changes, which makes it a rate for another pair.
+    var rateOwn by remember(editing) { mutableStateOf(initial.rate.isNotEmpty()) }
+    var ratePair by remember(editing) { mutableStateOf(currencyPair) }
+    var rateNote by remember(editing) { mutableStateOf<RateNote?>(null) }
+
+    /** Received, as the amount and the rate come to; left alone while either is not a number yet. */
+    fun received(f: FormFields): String {
+        val sent = parseMoney(f.amount) ?: return f.toAmount
+        val rate = parseRate(f.rate) ?: return f.toAmount
+        return if (sent > 0) toDecimalString(convertAtRate(sent, rate)) else f.toAmount
+    }
+
+    /** Typing a rate makes it the person's own, and what arrived follows it (`onRateTyped` on the web). */
+    fun onRateTyped(typed: String) {
+        rateOwn = true
+        rateNote = null
+        fields = fields.copy(rate = typed).let { it.copy(toAmount = received(it)) }
+    }
+
+    /** Typing what arrived makes the rate whatever the two amounts imply (`onReceivedTyped` on the web). */
+    fun onReceivedTyped(typed: String) {
+        val implied = parseMoney(fields.amount)?.let { sent -> parseMoney(typed)?.let { rateBetween(sent, it) } }
+        fields = fields.copy(toAmount = typed, rate = implied?.let(::formatRate) ?: fields.rate)
+        if (implied != null) {
+            rateOwn = true
+            rateNote = null
+        }
+    }
+
+    val datePartForRate = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    LaunchedEffect(currencyPair, datePartForRate, crossCurrency) {
+        if (!crossCurrency) {
+            rateNote = null
+            return@LaunchedEffect
+        }
+        // A rate — the person's own or one looked up — was for the two currencies it was given for. Another pair
+        // clears it and what arrived, so neither can be saved for the wrong currencies while a new one is asked for.
+        if (currencyPair != ratePair) {
+            ratePair = currencyPair
+            rateOwn = false
+            fields = fields.copy(rate = "", toAmount = "")
+        }
+        if (rateOwn) return@LaunchedEffect
+        rateNote = RateNote.Loading
+        val answer = lookUpRate(fromCurrency!!, toCurrency!!, datePartForRate)
+        if (rateOwn) return@LaunchedEffect
+        if (answer == null) {
+            rateNote = RateNote.Unavailable
+        } else {
+            rateNote = RateNote.Found(answer.date)
+            fields = fields.copy(rate = formatRate(answer.rate)).let { it.copy(toAmount = received(it)) }
+        }
+    }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
     val isEditing = editing != null
@@ -161,6 +266,36 @@ fun TransactionForm(
         "tags",
         if (fields.tagIds.size > MAX_TAGS_PER_TRANSACTION) stringResource(R.string.error_too_many_tags, MAX_TAGS_PER_TRANSACTION) else null,
     )
+    val rateField = form.field(
+        "rate",
+        when {
+            !crossCurrency -> null
+            fields.rate.isBlank() -> stringResource(R.string.error_rate_required)
+            parseRate(fields.rate) == null -> stringResource(R.string.error_rate_number)
+            else -> null
+        },
+    )
+    val toAmountMinor = parseMoney(fields.toAmount)
+    val receivedField = form.field(
+        "received",
+        when {
+            !crossCurrency -> null
+            fields.toAmount.isBlank() -> stringResource(R.string.error_received_required)
+            toAmountMinor == null -> stringResource(R.string.error_amount_number)
+            toAmountMinor <= 0 -> stringResource(R.string.error_amount_greater_than_zero)
+            else -> null
+        },
+    )
+    val feeMinor = parseMoney(fields.fee)
+    val feeField = form.field(
+        "fee",
+        when {
+            fields.mode != FormMode.TRANSFER || fields.fee.isBlank() -> null
+            feeMinor == null -> stringResource(R.string.error_fee_number)
+            feeMinor <= 0 -> stringResource(R.string.error_fee_greater_than_zero)
+            else -> null
+        },
+    )
 
     val submit = submit@{
         val minor = amountMinor ?: return@submit
@@ -177,10 +312,14 @@ fun TransactionForm(
                 toAccountId = fields.toAccountId,
                 categoryId = fields.categoryId.ifBlank { null },
                 amount = minor,
+                // Each leg is in its own account's currency; between two of one currency what arrived is what left.
+                toAmount = if (crossCurrency) toAmountMinor ?: minor else minor,
                 occurredOn = occurredOn,
                 payee = fields.payee,
                 notes = fields.notes,
                 tagIds = tagIds,
+                // A fee left blank is none, which on an edit takes off the one it had.
+                fee = feeMinor?.takeIf { fields.fee.isNotBlank() && it > 0 }?.let { TransferFee(it, fields.feeCategoryId.ifBlank { null }) },
             )
             else -> TransactionSubmission.Plain(
                 accountId = fields.accountId,
@@ -199,7 +338,7 @@ fun TransactionForm(
         title = stringResource(if (isEditing) R.string.edit_transaction else R.string.new_transaction),
         onDismiss = onCancel,
         onSave = submit,
-        saveEnabled = form.valid(payeeField, amountField, accountField, toAccountField, notesField, tagsField),
+        saveEnabled = feeLoaded && form.valid(payeeField, amountField, accountField, toAccountField, notesField, tagsField, rateField, receivedField, feeField),
         submitting = submitting,
         dirty = fields != initial,
     ) {
@@ -236,7 +375,7 @@ fun TransactionForm(
 
         YuukaTextField(
             value = fields.amount,
-            onValueChange = { fields = fields.copy(amount = it) },
+            onValueChange = { fields = fields.copy(amount = it).let { f -> if (crossCurrency) f.copy(toAmount = received(f)) else f } },
             label = stringResource(R.string.label_amount),
             placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
@@ -265,8 +404,66 @@ fun TransactionForm(
             )
         }
 
+        // Between two currencies, what left is the amount above: the rate and what arrived follow each other, and
+        // either may be typed — a bank's statement gives one or the other.
+        if (crossCurrency) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                YuukaTextField(
+                    value = fields.rate,
+                    onValueChange = ::onRateTyped,
+                    label = stringResource(R.string.label_rate),
+                    singleLine = true,
+                    field = rateField,
+                    hint = when (val note = rateNote) {
+                        RateNote.Loading -> stringResource(R.string.rate_loading)
+                        is RateNote.Found -> stringResource(R.string.rate_found, formatLongDate(note.date))
+                        RateNote.Unavailable -> stringResource(R.string.rate_unavailable)
+                        null -> stringResource(R.string.rate_hint, fromCurrency!!, toCurrency!!)
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f),
+                )
+                YuukaTextField(
+                    value = fields.toAmount,
+                    onValueChange = ::onReceivedTyped,
+                    label = stringResource(R.string.label_received),
+                    placeholder = stringResource(R.string.placeholder_amount_decimal),
+                    singleLine = true,
+                    field = receivedField,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    prefix = currencySymbol(toCurrency!!),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // A fee is spending, not a movement: it posts its own expense on the account the money left.
+        if (fields.mode == FormMode.TRANSFER) {
+            YuukaTextField(
+                value = fields.fee,
+                onValueChange = { fields = fields.copy(fee = it) },
+                label = stringResource(R.string.label_fee),
+                placeholder = stringResource(R.string.placeholder_optional),
+                singleLine = true,
+                field = feeField,
+                hint = stringResource(R.string.fee_hint),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                prefix = fromCurrency?.let { currencySymbol(it) } ?: "",
+            )
+            if (fields.fee.isNotBlank()) {
+                val feeGroups = remember(categories) { groupForPicker(expenseCategories(categories)) }
+                val noCategory = stringResource(R.string.category_uncategorized)
+                DropdownField(
+                    label = stringResource(R.string.label_fee_category),
+                    value = labelOf(feeGroups, fields.feeCategoryId, noCategory),
+                    options = categoryOptions(feeGroups, noCategory).map { SelectOption(it.value ?: "", it.label, it.indent) },
+                    onSelect = { fields = fields.copy(feeCategoryId = it) },
+                )
+            }
+        }
+
         val uncategorizedLabel = stringResource(R.string.category_uncategorized)
-        val selectedCategoryLabel = categoryGroups.flatMap { listOf(it.parent) + it.children }.firstOrNull { it.id == fields.categoryId }?.name ?: uncategorizedLabel
+        val selectedCategoryLabel = labelOf(categoryGroups, fields.categoryId, uncategorizedLabel)
         DropdownField(
             label = if (fields.mode == FormMode.TRANSFER) stringResource(R.string.label_cashflow_category) else stringResource(R.string.label_category),
             value = selectedCategoryLabel,

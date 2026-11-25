@@ -66,6 +66,10 @@ data class SecurityResponse(val security: Security)
 @Serializable
 data class EtfSearchResponse(val results: List<EtfMatch>)
 
+/** `GET /api/fx`: one unit of the source currency in the destination's, and the day it was published for. */
+@Serializable
+data class ExchangeRate(val rate: Double, val date: String, val source: String)
+
 @Serializable
 data class TradesResponse(val trades: List<Trade>)
 

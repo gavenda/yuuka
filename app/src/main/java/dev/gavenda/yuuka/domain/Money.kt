@@ -112,3 +112,25 @@ fun percentOf(actual: Long, planned: Long): Int {
     if (planned <= 0) return if (actual > 0) 100 else 0
     return min(100, max(0, ((actual.toDouble() / planned.toDouble()) * 100).roundToInt()))
 }
+
+/**
+ * What [minor] comes to at [rate], in the other currency's minor unit. Every currency here is kept in hundredths, so
+ * the conversion is one multiplication, rounded to the nearest hundredth. The twin of `convertAtRate` in the web's
+ * `lib/money.ts`. A rate is a ratio rather than money, so it may be a double; only what it produces has to be whole.
+ */
+fun convertAtRate(minor: Long, rate: Double): Long = Math.round(minor * rate)
+
+/** The rate two amounts imply — what arrived over what left — or null when either is not above zero. */
+fun rateBetween(sent: Long, received: Long): Double? = if (sent > 0 && received > 0) received.toDouble() / sent else null
+
+/** A rate as it is typed and shown: six significant figures, without a trailing zero or an exponent. */
+fun formatRate(rate: Double): String =
+    java.math.BigDecimal(rate).round(java.math.MathContext(6)).stripTrailingZeros().toPlainString()
+
+/** Parses a typed rate into a positive number, or null when it is not one. */
+fun parseRate(input: String): Double? {
+    val normalised = input.trim().replace(Regex("[\\s,_]"), "")
+    if (!Regex("^\\d*\\.?\\d+$|^\\d+\\.$").matches(normalised)) return null
+    val value = normalised.toDoubleOrNull() ?: return null
+    return if (value.isFinite() && value > 0) value else null
+}

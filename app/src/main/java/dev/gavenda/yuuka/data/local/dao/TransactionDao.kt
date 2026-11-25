@@ -95,10 +95,14 @@ interface TransactionDao {
         deleteRow(id)
     }
 
-    @Query("DELETE FROM transaction_tags WHERE transactionId IN (SELECT id FROM transactions WHERE transferId = :transferId)")
+    @Query(
+        "DELETE FROM transaction_tags WHERE transactionId IN " +
+            "(SELECT id FROM transactions WHERE transferId = :transferId OR feeTransferId = :transferId)",
+    )
     suspend fun deleteTagLinksOfTransfer(transferId: String)
 
-    @Query("DELETE FROM transactions WHERE transferId = :transferId")
+    /** Both legs, and the fee the transfer cost: it goes with them, as on the server. */
+    @Query("DELETE FROM transactions WHERE transferId = :transferId OR feeTransferId = :transferId")
     suspend fun deleteRowsByTransferId(transferId: String)
 
     @Transaction
@@ -129,6 +133,10 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE transferId = :transferId ORDER BY amount ASC")
     suspend fun byTransferId(transferId: String): List<TransactionEntity>
+
+    /** The expense a transfer's fee posted, when there is one. */
+    @Query("SELECT * FROM transactions WHERE feeTransferId = :transferId LIMIT 1")
+    suspend fun feeOf(transferId: String): TransactionEntity?
 
     @Query("DELETE FROM transactions")
     suspend fun clearRows()
@@ -172,7 +180,7 @@ interface TransactionDao {
     /** Deletes a transaction made or shown here — both legs, when it is one side of a transfer — and moves the balances back. */
     @Transaction
     suspend fun deleteLocal(id: String, transferId: String?) {
-        val rows = if (transferId != null) byTransferId(transferId) else listOfNotNull(byId(id))
+        val rows = if (transferId != null) byTransferId(transferId) + listOfNotNull(feeOf(transferId)) else listOfNotNull(byId(id))
         if (transferId != null) deleteByTransferId(transferId) else deleteById(id)
         balanceShifts(rows, emptyList()).forEach { (accountId, delta) -> shiftBalance(accountId, delta) }
     }

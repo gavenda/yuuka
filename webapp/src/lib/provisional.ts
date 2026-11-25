@@ -108,6 +108,7 @@ export interface TransactionDraft {
 	notes: string;
 	tagIds?: string[];
 	transferId?: string | null;
+	feeTransferId?: string | null;
 }
 
 /**
@@ -134,6 +135,7 @@ export function provisionalTransaction(ledger: LedgerView, draft: TransactionDra
 		payee: draft.payee,
 		notes: draft.notes,
 		transferId: draft.transferId ?? null,
+		feeTransferId: draft.feeTransferId ?? null,
 		automated: false,
 		tags: chipsFor(ledger, draft.tagIds),
 		runningBalance: (account?.balance ?? 0) + draft.amount,
@@ -191,7 +193,21 @@ export function provisionalRoundUp(
 	};
 }
 
-/** The two legs of a transfer. Both wear the same tags, so it reads the same from either account. */
+/** The payee the API posts a transfer's fee under (`TRANSFER_FEE_PAYEE` in `server/routes/transactions.ts`). */
+export const TRANSFER_FEE_PAYEE = 'Transfer fee';
+
+/** A transfer's fee as a save sends it: an id for the expense it posts, the amount and a standard category. */
+export interface TransferFeeDraft {
+	id: string;
+	amount: number;
+	categoryId: string | null;
+}
+
+/**
+ * The two legs of a transfer, outflow first, and the fee it cost when it cost one. Both legs wear the same tags,
+ * so it reads the same from either account; each holds its own account's currency, so what arrived is `toAmount`
+ * (`amount`, between two accounts of one currency). The fee is an ordinary expense on the source account.
+ */
 export function provisionalTransfer(
 	ledger: LedgerView,
 	input: {
@@ -200,10 +216,12 @@ export function provisionalTransfer(
 		toAccountId: string;
 		categoryId: string | null;
 		amount: number;
+		toAmount?: number;
 		occurredOn: string;
 		payee: string;
 		notes: string;
 		tagIds?: string[];
+		fee?: TransferFeeDraft | null;
 	},
 ): Transaction[] {
 	// Blank names itself, exactly as the API composes it.
@@ -220,9 +238,25 @@ export function provisionalTransfer(
 		transferId: input.ids.transferId,
 	};
 
+	const fee = input.fee
+		? [
+				provisionalTransaction(ledger, {
+					id: input.fee.id,
+					accountId: input.fromAccountId,
+					categoryId: input.fee.categoryId,
+					amount: -input.fee.amount,
+					occurredOn: input.occurredOn,
+					payee: TRANSFER_FEE_PAYEE,
+					notes: '',
+					feeTransferId: input.ids.transferId,
+				}),
+			]
+		: [];
+
 	return [
 		provisionalTransaction(ledger, { ...shared, id: input.ids.fromId, accountId: input.fromAccountId, amount: -input.amount }),
-		provisionalTransaction(ledger, { ...shared, id: input.ids.toId, accountId: input.toAccountId, amount: input.amount }),
+		provisionalTransaction(ledger, { ...shared, id: input.ids.toId, accountId: input.toAccountId, amount: input.toAmount ?? input.amount }),
+		...fee,
 	];
 }
 

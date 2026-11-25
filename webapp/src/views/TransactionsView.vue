@@ -55,7 +55,8 @@ const trading = ref(false);
 const editingTrade = ref<Trade | null>(null);
 const investments = useInvestmentStore();
 const tradesByLeg = computed(() => new Map(investments.trades.map((trade) => [trade.transactionId, trade])));
-const editingTransferToAccountId = ref<string | null>(null);
+/** The inflow leg of the transfer being edited: its account, and what arrived there. */
+const editingTransferInflow = ref<Transaction | null>(null);
 const search = ref('');
 const accountFilter = ref<string[]>([]);
 const categoryFilter = ref<string[]>([]);
@@ -172,13 +173,13 @@ function openCreate(): void {
 	whenDiscardable(() => {
 		trading.value = false;
 		editing.value = null;
-		editingTransferToAccountId.value = null;
+		editingTransferInflow.value = null;
 		dialogOpen.value = true;
 	});
 }
 
-/** A transfer edit seeds the form with the outflow leg plus the inflow's account, so both sides stay linked. */
-function openEdit(transaction: Transaction, transferToAccountId: string | null = null): void {
+/** A transfer edit seeds the form with the outflow leg plus the inflow, so both sides stay linked. */
+function openEdit(transaction: Transaction, transferInflow: Transaction | null = null): void {
 	const trade = tradesByLeg.value.get(transaction.id);
 	whenDiscardable(() => {
 		if (trade) {
@@ -190,7 +191,7 @@ function openEdit(transaction: Transaction, transferToAccountId: string | null =
 		}
 		trading.value = false;
 		editing.value = transaction;
-		editingTransferToAccountId.value = transferToAccountId;
+		editingTransferInflow.value = transferInflow;
 		dialogOpen.value = true;
 	});
 }
@@ -342,7 +343,7 @@ async function remove(): Promise<void> {
 										? 'true'
 										: undefined
 								"
-								@click="row.kind === 'transfer' ? openEdit(row.leg, row.toAccountId) : openEdit(row.transaction)"
+								@click="row.kind === 'transfer' ? openEdit(row.leg, row.inflow) : openEdit(row.transaction)"
 							>
 								<!-- The headline and what is under it at the start, its figures at the end, top-aligned with each other. -->
 								<span class="flex gap-4 px-4 py-3">
@@ -417,12 +418,7 @@ async function remove(): Promise<void> {
 			<ListEnd v-else />
 		</template>
 
-		<TransactionForm
-			:open="dialogOpen"
-			:transaction="editing"
-			:transfer-to-account-id="editingTransferToAccountId"
-			@close="dialogOpen = false"
-		/>
+		<TransactionForm :open="dialogOpen" :transaction="editing" :transfer-inflow="editingTransferInflow" @close="dialogOpen = false" />
 		<TradeForm :open="trading" :editing="editingTrade" @close="trading = false" />
 
 		<AlertDialog

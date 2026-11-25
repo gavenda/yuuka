@@ -269,6 +269,9 @@ silently corrupt.
   Deleting either leg fires `transfers_leg_deleted`, which drops the parent and
   takes the other leg with it — so a route deletes `transfers`, not the legs.
   `kind` is also how a round-up is recognised; the payee string is not.
+  A transfer's fee is an ordinary row whose `fee_transfer_id` references the parent `ON DELETE CASCADE`
+  (`migrations/0011_transfer_fee.sql`), so dropping the parent takes it too; transfer responses list the
+  legs, outflow first, then the fee (`loadTransfer`).
 - **A row knows where it came from.** `transactions.source` is `'manual'`,
   `'subscription'` or `'round_up'`. There is deliberately no `'adjustment'`: a
   balance adjustment must stay indistinguishable from a typed row. The API's
@@ -748,7 +751,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-805 tests: 477 against the API in `test/`, 328 over the browser helpers as
+831 tests: 496 against the API in `test/`, 335 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

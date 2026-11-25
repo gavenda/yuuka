@@ -26,6 +26,8 @@ data class Transaction(
     val payee: String,
     val notes: String = "",
     val transferId: String? = null,
+    /** Set on the expense a transfer's fee posted: the transfer it was paid for. It goes when the transfer does. */
+    val feeTransferId: String? = null,
     /** Posted by a subscription at 00:00 UTC, so its time of day is not the user's to change. */
     val automated: Boolean = false,
     /** The tags it wears, in name order. Both legs of a transfer wear the same ones. */

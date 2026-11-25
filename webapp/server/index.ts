@@ -7,6 +7,7 @@ import { authRoutes } from './routes/auth';
 import { budgetRoutes } from './routes/budgets';
 import { categoryRoutes } from './routes/categories';
 import { deviceRoutes } from './routes/devices';
+import { fxRoutes } from './routes/fx';
 import { incomePlanRoutes } from './routes/income-plan';
 import { payeeRoutes } from './routes/payees';
 import { roundUpRoutes } from './routes/round-up';
@@ -90,6 +91,7 @@ app.route('/api/trend', trendRoutes);
 app.route('/api/securities', securityRoutes);
 app.route('/api/trades', tradeRoutes);
 app.route('/api/devices', deviceRoutes);
+app.route('/api/fx', fxRoutes);
 // Mounted with a dispatcher back into this same app: a queued operation is
 // replayed through the router it would have gone through online. Declaring it
 // as a closure is what makes referring to `app` here legal.

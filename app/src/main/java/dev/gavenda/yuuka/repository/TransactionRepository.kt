@@ -26,6 +26,12 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+/** What a transfer cost, in the source account's currency: an ordinary expense under a standard category. */
+data class TransferFee(val amount: Long, val categoryId: String?)
+
+/** The payee the API posts a transfer's fee under (`TRANSFER_FEE_PAYEE` in `server/routes/transactions.ts`). */
+const val TRANSFER_FEE_PAYEE = "Transfer fee"
+
 /** The API's largest page, so a resync makes as few round trips as it can. */
 private const val RESYNC_PAGE = 200
 
@@ -300,21 +306,29 @@ class TransactionRepository(
         outbox.enqueue("POST", "/api/accounts/$accountId/adjust", body)
     }
 
+    /**
+     * A transfer: [amount] leaves in the source account's currency and [toAmount] arrives in the destination's — the
+     * same figure between two accounts of one currency. A [fee] posts its own expense on the source account.
+     */
     suspend fun createTransfer(
         fromAccountId: String,
         toAccountId: String,
         categoryId: String?,
         amount: Long,
+        toAmount: Long,
         occurredOn: String,
         payee: String,
         notes: String,
         tagIds: List<String>,
+        fee: TransferFee?,
     ) {
         val transferId = Ids.new(Ids.TRANSFER)
         val fromId = Ids.new(Ids.TRANSACTION)
         val toId = Ids.new(Ids.TRANSACTION)
+        val feeId = fee?.let { Ids.new(Ids.TRANSACTION) }
 
-        storeLocal(legsFor(transferId, fromId, toId, fromAccountId, toAccountId, categoryId, amount, occurredOn, payee, notes), tagIds)
+        storeLocal(legsFor(transferId, fromId, toId, fromAccountId, toAccountId, categoryId, amount, toAmount, occurredOn, payee, notes), tagIds)
+        if (fee != null) storeFee(feeId!!, transferId, fromAccountId, fee, occurredOn)
 
         val body = buildJsonObject {
             put(
@@ -329,41 +343,58 @@ class TransactionRepository(
             put("toAccountId", toAccountId)
             put("categoryId", categoryId)
             put("amount", amount)
+            put("toAmount", toAmount)
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
             putTagIds(tagIds)
+            if (fee != null) putFee(feeId!!, fee)
         }
         outbox.enqueue("POST", "/api/transactions/transfer", body)
     }
 
+    /** Rewrites a transfer whole. A [fee] of null takes off the one it had, if it had one. */
     suspend fun updateTransfer(
         transferId: String,
         fromAccountId: String,
         toAccountId: String,
         categoryId: String?,
         amount: Long,
+        toAmount: Long,
         occurredOn: String,
         payee: String,
         notes: String,
         tagIds: List<String>,
+        fee: TransferFee?,
     ) {
-        // An edit keeps the legs it already has; only what they say changes.
+        // An edit keeps the legs it already has; only what they say changes. So does a fee it already cost.
         val existing = dao.byTransferId(transferId)
         val fromId = existing.firstOrNull()?.id ?: Ids.new(Ids.TRANSACTION)
         val toId = existing.getOrNull(1)?.id ?: Ids.new(Ids.TRANSACTION)
+        val existingFee = dao.feeOf(transferId)
+        val feeId = existingFee?.id ?: Ids.new(Ids.TRANSACTION)
 
-        storeLocal(legsFor(transferId, fromId, toId, fromAccountId, toAccountId, categoryId, amount, occurredOn, payee, notes), tagIds)
+        storeLocal(legsFor(transferId, fromId, toId, fromAccountId, toAccountId, categoryId, amount, toAmount, occurredOn, payee, notes), tagIds)
+        when {
+            fee != null -> storeFee(feeId, transferId, fromAccountId, fee, occurredOn)
+            existingFee != null -> dao.deleteLocal(existingFee.id, null)
+        }
 
         val body = buildJsonObject {
             put("fromAccountId", fromAccountId)
             put("toAccountId", toAccountId)
             put("categoryId", categoryId)
             put("amount", amount)
+            put("toAmount", toAmount)
             put("occurredOn", occurredOn)
             put("payee", payee)
             put("notes", notes)
             putTagIds(tagIds)
+            // Left out, the server keeps the fee; null takes it off — only sent when there was one to take.
+            when {
+                fee != null -> putFee(feeId, fee)
+                existingFee != null -> put("fee", null as String?)
+            }
         }
         outbox.enqueue("PATCH", "/api/transactions/transfer/$transferId", body, entity = "transfer", rowId = transferId)
     }
@@ -377,6 +408,7 @@ class TransactionRepository(
         toAccountId: String,
         categoryId: String?,
         amount: Long,
+        toAmount: Long,
         occurredOn: String,
         payee: String,
         notes: String,
@@ -389,9 +421,36 @@ class TransactionRepository(
 
         return listOf(
             Provisional.transaction(fromId, fromAccountId, from, category, -amount, occurredOn, name, notes, transferId),
-            Provisional.transaction(toId, toAccountId, to, category, amount, occurredOn, name, notes, transferId),
+            Provisional.transaction(toId, toAccountId, to, category, toAmount, occurredOn, name, notes, transferId),
         )
     }
+
+    /** The expense a transfer's fee posts, written here as the API would: on the source account, wearing no tags. */
+    private suspend fun storeFee(id: String, transferId: String, fromAccountId: String, fee: TransferFee, occurredOn: String) {
+        val account = accountDao.byId(fromAccountId)
+        val category = fee.categoryId?.let { categoryDao.byId(it) }
+        val row = Provisional.transaction(
+            id, fromAccountId, account, category, -fee.amount, occurredOn, TRANSFER_FEE_PAYEE, "", feeTransferId = transferId,
+        )
+        dao.saveLocal(listOf(row), emptyList())
+    }
+
+    private fun JsonObjectBuilder.putFee(id: String, fee: TransferFee) {
+        put(
+            "fee",
+            buildJsonObject {
+                put("id", id)
+                put("amount", fee.amount)
+                put("categoryId", fee.categoryId)
+            },
+        )
+    }
+
+    /** The fee a transfer already cost, for its edit form. */
+    suspend fun transferFee(transferId: String): Transaction? = dao.feeOf(transferId)?.toDomain(emptyList())
+
+    /** The rate one [from] bought in [to] on [date], for a transfer's form. Online only; throws what the API said. */
+    suspend fun exchangeRate(from: String, to: String, date: String) = apiCall { api.exchangeRate(from, to, date) }
 
     /** Deletes both legs of a transfer, or a single plain transaction — the caller knows which by whether `transferId` was set. */
     suspend fun deleteTransactionOrTransfer(transaction: Transaction) {

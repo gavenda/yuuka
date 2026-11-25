@@ -55,6 +55,10 @@ interface YuukaApi {
     @GET("securities")
     suspend fun listSecurities(): SecuritiesResponse
 
+    /** The rate one [from] bought in [to] on [date], which a transfer's form suggests. Online only, never queued. */
+    @GET("fx")
+    suspend fun exchangeRate(@Query("from") from: String, @Query("to") to: String, @Query("date") date: String): ExchangeRate
+
     /** The US-listed and LSE ETFs Yahoo Finance finds for [query]. Online only: it is a question for the market. */
     @GET("securities/search")
     suspend fun searchEtfs(@Query("q") query: String): EtfSearchResponse

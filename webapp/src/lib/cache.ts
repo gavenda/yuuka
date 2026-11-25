@@ -202,12 +202,19 @@ function transactionWrites(transaction: Transaction): Op[] {
 	];
 }
 
-/** Rows and their tag links, and the other leg of any transfer among them. */
+/** A row, and when it is one leg of a transfer the other leg and the fee the transfer cost: what goes with it. */
+function withTransfer(db: DatabaseView, row: StoredRow): StoredRow[] {
+	const transferId = row.transferId as string | null | undefined;
+	if (!transferId) return [row];
+	return [...db('transactions').where('transferId', transferId), ...db('transactions').where('feeTransferId', transferId)];
+}
+
+/** Rows and their tag links, and the other leg and the fee of any transfer among them. */
 function transactionRemovals(db: DatabaseView, rows: StoredRow[]): Op[] {
 	const legs = new Map<string, StoredRow>();
 	for (const row of rows) {
 		legs.set(String(row.id), row);
-		if (row.transferId) for (const leg of db('transactions').where('transferId', row.transferId as string)) legs.set(String(leg.id), leg);
+		for (const leg of withTransfer(db, row)) legs.set(String(leg.id), leg);
 	}
 
 	// A trade goes with its cash leg, as on the server.
@@ -395,8 +402,15 @@ export function deleteTransaction(id: string): Promise<void> {
 	return write((db) => {
 		const row = db('transactions').get(id);
 		if (!row) return [remove('transactions', id)];
-		const legs = row.transferId ? db('transactions').where('transferId', row.transferId as string) : [row];
-		return [...balanceShifts(db, legs, []), ...transactionRemovals(db, [row])];
+		return [...balanceShifts(db, withTransfer(db, row), []), ...transactionRemovals(db, [row])];
+	});
+}
+
+/** The expense a transfer's fee posted, when the copy holds one. */
+export function readTransferFee(transferId: string): Promise<Transaction | null> {
+	return read((db) => {
+		const row = db('transactions').where('feeTransferId', transferId)[0];
+		return row ? toTransaction(db, row) : null;
 	});
 }
 

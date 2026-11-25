@@ -158,6 +158,33 @@ describe('transactions are private', () => {
 });
 
 describe('transfers are private', () => {
+	it('cannot file a fee under another user’s category, on a new transfer or an edit', async () => {
+		const from = await makeAccount(mine, { name: 'From', startingBalance: 50_000 });
+		const to = await makeAccount(mine, { name: 'To' });
+		const foreign = await makeCategory(theirs, { name: 'Foreign fees', kind: 'expense' });
+		const transfer = { fromAccountId: from, toAccountId: to, amount: 10_000, occurredOn: '2026-09-05' };
+
+		const refused = await mine('/transactions/transfer', {
+			method: 'POST',
+			body: JSON.stringify({ ...transfer, fee: { amount: 500, categoryId: foreign } }),
+		});
+		expect(refused.status).toBe(400);
+		expect((await json<{ total: number }>(await mine(`/transactions?accountId=${from}`))).total).toBe(0);
+
+		const { transferId } = await json<{ transferId: string }>(
+			await mine('/transactions/transfer', { method: 'POST', body: JSON.stringify(transfer) }),
+		);
+		const edit = await mine(`/transactions/transfer/${transferId}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ ...transfer, amount: 20_000, fee: { amount: 500, categoryId: foreign } }),
+		});
+		expect(edit.status).toBe(400);
+
+		// The legs stand as they were, and no fee was posted.
+		const { account } = await json<{ account: { balance: number } }>(await mine(`/accounts/${from}`));
+		expect(account.balance).toBe(40_000);
+	});
+
 	it('cannot move money out of another user’s account', async () => {
 		const victim = await makeAccount(mine, { name: 'Victim', startingBalance: 100_000 });
 		const attacker = await makeAccount(theirs, { name: 'Attacker' });

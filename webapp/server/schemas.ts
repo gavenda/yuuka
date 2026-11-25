@@ -238,6 +238,14 @@ export const transactionUpdateSchema = z
 	.partial()
 	.refine((value) => Object.keys(value).length > 0, 'No fields to update.');
 
+/** A transfer's fee: spending in the source account's currency, under a standard (not Cashflow) category. */
+const transferFee = z.object({
+	id: clientId('txn'),
+	amount: z.number().int().positive('Fee must be positive.'),
+	/** Must be a standard-scope category: a fee is spending, not a movement. Null stays uncategorised. */
+	categoryId: z.string().min(1).nullable().default(null),
+});
+
 export const transferCreateSchema = z
 	.object({
 		ids: transferIds.optional(),
@@ -252,6 +260,17 @@ export const transferCreateSchema = z
 		payee: z.string().trim().max(120).default(''),
 		/** Worn by both legs, so the pair reads the same from either account. Left out on an edit, the tags stay as they are. */
 		tagIds: tagIds.optional(),
+		/**
+		 * What lands in the destination, in its own currency's minor unit. Left out it is `amount`, as every
+		 * same-currency transfer is; between currencies it is the amount at the rate the money moved at, so the
+		 * rate is never stored apart from the two legs that already say it.
+		 */
+		toAmount: z.number().int().positive('Received amount must be positive.').optional(),
+		/**
+		 * What the transfer cost, an ordinary expense on the source account. Left out on an edit, the fee stays
+		 * as it is; null takes it off.
+		 */
+		fee: transferFee.nullable().optional(),
 	})
 	.refine((value) => value.fromAccountId !== value.toAccountId, {
 		error: 'Cannot transfer to the same account.',
@@ -504,4 +523,11 @@ export const securitySearchSchema = z.object({
 
 export const pricesQuerySchema = z.object({
 	from: dateString.optional(),
+});
+
+/** `GET /api/fx`: the rate one unit of `from` bought in `to` on a day, today when none is named. */
+export const fxQuerySchema = z.object({
+	from: currency,
+	to: currency,
+	date: dateString.optional(),
 });

@@ -22,7 +22,7 @@ import type { AppEnv } from '../types';
  */
 const SELECT_ENRICHED = `
 	SELECT t.id, t.account_id, t.category_id, t.amount, t.occurred_on, t.occurred_time, t.payee, t.notes,
-	       t.transfer_id, t.source, t.created_at, t.updated_at,
+	       t.transfer_id, t.fee_transfer_id, t.source, t.created_at, t.updated_at,
 	       a.name AS account_name, c.name AS category_name, c.color AS category_color,
 	       b.running_balance,
 	       (SELECT json_group_array(json_object('id', g.id, 'name', g.name, 'color', g.color))
@@ -131,8 +131,8 @@ const TRANSFER_CATEGORY = "kind = 'transfer'";
 const SPENDING_CATEGORY = "kind <> 'transfer'";
 
 const insertGuarded = (forTransfer: boolean) => `
-	INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, source)
-	SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+	INSERT INTO transactions (id, user_id, account_id, category_id, amount, occurred_on, occurred_time, payee, notes, transfer_id, fee_transfer_id, source)
+	SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?)
 	  AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND ${forTransfer ? TRANSFER_CATEGORY : SPENDING_CATEGORY}))
 `;
@@ -152,6 +152,8 @@ function insertBindings(input: {
 	payee: string;
 	notes: string;
 	transferId: string | null;
+	/** Set only on the expense a transfer's fee posts. */
+	feeTransferId?: string | null;
 	source: TransactionSource;
 }): unknown[] {
 	const { date, time } = splitOccurrence(input.occurredOn);
@@ -167,6 +169,7 @@ function insertBindings(input: {
 		input.payee,
 		input.notes,
 		input.transferId,
+		input.feeTransferId ?? null,
 		input.source,
 		// the account guard
 		input.accountId,
@@ -226,13 +229,48 @@ export async function loadOne(db: D1Database, userId: string, id: string): Promi
 	return await db.prepare(`${SELECT_ENRICHED} WHERE t.id = ? AND t.user_id = ?`).bind(userId, id, userId).first<TransactionRow>();
 }
 
-/** Both legs of a transfer, outflow first — the order every transfer response uses. */
+/**
+ * Both legs of a transfer, outflow first, then the fee it cost when it cost one — the order every transfer
+ * response uses.
+ */
 async function loadTransfer(db: D1Database, userId: string, transferId: string): Promise<TransactionRow[]> {
 	const { results } = await db
-		.prepare(`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`)
-		.bind(userId, transferId, userId)
+		.prepare(
+			`${SELECT_ENRICHED} WHERE (t.transfer_id = ? OR t.fee_transfer_id = ?) AND t.user_id = ?
+			 ORDER BY t.fee_transfer_id IS NOT NULL, t.amount ASC`,
+		)
+		.bind(userId, transferId, transferId, userId)
 		.all<TransactionRow>();
 	return results;
+}
+
+/** The payee a transfer's fee posts under. Synthetic, like a transfer's composed name, so never remembered. */
+export const TRANSFER_FEE_PAYEE = 'Transfer fee';
+
+/** The expense a transfer's fee posts: on the source account, the transfer's day, under a standard category. */
+function feeInsert(
+	db: D1Database,
+	userId: string,
+	transferId: string,
+	fee: { id: string; amount: number; categoryId: string | null },
+	fromAccountId: string,
+	occurredOn: string,
+): D1PreparedStatement {
+	return db.prepare(insertGuarded(false)).bind(
+		...insertBindings({
+			id: fee.id,
+			userId,
+			accountId: fromAccountId,
+			categoryId: fee.categoryId,
+			amount: -fee.amount,
+			occurredOn,
+			payee: TRANSFER_FEE_PAYEE,
+			notes: '',
+			transferId: null,
+			feeTransferId: transferId,
+			source: 'manual',
+		}),
+	);
 }
 
 export const transactionRoutes = new Hono<AppEnv>()
@@ -470,12 +508,16 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// twice, and categorising it lets an investment contribution be budgeted.
 		// It is still excluded from income and spending — moving your own money
 		// is neither.
+		//
+		// Each leg is in its own account's currency: what left is `amount`, what arrived `toAmount`, and between
+		// two currencies the rate is the one divided by the other.
 		const legs = [
 			{ id: input.ids?.fromId ?? newId('txn'), accountId: input.fromAccountId, amount: -input.amount },
-			{ id: input.ids?.toId ?? newId('txn'), accountId: input.toAccountId, amount: input.amount },
+			{ id: input.ids?.toId ?? newId('txn'), accountId: input.toAccountId, amount: input.toAmount ?? input.amount },
 		];
+		const fee = input.fee ? { ...input.fee, id: input.fee.id ?? newId('txn') } : null;
 
-		const [, outflow, inflow] = await c.env.DB.batch([
+		const [, outflow, inflow, feeResult] = await c.env.DB.batch([
 			c.env.DB.prepare('INSERT INTO transfers (id, user_id, kind) VALUES (?, ?, ?)').bind(transferId, userId, 'manual'),
 			...legs.map((leg) =>
 				c.env.DB.prepare(insertGuarded(true)).bind(
@@ -493,14 +535,15 @@ export const transactionRoutes = new Hono<AppEnv>()
 					}),
 				),
 			),
+			...(fee ? [feeInsert(c.env.DB, userId, transferId, fee, input.fromAccountId, input.occurredOn)] : []),
 		]);
 
 		// Either account not being the caller's leaves a half-written transfer, so
 		// undo it rather than leaving one side of the movement behind. Dropping the
-		// parent cascades to whichever legs did land.
-		if (!outflow.meta.changes || !inflow.meta.changes) {
+		// parent cascades to whichever legs did land, and to the fee.
+		if (!outflow.meta.changes || !inflow.meta.changes || (fee && !feeResult.meta.changes)) {
 			await c.env.DB.prepare('DELETE FROM transfers WHERE id = ? AND user_id = ?').bind(transferId, userId).run();
-			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
+			throw badRequest(input.categoryId || fee?.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
 		}
 
 		const tagWrites = tagStatements(
@@ -562,9 +605,12 @@ export const transactionRoutes = new Hono<AppEnv>()
 		const typedName = Boolean(input.payee) && input.payee !== derivedName;
 
 		const [outflow, inflow] = existing;
+		// A request that names no received amount — an app from before transfers crossed currencies — keeps
+		// what arrived while what left is unchanged, so renaming a transfer cannot reset its rate.
+		const toAmount = input.toAmount ?? (input.amount === -outflow.amount ? inflow.amount : input.amount);
 		const legs = [
 			{ id: outflow.id, accountId: input.fromAccountId, amount: -input.amount },
-			{ id: inflow.id, accountId: input.toAccountId, amount: input.amount },
+			{ id: inflow.id, accountId: input.toAccountId, amount: toAmount },
 		];
 
 		// Same ownership guard as creation, applied per leg: re-pointing a leg to
@@ -602,8 +648,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// A batch does not roll back just because a guard matched zero rows, so a
 		// rejected edit could otherwise leave one leg updated and the other not.
 		// Put both back exactly as they were rather than risk a desynced pair.
-		if (!results[0].meta.changes || !results[1].meta.changes) {
-			await c.env.DB.batch(
+		const restoreLegs = () =>
+			c.env.DB.batch(
 				existing.map((leg) =>
 					c.env.DB.prepare(
 						`UPDATE transactions
@@ -612,7 +658,69 @@ export const transactionRoutes = new Hono<AppEnv>()
 					).bind(leg.account_id, leg.category_id, leg.amount, leg.occurred_on, leg.occurred_time, leg.payee, leg.notes, leg.id, userId),
 				),
 			);
+
+		if (!results[0].meta.changes || !results[1].meta.changes) {
+			await restoreLegs();
 			throw badRequest(input.categoryId ? WRONG_SCOPE : MISSING_REFERENCE);
+		}
+
+		// The fee follows the transfer to its source account and its day. Written once the legs have landed, so
+		// the only thing that can refuse it is its own category — and then the legs go back as they were.
+		const existingFee = await c.env.DB.prepare('SELECT id, occurred_on FROM transactions WHERE fee_transfer_id = ? AND user_id = ?')
+			.bind(transferId, userId)
+			.first<{ id: string; occurred_on: string }>();
+
+		const feeWrite = await (async () => {
+			if (input.fee === null) {
+				if (existingFee) await c.env.DB.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').bind(existingFee.id, userId).run();
+				return true;
+			}
+			if (!input.fee && !existingFee) return true;
+			if (!input.fee) {
+				await c.env.DB.prepare(
+					`UPDATE transactions SET account_id = ?, occurred_on = ?, occurred_time = ?, updated_at = ${NOW_SQL}
+					 WHERE id = ? AND user_id = ?`,
+				)
+					.bind(input.fromAccountId, occurrence.date, occurrence.time, existingFee!.id, userId)
+					.run();
+				return true;
+			}
+			if (!existingFee) {
+				const fee = { ...input.fee, id: input.fee.id ?? newId('txn') };
+				// A client-chosen id that is already taken — anyone's row — fails on the primary key rather than on a
+				// guard; it is refused the same way, so the legs go back instead of the edit landing half-done.
+				try {
+					const inserted = await feeInsert(c.env.DB, userId, transferId, fee, input.fromAccountId, input.occurredOn).run();
+					return inserted.meta.changes > 0;
+				} catch {
+					return false;
+				}
+			}
+			const updated = await c.env.DB.prepare(
+				`UPDATE transactions
+				 SET account_id = ?, category_id = ?, amount = ?, occurred_on = ?, occurred_time = ?, updated_at = ${NOW_SQL}
+				 WHERE id = ? AND user_id = ?
+				   AND (? IS NULL OR EXISTS (SELECT 1 FROM categories WHERE id = ? AND user_id = ? AND ${SPENDING_CATEGORY}))`,
+			)
+				.bind(
+					input.fromAccountId,
+					input.fee.categoryId,
+					-input.fee.amount,
+					occurrence.date,
+					occurrence.time,
+					existingFee.id,
+					userId,
+					input.fee.categoryId,
+					input.fee.categoryId,
+					userId,
+				)
+				.run();
+			return updated.meta.changes > 0;
+		})();
+
+		if (!feeWrite) {
+			await restoreLegs();
+			throw badRequest(WRONG_SCOPE);
 		}
 
 		// Only when the request names tags: an edit that leaves them out keeps what the transfer wears.
@@ -628,7 +736,11 @@ export const transactionRoutes = new Hono<AppEnv>()
 			);
 		}
 
-		await invalidateSummaries(c.env.CACHE, userId, [monthOf(outflow.occurred_on), monthOf(input.occurredOn)]);
+		await invalidateSummaries(c.env.CACHE, userId, [
+			monthOf(outflow.occurred_on),
+			monthOf(input.occurredOn),
+			...(existingFee ? [monthOf(existingFee.occurred_on)] : []),
+		]);
 
 		if (typedName) {
 			await rememberPayee(c.env.DB, userId, {
@@ -641,13 +753,7 @@ export const transactionRoutes = new Hono<AppEnv>()
 			});
 		}
 
-		const { results: updated } = await c.env.DB.prepare(
-			`${SELECT_ENRICHED} WHERE t.transfer_id = ? AND t.user_id = ? ORDER BY t.amount ASC`,
-		)
-			.bind(userId, transferId, userId)
-			.all<TransactionRow>();
-
-		return c.json({ transferId, transactions: updated.map(toTransaction) });
+		return c.json({ transferId, transactions: (await loadTransfer(c.env.DB, userId, transferId)).map(toTransaction) });
 	})
 	.patch('/:id', async (c) => {
 		const id = c.req.param('id');
@@ -731,7 +837,8 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// `PATCH /transfer/:id`, which knows both accounts and can tell a typed
 		// name from the one the API composed. From here the name is only ever
 		// the stored one, and a leg knows only its own side of the movement.
-		if (!updated.transfer_id) {
+		// A transfer's fee is synthetic too: its payee is the API's, and it belongs to the transfer that cost it.
+		if (!updated.transfer_id && !updated.fee_transfer_id) {
 			await rememberPayee(c.env.DB, userId, {
 				payee: updated.payee,
 				kind: payeeKind(updated.amount, updated.transfer_id),
@@ -760,12 +867,20 @@ export const transactionRoutes = new Hono<AppEnv>()
 		// accounts wrong. Dropping the parent takes both legs with it, and the
 		// `transfers_leg_deleted` trigger means even a direct delete of one leg
 		// could not leave the other behind.
+		//
+		// The fee goes with it, and it can stand in another month: it is an ordinary row, so its date can be edited
+		// on its own. Its month is read before it goes, so that month's summary is purged too.
+		const months = [monthOf(existing.occurred_on)];
 		if (existing.transfer_id) {
+			const fee = await c.env.DB.prepare('SELECT occurred_on FROM transactions WHERE fee_transfer_id = ? AND user_id = ?')
+				.bind(existing.transfer_id, userId)
+				.first<{ occurred_on: string }>();
+			if (fee) months.push(monthOf(fee.occurred_on));
 			await c.env.DB.prepare('DELETE FROM transfers WHERE id = ? AND user_id = ?').bind(existing.transfer_id, userId).run();
 		} else {
 			await c.env.DB.prepare('DELETE FROM transactions WHERE id = ? AND user_id = ?').bind(id, userId).run();
 		}
 
-		await invalidateSummaries(c.env.CACHE, userId, [monthOf(existing.occurred_on)]);
+		await invalidateSummaries(c.env.CACHE, userId, months);
 		return c.body(null, 204);
 	});
