@@ -55,6 +55,10 @@ interface YuukaApi {
     @GET("securities")
     suspend fun listSecurities(): SecuritiesResponse
 
+    /** One transfer whole — outflow, inflow, then its fee — for a list filtered to one of its accounts. */
+    @GET("transactions/transfer/{transferId}")
+    suspend fun transfer(@Path("transferId") transferId: String): TransferResponse
+
     /** The rate one [from] bought in [to] on [date], which a transfer's form suggests. Online only, never queued. */
     @GET("fx")
     suspend fun exchangeRate(@Query("from") from: String, @Query("to") to: String, @Query("date") date: String): ExchangeRate

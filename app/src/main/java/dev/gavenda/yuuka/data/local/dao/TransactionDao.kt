@@ -134,6 +134,11 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE transferId = :transferId ORDER BY amount ASC")
     suspend fun byTransferId(transferId: String): List<TransactionEntity>
 
+    /** A transfer with the tags each row wears: its legs outflow first, then its fee when it has one. */
+    @Transaction
+    @Query("SELECT * FROM transactions WHERE transferId = :transferId OR feeTransferId = :transferId ORDER BY feeTransferId IS NOT NULL, amount ASC")
+    suspend fun transferWithTags(transferId: String): List<TransactionWithTags>
+
     /** The expense a transfer's fee posted, when there is one. */
     @Query("SELECT * FROM transactions WHERE feeTransferId = :transferId LIMIT 1")
     suspend fun feeOf(transferId: String): TransactionEntity?

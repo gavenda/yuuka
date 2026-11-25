@@ -751,7 +751,7 @@ drawn harmonised with the theme, above, which nudges each hue the same way.)
 
 ## Tests
 
-831 tests: 496 against the API in `test/`, 335 over the browser helpers as
+834 tests: 498 against the API in `test/`, 336 over the browser helpers as
 `*.spec.ts` beside the code they cover. `test/sync.spec.ts` covers the batch
 endpoint — ordering, replay, last-write-wins and what an operation may not
 target — and `test/devices.spec.ts` the registration table. `src/testing/memoryStorage.ts` gives a

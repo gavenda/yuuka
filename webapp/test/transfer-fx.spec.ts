@@ -72,6 +72,30 @@ describe('a transfer between currencies', () => {
 	});
 });
 
+describe('reading one transfer whole', () => {
+	it('answers its outflow, inflow and fee, for a list that held only one leg', async () => {
+		const { transferId } = await json<{ transferId: string }>(
+			await transfer({ amount: 446_457, toAmount: 7_000, fee: { amount: 9_622, categoryId: feesId } }),
+		);
+
+		const response = await call(`/transactions/transfer/${transferId}`);
+		expect(response.status).toBe(200);
+		const { transactions } = await json<{ transactions: Row[] }>(response);
+		expect(transactions.map((row) => [row.accountId, row.amount])).toEqual([
+			[pesoId, -446_457],
+			[dollarId, 7_000],
+			[pesoId, -9_622],
+		]);
+	});
+
+	it("is not found for an unknown id or someone else's transfer", async () => {
+		const { transferId } = await json<{ transferId: string }>(await transfer({ amount: 1_000 }));
+
+		expect((await call('/transactions/transfer/nope')).status).toBe(404);
+		expect((await (await otherClient())(`/transactions/transfer/${transferId}`)).status).toBe(404);
+	});
+});
+
 describe("a transfer's fee", () => {
 	it('posts an expense on the source account, linked to the transfer', async () => {
 		const response = await transfer({ amount: 580_000, toAmount: 10_000, fee: { amount: 5_000, categoryId: feesId } });

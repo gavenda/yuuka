@@ -109,6 +109,8 @@ fun YuukaTextField(
     placeholder: String? = null,
     singleLine: Boolean = false,
     enabled: Boolean = true,
+    /** Shown and focusable, but worked out rather than typed: a figure that follows other fields. */
+    readOnly: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     /** Leads the value, such as a currency symbol; Material shows it once the field has focus or a value. */
     prefix: String? = null,
@@ -123,6 +125,7 @@ fun YuukaTextField(
         onValueChange = { field?.touch(); onValueChange(it) },
         modifier = modifier.fillMaxWidth().tracked(field),
         enabled = enabled,
+        readOnly = readOnly,
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
         prefix = prefix?.let { { Text(it) } },

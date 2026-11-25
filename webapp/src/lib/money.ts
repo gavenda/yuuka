@@ -95,9 +95,12 @@ export function convertAtRate(minor: number, rate: number): number {
 	return Math.round(minor * rate);
 }
 
-/** The rate two amounts imply — what arrived over what left — or null when either is not above zero. */
+/**
+ * The rate two amounts imply, quoted as Wise quotes it — what left for each one that arrived, `1 USD = 63.78 PHP` —
+ * or null when either is not above zero.
+ */
 export function rateBetween(sent: number, received: number): number | null {
-	return sent > 0 && received > 0 ? received / sent : null;
+	return sent > 0 && received > 0 ? sent / received : null;
 }
 
 /** A rate as it is typed and shown: six significant figures, without a trailing zero or an exponent. */

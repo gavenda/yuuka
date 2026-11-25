@@ -120,8 +120,8 @@ fun percentOf(actual: Long, planned: Long): Int {
  */
 fun convertAtRate(minor: Long, rate: Double): Long = Math.round(minor * rate)
 
-/** The rate two amounts imply — what arrived over what left — or null when either is not above zero. */
-fun rateBetween(sent: Long, received: Long): Double? = if (sent > 0 && received > 0) received.toDouble() / sent else null
+/** The rate two amounts imply, quoted as Wise does — what left for each one that arrived, `1 USD = 63.78 PHP` — or null when either is not above zero. */
+fun rateBetween(sent: Long, received: Long): Double? = if (sent > 0 && received > 0) sent.toDouble() / received else null
 
 /** A rate as it is typed and shown: six significant figures, without a trailing zero or an exponent. */
 fun formatRate(rate: Double): String =

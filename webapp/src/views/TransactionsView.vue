@@ -196,6 +196,22 @@ function openEdit(transaction: Transaction, transferInflow: Transaction | null =
 	});
 }
 
+/**
+ * Opens a row. A transfer's leg listed alone — under a filter to one of its accounts — opens the transfer whole,
+ * from its outflow, so it is never edited back to front.
+ */
+async function openRow(row: TransactionRow): Promise<void> {
+	if (row.kind === 'transfer') return openEdit(row.leg, row.inflow);
+	const { transaction } = row;
+	if (!transaction.transferId) return openEdit(transaction);
+	try {
+		const [outflow, inflow] = await api.transfer(transaction.transferId);
+		openEdit(outflow, inflow);
+	} catch {
+		showSnackbar(t('transactions.transferUnavailable'));
+	}
+}
+
 async function remove(): Promise<void> {
 	const target = pendingDelete.value;
 	if (!target) return;
@@ -338,12 +354,14 @@ async function remove(): Promise<void> {
 								type="button"
 								class="group-row state-layer focus-ring cursor-pointer"
 								:aria-current="
-									(dialogOpen && editing?.id === (row.kind === 'transfer' ? row.leg.id : row.transaction.id)) ||
+									(dialogOpen &&
+										(editing?.id === (row.kind === 'transfer' ? row.leg.id : row.transaction.id) ||
+											(row.kind !== 'transfer' && !!row.transaction.transferId && editing?.transferId === row.transaction.transferId))) ||
 									(trading && row.kind !== 'transfer' && editingTrade?.transactionId === row.transaction.id)
 										? 'true'
 										: undefined
 								"
-								@click="row.kind === 'transfer' ? openEdit(row.leg, row.inflow) : openEdit(row.transaction)"
+								@click="openRow(row)"
 							>
 								<!-- The headline and what is under it at the start, its figures at the end, top-aligned with each other. -->
 								<span class="flex gap-4 px-4 py-3">

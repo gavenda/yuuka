@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { authedClient, json, request } from './helpers';
 import { mintToken, publishJwks, TEST_ISSUER, TEST_SUBJECT, testKeys } from './tokens';
 
-const PROTECTED = ['/accounts', '/categories', '/transactions', '/budgets', '/summary', '/auth/me', '/fx?from=PHP&to=USD'];
+const PROTECTED = ['/accounts', '/categories', '/transactions', '/budgets', '/summary', '/auth/me', '/fx?from=PHP&to=USD', '/transactions/transfer/xfer'];
 
 describe('health', () => {
 	it('answers without authentication', async () => {

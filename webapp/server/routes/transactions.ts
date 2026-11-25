@@ -572,6 +572,14 @@ export const transactionRoutes = new Hono<AppEnv>()
 
 		return c.json({ transferId, transactions: (await loadTransfer(c.env.DB, userId, transferId)).map(toTransaction) }, 201);
 	})
+	// One transfer whole — `[outflow, inflow, fee?]` — for a list filtered to one of its accounts, which holds only
+	// that account's leg: the form needs both to open the transfer the right way round.
+	.get('/transfer/:transferId', async (c) => {
+		const transferId = c.req.param('transferId');
+		const rows = await loadTransfer(c.env.DB, c.get('userId'), transferId);
+		if (rows.filter((row) => row.transfer_id === transferId).length !== 2) throw notFound('Transfer not found.');
+		return c.json({ transferId, transactions: rows.map(toTransaction) });
+	})
 	.patch('/transfer/:transferId', async (c) => {
 		const transferId = c.req.param('transferId');
 		const userId = c.get('userId');

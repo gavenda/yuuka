@@ -406,6 +406,20 @@ export function deleteTransaction(id: string): Promise<void> {
 	});
 }
 
+/**
+ * A transfer as the copy holds it — `[outflow, inflow]`, then its fee when it has one — or null unless both legs
+ * are here. A list filtered to one account keeps only that account's leg.
+ */
+export function readTransfer(transferId: string): Promise<Transaction[] | null> {
+	return read((db) => {
+		const legs = db('transactions')
+			.where('transferId', transferId)
+			.sort((a, b) => (a.amount as number) - (b.amount as number));
+		if (legs.length !== 2) return null;
+		return [...legs, ...db('transactions').where('feeTransferId', transferId)].map((row) => toTransaction(db, row));
+	});
+}
+
 /** The expense a transfer's fee posted, when the copy holds one. */
 export function readTransferFee(transferId: string): Promise<Transaction | null> {
 	return read((db) => {

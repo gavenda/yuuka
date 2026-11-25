@@ -136,6 +136,7 @@ fun TransactionsScreen(
         onSave = viewModel::save,
         onDelete = viewModel::delete,
         onLoadTransferFee = viewModel::transferFee,
+        onLoadTransfer = viewModel::transfer,
         onLookUpRate = viewModel::exchangeRate,
     )
 }
@@ -155,6 +156,8 @@ internal fun TransactionsScreenContent(
     onDelete: suspend (Transaction) -> Unit = {},
     /** The fee a transfer already cost, for its edit form. */
     onLoadTransferFee: suspend (transferId: String) -> Transaction? = { null },
+    /** A transfer whole — outflow, inflow, then its fee — or null when it cannot be had. */
+    onLoadTransfer: suspend (transferId: String) -> List<Transaction>? = { null },
     /** The rate a transfer's form suggests, or null when none can be had. */
     onLookUpRate: suspend (from: String, to: String, date: String) -> ExchangeRate? = { _, _, _ -> null },
     /** The trade a row is the cash of, if it is one. */
@@ -168,6 +171,7 @@ internal fun TransactionsScreenContent(
     val genericErrorMessage = stringResource(R.string.error_generic)
     val transactionDeletedMessage = stringResource(R.string.transaction_deleted)
     val transferDeletedMessage = stringResource(R.string.transfer_deleted)
+    val transferUnavailableMessage = stringResource(R.string.transfer_unavailable)
 
     var form by remember { mutableStateOf<FormTarget?>(null) }
     var formError by remember { mutableStateOf<String?>(null) }
@@ -217,10 +221,25 @@ internal fun TransactionsScreenContent(
     val backToTopState = rememberBackToTop(listState)
     val backToTop = backToTopState.active
 
-    val openEdit = { row: TransactionRow ->
+    val openEdit: (TransactionRow) -> Unit = { row ->
         when (row) {
             is TransactionRow.Transfer -> openForm(row.leg, row.inflow)
-            is TransactionRow.Single -> tradeFor(row.transaction.id)?.let(openTrade) ?: openForm(row.transaction, null)
+            is TransactionRow.Single -> {
+                val transferId = row.transaction.transferId
+                val trade = tradeFor(row.transaction.id)
+                when {
+                    trade != null -> openTrade(trade)
+                    transferId == null -> openForm(row.transaction, null)
+                    // A transfer's leg listed alone — under a filter to one of its accounts — opens the transfer
+                    // whole, from its outflow, so it is never edited back to front (`openRow` on the web).
+                    else -> {
+                        scope.launch {
+                            val legs = onLoadTransfer(transferId)?.filter { it.transferId == transferId }
+                            if (legs?.size == 2) openForm(legs[0], legs[1]) else snackbarHostState.showSnackbar(transferUnavailableMessage)
+                        }
+                    }
+                }
+            }
         }
     }
     val askDelete = { row: TransactionRow ->

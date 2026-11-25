@@ -15,6 +15,7 @@ import type {
 	Subscription,
 	Summary,
 	Tag,
+	Transaction,
 	TransactionFilters,
 	Trend,
 	TransactionPage,
@@ -515,6 +516,17 @@ export const api = {
 				}
 				await local.saveTransactions(answer.transactions);
 			},
+		);
+	},
+
+	/**
+	 * A transfer whole — `[outflow, inflow, fee?]` — from the copy when it holds both legs, otherwise asked of the
+	 * API. What the API answers is not kept: rows new to the copy would move its balances a second time.
+	 */
+	async transfer(transferId: string): Promise<Transaction[]> {
+		return (
+			(await local.readTransfer(transferId)) ??
+			(await request<{ transactions: Transaction[] }>(`/transactions/transfer/${transferId}`)).transactions
 		);
 	},
 

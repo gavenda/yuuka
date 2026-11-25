@@ -68,6 +68,8 @@ sealed interface TransactionSubmission {
         val tagIds: List<String>,
         /** What it cost, an expense on the source account; null for none (and, on an edit, takes one off). */
         val fee: TransferFee?,
+        /** On an edit, the fee the form read the transfer as having, which may not be in the copy. */
+        val feeId: String? = null,
     ) : TransactionSubmission
 }
 
@@ -269,6 +271,7 @@ class TransactionsViewModel(
                 if (transferId != null) {
                     transactionRepository.updateTransfer(
                         transferId,
+                        editing.id,
                         submission.fromAccountId,
                         submission.toAccountId,
                         submission.categoryId,
@@ -279,6 +282,7 @@ class TransactionsViewModel(
                         submission.notes,
                         submission.tagIds,
                         submission.fee,
+                        submission.feeId,
                     )
                 } else {
                     transactionRepository.createTransfer(
@@ -307,8 +311,20 @@ class TransactionsViewModel(
         return "$baseMessage — +${formatMoney(roundUp.amount, currency)} saved to ${roundUp.accountName}"
     }
 
-    /** The fee the transfer being edited already cost, for its form; null when it cost none. */
-    suspend fun transferFee(transferId: String): Transaction? = transactionRepository.transferFee(transferId)
+    /** A transfer whole — outflow, inflow, then its fee — or null when it cannot be had (offline, and not all here). */
+    suspend fun transfer(transferId: String): List<Transaction>? =
+        try {
+            transactionRepository.transfer(transferId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
+
+    /**
+     * The fee the transfer being edited already cost, for its form; null when it cost none, or when the transfer
+     * cannot be had — then the form sends no fee, which leaves whatever the server holds alone.
+     */
+    suspend fun transferFee(transferId: String): Transaction? = transfer(transferId)?.firstOrNull { it.feeTransferId == transferId }
 
     /** The rate a transfer's form suggests, or null when it cannot be had (offline, or a pair nobody quotes). */
     suspend fun exchangeRate(from: String, to: String, date: String): ExchangeRate? =

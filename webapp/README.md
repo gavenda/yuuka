@@ -229,6 +229,7 @@ access token in `Authorization: Bearer <token>`.
 | `GET/POST/PATCH/DELETE` | `/tags`                          | Tags, the labels a transaction can wear            |
 | `GET/POST/PATCH/DELETE` | `/transactions`                  | Transactions, filtered and paged                   |
 | `POST/PATCH`            | `/transactions/transfer`         | Write both legs of a transfer, and its fee         |
+| `GET`                   | `/transactions/transfer/:id`     | One transfer whole: outflow, inflow, fee           |
 | `GET`                   | `/fx?from=&to=&date=`            | Exchange rate a transfer's form suggests           |
 | `GET/POST/PATCH/DELETE` | `/subscriptions`                 | Monthly charges the daily cron posts for you       |
 | `GET/PUT/DELETE`        | `/budgets`                       | Per-category monthly budgets                       |

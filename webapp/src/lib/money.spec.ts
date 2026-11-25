@@ -14,12 +14,13 @@ import {
 
 describe('exchange rates', () => {
 	it('converts to whole minor units', () => {
-		expect(convertAtRate(580_000, 0.017241)).toBe(10_000);
+		// Wise: 70 USD received at 1 USD = 63.7796 PHP is 4,464.57 PHP converted.
+		expect(convertAtRate(7_000, 63.7796)).toBe(446_457);
 		expect(convertAtRate(100, 58.125)).toBe(5813);
 	});
 
-	it('works the rate out of two amounts', () => {
-		expect(rateBetween(580_000, 10_000)).toBeCloseTo(0.0172414, 6);
+	it('works the rate out of two amounts, as what left for each one that arrived', () => {
+		expect(rateBetween(446_457, 7_000)).toBeCloseTo(63.7796, 4);
 		expect(rateBetween(0, 10_000)).toBeNull();
 	});
 

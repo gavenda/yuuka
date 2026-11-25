@@ -33,13 +33,14 @@ class MoneyTest {
 
     @Test
     fun `converts at a rate to whole minor units`() {
-        assertEquals(10_000L, convertAtRate(580_000L, 0.017241))
+        // Wise: 70 USD received at 1 USD = 63.7796 PHP is 4,464.57 PHP converted.
+        assertEquals(446_457L, convertAtRate(7_000L, 63.7796))
         assertEquals(5813L, convertAtRate(100L, 58.125))
     }
 
     @Test
-    fun `works the rate out of two amounts`() {
-        assertEquals(0.0172414, rateBetween(580_000L, 10_000L)!!, 1e-7)
+    fun `works the rate out of two amounts, as what left for each one that arrived`() {
+        assertEquals(63.7796, rateBetween(446_457L, 7_000L)!!, 1e-4)
         assertNull(rateBetween(0L, 10_000L))
     }
 

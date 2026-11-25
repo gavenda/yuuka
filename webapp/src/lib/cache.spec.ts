@@ -331,6 +331,17 @@ describe('local database', () => {
 			await cache.deleteTransaction('to');
 			expect(await storedIds('transactions')).toEqual([]);
 		});
+
+		it('reads a transfer whole, outflow first, only while it holds both legs', async () => {
+			await cache.saveTransactions([
+				row.transaction('to', { transferId: 'x', accountId: 'b', amount: 9 }),
+				row.transaction('fee', { feeTransferId: 'x', amount: -25 }),
+			]);
+			expect(await cache.readTransfer('x')).toBeNull();
+
+			await cache.saveTransactions([row.transaction('from', { transferId: 'x', amount: -500 })]);
+			expect((await cache.readTransfer('x'))?.map((leg) => leg.id)).toEqual(['from', 'to', 'fee']);
+		});
 	});
 
 	describe('cascades', () => {

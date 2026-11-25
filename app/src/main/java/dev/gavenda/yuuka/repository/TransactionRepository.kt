@@ -356,6 +356,8 @@ class TransactionRepository(
     /** Rewrites a transfer whole. A [fee] of null takes off the one it had, if it had one. */
     suspend fun updateTransfer(
         transferId: String,
+        /** The outflow leg the form was opened on, which a list filtered to the destination may not have stored. */
+        fromId: String,
         fromAccountId: String,
         toAccountId: String,
         categoryId: String?,
@@ -366,18 +368,20 @@ class TransactionRepository(
         notes: String,
         tagIds: List<String>,
         fee: TransferFee?,
+        /** The fee the form read the transfer as having, when it read one; the copy may not hold it. */
+        knownFeeId: String?,
     ) {
-        // An edit keeps the legs it already has; only what they say changes. So does a fee it already cost.
-        val existing = dao.byTransferId(transferId)
-        val fromId = existing.firstOrNull()?.id ?: Ids.new(Ids.TRANSACTION)
-        val toId = existing.getOrNull(1)?.id ?: Ids.new(Ids.TRANSACTION)
-        val existingFee = dao.feeOf(transferId)
-        val feeId = existingFee?.id ?: Ids.new(Ids.TRANSACTION)
+        // An edit keeps the legs it already has; only what they say changes. So does a fee it already cost. Opened
+        // from a list filtered to one account, the copy may hold only one leg, so the outflow is the one the form
+        // was opened on and the inflow whichever other leg is here.
+        val toId = dao.byTransferId(transferId).firstOrNull { it.id != fromId }?.id ?: Ids.new(Ids.TRANSACTION)
+        val existingFeeId = knownFeeId ?: dao.feeOf(transferId)?.id
+        val feeId = existingFeeId ?: Ids.new(Ids.TRANSACTION)
 
         storeLocal(legsFor(transferId, fromId, toId, fromAccountId, toAccountId, categoryId, amount, toAmount, occurredOn, payee, notes), tagIds)
         when {
             fee != null -> storeFee(feeId, transferId, fromAccountId, fee, occurredOn)
-            existingFee != null -> dao.deleteLocal(existingFee.id, null)
+            existingFeeId != null -> dao.deleteLocal(existingFeeId, null)
         }
 
         val body = buildJsonObject {
@@ -393,7 +397,7 @@ class TransactionRepository(
             // Left out, the server keeps the fee; null takes it off — only sent when there was one to take.
             when {
                 fee != null -> putFee(feeId, fee)
-                existingFee != null -> put("fee", null as String?)
+                existingFeeId != null -> put("fee", null as String?)
             }
         }
         outbox.enqueue("PATCH", "/api/transactions/transfer/$transferId", body, entity = "transfer", rowId = transferId)
@@ -446,8 +450,16 @@ class TransactionRepository(
         )
     }
 
-    /** The fee a transfer already cost, for its edit form. */
-    suspend fun transferFee(transferId: String): Transaction? = dao.feeOf(transferId)?.toDomain(emptyList())
+    /**
+     * A transfer whole — outflow, inflow, then its fee — from the copy when it holds both legs, otherwise asked of
+     * the API (`api.transfer` on the web). A list filtered to one account keeps only that account's leg. What the API
+     * answers is not stored: rows new to the copy would move its balances a second time. Throws what the API said.
+     */
+    suspend fun transfer(transferId: String): List<Transaction> {
+        val held = dao.transferWithTags(transferId).map { it.toDomain() }
+        if (held.count { it.transferId == transferId } == 2) return held
+        return apiCall { api.transfer(transferId) }.transactions
+    }
 
     /** The rate one [from] bought in [to] on [date], for a transfer's form. Online only; throws what the API said. */
     suspend fun exchangeRate(from: String, to: String, date: String) = apiCall { api.exchangeRate(from, to, date) }

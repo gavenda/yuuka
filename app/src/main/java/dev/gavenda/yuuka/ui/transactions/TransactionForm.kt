@@ -145,10 +145,13 @@ fun TransactionForm(
     // form waits for it rather than saving a transfer without the fee it has.
     val editingTransferId = editing?.transferId
     var feeLoaded by remember(editing) { mutableStateOf(editingTransferId == null) }
+    /** The fee the transfer being edited already has, so an edit changes or takes off that one. */
+    var feeId by remember(editing) { mutableStateOf<String?>(null) }
     LaunchedEffect(editingTransferId) {
         if (editingTransferId == null) return@LaunchedEffect
         val fee = loadTransferFee(editingTransferId)
         if (fee != null) {
+            feeId = fee.id
             val withFee = { f: FormFields -> f.copy(fee = toDecimalString(kotlin.math.abs(fee.amount)), feeCategoryId = fee.categoryId ?: "") }
             initial = withFee(initial)
             fields = withFee(fields)
@@ -162,34 +165,27 @@ fun TransactionForm(
     val crossCurrency = fields.mode == FormMode.TRANSFER && fromCurrency != null && toCurrency != null && fromCurrency != toCurrency
     val currencyPair = if (fromCurrency != null && toCurrency != null) "$fromCurrency>$toCurrency" else ""
 
-    // A rate typed, worked out from a typed received amount, or the one an edited transfer moved at, is the person's
-    // own and never overwritten — until either account's currency changes, which makes it a rate for another pair.
+    // A rate typed, or the one an edited transfer moved at, is the person's own and never overwritten — until either
+    // account's currency changes, which makes it a rate for another pair.
     var rateOwn by remember(editing) { mutableStateOf(initial.rate.isNotEmpty()) }
     var ratePair by remember(editing) { mutableStateOf(currencyPair) }
     var rateNote by remember(editing) { mutableStateOf<RateNote?>(null) }
 
-    /** Received, as the amount and the rate come to; left alone while either is not a number yet. */
-    fun received(f: FormFields): String {
-        val sent = parseMoney(f.amount) ?: return f.toAmount
-        val rate = parseRate(f.rate) ?: return f.toAmount
-        return if (sent > 0) toDecimalString(convertAtRate(sent, rate)) else f.toAmount
+    /**
+     * [f] with what left worked out from what arrived at the rate — the figure Wise calls "we converted" (`deriveSent`
+     * on the web). It is never typed between two currencies, so while either is not a number yet it is blank.
+     */
+    fun withSent(f: FormFields): FormFields {
+        val received = parseMoney(f.toAmount)?.takeIf { it > 0 }
+        val rate = parseRate(f.rate)
+        return f.copy(amount = if (received != null && rate != null) toDecimalString(convertAtRate(received, rate)) else "")
     }
 
-    /** Typing a rate makes it the person's own, and what arrived follows it (`onRateTyped` on the web). */
+    /** Typing a rate makes it the person's own, and what left follows it (`onRateTyped` on the web). */
     fun onRateTyped(typed: String) {
         rateOwn = true
         rateNote = null
-        fields = fields.copy(rate = typed).let { it.copy(toAmount = received(it)) }
-    }
-
-    /** Typing what arrived makes the rate whatever the two amounts imply (`onReceivedTyped` on the web). */
-    fun onReceivedTyped(typed: String) {
-        val implied = parseMoney(fields.amount)?.let { sent -> parseMoney(typed)?.let { rateBetween(sent, it) } }
-        fields = fields.copy(toAmount = typed, rate = implied?.let(::formatRate) ?: fields.rate)
-        if (implied != null) {
-            rateOwn = true
-            rateNote = null
-        }
+        fields = withSent(fields.copy(rate = typed))
     }
 
     val datePartForRate = fields.date.format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -203,17 +199,18 @@ fun TransactionForm(
         if (currencyPair != ratePair) {
             ratePair = currencyPair
             rateOwn = false
-            fields = fields.copy(rate = "", toAmount = "")
+            fields = fields.copy(rate = "", toAmount = "", amount = "")
         }
         if (rateOwn) return@LaunchedEffect
         rateNote = RateNote.Loading
-        val answer = lookUpRate(fromCurrency!!, toCurrency!!, datePartForRate)
+        // Quoted as one of the destination's in the source's, so it is asked for that way round.
+        val answer = lookUpRate(toCurrency!!, fromCurrency!!, datePartForRate)
         if (rateOwn) return@LaunchedEffect
         if (answer == null) {
             rateNote = RateNote.Unavailable
         } else {
             rateNote = RateNote.Found(answer.date)
-            fields = fields.copy(rate = formatRate(answer.rate)).let { it.copy(toAmount = received(it)) }
+            fields = withSent(fields.copy(rate = formatRate(answer.rate)))
         }
     }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
@@ -242,7 +239,8 @@ fun TransactionForm(
     val amountField = form.field(
         "amount",
         when {
-            fields.amount.isBlank() -> stringResource(R.string.error_amount_required)
+            // Between two currencies the amount is worked out, so a blank one is Received's or Rate's to report.
+            fields.amount.isBlank() -> if (crossCurrency) null else stringResource(R.string.error_amount_required)
             amountMinor == null -> stringResource(R.string.error_amount_number)
             amountMinor <= 0 -> stringResource(R.string.error_amount_greater_than_zero)
             else -> null
@@ -320,6 +318,7 @@ fun TransactionForm(
                 tagIds = tagIds,
                 // A fee left blank is none, which on an edit takes off the one it had.
                 fee = feeMinor?.takeIf { fields.fee.isNotBlank() && it > 0 }?.let { TransferFee(it, fields.feeCategoryId.ifBlank { null }) },
+                feeId = feeId,
             )
             else -> TransactionSubmission.Plain(
                 accountId = fields.accountId,
@@ -373,12 +372,15 @@ fun TransactionForm(
             },
         )
 
+        // Between two currencies what left is worked out from Received and Rate below, so it is read, not typed.
         YuukaTextField(
             value = fields.amount,
-            onValueChange = { fields = fields.copy(amount = it).let { f -> if (crossCurrency) f.copy(toAmount = received(f)) else f } },
+            onValueChange = { fields = fields.copy(amount = it) },
             label = stringResource(R.string.label_amount),
             placeholder = stringResource(R.string.placeholder_amount_decimal),
             singleLine = true,
+            readOnly = crossCurrency,
+            hint = if (crossCurrency) stringResource(R.string.amount_converted) else null,
             field = amountField,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             // The currency of the account it lands on; empty rather than null keeps the prefix slot steady.
@@ -404,8 +406,7 @@ fun TransactionForm(
             )
         }
 
-        // Between two currencies, what left is the amount above: the rate and what arrived follow each other, and
-        // either may be typed — a bank's statement gives one or the other.
+        // Between two currencies, what arrived and the rate are typed, as Wise lists them, and the amount above follows.
         if (crossCurrency) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 YuukaTextField(
@@ -418,14 +419,14 @@ fun TransactionForm(
                         RateNote.Loading -> stringResource(R.string.rate_loading)
                         is RateNote.Found -> stringResource(R.string.rate_found, formatLongDate(note.date))
                         RateNote.Unavailable -> stringResource(R.string.rate_unavailable)
-                        null -> stringResource(R.string.rate_hint, fromCurrency!!, toCurrency!!)
+                        null -> stringResource(R.string.rate_hint, toCurrency!!, fromCurrency!!)
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                 )
                 YuukaTextField(
                     value = fields.toAmount,
-                    onValueChange = ::onReceivedTyped,
+                    onValueChange = { fields = withSent(fields.copy(toAmount = it)) },
                     label = stringResource(R.string.label_received),
                     placeholder = stringResource(R.string.placeholder_amount_decimal),
                     singleLine = true,

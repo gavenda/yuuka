@@ -56,7 +56,7 @@ const form = reactive({
 	payee: '',
 	notes: '',
 	tagIds: [] as string[],
-	/** Between two currencies: one of the source's in the destination's, and what arrived. */
+	/** Between two currencies: what one of the destination's cost in the source's, as Wise quotes it, and what arrived. */
 	rate: '',
 	toAmount: '',
 	/** What the transfer cost, an expense on the source account; blank is none. */
@@ -65,8 +65,8 @@ const form = reactive({
 });
 
 /**
- * Whether the rate is the person's own — typed, worked out from a typed received amount, or what an edited
- * transfer already moved at — rather than the one looked up. A rate of their own is never overwritten.
+ * Whether the rate is the person's own — typed, or what an edited transfer already moved at — rather than the one
+ * looked up. A rate of their own is never overwritten.
  */
 const rateOwn = ref(false);
 /** What is said under the rate: that it is being looked up, which day's it is, or that there is none. */
@@ -101,7 +101,8 @@ const crossCurrency = computed(
 const validation = useFormValidation({
 	payee: () => (form.payee.trim().length > 120 ? t('transactions.form.payeeTooLong', { max: 120 }) : null),
 	amount: () => {
-		if (!form.amount.trim()) return t('transactions.form.amountRequired');
+		// Between two currencies the amount is worked out, so a blank one is Received's or Rate's to report.
+		if (!form.amount.trim()) return crossCurrency.value ? null : t('transactions.form.amountRequired');
 		const minor = parseMoney(form.amount);
 		if (minor === null) return t('transactions.form.amountNumber');
 		return minor > 0 ? null : t('transactions.form.amountPositive');
@@ -195,8 +196,7 @@ function seed(): void {
 		const hasTime = transaction.occurredOn.length > 10 && !transaction.automated;
 
 		const inflow = isTransfer ? (props.transferInflow ?? null) : null;
-		const sent = Math.abs(transaction.amount);
-		const rate = inflow ? rateBetween(sent, inflow.amount) : null;
+		const rate = inflow ? rateBetween(Math.abs(transaction.amount), inflow.amount) : null;
 
 		Object.assign(form, {
 			mode: isTransfer ? 'transfer' : transaction.amount >= 0 ? 'income' : 'expense',
@@ -264,30 +264,21 @@ watch(
 	},
 );
 
-/** Received, as the amount and the rate come to. Left alone while either is not a number yet. */
-function deriveReceived(): void {
-	const sent = parseMoney(form.amount);
+/**
+ * What left, as what arrived comes to at the rate — the figure Wise calls "we converted". It is never typed between
+ * two currencies, so while either is not a number yet it is blank rather than a figure that no longer holds.
+ */
+function deriveSent(): void {
+	const received = parseMoney(form.toAmount);
 	const rate = parseRate(form.rate);
-	if (sent === null || sent <= 0 || rate === null) return;
-	form.toAmount = toDecimalString(convertAtRate(sent, rate));
+	form.amount = received !== null && received > 0 && rate !== null ? toDecimalString(convertAtRate(received, rate)) : '';
 }
 
-/** Typing a rate makes it the person's own, and what arrived follows it. */
+/** Typing a rate makes it the person's own, and what left follows it. */
 function onRateTyped(): void {
 	rateOwn.value = true;
 	rateNote.value = null;
-	deriveReceived();
-}
-
-/** Typing what arrived — the figure a bank statement gives — makes the rate whatever the two amounts imply. */
-function onReceivedTyped(): void {
-	const sent = parseMoney(form.amount);
-	const received = parseMoney(form.toAmount);
-	const rate = sent !== null && received !== null ? rateBetween(sent, received) : null;
-	if (rate === null) return;
-	rateOwn.value = true;
-	rateNote.value = null;
-	form.rate = formatRate(rate);
+	deriveSent();
 }
 
 /** Bumped for every lookup, so an answer that is no longer for the accounts and day on show is dropped. */
@@ -305,11 +296,12 @@ async function lookUpRate(): Promise<void> {
 	const to = toCurrency.value!;
 	rateNote.value = t('transactions.form.rateLoading');
 	try {
-		const answer = await api.exchangeRate(from, to, form.occurredOn || today());
+		// Quoted as one of the destination's in the source's, so it is asked for that way round.
+		const answer = await api.exchangeRate(to, from, form.occurredOn || today());
 		if (asked !== lookup || rateOwn.value) return;
 		form.rate = formatRate(answer.rate);
 		rateNote.value = t('transactions.form.rateFound', { date: formatLongDate(answer.date) });
-		deriveReceived();
+		deriveSent();
 	} catch {
 		if (asked === lookup && !rateOwn.value) rateNote.value = t('transactions.form.rateUnavailable');
 	}
@@ -327,16 +319,10 @@ watch([currencyPair, () => form.occurredOn], () => {
 		rateOwn.value = false;
 		form.rate = '';
 		form.toAmount = '';
+		form.amount = '';
 	}
 	void lookUpRate();
 });
-
-watch(
-	() => form.amount,
-	() => {
-		if (crossCurrency.value) deriveReceived();
-	},
-);
 
 /** The fee is an expense, so it takes the standard expense categories. */
 const feeCategoryChoices = computed(() =>
@@ -487,13 +473,19 @@ const receivedPrefix = computed(() => (toCurrency.value ? currencySymbol(toCurre
 				@blur="touch('payee')"
 			/>
 
+			<!-- Between two currencies what left is worked out from Received and Rate below, so it is read, not typed.
+			     Keyed on that: the library decides whether a field has a supporting row as it mounts, so a hint that
+			     arrives later would not be drawn. -->
 			<TextField
 				id="amount"
+				:key="crossCurrency ? 'converted' : 'typed'"
 				v-model="form.amount"
 				:label="t('common.amount')"
 				placeholder="0.00"
 				inputmode="decimal"
+				:readonly="crossCurrency"
 				:prefix="amountPrefix"
+				:hint="crossCurrency ? t('transactions.form.amountConverted') : undefined"
 				:error="fieldError('amount')"
 				@blur="touch('amount')"
 			/>
@@ -520,8 +512,8 @@ const receivedPrefix = computed(() => (toCurrency.value ? currencySymbol(toCurre
 				/>
 			</div>
 
-			<!-- Between two currencies, what left is the amount above: the rate and what arrived follow each other,
-			     and either may be typed — a bank's statement gives one or the other. -->
+			<!-- Between two currencies, what arrived and the rate are typed, as Wise lists them, and the amount above
+			     follows. -->
 			<div v-if="crossCurrency" class="flex gap-3">
 				<TextField
 					id="rate"
@@ -529,7 +521,7 @@ const receivedPrefix = computed(() => (toCurrency.value ? currencySymbol(toCurre
 					class="min-w-0 flex-1"
 					:label="t('transactions.form.rate')"
 					inputmode="decimal"
-					:hint="rateNote ?? t('transactions.form.rateHint', { from: fromCurrency!, to: toCurrency! })"
+					:hint="rateNote ?? t('transactions.form.rateHint', { from: toCurrency!, to: fromCurrency! })"
 					:error="fieldError('rate')"
 					@update:model-value="onRateTyped"
 					@blur="touch('rate')"
@@ -543,7 +535,7 @@ const receivedPrefix = computed(() => (toCurrency.value ? currencySymbol(toCurre
 					inputmode="decimal"
 					:prefix="receivedPrefix"
 					:error="fieldError('received')"
-					@update:model-value="onReceivedTyped"
+					@update:model-value="deriveSent"
 					@blur="touch('received')"
 				/>
 			</div>

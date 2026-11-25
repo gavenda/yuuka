@@ -96,12 +96,14 @@ either side deletes the pair, so the two accounts can never disagree.
 - **A transfer between currencies keeps each leg in its own currency, and the rate is never stored**: the outflow
 is what left in the source account's currency (`amount`), the inflow what arrived in the destination's
 (`toAmount`, `amount` when both accounts hold one currency), and the rate is the one divided by the other — so it
-cannot drift from the money. When the two accounts' currencies differ, both forms show a Rate and a Received
-field: the rate is filled in from `GET /api/fx` for the transfer's day (the ECB's rates through Frankfurter, today's
-from open.er-api.com for a pair the ECB does not quote, cached in KV), Received follows it, and typing either
-makes the rate the person's own (`convertAtRate`, `rateBetween`, `formatRate`, `parseRate` in both apps' money
-helpers). An own rate — typed, implied by a typed Received, or what an edited transfer moved at — is never
-overwritten by a lookup, until either account's currency changes. The lookup is online only and never queued:
+cannot drift from the money. When the two accounts' currencies differ, both forms take what arrived and the rate,
+as Wise's details list them, and the Amount is worked out from them and read-only (received × rate, Wise's "we
+converted"). The rate is quoted as Wise quotes it, one of the destination's in the source's (`1 USD = 63.78 PHP`),
+and is filled in from `GET /api/fx` for the transfer's day, asked for that way round (the ECB's rates through
+Frankfurter, today's from open.er-api.com for a pair the ECB does not quote, cached in KV); typing it makes it the
+person's own (`convertAtRate`, `rateBetween`, `formatRate`, `parseRate` in both apps' money helpers). An own rate —
+typed, or what an edited transfer moved at — is never overwritten by a lookup, until either account's currency
+changes. The lookup is online only and never queued:
 offline the field says there is no rate and waits to be typed. Net worth and every other total still add
 currencies as they stand.
 

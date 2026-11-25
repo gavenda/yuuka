@@ -370,8 +370,9 @@
     <string name="rate_found">Rate for %1$s</string>
     <string name="rate_unavailable">No rate online. Enter the one you got.</string>
     <string name="error_rate_required">Enter a rate.</string>
-    <string name="error_rate_number">Enter a rate greater than zero, such as 0.0172.</string>
+    <string name="error_rate_number">Enter a rate greater than zero, such as 63.78.</string>
     <string name="label_received">Received</string>
+    <string name="amount_converted">What arrived, at the rate</string>
     <string name="error_received_required">Enter what arrived.</string>
     <string name="label_fee">Fee</string>
     <string name="fee_hint">Counted as spending</string>
@@ -430,6 +431,7 @@
     <string name="subscription_deleted">Subscription deleted</string>
     <string name="transaction_deleted">Transaction deleted</string>
     <string name="transfer_deleted">Transfer deleted</string>
+    <string name="transfer_unavailable">Couldn\'t open this transfer. Try again once you\'re online.</string>
     <string name="subscriptions_total_per_month">Total per month</string>
     <string name="subscriptions_total_paused">%1$d napping, not counted</string>
     <string name="subscription_paused">Subscription is napping</string>
